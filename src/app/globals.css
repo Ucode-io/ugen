@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Акценты делаем чуть ярче для темной темы */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #60a5fa;
+  --color-accent: #22d3ee;
+  
+  --color-bg-main: var(--bg-main);
+  --color-bg-card: var(--bg-card);
+  --color-bg-sidebar: var(--bg-sidebar);
+  
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  
+  --color-border-subtle: var(--border);
+  --color-input-bg: var(--input-bg);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --radius-ai: 14px; /* Чуть увеличили радиус для мягкости */
+  
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  :root {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-sidebar: #f1f5f9;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --input-bg: #ffffff;
+  }
+
+  /* Современный Dark Mode (Slate-Midnight Palette) */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg-main: #0b0f1a;    /* Глубокий полночный синий */
+      --bg-card: #131a2b;    /* Карточки чуть светлее фона */
+      --bg-sidebar: #0f1422; /* Сайдбар между ними по яркости */
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: rgba(51, 65, 85, 0.5); /* Полупрозрачные границы */
+      --input-bg: #1e293b;
+    }
+  }
+
+  [data-theme='dark'] {
+    --bg-main: #0b0f1a;
+    --bg-card: #131a2b;
+    --bg-sidebar: #0f1422;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: rgba(51, 65, 85, 0.5);
+    --input-bg: #1e293b;
+  }
+
+  body {
+    @apply bg-bg-main text-text-main font-sans transition-colors duration-500 antialiased;
+  }
+}
+
+@layer components {
+  /* Улучшенная карточка: Glassmorphism в темной теме */
+  .ai-card {
+    @apply bg-bg-card border border-border-subtle rounded-ai shadow-sm transition-all duration-300;
+    
+    [data-theme='dark'] & {
+      @apply shadow-[0_8px_30px_rgb(0,0,0,0.4)] backdrop-blur-md;
+      background-image: linear-gradient(to bottom right, rgba(255,255,255,0.02), transparent);
+    }
+  }
+
+  /* Градиентный текст с более сочными цветами для темной темы */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-bold tracking-tight;
+  }
+
+  /* Инпут с неоновым фокусом */
+  .ai-input {
+    @apply bg-input-bg border-border-subtle rounded-ai px-4 py-2 outline-none transition-all;
+    &:focus {
+      @apply border-primary/50 shadow-[0_0_10px_rgba(59,130,246,0.2)];
+    }
+  }
 }

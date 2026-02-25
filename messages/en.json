@@ -1,0 +1,8 @@
+{
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "generator": "AI Generator",
+    "tables": "Tables",
+    "settings": "Settings"
+  }
+}
