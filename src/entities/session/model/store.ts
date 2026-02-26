@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
+export interface Permission {
+  id: string;
+  action: string;
+  resource: string;
+}
+
 export interface UserData {
   id: string
   login: string
@@ -17,26 +23,26 @@ export interface ProjectData {
 }
 
 export interface AuthState {
-  user: UserData | null
-  project: ProjectData | null
-  permissions: any[]
-  appPermissions: any[]
-  globalPermission: any
-  accessToken: string | null
-  refreshToken: string | null
-  isAuthenticated: boolean
-  activeView: 'home' | 'dashboard'
+  user: UserData | null;
+  project: ProjectData | null;
+  permissions: Permission[];
+  appPermissions: Permission[];
+  globalPermission: Permission | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  activeView: "home" | "dashboard";
   setAuth: (
     user: UserData,
     project: ProjectData,
-    permissions: any[],
-    appPermissions: any[],
-    globalPermission: any,
+    permissions: Permission[],
+    appPermissions: Permission[],
+    globalPermission: Permission | null,
     accessToken: string,
-    refreshToken: string
-  ) => void
-  logout: () => void
-  setActiveView: (view: 'home' | 'dashboard') => void
+    refreshToken: string,
+  ) => void;
+  logout: () => void;
+  setActiveView: (view: "home" | "dashboard") => void;
 }
 
 export const useAuthStore = create<AuthState>()(
