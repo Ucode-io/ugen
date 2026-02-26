@@ -7,22 +7,32 @@
   --color-primary: #3b82f6;
   --color-primary-hover: #60a5fa;
   --color-accent: #22d3ee;
-  
+
+  --color-glow-primary: #3B82F6;
+  --color-glow-secondary: #44A5DF;
+  --color-glow-tertiary: #06B6D4;
+
   --color-bg-main: var(--bg-main);
   --color-bg-card: var(--bg-card);
   --color-bg-sidebar: var(--bg-sidebar);
-  
+
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
-  
+
   --color-border-subtle: var(--border);
   --color-input-bg: var(--input-bg);
+  --color-hover-bg: var(--hover-bg);
 
-  --radius-ai: 14px; /* Чуть увеличили радиус для мягкости */
-  
+  --radius-ai: 14px;
+
   @keyframes shimmer {
-    from { background-position: 200% 0; }
-    to { background-position: -200% 0; }
+    from {
+      background-position: 200% 0;
+    }
+
+    to {
+      background-position: -200% 0;
+    }
   }
 }
 
@@ -35,29 +45,39 @@
     --text-muted: #64748b;
     --border: #e2e8f0;
     --input-bg: #ffffff;
+    --hover-bg: #e2e8f0;
   }
 
-  /* Современный Dark Mode (Slate-Midnight Palette) */
+  /* Modern Dark Mode matching reference */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme='light']) {
-      --bg-main: #0b0f1a;    /* Глубокий полночный синий */
-      --bg-card: #131a2b;    /* Карточки чуть светлее фона */
-      --bg-sidebar: #0f1422; /* Сайдбар между ними по яркости */
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --border: rgba(51, 65, 85, 0.5); /* Полупрозрачные границы */
-      --input-bg: #1e293b;
+      --bg-main: #09090b;
+      /* Zinc 950 */
+      --bg-card: #18181b;
+      /* Zinc 900 */
+      --bg-sidebar: #09090b;
+      /* Matching main BG for seamless look */
+      --text-main: #fafafa;
+      /* Zinc 50 */
+      --text-muted: #a1a1aa;
+      /* Zinc 400 */
+      --border: #27272a;
+      /* Zinc 800 */
+      --input-bg: #18181b;
+      --hover-bg: #27272a;
+      /* Zinc 800 */
     }
   }
 
   [data-theme='dark'] {
-    --bg-main: #0b0f1a;
-    --bg-card: #131a2b;
-    --bg-sidebar: #0f1422;
-    --text-main: #f1f5f9;
-    --text-muted: #94a3b8;
-    --border: rgba(51, 65, 85, 0.5);
-    --input-bg: #1e293b;
+    --bg-main: #09090b;
+    --bg-card: #18181b;
+    --bg-sidebar: #09090b;
+    --text-main: #fafafa;
+    --text-muted: #a1a1aa;
+    --border: #27272a;
+    --input-bg: #18181b;
+    --hover-bg: #27272a;
   }
 
   body {
@@ -69,7 +89,7 @@
   /* Улучшенная карточка: Glassmorphism в темной теме */
   .ai-card {
     @apply bg-bg-card border border-border-subtle rounded-ai shadow-sm transition-all duration-300;
-    
+
     [data-theme='dark'] & {
       @apply shadow-[0_8px_30px_rgb(0,0,0,0.4)] backdrop-blur-md;
       background-image: linear-gradient(to bottom right, rgba(255,255,255,0.02), transparent);
@@ -84,6 +104,7 @@
   /* Инпут с неоновым фокусом */
   .ai-input {
     @apply bg-input-bg border-border-subtle rounded-ai px-4 py-2 outline-none transition-all;
+
     &:focus {
       @apply border-primary/50 shadow-[0_0_10px_rgba(59,130,246,0.2)];
     }

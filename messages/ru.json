@@ -3,6 +3,26 @@
     "dashboard": "Дашборд",
     "generator": "ИИ Генератор",
     "tables": "Таблицы",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "features": "Функции",
+    "pricing": "Цены",
+    "about": "О нас",
+    "login": "Войти",
+    "get_started": "Начать",
+    "home": "Главная",
+    "search": "Поиск",
+    "resources": "Ресурсы",
+    "projects": "Проекты",
+    "all_projects": "Все проекты",
+    "new_folder": "Новая папка",
+    "test": "test",
+    "starred": "Избранное",
+    "shared_with_me": "Доступно мне",
+    "recents": "Недавние",
+    "simple_site_creator": "Simple Site Creator",
+    "remix_ai_video": "Remix of Ai Video Studio",
+    "heartfelt_creations": "Heartfelt Creations",
+    "upgrade_pro": "Перейти на Pro",
+    "unlock_benefits": "Откройте новые возможности"
   }
 }

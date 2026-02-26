@@ -3,6 +3,26 @@
     "dashboard": "Dashbord",
     "generator": "SI generator",
     "tables": "Jadvallar",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "features": "Xususiyatlar",
+    "pricing": "Narxlar",
+    "about": "Biz haqimizda",
+    "login": "Kirish",
+    "get_started": "Boshlash",
+    "home": "Home",
+    "search": "Qidiruv",
+    "resources": "Resurslar",
+    "projects": "Loyihalar",
+    "all_projects": "Barcha loyihalar",
+    "new_folder": "Yangi jild",
+    "test": "test",
+    "starred": "Saqlanganlar",
+    "shared_with_me": "Men bilan ulashilgan",
+    "recents": "Yaqindagi",
+    "simple_site_creator": "Simple Site Creator",
+    "remix_ai_video": "Remix of Ai Video Studio",
+    "heartfelt_creations": "Heartfelt Creations",
+    "upgrade_pro": "Pro ga o'tish",
+    "unlock_benefits": "Ko'proq imkoniyatlarni oching"
   }
 }

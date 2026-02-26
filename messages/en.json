@@ -3,6 +3,26 @@
     "dashboard": "Dashboard",
     "generator": "AI Generator",
     "tables": "Tables",
-    "settings": "Settings"
+    "settings": "Settings",
+    "features": "Features",
+    "pricing": "Pricing",
+    "about": "About",
+    "login": "Login",
+    "get_started": "Get Started",
+    "home": "Home",
+    "search": "Search",
+    "resources": "Resources",
+    "projects": "Projects",
+    "all_projects": "All projects",
+    "new_folder": "New folder",
+    "test": "test",
+    "starred": "Starred",
+    "shared_with_me": "Shared with me",
+    "recents": "Recents",
+    "simple_site_creator": "Simple Site Creator",
+    "remix_ai_video": "Remix of Ai Video Studio",
+    "heartfelt_creations": "Heartfelt Creations",
+    "upgrade_pro": "Upgrade to Pro",
+    "unlock_benefits": "Unlock more benefits"
   }
 }

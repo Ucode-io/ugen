@@ -6,6 +6,7 @@ import "@/app/globals.css";
 import { siteConfig } from "@/shared/config";
 import { routing } from "@/shared/lib/i18n";
 import { ThemeProvider } from "@/shared/providers";
+import { ViewLayoutWrapper } from "@/shared/ui/view-layout-wrapper";
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -33,7 +34,11 @@ const RootLayout = async ({ children, params }: Props) => {
         className="antialiased font-sans"
       >
         <ThemeProvider>
-          <NextIntlClientProvider>{children}</NextIntlClientProvider>
+          <NextIntlClientProvider>
+            <ViewLayoutWrapper>
+              {children}
+            </ViewLayoutWrapper>
+          </NextIntlClientProvider>
         </ThemeProvider>
       </body>
     </html>
