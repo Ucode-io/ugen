@@ -1,7 +1,7 @@
 'use client'
 import { Link } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
-import { LayoutGrid, FolderPlus, Folder } from "lucide-react"
+import { LayoutGrid, FolderPlus, Folder, ChevronRight } from "lucide-react"
 
 interface ProjectsNavProps {
   isCollapsed: boolean;
@@ -21,18 +21,38 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
       )}
       <nav className="space-y-0.5">
         <div>
-          <button
-            onClick={() =>
-              !isCollapsed && setIsAllProjectsOpen(!isAllProjectsOpen)
-            }
-            className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex w-full items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"}`}
+          <div
+            className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex w-full items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "py-1.5 pl-1.5 pr-3"}`}
             title={isCollapsed ? t("all_projects") : undefined}
           >
-            <LayoutGrid size={16} strokeWidth={2} />
             {!isCollapsed && (
-              <span className="flex-1 text-left">{t("all_projects")}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setIsAllProjectsOpen(!isAllProjectsOpen);
+                }}
+                className="text-text-muted hover:bg-black/5 dark:hover:bg-white/10 hover:text-text-main mr-1 flex items-center justify-center rounded-md p-0.5 transition-colors"
+              >
+                <ChevronRight
+                  size={16}
+                  strokeWidth={2}
+                  className={`transition-transform duration-200 ${isAllProjectsOpen ? "rotate-90" : ""}`}
+                />
+              </button>
             )}
-          </button>
+
+            <Link
+              href="/projects"
+              className="flex flex-1 items-center gap-2 overflow-hidden"
+            >
+              <LayoutGrid size={16} strokeWidth={2} className="shrink-0" />
+              {!isCollapsed && (
+                <span className="flex-1 truncate text-left">{t("all_projects")}</span>
+              )}
+            </Link>
+          </div>
 
           {!isCollapsed && isAllProjectsOpen && (
             <div className="border-border-subtle mt-0.5 ml-5 space-y-0.5 border-l py-1 pl-2">

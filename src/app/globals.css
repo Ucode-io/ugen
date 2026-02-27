@@ -10,8 +10,11 @@
 
 
   --color-bg-main: var(--bg-main);
+  --color-bg-secondary: var(--bg-secondary);
   --color-bg-card: var(--bg-card);
   --color-bg-sidebar: var(--bg-sidebar);
+  --color-content-bg: var(--content-bg);
+  --color-bg-view: var(--bg-view);
 
   --color-text-main: var(--text-main);
   --color-text-muted: var(--text-muted);
@@ -40,6 +43,7 @@
     --color-glow-tertiary: #06B6D4;
 
     --bg-main: #f8fafc;
+    --bg-secondary: #09090b;
     --bg-card: #ffffff;
     --bg-sidebar: #f1f5f9;
     --text-main: #0f172a;
@@ -47,12 +51,15 @@
     --border: #e2e8f0;
     --input-bg: #ffffff;
     --hover-bg: #e2e8f0;
+    --content-bg: hsl(0 0% 97% / 1);
+    --bg-view: #f7f4ed;
   }
 
   /* Modern Dark Mode matching reference */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme='light']) {
       --bg-main: #09090b;
+      --bg-secondary: #f8fafc;
       /* Zinc 950 */
       --bg-card: #18181b;
       /* Zinc 900 */
@@ -67,11 +74,14 @@
       --input-bg: #18181b;
       --hover-bg: #27272a;
       /* Zinc 800 */
+      --content-bg: hsl(0 0% 11% / 1);
+      --bg-view: #18181b;
     }
   }
 
   [data-theme='dark'] {
     --bg-main: #09090b;
+    --bg-secondary: #f8fafc;
     --bg-card: #18181b;
     --bg-sidebar: #09090b;
     --text-main: #fafafa;
@@ -79,6 +89,8 @@
     --border: #27272a;
     --input-bg: #18181b;
     --hover-bg: #27272a;
+    --content-bg: hsl(0 0% 11% / 1);
+    --bg-view: #18181b;
   }
 
   body {
@@ -113,4 +125,8 @@
       box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
     }
   }
+}
+
+button {
+  cursor: pointer;
 }
