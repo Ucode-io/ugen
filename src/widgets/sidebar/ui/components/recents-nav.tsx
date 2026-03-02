@@ -2,6 +2,7 @@
 import { Link } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { File } from "lucide-react"
+import { useProjectsList } from "@/entities/project";
 
 interface RecentsNavProps {
   isCollapsed: boolean;
@@ -9,6 +10,22 @@ interface RecentsNavProps {
 
 export const RecentsNav = ({ isCollapsed }: RecentsNavProps) => {
   const t = useTranslations('Navigation')
+  const { data: projectsResponse, isLoading } = useProjectsList({
+    order_by: "updated_at",
+    order_direction: "desc",
+    limit: 4,
+  });
+
+  const rawData =
+    projectsResponse?.response || projectsResponse?.data || projectsResponse;
+  const projectsList = Array.isArray(rawData)
+    ? rawData
+    : rawData?.projects || [];
+
+  const recents = projectsList.map((p: any) => ({
+    id: p.id,
+    name: p.name || p.title || "Untitled Project",
+  }));
 
   return (
     <div>
@@ -18,37 +35,28 @@ export const RecentsNav = ({ isCollapsed }: RecentsNavProps) => {
         </h3>
       )}
       <nav className="space-y-0.5">
-        <Link
-          href="/recent/1"
-          className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"}`}
-          title={isCollapsed ? t("simple_site_creator") : undefined}
-        >
-          <File size={16} strokeWidth={2} />
-          {!isCollapsed && (
-            <span className="truncate">{t("simple_site_creator")}</span>
-          )}
-        </Link>
-        <Link
-          href="/recent/2"
-          className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"}`}
-          title={isCollapsed ? t("remix_ai_video") : undefined}
-        >
-          <File size={16} strokeWidth={2} />
-          {!isCollapsed && (
-            <span className="truncate">{t("remix_ai_video")}</span>
-          )}
-        </Link>
-        <Link
-          href="/recent/3"
-          className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"}`}
-          title={isCollapsed ? t("heartfelt_creations") : undefined}
-        >
-          <File size={16} strokeWidth={2} />
-          {!isCollapsed && (
-            <span className="truncate">{t("heartfelt_creations")}</span>
-          )}
-        </Link>
+        {isLoading ? (
+          <div className="text-text-muted/50 px-3 py-2 text-xs">
+            {!isCollapsed && "Loading..."}
+          </div>
+        ) : recents.length === 0 ? (
+          <div className="text-text-muted/50 px-3 py-2 text-xs">
+            {!isCollapsed && "No recent projects"}
+          </div>
+        ) : (
+          recents.map((project: { id: string | number; name: string }) => (
+            <Link
+              key={project.id}
+              href={`/projects/${project.id}`}
+              className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"}`}
+              title={isCollapsed ? project.name : undefined}
+            >
+              <File size={16} strokeWidth={2} className="shrink-0" />
+              {!isCollapsed && <span className="truncate">{project.name}</span>}
+            </Link>
+          ))
+        )}
       </nav>
     </div>
-  )
+  );
 }

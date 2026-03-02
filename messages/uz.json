@@ -23,6 +23,40 @@
     "remix_ai_video": "Remix of Ai Video Studio",
     "heartfelt_creations": "Heartfelt Creations",
     "upgrade_pro": "Pro ga o'tish",
-    "unlock_benefits": "Ko'proq imkoniyatlarni oching"
+    "unlock_benefits": "Ko'proq imkoniyatlarni oching",
+    "templates": "Shablonlar",
+    "browse_all": "Barchasini ko\"rish",
+    "recently_viewed": "Yaqinda ko\"rilganlar",
+    "my_projects": "Mening loyihalarim"
+  },
+  "Templates": {
+    "title": "Shablonlar",
+    "use_template": "Shablondan foydalanish",
+    "cards": {
+      "lovable_slides": {
+        "title": "Lovable slides",
+        "description": "Kod asosida taqdimot yaratuvchi"
+      },
+      "architect_portfolio": {
+        "title": "Architect Portfolio Website Template",
+        "description": "Firma sayti va portfeli"
+      },
+      "ecommerce_store": {
+        "title": "Ecommerce Store Website Template",
+        "description": "Internet-do\"kon uchun premium dizayn"
+      },
+      "event_platform": {
+        "title": "Event Platform Website Template",
+        "description": "Tadbirlar platformasi"
+      },
+      "lifestyle_blog": {
+        "title": "Lifestyle Blog",
+        "description": "Korporativ blog"
+      },
+      "visual_landing": {
+        "title": "Visual Landing Page Website Template",
+        "description": "Vizual landing sahifasi"
+      }
+    }
   }
 }

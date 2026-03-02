@@ -32,7 +32,7 @@ export const ViewLayoutWrapper = ({ children }: { children: ReactNode }) => {
 
   if (activeView === 'dashboard') {
     return (
-      <div className="flex min-h-screen bg-bg-main">
+      <div className="flex h-screen bg-bg-main overflow-hidden">
         <Sidebar />
         <main className={`flex-1 overflow-y-auto rounded-2xl m-3 border-1 ${theme === 'dark' ? 'border-border-subtle' : 'border-border-subtle'}`}>
           <div className="h-full relative">

@@ -1,17 +1,13 @@
 "use client"
-import { useState } from "react"
-import { PanelLeftClose, PanelRightClose } from "lucide-react"
+import { useState, useEffect, useRef } from "react";
+import { PanelLeftClose, PanelRightClose, Loader2 } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
+import { useChatStore, Message } from "@/entities/chat";
+import { api } from "@/shared/api";
 
 interface WorkspaceChatProps {
   projectId: string
-}
-
-type Message = {
-  id: string
-  role: 'user' | 'ai'
-  content: string
 }
 
 const MOCK_CHAT: Message[] = [
@@ -23,38 +19,203 @@ const MOCK_CHAT: Message[] = [
 ]
 
 export const WorkspaceChat = ({ projectId }: WorkspaceChatProps) => {
-  const [messages, setMessages] = useState<Message[]>(MOCK_CHAT)
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  const handleSendMessage = (text: string) => {
-    // Add user message
-    const newMessage: Message = {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const messages = useChatStore((state) => state.messages);
+  const addMessage = useChatStore((state) => state.addMessage);
+  const unshiftMessages = useChatStore((state) => state.unshiftMessages);
+  const chatId = useChatStore((state) => state.chatId);
+  const setChatId = useChatStore((state) => state.setChatId);
+
+  // Use global messages if available, else fallback to mock.
+  const displayMessages = messages.length > 0 ? messages : MOCK_CHAT;
+
+  const fetchHistory = async (currentOffset: number) => {
+    if (!projectId || !hasMore || isLoadingHistory) return;
+    setIsLoadingHistory(true);
+
+    try {
+      const { data } = await api.get(`/v1/ai-chat/project/${projectId}`, {
+        params: { limit: 10, offset: currentOffset },
+      });
+
+      const resData = data.data || data.messages || [];
+      const historyMessages = Array.isArray(resData)
+        ? resData
+        : resData.messages || resData.data || [];
+
+      if (historyMessages.length > 0) {
+        setChatId(historyMessages[0].chat_id);
+        const formatted = historyMessages.map((m: any) => ({
+          id: m.id || m.message_id || Date.now().toString(),
+          role: m.role || "ai",
+          content: m.content || "",
+        }));
+
+        // Reverse to ensure newest is at the bottom (given offset=0 usually means latest messages)
+        const reversed = [...formatted].reverse();
+
+        const previousScrollHeight = scrollRef.current?.scrollHeight || 0;
+
+        unshiftMessages(reversed);
+        setOffset(currentOffset + 10);
+
+        // Restore scroll position so user isn't snapped to the top
+        requestAnimationFrame(() => {
+          if (scrollRef.current) {
+            const newScrollHeight = scrollRef.current.scrollHeight;
+            scrollRef.current.scrollTop =
+              newScrollHeight - previousScrollHeight;
+          }
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Load history on mount or when chatId changes, but only if offset is 0
+  useEffect(() => {
+    if (projectId && offset === 0 && hasMore) {
+      console.log("fetching history");
+      fetchHistory(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    if (scrollRef.current.scrollTop === 0 && hasMore && !isLoadingHistory) {
+      fetchHistory(offset);
+    }
+  };
+
+  const handleSendMessage = async (text: string) => {
+    // Add user message locally
+    addMessage({
+      id: Date.now().toString(),
+      role: "user",
+      content: text,
+    });
+
+    if (chatId) {
+      try {
+        const { data: messageData } = await api.post(
+          `/v1/ai-chat/new-messages/${chatId}`,
+          {
+            content: text,
+            images: [],
+            has_files: false,
+            tokens_used: 100,
+          },
+        );
+
+        if (messageData?.data?.content) {
+          addMessage({
+            id: messageData.data.id || (Date.now() + 1).toString(),
+            role: "ai",
+            content: messageData.data.content,
+          });
+
+          // Auto scroll down upon new message
+          requestAnimationFrame(() => {
+            if (scrollRef.current) {
+              scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      // Fallback
+      setTimeout(() => {
+        addMessage({
+          id: (Date.now() + 1).toString(),
+          role: "ai",
+          content: `(Mock mode - no Chat ID) I received: \n\n\`\`\`text\n${text}\n\`\`\``,
+        });
+      }, 1000);
+    }
+  };
+
+  const handleSendAudio = async (blob: Blob, url: string) => {
+    // Add user audio message locally
+    addMessage({
       id: Date.now().toString(),
       role: 'user',
-      content: text
-    }
+      content: '', // No text
+      type: 'audio',
+      audioUrl: url,
+    });
 
-    setMessages(prev => [...prev, newMessage])
+    if (chatId) {
+      try {
+        const formData = new FormData();
+        formData.append('audio', blob, 'recording.webm');
+        formData.append('chat_id', chatId);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'ai',
-        content: `I received your message: \n\n\`\`\`text\n${text}\n\`\`\`\n\nI will process it shortly!`
+        // Try to send audio to backend. We'll use the existing /new-messages endpoint 
+        // if it supports form data, or maybe a dedicated endpoint like /audio-message
+        // The prompt says "Подготовь аудио и для отправки в бэкенд."
+        // Meaning "Prepare audio for sending to the backend."
+        // The previous code had POST /api/upload-audio. Let's use that or a similar structure 
+        // through our api abstraction or just keep it generically ready.
+        // We'll prepare the form and hit the chat endpoint. Backends usually accept FormData if there are files.
+        const { data: messageData } = await api.post(
+          `/v1/ai-chat/new-messages/${chatId}`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            }
+          }
+        );
+
+        if (messageData?.data?.content) {
+          addMessage({
+            id: messageData.data.id || (Date.now() + 1).toString(),
+            role: 'ai',
+            content: messageData.data.content,
+          });
+
+          // Auto scroll down
+          requestAnimationFrame(() => {
+            if (scrollRef.current) {
+              scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to send audio', err);
       }
-      setMessages(prev => [...prev, aiResponse])
-    }, 1000)
-  }
+    } else {
+      setTimeout(() => {
+        addMessage({
+          id: (Date.now() + 1).toString(),
+          role: 'ai',
+          content: '(Mock mode) Got your voice message! Loud and clear.',
+        });
+      }, 1000);
+    }
+  };
 
   return (
-    <div className={`relative flex h-full shrink-0 flex-col bg-bg-main border-border-subtle transition-all duration-300 ${isCollapsed ? 'w-0 border-r-0' : 'w-[450px] border-r'}`}>
-
+    <div
+      className={`bg-bg-main border-border-subtle relative flex h-full shrink-0 flex-col transition-all duration-300 ${isCollapsed ? "w-0 border-r-0" : "w-[450px] border-r"}`}
+    >
       {/* Floating Expand Button when Collapsed */}
       {isCollapsed && (
         <button
           onClick={() => setIsCollapsed(false)}
-          className="absolute left-6 top-6 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-bg-card border border-border-subtle shadow-sm text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+          className="bg-bg-card border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg absolute top-6 left-6 z-50 flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm transition-colors"
           title="Open AI Chat"
         >
           <PanelRightClose size={20} />
@@ -62,15 +223,17 @@ export const WorkspaceChat = ({ projectId }: WorkspaceChatProps) => {
       )}
 
       {/* Main Chat Content (hidden completely when collapsed to prevent overflow) */}
-      <div className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div
+        className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
+      >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border-subtle px-4 py-3 bg-bg-card">
-          <h2 className="text-[15px] font-semibold text-text-main flex items-center gap-2">
+        <div className="border-border-subtle bg-bg-card flex shrink-0 items-center justify-between border-b px-4 py-3">
+          <h2 className="text-text-main flex items-center gap-2 text-[15px] font-semibold">
             Workspace AI
           </h2>
           <button
             onClick={() => setIsCollapsed(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors"
+            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
             title="Collapse AI Chat"
           >
             <PanelLeftClose size={20} />
@@ -78,17 +241,30 @@ export const WorkspaceChat = ({ projectId }: WorkspaceChatProps) => {
         </div>
 
         {/* Messages list */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map(msg => (
-            <ChatMessageBubble key={msg.id} role={msg.role} content={msg.content} />
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 space-y-4 overflow-y-auto p-4"
+        >
+          {isLoadingHistory && (
+            <div className="flex justify-center p-2">
+              <Loader2 className="text-text-muted animate-spin" size={20} />
+            </div>
+          )}
+          {displayMessages.map((msg: Message) => (
+            <ChatMessageBubble
+              key={msg.id}
+              role={msg.role}
+              content={msg.content}
+            />
           ))}
         </div>
 
         {/* Fixed bottom input container */}
-        <div className="shrink-0 bg-transparent px-4 pb-4 pt-2">
-          <ChatInput onSendMessage={handleSendMessage} />
+        <div className="shrink-0 bg-transparent px-4 pt-2 pb-4">
+          <ChatInput onSendMessage={handleSendMessage} onSendAudio={handleSendAudio} />
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

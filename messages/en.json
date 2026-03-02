@@ -23,6 +23,40 @@
     "remix_ai_video": "Remix of Ai Video Studio",
     "heartfelt_creations": "Heartfelt Creations",
     "upgrade_pro": "Upgrade to Pro",
-    "unlock_benefits": "Unlock more benefits"
+    "unlock_benefits": "Unlock more benefits",
+    "templates": "Templates",
+    "browse_all": "Browse all",
+    "recently_viewed": "Recently viewed",
+    "my_projects": "My projects"
+  },
+  "Templates": {
+    "title": "Templates",
+    "use_template": "Use template",
+    "cards": {
+      "lovable_slides": {
+        "title": "Lovable slides",
+        "description": "Code-powered presentation builder"
+      },
+      "architect_portfolio": {
+        "title": "Architect Portfolio Website Template",
+        "description": "Firm website & showcase"
+      },
+      "ecommerce_store": {
+        "title": "Ecommerce Store Website Template",
+        "description": "Premium design for webstore"
+      },
+      "event_platform": {
+        "title": "Event Platform Website Template",
+        "description": "Find, register, create events"
+      },
+      "lifestyle_blog": {
+        "title": "Lifestyle Blog",
+        "description": "Sophisticated blog design"
+      },
+      "visual_landing": {
+        "title": "Visual Landing Page Website Template",
+        "description": "Showcase your company"
+      }
+    }
   }
 }

@@ -1,42 +1,20 @@
 'use client'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Search, X, Folder, Image as ImageIcon } from 'lucide-react'
+import { Search, X, Folder, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useProjectsList } from "@/entities/project"
+import { useDebounce } from "@/shared/hooks/use-debounce"
+import { useRouter } from "@/shared/lib/i18n/navigation"
 
 interface SearchModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const mockProjects = [
-  {
-    id: 1,
-    title: 'Simple Site Creator',
-    user: 'Nurmuhammad Mahmudov',
-    userInitial: 'N',
-    time: '2 hours ago',
-    type: 'folder'
-  },
-  {
-    id: 2,
-    title: 'Remix of Ai Video Studio Landing Page',
-    user: 'Nurmuhammad Mahmudov',
-    userInitial: 'N',
-    time: '1 day ago',
-    type: 'image'
-  },
-  {
-    id: 3,
-    title: 'Heartfelt Creations',
-    user: 'Nurmuhammad Mahmudov',
-    userInitial: 'N',
-    time: '2 days ago',
-    type: 'folder'
-  }
-]
-
 export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 500)
+  const router = useRouter()
 
   // Clear search on open/close
   useEffect(() => {
@@ -44,6 +22,34 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
       setSearchQuery('')
     }
   }, [isOpen])
+
+  // Fetch projects from backend. When searchQuery is empty, we get recent projects.
+  const { data: projectsResponse, isLoading } = useProjectsList(
+    isOpen ? {
+      title: debouncedSearchQuery || undefined,
+      order_by: "updated_at",
+      order_direction: "desc",
+      limit: 10,
+    } : {} as any
+  )
+
+  const rawData = projectsResponse?.response || projectsResponse?.data || projectsResponse
+  const projectsList = Array.isArray(rawData) ? rawData : (rawData?.projects || [])
+
+  const formattedProjects = projectsList.map((p: any) => ({
+    id: p.id,
+    title: p.name || p.title || "Untitled Project",
+    user: p.user?.name || p.owner || "Unknown Author",
+    userInitial: (p.user?.name || p.owner || "U").substring(0, 1).toUpperCase(),
+    time: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : "Recently",
+    type: p.image || p.thumbnail ? 'image' : 'folder',
+    image: p.image || p.thumbnail || null
+  }))
+
+  const handleProjectClick = (projectId: string) => {
+    router.push(`/projects/${projectId}`)
+    onOpenChange(false)
+  }
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
@@ -76,54 +82,68 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
           {/* Body - Results */}
           <div className="p-2 max-h-[50vh] overflow-y-auto">
             <div className="px-3 py-2 text-[11px] font-bold tracking-wider text-text-muted uppercase">
-              Recent Projects
+              {searchQuery ? "Search Results" : "Recent Projects"}
             </div>
 
-            <div className="space-y-1">
-              {mockProjects.map(project => (
-                <div
-                  key={project.id}
-                  className="flex items-center justify-between p-3 rounded-xl hover:bg-hover-bg cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Icon / Image Placeholder */}
-                    <div className="h-12 w-[84px] shrink-0 rounded-md overflow-hidden bg-bg-sidebar flex items-center justify-center border border-border-subtle">
-                      {project.type === 'image' ? (
-                        <div className="h-full w-full bg-blue-900/30 relative flex items-center justify-center">
-                          {/* Abstract elements to simulate the thumbnail from screenshot */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 mix-blend-overlay"></div>
-                          <ImageIcon size={20} className="text-blue-500/50" />
-                        </div>
-                      ) : (
-                        <Folder size={20} className="text-text-muted" />
-                      )}
-                    </div>
+            {isLoading && (
+              <div className="flex justify-center items-center p-8 text-text-muted">
+                <Loader2 className="animate-spin" size={24} />
+              </div>
+            )}
 
-                    {/* Text Details */}
-                    <div>
-                      <h4 className="text-[15px] font-semibold text-text-main transition-colors">
-                        {project.title}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white text-[9px] font-bold">
-                          {project.userInitial}
+            {!isLoading && formattedProjects.length === 0 && (
+              <div className="text-center p-8 text-text-muted text-sm">
+                No projects found.
+              </div>
+            )}
+
+            {!isLoading && formattedProjects.length > 0 && (
+              <div className="space-y-1">
+                {formattedProjects.map((project: any) => (
+                  <div
+                    key={project.id}
+                    onClick={() => handleProjectClick(project.id)}
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-hover-bg cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Icon / Image Placeholder */}
+                      <div className="h-12 w-[84px] shrink-0 rounded-md overflow-hidden bg-bg-sidebar flex items-center justify-center border border-border-subtle">
+                        {project.type === 'image' ? (
+                          <div className="h-full w-full bg-blue-900/30 relative flex items-center justify-center">
+                            {/* Abstract elements to simulate the thumbnail from screenshot */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 mix-blend-overlay"></div>
+                            <ImageIcon size={20} className="text-blue-500/50 relative z-10" />
+                          </div>
+                        ) : (
+                          <Folder size={20} className="text-text-muted" />
+                        )}
+                      </div>
+
+                      {/* Text Details */}
+                      <div>
+                        <h4 className="text-[15px] font-semibold text-text-main transition-colors">
+                          {project.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white text-[9px] font-bold">
+                            {project.userInitial}
+                          </div>
+                          <span className="text-xs text-text-muted font-medium">
+                            {project.user}
+                          </span>
                         </div>
-                        <span className="text-xs text-text-muted font-medium">
-                          {project.user}
-                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Time */}
-                  <div className="text-xs text-text-muted font-medium whitespace-nowrap hidden sm:block pr-2">
-                    {project.time}
+                    {/* Time */}
+                    <div className="text-xs text-text-muted font-medium whitespace-nowrap hidden sm:block pr-2">
+                      {project.time}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
-
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
