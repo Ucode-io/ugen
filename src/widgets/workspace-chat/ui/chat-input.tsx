@@ -1,19 +1,33 @@
-import { Paperclip, MousePointerClick, Mic, ArrowUp } from "lucide-react"
-import { useState, useRef, KeyboardEvent } from "react"
-import { AudioRecorder } from "./audio-recorder";
+import { Paperclip, MousePointerClick, ArrowUp, X, FileIcon, Loader2 } from "lucide-react"
+import { useState, useRef, KeyboardEvent, ClipboardEvent, DragEvent } from "react"
+import { AudioRecorder } from "@/shared/ui/audio-recorder"
+import { useFileUpload } from "@/shared/hooks/use-file-upload"
 
 interface ChatInputProps {
-  onSendMessage: (msg: string) => void
+  onSendMessage: (msg: string, files?: any[]) => void
   onSendAudio: (blob: Blob, url: string) => void
 }
 
 export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
   const [value, setValue] = useState("")
+  const [isPlanOn, setIsPlanOn] = useState(false)
+  const [isVisualEditOn, setIsVisualEditOn] = useState(false)
+
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleTogglePlan = () => {
+    setIsPlanOn(!isPlanOn)
+  }
+
+  const handleToggleVisualEdit = () => {
+    setIsVisualEditOn(!isVisualEditOn)
+  }
+
+  const { uploadFile, uploadedFiles, removeFile, clearFiles, isUploading } = useFileUpload()
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value)
-    // Auto-resize
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
@@ -21,9 +35,10 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
   }
 
   const handleSend = () => {
-    if (value.trim()) {
-      onSendMessage(value);
+    if (value.trim() || uploadedFiles.length > 0) {
+      onSendMessage(value, uploadedFiles);
       setValue("");
+      clearFiles();
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
@@ -37,43 +52,149 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
     }
   }
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        await uploadFile(files[i])
+      }
+    }
+  }
+
+  const handlePaste = async (e: ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file') {
+          const file = items[i].getAsFile()
+          if (file) await uploadFile(file)
+        }
+      }
+    }
+  }
+
+  const handleDrop = async (e: DragEvent) => {
+    e.preventDefault()
+    const files = e.dataTransfer.files
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        await uploadFile(files[i])
+      }
+    }
+  }
+
   return (
-    <div className="bg-bg-card border-border-subtle focus-within:ring-border-subtle flex w-full flex-col rounded-[20px] border p-2 shadow-sm transition-all focus-within:ring-1">
+    <div
+      className="relative overflow-hidden bg-bg-card border-border-subtle focus-within:ring-border-subtle flex w-full flex-col rounded-[20px] border p-2 shadow-sm transition-all focus-within:ring-1"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+    >
+      {/* File Previews */}
+      {uploadedFiles.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-3 pt-2">
+          {uploadedFiles.map((file) => {
+            const isImage = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(file.name);
+            return (
+              <div key={file.id} className="relative group bg-bg-main border border-border-subtle rounded-lg p-2 flex items-center gap-2 max-w-[200px]">
+                {isImage ? (
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border-subtle">
+                    <img src={file.url} alt={file.name} className="h-full w-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="bg-border-subtle p-1.5 rounded-md text-text-muted transition-colors group-hover:text-text-main">
+                    <FileIcon size={16} />
+                  </div>
+                )}
+                <span className="text-xs text-text-main truncate font-medium">{file.name}</span>
+                <button
+                  onClick={() => removeFile(file.id)}
+                  className="absolute -top-1.5 -right-1.5 z-10 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                >
+                  <X size={10} strokeWidth={3} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <textarea
         ref={textareaRef}
         rows={1}
         value={value}
         onChange={handleInput}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         placeholder="How can I help you today?"
         className="text-text-main placeholder:text-text-muted w-full resize-none bg-transparent px-3 py-3 text-[15px] outline-none"
         style={{ minHeight: "44px", maxHeight: "200px" }}
       />
 
       <div className="mt-2 flex items-center justify-between px-1 pb-1">
-        {/* Left Side */}
         <div className="flex items-center gap-1">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            className="hidden"
+            multiple
+          />
           <button
-            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-            title="Attach folder/file"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-9 w-9 items-center justify-center rounded-full transition-colors disabled:opacity-50"
+            title="Attach file"
           >
-            <Paperclip size={18} />
+            {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
           </button>
-          <button className="border-border-subtle text-text-muted hover:bg-hover-bg hover:text-text-main flex h-9 items-center justify-center gap-2 rounded-full border px-3 text-sm font-medium transition-colors">
+          <button
+            className={
+              `
+              border-border-subtle text-text-muted hover:bg-hover-bg 
+              hover:text-text-main flex h-9 items-center justify-center 
+              gap-2 rounded-full border px-3 text-sm font-medium transition-colors
+              ${isVisualEditOn ? "bg-text-main text-bg-main" : ""}
+              `
+            }
+            onClick={handleToggleVisualEdit}
+          >
             <MousePointerClick size={16} />
             <span>Visual edits</span>
           </button>
         </div>
 
-        {/* Right Side */}
         <div className="flex items-center gap-1">
-          <button className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-9 items-center justify-center rounded-full px-4 text-sm font-medium transition-colors">
+          <button
+            className={
+              `
+              text-text-muted hover:bg-hover-bg hover:text-text-main 
+              flex h-9 items-center justify-center rounded-full px-4 
+              text-sm font-medium transition-colors
+              ${isPlanOn ? "bg-text-main text-bg-main" : ""}
+              `
+            }
+            onClick={handleTogglePlan}
+          >
             Plan
           </button>
-          <AudioRecorder onSendAudio={onSendAudio} />
+          <AudioRecorder
+            onSendAudio={onSendAudio}
+            onTranscription={(text) => {
+              setValue(prev => prev + (prev ? " " : "") + text);
+              if (textareaRef.current) {
+                textareaRef.current.focus();
+                setTimeout(() => {
+                  if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto';
+                    textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+                  }
+                }, 0);
+              }
+            }}
+          />
           <button
             onClick={handleSend}
-            disabled={!value.trim()}
+            disabled={(!value.trim() && uploadedFiles.length === 0) || isUploading}
             className="bg-text-main text-bg-main ml-1 flex h-9 w-9 items-center justify-center rounded-full transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             title="Send (Cmd + Enter)"
           >

@@ -29,11 +29,15 @@ export const WorkspaceChat = ({ projectId }: WorkspaceChatProps) => {
   const messages = useChatStore((state) => state.messages);
   const addMessage = useChatStore((state) => state.addMessage);
   const unshiftMessages = useChatStore((state) => state.unshiftMessages);
+  const setMessages = useChatStore((state) => state.setMessages);
   const chatId = useChatStore((state) => state.chatId);
+  const currentStoreProjectId = useChatStore((state) => state.projectId);
   const setChatId = useChatStore((state) => state.setChatId);
+  const setStoreProjectId = useChatStore((state) => state.setProjectId);
+  const clearChat = useChatStore((state) => state.clearChat);
 
-  // Use global messages if available, else fallback to mock.
-  const displayMessages = messages.length > 0 ? messages : MOCK_CHAT;
+  // Use global messages if available, else fallback to mock if not loading.
+  const displayMessages = messages.length > 0 ? messages : (!isLoadingHistory && offset === 0 ? MOCK_CHAT : []);
 
   const fetchHistory = async (currentOffset: number) => {
     if (!projectId || !hasMore || isLoadingHistory) return;
@@ -58,11 +62,15 @@ export const WorkspaceChat = ({ projectId }: WorkspaceChatProps) => {
         }));
 
         // Reverse to ensure newest is at the bottom (given offset=0 usually means latest messages)
-        const reversed = [...formatted].reverse();
+        // const reversed = [...formatted]
 
         const previousScrollHeight = scrollRef.current?.scrollHeight || 0;
 
-        unshiftMessages(reversed);
+        if (currentOffset === 0) {
+          setMessages(formatted);
+        } else {
+          unshiftMessages(formatted);
+        }
         setOffset(currentOffset + 10);
 
         // Restore scroll position so user isn't snapped to the top
@@ -81,14 +89,24 @@ export const WorkspaceChat = ({ projectId }: WorkspaceChatProps) => {
     }
   };
 
-  // Load history on mount or when chatId changes, but only if offset is 0
+  // Reset logic when projectId changes
   useEffect(() => {
-    if (projectId && offset === 0 && hasMore) {
-      console.log("fetching history");
+    if (projectId && projectId !== currentStoreProjectId) {
+      clearChat();
+      setStoreProjectId(projectId);
+      setOffset(0);
+      setHasMore(true);
+    }
+  }, [projectId, currentStoreProjectId, clearChat, setStoreProjectId]);
+
+  // Load history on mount or when projectId changes, but only if offset is 0
+  useEffect(() => {
+    if (projectId && offset === 0 && hasMore && !isLoadingHistory) {
+      console.log("fetching history for project", projectId);
       fetchHistory(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [projectId, offset]);
 
   const handleScroll = () => {
     if (!scrollRef.current) return;

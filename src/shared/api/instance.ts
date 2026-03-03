@@ -96,7 +96,9 @@ api.interceptors.response.use(
       const refreshToken = state.refreshToken
 
       if (!refreshToken) {
+        state.setActiveView('home')
         state.logout()
+        if (typeof window !== 'undefined') window.location.href = '/'
         return Promise.reject(error)
       }
 
@@ -124,7 +126,10 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError, null)
-        useAuthStore.getState().logout()
+        const authState = useAuthStore.getState()
+        authState.setActiveView('home')
+        authState.logout()
+        if (typeof window !== 'undefined') window.location.href = '/'
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

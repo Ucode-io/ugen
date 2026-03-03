@@ -10,8 +10,10 @@ export type Message = {
 
 interface ChatState {
   chatId: string | null
+  projectId: string | null
   messages: Message[]
   setChatId: (id: string | null) => void
+  setProjectId: (id: string | null) => void
   addMessage: (message: Message) => void
   unshiftMessages: (messages: Message[]) => void
   setMessages: (messages: Message[]) => void
@@ -20,8 +22,10 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set) => ({
   chatId: null,
+  projectId: null,
   messages: [],
   setChatId: (id) => set({ chatId: id }),
+  setProjectId: (id) => set({ projectId: id }),
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   unshiftMessages: (newMessages) => set((state) => {
     const existingIds = new Set(state.messages.map(m => m.id))
@@ -29,5 +33,5 @@ export const useChatStore = create<ChatState>((set) => ({
     return { messages: [...filtered, ...state.messages] }
   }),
   setMessages: (messages) => set({ messages }),
-  clearChat: () => set({ chatId: null, messages: [] }),
+  clearChat: () => set({ chatId: null, projectId: null, messages: [] }),
 }))
