@@ -36,7 +36,7 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
   const rawData = projectsResponse?.response || projectsResponse?.data || projectsResponse
   const projectsList = Array.isArray(rawData) ? rawData : (rawData?.projects || [])
 
-  const formattedProjects = projectsList.map((p: any) => ({
+  const formattedProjects = projectsList.map((p: { id: string, name: string, title: string, user: { name: string }, owner: string, updated_at: string, image: string, thumbnail: string }) => ({
     id: p.id,
     title: p.name || p.title || "Untitled Project",
     user: p.user?.name || p.owner || "Unknown Author",
@@ -99,7 +99,7 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
 
             {!isLoading && formattedProjects.length > 0 && (
               <div className="space-y-1">
-                {formattedProjects.map((project: any) => (
+                {formattedProjects.map((project: { id: string, title: string, user: string, userInitial: string, time: string, type: string, image: string }) => (
                   <div
                     key={project.id}
                     onClick={() => handleProjectClick(project.id)}

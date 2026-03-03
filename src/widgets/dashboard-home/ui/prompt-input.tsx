@@ -18,7 +18,7 @@ export const PromptInput = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isPlanOn, setIsPlanOn] = useState(false)
 
-  const { uploadFile, uploadedFiles, removeFile, clearFiles, isUploading } = useFileUpload()
+  const { uploadFile, uploadedFiles, removeFile, isUploading } = useFileUpload()
 
   const router = useRouter()
   const setChatId = useChatStore(state => state.setChatId)
@@ -143,6 +143,7 @@ export const PromptInput = () => {
                 <div key={file.id} className="relative group bg-bg-main border border-border-subtle rounded-lg p-2 flex items-center gap-2 max-w-[200px]">
                   {isImage ? (
                     <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border-subtle">
+                      {/* eslint-disable-next-line */}
                       <img src={file.url} alt={file.name} className="h-full w-full object-cover" />
                     </div>
                   ) : (
@@ -206,7 +207,6 @@ export const PromptInput = () => {
               Plan
             </button>
             <AudioRecorder
-              onSendAudio={() => { }} // Not needed for prompt input yet based on handleSubmit
               onTranscription={(text) => setPrompt(prev => prev + (prev ? " " : "") + text)}
             />
             <button

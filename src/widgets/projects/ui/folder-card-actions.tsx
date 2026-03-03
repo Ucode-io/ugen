@@ -1,6 +1,6 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
-import { MoreHorizontal, Trash2, Edit, FolderPlus, MoveRight, Plus } from "lucide-react"
+import { MoreHorizontal, Trash2, Edit, MoveRight, Plus } from "lucide-react"
 import * as Dialog from "@radix-ui/react-dialog"
 import {
   useDeleteProjectFolder,
@@ -198,7 +198,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
               Delete Folder
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm text-text-muted">
-              Are you sure you want to delete <span className="font-bold text-text-main">"{folder.name}"</span>? All nested items will be deleted permanently.
+              Are you sure you want to delete <span className="font-bold text-text-main">{folder.name}</span>? All nested items will be deleted permanently.
             </Dialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
@@ -330,7 +330,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
             <div className="mt-4 overflow-y-auto flex-1 pr-2">
               <p className="text-sm text-text-muted mb-3">Select existing projects to add to this folder:</p>
               <div className="space-y-2">
-                {projectsList.map((p: any) => (
+                {projectsList.map((p: { id: string, name: string, title: string }) => (
                   <label key={p.id} className="flex items-center gap-3 p-2 hover:bg-hover-bg rounded-lg cursor-pointer transition-colors border border-transparent hover:border-border-subtle">
                     <input
                       type="checkbox"

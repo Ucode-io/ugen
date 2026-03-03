@@ -178,7 +178,6 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
             Plan
           </button>
           <AudioRecorder
-            onSendAudio={onSendAudio}
             onTranscription={(text) => {
               setValue(prev => prev + (prev ? " " : "") + text);
               if (textareaRef.current) {

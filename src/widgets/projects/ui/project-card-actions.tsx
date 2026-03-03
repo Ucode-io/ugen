@@ -172,7 +172,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
               Delete Project
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm text-text-muted">
-              Are you sure you want to delete <span className="font-bold text-text-main">"{project.name}"</span>? This action cannot be undone.
+              Are you sure you want to delete <span className="font-bold text-text-main">{project.name}</span>? This action cannot be undone.
             </Dialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>

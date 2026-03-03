@@ -1,4 +1,3 @@
-import { useTranslations } from "next-intl"
 import { WorkspaceChat } from "@/widgets/workspace-chat"
 
 interface ProjectPageProps {

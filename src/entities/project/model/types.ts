@@ -4,5 +4,4 @@ export interface ProjectEntity {
   title?: string
   created_at?: string
   updated_at?: string
-  [key: string]: any
 }

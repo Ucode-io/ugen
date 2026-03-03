@@ -2,7 +2,7 @@ import { Folder } from "lucide-react"
 import { FolderCardActions } from "./folder-card-actions"
 import { Link } from "@/shared/lib/i18n/navigation"
 
-export const FolderCard = ({ folder }: { folder: any }) => {
+export const FolderCard = ({ folder }: { folder: { id: string, name: string } }) => {
   return (
     <div className="group relative flex w-[200px] h-[58px] items-center rounded-2xl border border-border-subtle bg-bg-sidebar px-4 hover:border-text-muted transition-colors cursor-pointer shrink-0">
       <Link href={`/projects?folder_id=${folder.id}`} className="flex items-center gap-3 flex-1 h-full min-w-0 pr-6">

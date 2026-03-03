@@ -42,7 +42,7 @@ export const ProjectsBoard = () => {
 
   const isSearching = debouncedSearchQuery.length > 0
 
-  let foldersDisplay: any[] = []
+  const foldersDisplay: any[] = []
   let projectsDisplay: any[] = []
 
   if (isSearching) {
