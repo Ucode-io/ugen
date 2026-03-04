@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { useProjectsList } from "@/entities/project"
-import { useProjectFolders, useCreateProjectFolder, ProjectFolder } from "@/entities/project-folder"
+import { useProjectFolders, useProjectFolder, useCreateProjectFolder, ProjectFolder } from "@/entities/project-folder"
 import { ProjectsToolbar } from "./projects-toolbar"
 import { ProjectsGrid } from "./projects-grid"
 import { ProjectsList } from "./projects-list"
@@ -28,6 +28,7 @@ export const ProjectsBoard = () => {
   const folderId = searchParams.get('folder_id') || undefined
 
   // Fetch folders and projects
+  const { data: currentFolder } = useProjectFolder(folderId || '')
   const { data: folderItems, isLoading: isFoldersLoading } = useProjectFolders(folderId, undefined, !!folderId)
   const { data: projectsResponse, isLoading: isProjectsLoading } = useProjectsList({ title: debouncedSearchQuery })
 
@@ -155,7 +156,7 @@ export const ProjectsBoard = () => {
                 {t("projects")}
               </button>
               <ChevronRight size={20} className="text-text-muted" />
-              <span>Folder</span>
+              <span>{currentFolder?.label || "Loading..."}</span>
             </>
           ) : (
             t("projects")
