@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from "react";
-import { PanelLeftClose, PanelRightClose, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
@@ -8,6 +8,7 @@ import { api } from "@/shared/api";
 
 interface WorkspaceChatProps {
   projectId: string
+  isCollapsed?: boolean;
 }
 
 const MOCK_CHAT: Message[] = [
@@ -18,8 +19,7 @@ const MOCK_CHAT: Message[] = [
   }
 ]
 
-export const WorkspaceChat = ({ projectId }: WorkspaceChatProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatProps) => {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -229,35 +229,9 @@ export const WorkspaceChat = ({ projectId }: WorkspaceChatProps) => {
     <div
       className={`bg-bg-main border-border-subtle relative flex h-full shrink-0 flex-col transition-all duration-300 ${isCollapsed ? "w-0 border-r-0" : "w-[450px] border-r"}`}
     >
-      {/* Floating Expand Button when Collapsed */}
-      {isCollapsed && (
-        <button
-          onClick={() => setIsCollapsed(false)}
-          className="bg-bg-card border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg absolute top-6 left-6 z-50 flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm transition-colors"
-          title="Open AI Chat"
-        >
-          <PanelRightClose size={20} />
-        </button>
-      )}
-
-      {/* Main Chat Content (hidden completely when collapsed to prevent overflow) */}
       <div
         className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
-        {/* Header */}
-        <div className="border-border-subtle bg-bg-card flex shrink-0 items-center justify-between border-b px-4 py-3">
-          <h2 className="text-text-main flex items-center gap-2 text-[15px] font-semibold">
-            Workspace AI
-          </h2>
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
-            title="Collapse AI Chat"
-          >
-            <PanelLeftClose size={20} />
-          </button>
-        </div>
-
         {/* Messages list */}
         <div
           ref={scrollRef}

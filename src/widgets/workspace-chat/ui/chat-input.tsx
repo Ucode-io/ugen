@@ -2,6 +2,7 @@ import { Paperclip, MousePointerClick, ArrowUp, X, FileIcon, Loader2 } from "luc
 import { useState, useRef, KeyboardEvent, ClipboardEvent, DragEvent } from "react"
 import { AudioRecorder } from "@/shared/ui/audio-recorder"
 import { useFileUpload } from "@/shared/hooks/use-file-upload"
+import { useVisualEditorStore } from "@/entities/visual-editor"
 
 interface ChatInputProps {
   onSendMessage: (msg: string, files?: any[]) => void
@@ -9,9 +10,9 @@ interface ChatInputProps {
 }
 
 export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
+  const { isInspectMode, selectedElements, setInspectMode, removeSelectedElement } = useVisualEditorStore()
   const [value, setValue] = useState("")
   const [isPlanOn, setIsPlanOn] = useState(false)
-  const [isVisualEditOn, setIsVisualEditOn] = useState(false)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -21,7 +22,7 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
   }
 
   const handleToggleVisualEdit = () => {
-    setIsVisualEditOn(!isVisualEditOn)
+    setInspectMode(!isInspectMode)
   }
 
   const { uploadFile, uploadedFiles, removeFile, clearFiles, isUploading } = useFileUpload()
@@ -89,6 +90,27 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
+      {/* Visual Edit Selected Elements */}
+      {selectedElements.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-3 pt-2 mb-1 overflow-x-auto max-h-[60px]">
+          {selectedElements.map((el) => (
+            <div
+              key={el.id}
+              className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary px-2 py-1 rounded-md text-xs font-medium group"
+            >
+              <span className="opacity-70 font-mono text-[10px]">&lt;{el.tagName.toLowerCase()}&gt;</span>
+              <span className="truncate max-w-[120px]">{el.text || el.className || 'Element'}</span>
+              <button
+                onClick={() => removeSelectedElement(el.id)}
+                className="hover:bg-primary/20 rounded-sm p-0.5"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* File Previews */}
       {uploadedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 px-3 pt-2">
@@ -153,7 +175,7 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
               border-border-subtle text-text-muted hover:bg-hover-bg 
               hover:text-text-main flex h-9 items-center justify-center 
               gap-2 rounded-full border px-3 text-sm font-medium transition-colors
-              ${isVisualEditOn ? "bg-text-main text-bg-main" : ""}
+              ${isInspectMode ? "bg-text-main text-bg-main" : ""}
               `
             }
             onClick={handleToggleVisualEdit}
