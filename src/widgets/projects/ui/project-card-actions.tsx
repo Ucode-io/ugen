@@ -1,9 +1,10 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
-import { MoreHorizontal, Trash2, Edit, MoveRight } from "lucide-react"
+import { MoreHorizontal, Trash2, Edit, MoveRight, FolderMinus } from "lucide-react"
 import * as Dialog from "@radix-ui/react-dialog"
 import { useDeleteProject, useUpdateProject } from "@/entities/project"
 import { useProjectFolders, useCreateProjectFolder, useDeleteProjectFolder, ProjectFolder } from "@/entities/project-folder"
+import { useQueryClient } from "@tanstack/react-query"
 
 interface ProjectCardActionsProps {
   project: {
@@ -23,6 +24,8 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
 
   const popoverRef = useRef<HTMLDivElement>(null)
+
+  const queryClient = useQueryClient()
 
   const deleteProject = useDeleteProject()
   const updateProject = useUpdateProject()
@@ -69,6 +72,18 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
     }
   }
 
+  const handleRemoveFromFolder = async () => {
+    if (!folderItemId) return
+    try {
+      await deleteFolder.mutateAsync(folderItemId)
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+      setIsPopoverOpen(false)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const handleMove = async () => {
     try {
       await createFolder.mutateAsync({
@@ -79,19 +94,20 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
         order_number: 1
       })
 
-      const existingMappings = allFoldersData?.filter((f: ProjectFolder) =>
-        f.type?.toUpperCase() === 'PROJECT' && f.mcp_project_id === project.id
-      ) || []
+      if (folderItemId) {
+        await handleRemoveFromFolder()
+      } else {
+        const existingMappings = allFoldersData?.filter((f: ProjectFolder) =>
+          f.type?.toUpperCase() === 'PROJECT' && f.mcp_project_id === project.id
+        ) || []
 
-
-      for (const mapping of existingMappings) {
-        if (folderItemId && mapping.id === folderItemId) {
-          await deleteFolder.mutateAsync(mapping.id)
-        } else if (!folderItemId) {
+        for (const mapping of existingMappings) {
           await deleteFolder.mutateAsync(mapping.id)
         }
       }
 
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['project-folders'] })
       setIsMoveModalOpen(false)
     } catch (e) {
       console.error(e)
@@ -141,6 +157,19 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
               <MoveRight size={14} />
               Move to folder
             </button>
+            {folderItemId && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleRemoveFromFolder()
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors whitespace-nowrap"
+              >
+                <FolderMinus size={14} />
+                Remove from folder
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.preventDefault()

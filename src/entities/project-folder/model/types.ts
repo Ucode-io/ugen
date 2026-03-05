@@ -1,5 +1,13 @@
 export type ProjectFolderType = "FOLDER" | "PROJECT" | "CHAT";
 
+interface ProjectData {
+  title: string;
+  description: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ProjectFolder {
   id: string;
   label: string;
@@ -11,6 +19,7 @@ export interface ProjectFolder {
   chat_id?: string;
   attributes?: Record<string, unknown>;
   children?: ProjectFolder[];
+  project_data?: ProjectData;
   created_at?: string;
   updated_at?: string;
 }

@@ -11,6 +11,7 @@ import { useDebounce } from "@/shared/hooks/use-debounce"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { ChevronRight, MoreHorizontal, FolderPlus } from "lucide-react"
 import * as Dialog from "@radix-ui/react-dialog"
+import { useMemo } from "react"
 
 export const ProjectsBoard = () => {
   const t = useTranslations('Navigation')
@@ -30,8 +31,30 @@ export const ProjectsBoard = () => {
   // Fetch folders and projects
   const { data: currentFolder } = useProjectFolder(folderId || '')
   const { data: folderItems, isLoading: isFoldersLoading } = useProjectFolders(folderId, undefined, !!folderId)
+
+  // Extract IDs of projects that belong to the current folder
+  const projectIdsInFolder = useMemo(() => {
+    if (!folderId || !folderItems) return undefined
+    return folderItems
+      .filter((item: ProjectFolder) => item.type?.toUpperCase() === 'PROJECT' && item.mcp_project_id)
+      .map((item: ProjectFolder) => item.mcp_project_id as string)
+  }, [folderId, folderItems])
+
+  // If we are in a folder and there are no projects in it, we don't need to fetch projects.
+  // Otherwise, if we are in a folder, fetch only those IDs.
+  // If not in a folder, fetch all (or by search).
+  const shouldFetchProjects = !folderId || (projectIdsInFolder && projectIdsInFolder.length > 0)
+
+  const fetchParams = useMemo(() => {
+    const params: any = {}
+    if (debouncedSearchQuery) params.title = debouncedSearchQuery
+    if (folderId) params.ids = projectIdsInFolder || []
+    return params
+  }, [debouncedSearchQuery, folderId, projectIdsInFolder])
+
   const { data: projectsResponse, isLoading: isProjectsLoading } = useProjectsList(
-    debouncedSearchQuery ? { title: debouncedSearchQuery } : undefined
+    fetchParams,
+    { enabled: !!shouldFetchProjects }
   )
 
   const createFolder = useCreateProjectFolder()
@@ -46,13 +69,30 @@ export const ProjectsBoard = () => {
   const isSearching = debouncedSearchQuery.length > 0
 
   const foldersDisplay: any[] = []
-  let projectsDisplay: any[] = []
 
-  if (isSearching) {
-    projectsDisplay = projectsList.map((p: any) => ({
+  if (!isSearching && folderItems) {
+    folderItems.forEach((f: ProjectFolder) => {
+      if (f.type?.toUpperCase() === 'FOLDER') {
+        foldersDisplay.push({
+          id: f.id,
+          name: f.label,
+          rawFolder: f
+        })
+      }
+    })
+  }
+
+  const projectsDisplay = projectsList.map((p: any) => {
+    const folderItem = folderId && folderItems
+      ? folderItems.find((f: ProjectFolder) => f.type?.toUpperCase() === 'PROJECT' && f.mcp_project_id === p.id)
+      : undefined;
+
+    return {
       ...p,
+      id: p.id,
       isFolder: false,
       mcp_project_id: p.id,
+      folderItemId: folderItem?.id,
       name: p.name || p.title || "Untitled Project",
       description: p.description || "",
       editedAt: p.updated_at ? `Edited: ${new Date(p.updated_at).toLocaleDateString()}` : "Recently edited",
@@ -63,69 +103,8 @@ export const ProjectsBoard = () => {
       },
       image: p.image || p.thumbnail || null,
       rawProject: p
-    }))
-  } else {
-    if (folderItems) {
-      folderItems.forEach((f: ProjectFolder) => {
-        if (f.type?.toUpperCase() === 'FOLDER') {
-          foldersDisplay.push({
-            id: f.id,
-            name: f.label,
-            rawFolder: f
-          })
-        } else if (f.type?.toUpperCase() === 'PROJECT' && folderId) {
-          const p = projectsList.find((proj: any) => proj.id === f.mcp_project_id)
-          projectsDisplay.push({
-            id: f.id, // folder item id
-            isFolder: false,
-            mcp_project_id: f.mcp_project_id,
-            folderItemId: f.id,
-            name: p ? (p.name || p.title) : f.label,
-            description: p?.description || (f.attributes?.description as string) || "",
-            editedAt: p?.updated_at
-              ? `Edited: ${new Date(p.updated_at).toLocaleDateString()}`
-              : f.updated_at ? `Edited: ${new Date(f.updated_at).toLocaleDateString()}` : "Recently edited",
-            createdAt: p?.created_at
-              ? new Date(p.created_at).toLocaleDateString()
-              : f.created_at ? new Date(f.created_at).toLocaleDateString() : "Unknown",
-            author: {
-              name: p?.user?.name || p?.owner || (f.attributes?.author_name as string) || "Unknown Author",
-              initials: (p?.user?.name || p?.owner || (f.attributes?.author_name as string) || "U").substring(0, 2).toUpperCase()
-            },
-            image: p?.image || p?.thumbnail || (f.attributes?.image as string) || null,
-            rawProject: p || {
-              id: f.mcp_project_id || f.id,
-              title: f.label,
-              name: f.label,
-              description: f.attributes?.description || "",
-              image: f.attributes?.image || null
-            }
-          })
-        }
-      })
-    }
-
-    if (!folderId) {
-      projectsList.forEach((p: any) => {
-        projectsDisplay.push({
-          id: p.id,
-          isFolder: false,
-          mcp_project_id: p.id,
-          folderItemId: undefined,
-          name: p.name || p.title || "Untitled Project",
-          description: p.description || "",
-          editedAt: p.updated_at ? `Edited: ${new Date(p.updated_at).toLocaleDateString()}` : "Recently edited",
-          createdAt: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Unknown",
-          author: {
-            name: p.user?.name || p.owner || "Unknown Author",
-            initials: (p.user?.name || p.owner || "U").substring(0, 2).toUpperCase()
-          },
-          image: p.image || p.thumbnail || null,
-          rawProject: p
-        })
-      })
-    }
-  }
+    };
+  });
 
   const isLoading = isFoldersLoading || isProjectsLoading
 

@@ -1,7 +1,7 @@
 'use client'
 import { Link, usePathname, useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
-import { LayoutGrid, FolderPlus, Folder, ChevronRight, Plus, Trash2, Edit2 } from "lucide-react"
+import { LayoutGrid, FolderPlus, Folder, ChevronRight, Plus, Trash2, Edit2, FileIcon } from "lucide-react"
 import { useState, useRef, useEffect, MouseEvent as ReactMouseEvent } from "react"
 import { useProjectFolders, useCreateProjectFolder, useUpdateProjectFolder, useDeleteProjectFolder, useUpdateProjectFoldersOrder, ProjectFolder } from "@/entities/project-folder"
 import {
@@ -95,9 +95,9 @@ const SortableNode = ({
         }}
       >
         <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-          <span className="text-[10px] uppercase font-bold text-text-muted">{item.icon || (item.type?.toUpperCase() === 'PROJECT' ? 'P' : 'C')}</span>
+          <span className="text-[10px] uppercase font-bold text-text-muted">{item.icon || <FileIcon size={14} />}</span>
         </div>
-        <span className="truncate">{item.label}</span>
+        <span className="truncate">{item?.project_data?.title}</span>
       </Link>
     </div>
   )

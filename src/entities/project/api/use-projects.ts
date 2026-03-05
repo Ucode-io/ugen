@@ -6,6 +6,7 @@ export interface FetchProjectsListParams {
   order_by?: string;
   order_direction?: string;
   limit?: number;
+  ids?: string[];
 }
 
 const cleanParams = (params?: FetchProjectsListParams) => {
@@ -24,15 +25,27 @@ const cleanParams = (params?: FetchProjectsListParams) => {
 }
 
 export const fetchProjectsList = async (params?: FetchProjectsListParams) => {
-  const { data } = await api.get('/v1/mcp_project/list', { params })
+  const searchParams = new URLSearchParams()
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach(val => searchParams.append(key, val))
+      } else if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, String(value))
+      }
+    })
+  }
+  const queryString = searchParams.toString()
+  const { data } = await api.get(`/v1/mcp_project/list${queryString ? `?${queryString}` : ''}`)
   return data
 }
 
-export const useProjectsList = (rawParams?: FetchProjectsListParams) => {
+export const useProjectsList = (rawParams?: FetchProjectsListParams, options?: { enabled?: boolean }) => {
   const params = cleanParams(rawParams)
   return useQuery({
     queryKey: ['projects', 'list', params],
     queryFn: () => fetchProjectsList(params),
+    enabled: options?.enabled !== undefined ? options.enabled : true,
   })
 }
 
