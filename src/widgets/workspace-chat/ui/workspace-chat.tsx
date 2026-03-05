@@ -135,11 +135,11 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
           },
         );
 
-        if (messageData?.data?.content) {
+        if (messageData?.data?.message?.content) {
           addMessage({
             id: messageData.data.id || (Date.now() + 1).toString(),
             role: "ai",
-            content: messageData.data.content,
+            content: messageData.data.message?.content,
           });
 
           // Auto scroll down upon new message
