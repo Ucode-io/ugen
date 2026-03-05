@@ -8,12 +8,28 @@ export interface FetchProjectsListParams {
   limit?: number;
 }
 
+const cleanParams = (params?: FetchProjectsListParams) => {
+  if (!params) return undefined
+  const cleaned: Record<string, any> = {}
+  let hasValidKeys = false
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      cleaned[key] = value
+      hasValidKeys = true
+    }
+  }
+
+  return hasValidKeys ? cleaned : undefined
+}
+
 export const fetchProjectsList = async (params?: FetchProjectsListParams) => {
   const { data } = await api.get('/v1/mcp_project/list', { params })
   return data
 }
 
-export const useProjectsList = (params?: FetchProjectsListParams) => {
+export const useProjectsList = (rawParams?: FetchProjectsListParams) => {
+  const params = cleanParams(rawParams)
   return useQuery({
     queryKey: ['projects', 'list', params],
     queryFn: () => fetchProjectsList(params),

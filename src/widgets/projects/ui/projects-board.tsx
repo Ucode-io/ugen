@@ -30,7 +30,9 @@ export const ProjectsBoard = () => {
   // Fetch folders and projects
   const { data: currentFolder } = useProjectFolder(folderId || '')
   const { data: folderItems, isLoading: isFoldersLoading } = useProjectFolders(folderId, undefined, !!folderId)
-  const { data: projectsResponse, isLoading: isProjectsLoading } = useProjectsList({ title: debouncedSearchQuery })
+  const { data: projectsResponse, isLoading: isProjectsLoading } = useProjectsList(
+    debouncedSearchQuery ? { title: debouncedSearchQuery } : undefined
+  )
 
   const createFolder = useCreateProjectFolder()
   const [isCreatePopoverOpen, setIsCreatePopoverOpen] = useState(false)
@@ -71,7 +73,7 @@ export const ProjectsBoard = () => {
             name: f.label,
             rawFolder: f
           })
-        } else if (f.type?.toUpperCase() === 'PROJECT') {
+        } else if (f.type?.toUpperCase() === 'PROJECT' && folderId) {
           const p = projectsList.find((proj: any) => proj.id === f.mcp_project_id)
           projectsDisplay.push({
             id: f.id, // folder item id
@@ -79,15 +81,25 @@ export const ProjectsBoard = () => {
             mcp_project_id: f.mcp_project_id,
             folderItemId: f.id,
             name: p ? (p.name || p.title) : f.label,
-            description: p?.description || "",
-            editedAt: p?.updated_at ? `Edited: ${new Date(p.updated_at).toLocaleDateString()}` : "Recently edited",
-            createdAt: p?.created_at ? new Date(p.created_at).toLocaleDateString() : "Unknown",
+            description: p?.description || (f.attributes?.description as string) || "",
+            editedAt: p?.updated_at
+              ? `Edited: ${new Date(p.updated_at).toLocaleDateString()}`
+              : f.updated_at ? `Edited: ${new Date(f.updated_at).toLocaleDateString()}` : "Recently edited",
+            createdAt: p?.created_at
+              ? new Date(p.created_at).toLocaleDateString()
+              : f.created_at ? new Date(f.created_at).toLocaleDateString() : "Unknown",
             author: {
-              name: p?.user?.name || p?.owner || "Unknown Author",
-              initials: (p?.user?.name || p?.owner || "U").substring(0, 2).toUpperCase()
+              name: p?.user?.name || p?.owner || (f.attributes?.author_name as string) || "Unknown Author",
+              initials: (p?.user?.name || p?.owner || (f.attributes?.author_name as string) || "U").substring(0, 2).toUpperCase()
             },
-            image: p?.image || p?.thumbnail || null,
-            rawProject: p
+            image: p?.image || p?.thumbnail || (f.attributes?.image as string) || null,
+            rawProject: p || {
+              id: f.mcp_project_id || f.id,
+              title: f.label,
+              name: f.label,
+              description: f.attributes?.description || "",
+              image: f.attributes?.image || null
+            }
           })
         }
       })
