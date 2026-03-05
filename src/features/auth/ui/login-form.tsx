@@ -1,27 +1,130 @@
 'use client'
+
+import { useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { User as UserIcon, Lock } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { z } from 'zod'
 import { useAuthStore } from '@/entities/session'
 import { loginSchema, type LoginFormValues } from '../model/validation'
 import { authApi } from '@/shared/api'
 import { useRouter } from '@/shared/lib/i18n/navigation'
+import { Button } from '@/shared/ui/ui/button'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/ui/form'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui/ui/dialog'
 
 interface LoginFormProps {
   onSuccess: () => void
   defaultValues?: { login?: string; password?: string }
 }
 
+const connectionFormSchema = z.object({
+  tables: z.array(
+    z.object({
+      object_id: z.string().min(1, 'Required'),
+      table_slug: z.string()
+    })
+  )
+})
+
+type ConnectionFormValues = z.infer<typeof connectionFormSchema>
+
+const ConnectionSelect = ({ conn, index, form }: { conn: any, index: number, form: any }) => {
+  const computedConnections = useMemo(() => {
+    return (
+      conn?.options?.map((item: any) => ({
+        value: String(item?.guid),
+        label: item?.[conn?.view_slug],
+      })) ?? []
+    )
+  }, [conn?.options, conn?.view_slug])
+
+  return (
+    <FormField
+      control={form.control}
+      name={`tables.${index}.object_id`}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel className="capitalize">{conn?.table_slug}</FormLabel>
+          <Select
+            onValueChange={(val) => {
+              field.onChange(val)
+              form.setValue(`tables.${index}.table_slug`, conn?.table_slug)
+            }}
+            defaultValue={field.value}
+          >
+            <FormControl>
+              <SelectTrigger>
+                <SelectValue placeholder={conn?.view_slug || 'Select'} />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {computedConnections.map((opt: any) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label || opt.value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+}
+
 export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
   const t = useTranslations('Navigation')
   const { setAuth } = useAuthStore()
-
   const router = useRouter()
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<LoginFormValues>({
+
+  const [showModal, setShowModal] = useState(false)
+  const [connections, setConnections] = useState<any[]>([])
+  const [credentials, setCredentials] = useState<LoginFormValues | null>(null)
+  const [extraLoginData, setExtraLoginData] = useState<any>(null)
+  const [isSecondStepSubmitting, setIsSecondStepSubmitting] = useState(false)
+
+  const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues
   })
+
+  // Avoid creating connectionForm initially as connections are empty, but we must call hook.
+  const connectionForm = useForm<ConnectionFormValues>({
+    resolver: zodResolver(connectionFormSchema),
+    defaultValues: {
+      tables: []
+    }
+  })
+
+  const handleLoginResponse = (responseData: any) => {
+    const { project_data } = responseData
+    const response = responseData?.response || responseData
+    const { user, permissions, role, app_permissions, global_permission, token } = response
+
+    const userData = {
+      id: user?.id,
+      login: user?.login,
+      email: user?.email,
+      company_id: user?.company_id,
+      role
+    }
+
+    setAuth(
+      userData,
+      project_data,
+      permissions || [],
+      app_permissions || [],
+      global_permission,
+      token?.access_token,
+      token?.refresh_token
+    )
+
+    onSuccess()
+    router.push('/')
+  }
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
@@ -33,85 +136,133 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
       const responseData = res.data?.data
       if (!responseData) throw new Error("Invalid response")
 
-
-      const { project_data } = responseData
-
-      const { user, permissions, role, app_permissions, global_permission, token } = responseData?.response
-
-      const userData = {
-        id: user.id,
-        login: user.login,
-        email: user.email,
-        company_id: user.company_id,
-        role
+      if (Array.isArray(responseData?.response)) {
+        setConnections(responseData.response)
+        setCredentials(data)
+        setExtraLoginData({
+          client_type: responseData.client_type,
+          environment_id: responseData.environment,
+          project_id: responseData.project,
+          company_id: responseData.project_data?.company_id,
+          project_data: responseData.project_data
+        })
+        connectionForm.reset({
+          tables: responseData.response.map((conn: any) => ({
+            object_id: '',
+            table_slug: conn?.table_slug || ''
+          }))
+        })
+        setShowModal(true)
+        return
       }
 
-      setAuth(
-        userData,
-        project_data,
-        permissions || [],
-        app_permissions || [],
-        global_permission,
-        token.access_token,
-        token.refresh_token
-      )
-
-      onSuccess()
-      router.push('/')
+      handleLoginResponse(responseData)
     } catch (error: any) {
       console.error(error)
-      setError('root', {
+      form.setError('root', {
         type: 'manual',
         message: error.response?.data?.description || error.message || 'Login failed'
       })
     }
   }
 
+  const onStep2Submit = async (values: ConnectionFormValues) => {
+    setIsSecondStepSubmitting(true)
+    try {
+      const res = await authApi.post('/v2/login', {
+        username: credentials?.login,
+        password: credentials?.password,
+        tables: values.tables,
+        ...extraLoginData
+      })
+
+      const responseData = res.data?.data
+      if (!responseData) throw new Error("Invalid response")
+
+      handleLoginResponse(responseData)
+      setShowModal(false)
+    } catch (error: any) {
+      console.error(error)
+      connectionForm.setError('root', {
+        type: 'manual',
+        message: error.response?.data?.description || error.message || 'Login failed'
+      })
+    } finally {
+      setIsSecondStepSubmitting(false)
+    }
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {errors.root && (
-        <div className="p-3 mb-2 text-sm text-red-500 bg-red-50 rounded-lg border border-red-200">
-          {errors.root.message}
+    <>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {form.formState.errors.root && (
+          <div className="p-3 mb-2 text-sm text-red-500 bg-red-50 rounded-lg border border-red-200">
+            {form.formState.errors.root.message}
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-text-main">Login</label>
+          <div className="relative">
+            <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+            <input
+              {...form.register('login')}
+              type="text"
+              placeholder="Enter your login"
+              className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            />
+          </div>
+          {form.formState.errors.login && <p className="text-xs text-red-500">{form.formState.errors.login.message}</p>}
         </div>
-      )}
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-text-main">Login</label>
-        <div className="relative">
-          <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-          <input
-            {...register('login')}
-            type="text"
-            placeholder="Enter your login"
-            className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-          />
-        </div>
-        {errors.login && <p className="text-xs text-red-500">{errors.login.message}</p>}
-      </div>
 
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-text-main">Password</label>
-          <a href="#" className="text-xs text-primary hover:underline">Forgot?</a>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-text-main">Password</label>
+            <a href="#" className="text-xs text-primary hover:underline">Forgot?</a>
+          </div>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+            <input
+              {...form.register('password')}
+              type="password"
+              placeholder="Enter your password"
+              className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            />
+          </div>
+          {form.formState.errors.password && <p className="text-xs text-red-500">{form.formState.errors.password.message}</p>}
         </div>
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-          <input
-            {...register('password')}
-            type="password"
-            placeholder="Enter your password"
-            className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-          />
-        </div>
-        {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
-      </div>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 mt-2 disabled:opacity-50"
-      >
-        {t('login')}
-      </button>
-    </form>
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          className="w-full mt-2"
+        >
+          {t('login')}
+        </Button>
+      </form>
+
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Connections</DialogTitle>
+            <DialogDescription>Please configure your connections before logging in.</DialogDescription>
+          </DialogHeader>
+          <Form {...connectionForm}>
+            <form onSubmit={connectionForm.handleSubmit(onStep2Submit)} className="space-y-4">
+              {connectionForm.formState.errors.root && (
+                <div className="p-3 mb-2 text-sm text-red-500 bg-red-50 rounded-lg border border-red-200">
+                  {connectionForm.formState.errors.root.message}
+                </div>
+              )}
+              {connections.map((conn, index) => (
+                <ConnectionSelect key={index} conn={conn} index={index} form={connectionForm} />
+              ))}
+              <Button type="submit" className="w-full mt-4" disabled={isSecondStepSubmitting}>
+                Confirm
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

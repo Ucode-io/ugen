@@ -23,6 +23,18 @@
   --color-input-bg: var(--input-bg);
   --color-hover-bg: var(--hover-bg);
 
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+
   --radius-ai: 14px;
 
   @keyframes shimmer {
@@ -50,9 +62,20 @@
     --text-muted: #64748b;
     --border: #e2e8f0;
     --input-bg: #ffffff;
-    --hover-bg: #e2e8f0;
+    --hover-bg: #f1f5f9;
     --content-bg: hsl(0 0% 97% / 1);
     --bg-view: #f7f4ed;
+
+    --ring: #3b82f6;
+    --accent: #f1f5f9;
+    --accent-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --primary-foreground: #ffffff;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --secondary: #f1f5f9;
+    --secondary-foreground: #0f172a;
   }
 
   /* Modern Dark Mode matching reference */
@@ -76,6 +99,17 @@
       /* Zinc 800 */
       --content-bg: hsl(0 0% 11% / 1);
       --bg-view: #18181b;
+
+      --ring: #3b82f6;
+      --accent: #27272a;
+      --accent-foreground: #fafafa;
+      --muted: #27272a;
+      --muted-foreground: #a1a1aa;
+      --primary-foreground: #ffffff;
+      --destructive: #7f1d1d;
+      --destructive-foreground: #fef2f2;
+      --secondary: #27272a;
+      --secondary-foreground: #fafafa;
     }
   }
 
@@ -91,6 +125,17 @@
     --hover-bg: #27272a;
     --content-bg: hsl(0 0% 11% / 1);
     --bg-view: #18181b;
+
+    --ring: #3b82f6;
+    --accent: #27272a;
+    --accent-foreground: #fafafa;
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa;
+    --primary-foreground: #ffffff;
+    --destructive: #7f1d1d;
+    --destructive-foreground: #fef2f2;
+    --secondary: #27272a;
+    --secondary-foreground: #fafafa;
   }
 
   body {

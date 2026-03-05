@@ -10,7 +10,7 @@ interface AudioRecorderProps {
 export const AudioRecorder = ({ onTranscription }: AudioRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  // eslint-disable-next-line
+   
   const [timer, setTimer] = useState(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
