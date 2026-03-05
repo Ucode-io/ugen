@@ -4,21 +4,27 @@ import { ProjectCardActions } from "./project-card-actions"
 
 interface ProjectsGridProps {
   projects: any[];
+  variant?: "dashboard" | "projects";
 }
 
-export const ProjectsGrid = ({ projects }: ProjectsGridProps) => {
+export const ProjectsGrid = ({ projects, variant = "projects" }: ProjectsGridProps) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className={
+      variant === "dashboard" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    }>
       {/* Create new */}
-      <Link href="/?focus=prompt" className="group cursor-pointer block">
-        <div className="aspect-[16/9] w-full rounded-2xl border-2 border-dashed border-border-subtle bg-transparent flex flex-col items-center justify-center transition-colors hover:border-text-muted hover:bg-hover-bg/30">
-          <Plus size={24} className="text-text-muted transition-colors group-hover:text-text-main" />
-        </div>
-        <div className="mt-3">
-          <h3 className="text-[15px] font-medium text-text-main">Create new project</h3>
-        </div>
-      </Link>
-
+      {
+        variant === "projects" && (
+          <Link href="/?focus=prompt" className="group cursor-pointer block">
+            <div className="aspect-[16/9] w-full rounded-2xl border-2 border-dashed border-border-subtle bg-transparent flex flex-col items-center justify-center transition-colors hover:border-text-muted hover:bg-hover-bg/30">
+              <Plus size={24} className="text-text-muted transition-colors group-hover:text-text-main" />
+            </div>
+            <div className="mt-3">
+              <h3 className="text-[15px] font-medium text-text-main">Create new project</h3>
+            </div>
+          </Link>
+        )
+      }
       {projects.map(project => (
         <Link
           href={`/projects/${project.mcp_project_id}`}

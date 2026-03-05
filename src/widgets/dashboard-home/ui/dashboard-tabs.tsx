@@ -5,6 +5,8 @@ import { useRouter } from '@/shared/lib/i18n/navigation'
 import { useTranslations } from 'next-intl'
 import { TEMPLATES } from '@/widgets/templates-board/model/templates'
 import { ArrowRight } from 'lucide-react'
+import { useProjectsList } from '@/entities/project'
+import { ProjectsGrid } from '@/widgets/projects/ui/projects-grid'
 
 type TabType = 'recently_viewed' | 'my_projects' | 'templates'
 
@@ -12,7 +14,7 @@ export const DashboardTabs = () => {
   const tNav = useTranslations('Navigation')
   const tTemp = useTranslations('Templates')
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<TabType>('templates')
+  const [activeTab, setActiveTab] = useState<TabType>('my_projects')
 
   const tabs: { id: TabType; label: string }[] = [
     { id: 'recently_viewed', label: tNav('recently_viewed') },
@@ -20,11 +22,33 @@ export const DashboardTabs = () => {
     { id: 'templates', label: tNav('templates') },
   ]
 
+  const { data: projectsResponse, isLoading: isProjectsLoading } = useProjectsList()
+
+  const rawData = projectsResponse?.response || projectsResponse?.data || projectsResponse
+  const projectsList = Array.isArray(rawData) ? rawData : (rawData?.projects || [])
+
+  const projectsDisplay = projectsList.map((p: any) => ({
+    id: p.id,
+    isFolder: false,
+    mcp_project_id: p.id,
+    folderItemId: undefined,
+    name: p.name || p.title || "Untitled Project",
+    description: p.description || "",
+    editedAt: p.updated_at ? `Edited: ${new Date(p.updated_at).toLocaleDateString()}` : "Recently edited",
+    createdAt: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Unknown",
+    author: {
+      name: p.user?.name || p.owner || "Unknown Author",
+      initials: (p.user?.name || p.owner || "U").substring(0, 2).toUpperCase()
+    },
+    image: p.image || p.thumbnail || null,
+    rawProject: p
+  }))
+
   const handleBrowseAll = () => {
     if (activeTab === 'templates') {
       router.push('/dashboard/templates')
     } else {
-      router.push('/dashboard/projects')
+      router.push('/projects')
     }
   }
 
@@ -77,7 +101,22 @@ export const DashboardTabs = () => {
             </div>
           </div>
         ))}
-        {activeTab !== 'templates' && (
+        {activeTab === 'my_projects' && (
+          <div className="col-span-full">
+            {isProjectsLoading ? (
+              <div className="flex h-32 w-full items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-bg-sidebar border-t-primary"></div>
+              </div>
+            ) : projectsDisplay.length > 0 ? (
+              <ProjectsGrid projects={projectsDisplay.slice(0, 8)} variant="dashboard" />
+            ) : (
+              <div className="py-12 text-center text-text-muted border border-dashed border-border-subtle rounded-xl">
+                Nothing to show here yet.
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === 'recently_viewed' && (
           <div className="col-span-full py-12 text-center text-text-muted border border-dashed border-border-subtle rounded-xl">
             Nothing to show here yet.
           </div>
