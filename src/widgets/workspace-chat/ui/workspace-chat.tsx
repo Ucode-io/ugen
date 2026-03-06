@@ -5,6 +5,28 @@ import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
 import { api } from "@/shared/api";
+import { useFilesStore, IFile } from "@/entities/project/model/files-store";
+import React from 'react';
+
+const getLanguageByPath = (path: string) => {
+  const ext = path.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'js':
+    case 'jsx':
+      return 'javascript';
+    case 'ts':
+    case 'tsx':
+      return 'typescript';
+    case 'json':
+      return 'json';
+    case 'css':
+      return 'css';
+    case 'html':
+      return 'html';
+    default:
+      return 'javascript';
+  }
+};
 
 interface WorkspaceChatProps {
   projectId: string
@@ -38,6 +60,8 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
   const setChatId = useChatStore((state) => state.setChatId);
   const setStoreProjectId = useChatStore((state) => state.setProjectId);
   const clearChat = useChatStore((state) => state.clearChat);
+
+  const setFiles = useFilesStore((state) => state.setFiles);
 
   // Use global messages if available, else fallback to mock if not loading.
   const displayMessages = messages.length > 0 ? messages : (!isLoadingHistory && offset === 0 ? MOCK_CHAT : []);
@@ -160,9 +184,18 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
           },
         );
 
+        if (messageData?.data?.project?.project_files) {
+          const mappedFiles: IFile[] = messageData.data.project.project_files.map((file: any) => ({
+            path: file.path,
+            content: file.content,
+            language: getLanguageByPath(file.path)
+          }));
+          setFiles(mappedFiles);
+        }
+
         if (messageData?.data?.message?.content) {
           addMessage({
-            id: messageData.data.id || (Date.now() + 1).toString(),
+            id: messageData.data.message.id || messageData.data.id || (Date.now() + 1).toString(),
             role: "ai",
             content: messageData.data.message?.content,
             isFromResponse: true,
@@ -212,7 +245,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
             </div>
           )}
           {displayMessages.map((msg: Message) => (
-            <>
+            <React.Fragment key={msg.id}>
               {msg?.images && msg.images.length > 0 && (
                 <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-2 mb-2`}>
                   {msg.images.map((image) => (
@@ -231,7 +264,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                   />
                 )
               }
-            </>
+            </React.Fragment>
           ))}
           {isThinking && (
             <div className="flex w-full justify-start px-4">
