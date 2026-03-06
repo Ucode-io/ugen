@@ -145,6 +145,7 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
 
   const imports: Record<string, string> = {
     "react": `https://esm.sh/react@${REACT_VERSION}`,
+    "react/jsx-runtime": `https://esm.sh/react@${REACT_VERSION}/jsx-runtime`,
     "react-dom": `https://esm.sh/react-dom@${REACT_VERSION}`,
     "react-dom/client": `https://esm.sh/react-dom@${REACT_VERSION}/client`,
     "react-dom/server": `https://esm.sh/react-dom@${REACT_VERSION}/server`,

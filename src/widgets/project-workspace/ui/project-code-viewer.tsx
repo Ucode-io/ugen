@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo } from 'react'
-import Editor, { useMonaco } from '@monaco-editor/react'
+import Editor from '@monaco-editor/react'
 import { FileCode2, FileJson, FileType, Search, X, Code2, Paintbrush, ChevronRight, Folder, Files } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import prettier from 'prettier/standalone'
 import babelPlugin from 'prettier/plugins/babel'
 import estreePlugin from 'prettier/plugins/estree'
 import { useFilesStore, IFile } from '@/entities/project/model/files-store'
+import { useUIStore } from '@/shared/model/theme/use-ui-store'
 
 interface FileNode {
   name: string
@@ -25,19 +25,31 @@ interface SearchResult {
 }
 
 export const ProjectCodeViewer = () => {
-  const { files, updateFile } = useFilesStore()
-  const [activeFile, setActiveFile] = useState<string>('src/App.jsx')
-  const [openedFiles, setOpenedFiles] = useState<string[]>(['src/App.jsx'])
+  const {
+    files,
+    updateFile,
+    activeFile,
+    openedFiles,
+    expandedFolders,
+    setActiveFile,
+    setOpenedFiles,
+    setExpandedFolders
+  } = useFilesStore()
 
   const [sidebarMode, setSidebarMode] = useState<'explorer' | 'search'>('explorer')
   const [searchQuery, setSearchQuery] = useState('')
-  const [openFolders, setOpenFolders] = useState<Set<string>>(new Set(['app', 'app/[locale]', 'styles', 'utils']))
+  const openFolders = useMemo(() => new Set(expandedFolders), [expandedFolders])
 
-  const { resolvedTheme } = useTheme()
+  const { theme } = useUIStore()
+  const [mounted, setMounted] = useState(false)
   const editorRef = useRef<any>(null)
   const monacoRef = useRef<any>(null)
 
-  const currentTheme = resolvedTheme === 'dark' ? 'vscode-dark' : 'vs'
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const currentTheme = mounted && theme === 'dark' ? 'vs-dark' : 'vs'
 
   const handleEditorWillMount = (monaco: any) => {
     monaco.editor.defineTheme('vscode-dark', {
@@ -52,6 +64,7 @@ export const ProjectCodeViewer = () => {
         'editor.inactiveSelectionBackground': '#3a3d41',
       },
     })
+    monaco.editor.setTheme(currentTheme)
   }
 
   const handleEditorDidMount = (editor: any, monaco: any) => {
@@ -112,6 +125,23 @@ export const ProjectCodeViewer = () => {
     })
   }
 
+  // Handle initial file selection when files are loaded
+  useEffect(() => {
+    if (files.length > 0 && !activeFile) {
+      const entry = files.find(f =>
+        f.path.includes('App.jsx') ||
+        f.path.includes('index.jsx') ||
+        f.path.includes('main.jsx') ||
+        f.path.includes('App.tsx')
+      ) || files[0];
+
+      if (entry) {
+        setActiveFile(entry.path);
+        setOpenedFiles([entry.path]);
+      }
+    }
+  }, [files, activeFile]);
+
   useEffect(() => {
     if (!monacoRef.current) return
     const monaco = monacoRef.current
@@ -140,7 +170,7 @@ export const ProjectCodeViewer = () => {
   }
 
   const openFile = (path: string) => {
-    if (!openedFiles.includes(path)) setOpenedFiles((prev) => [...prev, path])
+    if (!openedFiles.includes(path)) setOpenedFiles([...openedFiles, path])
     setActiveFile(path)
   }
 
@@ -163,12 +193,10 @@ export const ProjectCodeViewer = () => {
   }
 
   const toggleFolder = (path: string) => {
-    setOpenFolders((prev) => {
-      const next = new Set(prev)
-      if (next.has(path)) next.delete(path)
-      else next.add(path)
-      return next
-    })
+    const next = new Set(openFolders)
+    if (next.has(path)) next.delete(path)
+    else next.add(path)
+    setExpandedFolders(Array.from(next))
   }
 
   const getFileIcon = (fileName: string) => {
@@ -240,7 +268,7 @@ export const ProjectCodeViewer = () => {
           const isActive = activeFile === node.path
 
           return (
-            <div key={node.path}>
+            <div key={node.path} className='select-none'>
               <div
                 onClick={() => (isFolder ? toggleFolder(node.path) : openFile(node.path))}
                 className={`flex items-center gap-1.5 py-1 px-2 cursor-pointer transition-colors hover:bg-hover-bg ${isActive ? 'bg-primary/10 text-primary' : 'text-text-main'}`}
@@ -350,7 +378,7 @@ export const ProjectCodeViewer = () => {
               <div
                 key={path}
                 onClick={() => setActiveFile(path)}
-                className={`flex items-center gap-2 px-4 py-2 min-w-[120px] max-w-[200px] cursor-pointer group border-r border-border-subtle transition-colors ${activeFile === path ? 'bg-bg-main text-primary border-t-2 border-t-primary' : 'text-text-muted hover:bg-hover-bg border-t-2 border-t-transparent'}`}
+                className={`flex items-center gap-2 px-4 py-2 min-w-[120px] max-w-[200px] cursor-pointer group border-r border-border-subtle transition-colors select-none ${activeFile === path ? 'bg-bg-main text-primary border-t-2 border-t-primary' : 'text-text-muted hover:bg-hover-bg border-t-2 border-t-transparent'}`}
               >
                 {getFileIcon(path)}
                 <span className="truncate flex-1 font-medium">{path.split('/').pop()}</span>

@@ -1,34 +1,85 @@
 'use client'
 import { useState, useEffect } from "react"
 import { WorkspaceChat } from "@/widgets/workspace-chat"
-import { PanelLeftClose, PanelRightClose, ChevronLeft, CodeXml, Globe } from "lucide-react"
+import { PanelLeftClose, PanelRightClose, ChevronLeft, CodeXml, Globe, Loader2, Play } from "lucide-react"
 import { ProjectCodeViewer } from "@/widgets/project-workspace/ui/project-code-viewer"
 import { ProjectPreviewViewer } from "@/widgets/project-workspace/ui/project-preview-viewer"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { api } from "@/shared/api"
+import { useTranslations } from "next-intl"
+
+import { useFilesStore, IFile } from "@/entities/project/model/files-store"
+
+const getLanguageByPath = (path: string) => {
+  const ext = path.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'js':
+    case 'jsx':
+      return 'javascript';
+    case 'ts':
+    case 'tsx':
+      return 'typescript';
+    case 'json':
+      return 'json';
+    case 'css':
+      return 'css';
+    case 'html':
+      return 'html';
+    default:
+      return 'javascript';
+  }
+};
 
 export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => {
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview')
   const [projectTitle, setProjectTitle] = useState('Loading...')
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasNoFiles, setHasNoFiles] = useState(false)
+  const { setFiles, clearWorkspace } = useFilesStore()
   const router = useRouter()
+  const t = useTranslations('features.project')
 
   useEffect(() => {
-    api.get(`/v1/ai-chat/project/${projectId}`)
+    setIsLoading(true);
+    // Fetch project details and files
+    api.get(`/v1/mcp_project/${projectId}`)
       .then(res => {
-        if (res.data?.title) {
-          setProjectTitle(res.data.title)
-        } else if (res.data?.data?.title) {
-          setProjectTitle(res.data.data.title)
+        const projectData = res.data?.data;
+        if (!projectData) {
+          setHasNoFiles(true);
+          return;
+        }
+
+        if (projectData.title) {
+          setProjectTitle(projectData.title);
+        }
+
+        if (projectData.project_files && projectData.project_files.length > 0) {
+          const mappedFiles: IFile[] = projectData.project_files.map((file: any) => ({
+            path: file.path,
+            content: file.content,
+            language: getLanguageByPath(file.path)
+          }));
+          setFiles(mappedFiles);
+          setHasNoFiles(false);
         } else {
-          setProjectTitle('Workspace Project')
+          setHasNoFiles(true);
         }
       })
       .catch((err) => {
-        console.error("Failed to load project title", err)
-        setProjectTitle('Workspace Project')
+        console.error("Failed to load project details", err);
+        setProjectTitle('Workspace Project');
+        setHasNoFiles(true);
       })
-  }, [projectId])
+      .finally(() => {
+        setIsLoading(false);
+      })
+
+    return () => {
+      clearWorkspace();
+    };
+  }, [projectId, setFiles, clearWorkspace])
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-main relative">
@@ -59,9 +110,10 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           <div className="flex items-center gap-1.5 bg-bg-main p-1 rounded-lg border border-border-subtle">
             <button
               onClick={() => setActiveTab('preview')}
+              disabled={hasNoFiles || isLoading}
               className={`p-1 rounded-md transition-colors flex items-center justify-center shrink-0 group relative ${activeTab === 'preview'
                 ? 'bg-bg-card shadow-sm text-text-main'
-                : 'text-text-muted hover:text-text-main hover:bg-hover-bg'
+                : 'text-text-muted hover:text-text-main hover:bg-hover-bg disabled:opacity-50 disabled:cursor-not-allowed'
                 }`}
             >
               <Globe size={16} />
@@ -71,9 +123,10 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             </button>
             <button
               onClick={() => setActiveTab('code')}
+              disabled={hasNoFiles || isLoading}
               className={`p-1 rounded-md transition-colors flex items-center justify-center shrink-0 group relative ${activeTab === 'code'
                 ? 'bg-bg-card shadow-sm text-text-main'
-                : 'text-text-muted hover:text-text-main hover:bg-hover-bg'
+                : 'text-text-muted hover:text-text-main hover:bg-hover-bg disabled:opacity-50 disabled:cursor-not-allowed'
                 }`}
             >
               <CodeXml size={16} />
@@ -86,7 +139,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           <div className="bg-border-subtle w-[1px] h-4 mx-2" />
 
           <button className="bg-primary text-white hover:bg-primary-hover px-4 py-1.5 rounded-lg text-[13px] font-medium transition-colors">
-            Publish
+            {t('publish', { fallback: 'Publish' })}
           </button>
         </div>
       </header>
@@ -95,7 +148,43 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         <WorkspaceChat projectId={projectId} isCollapsed={isChatCollapsed} />
 
         {/* Content Area */}
-        {activeTab === 'code' ? <ProjectCodeViewer /> : <ProjectPreviewViewer />}
+        <div className="flex-1 flex overflow-hidden">
+          {isLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center bg-bg-main text-text-muted">
+              <Loader2 className="animate-spin mb-4" size={32} />
+              <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
+            </div>
+          ) : hasNoFiles ? (
+            <div className="flex-1 flex items-center justify-center bg-bg-main bg-[url('/grid.svg')] dark:bg-[url('/grid-dark.svg')] bg-center px-4">
+              <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in duration-500">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Play size={40} className="text-primary ml-1" />
+                </div>
+                <h2 className="text-3xl font-bold tracking-tight text-text-main">
+                  {t('createProject', { fallback: 'Create your project' })}
+                </h2>
+                <p className="text-text-muted leading-relaxed">
+                  {t('emptyProjectDesc', { fallback: 'Your workspace is currently empty. Describe what you want to build in the chat, and the AI will generate the files and architecture for you in seconds.' })}
+                </p>
+                <div className="pt-4 flex justify-center">
+                  <button
+                    onClick={() => {
+                      if (isChatCollapsed) setIsChatCollapsed(false);
+                      // focus on chat input if possible later
+                    }}
+                    className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring gap-2 leading-none"
+                  >
+                    {t('startChatting', { fallback: 'Start Chatting' })}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'code' ? (
+            <ProjectCodeViewer />
+          ) : (
+            <ProjectPreviewViewer />
+          )}
+        </div>
       </div>
     </div>
   )

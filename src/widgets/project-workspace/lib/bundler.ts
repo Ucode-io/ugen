@@ -30,6 +30,7 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
   const defaultExternals = [
     "react",
     "react-dom",
+    "react/jsx-runtime",
     "react-dom/client",
     "react-router-dom",
     "react-dom/server",
@@ -82,6 +83,7 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
     platform: "browser",
     plugins: [virtualFsPlugin(fs)],
     external: allExternals,
+    jsx: "automatic",
     define: {
       "process.env.NODE_ENV": '"development"',
       "import.meta.env": JSON.stringify(env),
