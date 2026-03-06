@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
@@ -64,9 +64,6 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
           content: m.content || "",
         }));
 
-        // Reverse to ensure newest is at the bottom (given offset=0 usually means latest messages)
-        // const reversed = [...formatted]
-
         const previousScrollHeight = scrollRef.current?.scrollHeight || 0;
 
         if (currentOffset === 0) {
@@ -89,6 +86,8 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
             }
           }
         });
+      } else {
+        setHasMore(false);
       }
     } catch (e) {
       console.error(e);
@@ -123,13 +122,13 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     }
   };
 
-  const handleAutoScroll = () => {
+  const handleAutoScroll = useCallback(() => {
     requestAnimationFrame(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
     });
-  }
+  }, []);
 
   const handleSendMessage = async (text: string, files?: any[], model?: string) => {
     // Add user message locally
@@ -137,6 +136,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
       id: Date.now().toString(),
       role: "user",
       content: text,
+      images: files?.map(f => f.url) || [],
     });
 
     handleAutoScroll();
@@ -212,13 +212,26 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
             </div>
           )}
           {displayMessages.map((msg: Message) => (
-            <ChatMessageBubble
-              key={msg.id}
-              role={msg.role}
-              content={msg.content}
-              isFromResponse={msg.isFromResponse}
-              onAutoScroll={handleAutoScroll}
-            />
+            <>
+              {msg?.images && msg.images.length > 0 && (
+                <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-2 mb-2`}>
+                  {msg.images.map((image) => (
+                    <img key={image} src={image} alt={image} className="w-20 h-20 object-cover rounded-sm" />
+                  ))}
+                </div>
+              )}
+              {
+                msg.content && (
+                  <ChatMessageBubble
+                    key={msg.id}
+                    role={msg.role}
+                    content={msg.content}
+                    isFromResponse={msg.isFromResponse}
+                    onAutoScroll={handleAutoScroll}
+                  />
+                )
+              }
+            </>
           ))}
           {isThinking && (
             <div className="flex w-full justify-start px-4">

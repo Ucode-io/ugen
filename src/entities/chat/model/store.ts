@@ -7,6 +7,7 @@ export type Message = {
   type?: 'text' | 'audio'
   audioUrl?: string
   isFromResponse?: boolean
+  images?: string[]
 }
 
 interface ChatState {

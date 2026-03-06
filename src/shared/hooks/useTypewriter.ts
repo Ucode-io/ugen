@@ -11,6 +11,8 @@ export const useTypewriter = (text: string, speed: number = 10) => {
   }, [text]);
 
   useEffect(() => {
+    if (speed === 0) return;
+
     const intervalId = setInterval(() => {
       // Если показали весь текст — останавливаем
       if (indexRef.current >= text.length) {
