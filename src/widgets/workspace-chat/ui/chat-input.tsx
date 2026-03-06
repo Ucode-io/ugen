@@ -1,18 +1,20 @@
 import { Paperclip, MousePointerClick, ArrowUp, X, FileIcon, Loader2 } from "lucide-react"
-import { useState, useRef, KeyboardEvent, ClipboardEvent, DragEvent } from "react"
+import { useState, useRef, KeyboardEvent, ClipboardEvent, DragEvent, useEffect } from "react"
 import { AudioRecorder } from "@/shared/ui/audio-recorder"
-import { useFileUpload } from "@/shared/hooks/use-file-upload"
+import { useFileUpload } from "@/shared/hooks/useFileUpload"
 import { useVisualEditorStore } from "@/entities/visual-editor"
+import { ModelSelector, DEFAULT_MODEL_ID } from "@/entities/ai-model"
 
 interface ChatInputProps {
-  onSendMessage: (msg: string, files?: any[]) => void
-  onSendAudio: (blob: Blob, url: string) => void
+  onSendMessage: (msg: string, files?: any[], model?: string) => void
+  isSending?: boolean
 }
 
-export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
+export const ChatInput = ({ onSendMessage, isSending }: ChatInputProps) => {
   const { isInspectMode, selectedElements, setInspectMode, removeSelectedElement } = useVisualEditorStore()
   const [value, setValue] = useState("")
   const [isPlanOn, setIsPlanOn] = useState(false)
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -35,9 +37,16 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
     }
   }
 
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
+    }
+  }, [value])
+
   const handleSend = () => {
-    if (value.trim() || uploadedFiles.length > 0) {
-      onSendMessage(value, uploadedFiles);
+    if ((value.trim() || uploadedFiles.length > 0) && !isSending) {
+      onSendMessage(value, uploadedFiles, selectedModel);
       setValue("");
       clearFiles();
       if (textareaRef.current) {
@@ -47,7 +56,13 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    if (e.key === 'Enter') {
+      // If Command+Enter or Shift+Enter, allow new line
+      if (e.metaKey || e.shiftKey) {
+        return
+      }
+
+      // Otherwise, submit
       e.preventDefault()
       handleSend()
     }
@@ -147,8 +162,9 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
         onChange={handleInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
+        disabled={isSending}
         placeholder="How can I help you today?"
-        className="text-text-main placeholder:text-text-muted w-full resize-none bg-transparent px-3 py-3 text-[15px] outline-none"
+        className="text-text-main placeholder:text-text-muted w-full resize-none bg-transparent px-3 py-3 text-[15px] outline-none disabled:opacity-70"
         style={{ minHeight: "44px", maxHeight: "200px" }}
       />
 
@@ -164,23 +180,30 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-9 w-9 items-center justify-center rounded-full transition-colors disabled:opacity-50"
+            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50"
             title="Attach file"
           >
-            {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
+            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
           </button>
+
+          <ModelSelector
+            value={selectedModel}
+            onValueChange={setSelectedModel}
+            size="sm"
+          />
+
           <button
             className={
               `
               border-border-subtle text-text-muted hover:bg-hover-bg 
-              hover:text-text-main flex h-9 items-center justify-center 
-              gap-2 rounded-full border px-3 text-sm font-medium transition-colors
+              hover:text-text-main flex h-8 items-center justify-center 
+              gap-2 rounded-full border px-2.5 text-xs font-medium transition-colors
               ${isInspectMode ? "bg-text-main text-bg-main" : ""}
               `
             }
             onClick={handleToggleVisualEdit}
           >
-            <MousePointerClick size={16} />
+            <MousePointerClick size={14} />
             <span>Visual edits</span>
           </button>
         </div>
@@ -190,8 +213,8 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
             className={
               `
               text-text-muted hover:bg-hover-bg hover:text-text-main 
-              flex h-9 items-center justify-center rounded-full px-4 
-              text-sm font-medium transition-colors
+              flex h-8 items-center justify-center rounded-full px-3 
+              text-xs font-medium transition-colors
               ${isPlanOn ? "bg-text-main text-bg-main" : ""}
               `
             }
@@ -204,25 +227,25 @@ export const ChatInput = ({ onSendMessage, onSendAudio }: ChatInputProps) => {
               setValue(prev => prev + (prev ? " " : "") + text);
               if (textareaRef.current) {
                 textareaRef.current.focus();
-                setTimeout(() => {
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = 'auto';
-                    textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-                  }
-                }, 0);
               }
             }}
+            size="sm"
           />
           <button
             onClick={handleSend}
-            disabled={(!value.trim() && uploadedFiles.length === 0) || isUploading}
-            className="bg-text-main text-bg-main ml-1 flex h-9 w-9 items-center justify-center rounded-full transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            title="Send (Cmd + Enter)"
+            disabled={(!value.trim() && uploadedFiles.length === 0) || isUploading || isSending}
+            className="bg-text-main text-bg-main ml-1 flex h-8 w-8 items-center justify-center rounded-full transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Send (Enter)"
           >
-            <ArrowUp size={18} strokeWidth={2.5} />
+            {isSending ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <ArrowUp size={16} strokeWidth={2.5} />
+            )}
           </button>
         </div>
       </div>
     </div>
   );
 }
+

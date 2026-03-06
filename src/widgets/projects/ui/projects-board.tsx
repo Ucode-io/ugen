@@ -7,7 +7,7 @@ import { ProjectsToolbar } from "./projects-toolbar"
 import { ProjectsGrid } from "./projects-grid"
 import { ProjectsList } from "./projects-list"
 import { FolderCard } from "./folder-card"
-import { useDebounce } from "@/shared/hooks/use-debounce"
+import { useDebounce } from "@/shared/hooks/useDebounce"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { ChevronRight, MoreHorizontal, FolderPlus } from "lucide-react"
 import * as Dialog from "@radix-ui/react-dialog"
@@ -194,7 +194,7 @@ export const ProjectsBoard = () => {
         setSearchQuery={setSearchQuery}
       />
 
-      <div className="flex-1 mt-6">
+      <div className="flex-1 mt-6 overflow-y-auto">
         {isLoading ? (
           <div className="flex h-64 w-full items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-bg-sidebar border-t-primary"></div>

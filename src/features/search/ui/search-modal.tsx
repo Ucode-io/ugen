@@ -3,7 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { Search, X, Folder, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useProjectsList } from "@/entities/project"
-import { useDebounce } from "@/shared/hooks/use-debounce"
+import { useDebounce } from "@/shared/hooks/useDebounce"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 
 interface SearchModalProps {

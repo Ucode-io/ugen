@@ -7,16 +7,18 @@ import { useRouter } from '@/shared/lib/i18n/navigation'
 import { api } from '@/shared/api'
 import { useChatStore } from '@/entities/chat'
 import { AudioRecorder } from '@/shared/ui/audio-recorder'
-import { useFileUpload } from '@/shared/hooks/use-file-upload'
+import { useFileUpload } from '@/shared/hooks/useFileUpload'
+import { ModelSelector, DEFAULT_MODEL_ID } from '@/entities/ai-model'
 
 export const PromptInput = () => {
   const searchParams = useSearchParams()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [prompt, setPrompt] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isPlanOn, setIsPlanOn] = useState(false)
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID)
 
   const { uploadFile, uploadedFiles, removeFile, isUploading } = useFileUpload()
 
@@ -32,9 +34,18 @@ export const PromptInput = () => {
 
   useEffect(() => {
     if (searchParams.get('focus') === 'prompt') {
-      inputRef.current?.focus()
+      textareaRef.current?.focus()
     }
   }, [searchParams])
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`
+    }
+  }, [prompt])
 
   const handleSubmit = async () => {
     if ((!prompt.trim() && uploadedFiles.length === 0) || isProcessing || isUploading) return
@@ -48,7 +59,7 @@ export const PromptInput = () => {
         title: prompt.slice(0, 30) || "New project",
         project_name: prompt.slice(0, 20) || "New project",
         description: "",
-        model: "claude-sonnet-4-20250514"
+        model: selectedModel
       })
 
       const chatId = createData.data.id
@@ -75,11 +86,12 @@ export const PromptInput = () => {
         tokens_used: 100
       })
 
-      if (messageData?.data?.content) {
+      if (messageData?.data?.message?.content) {
         addMessage({
-          id: messageData.data.id || Date.now().toString(),
+          id: messageData.data.message.id || Date.now().toString(),
           role: 'ai',
-          content: messageData.data.content
+          content: messageData.data.message?.content,
+          isFromResponse: true,
         })
       }
 
@@ -89,8 +101,14 @@ export const PromptInput = () => {
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
+      // If Command+Enter or Shift+Enter, allow new line
+      if (e.metaKey || e.shiftKey) {
+        return
+      }
+
+      // Otherwise, submit
       e.preventDefault()
       handleSubmit()
     }
@@ -165,42 +183,51 @@ export const PromptInput = () => {
         )}
 
         {/* Main Input */}
-        <input
-          ref={inputRef}
+        <textarea
+          ref={textareaRef}
           id="prompt-input"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           disabled={isProcessing}
-          className="w-full bg-transparent px-4 pb-8 pt-3 text-[15px] font-medium text-text-main placeholder:text-text-muted outline-none disabled:opacity-50"
+          rows={1}
+          className="w-full bg-transparent px-4 pb-8 pt-3 text-[15px] font-medium text-text-main placeholder:text-text-muted outline-none disabled:opacity-50 min-h-[44px] max-h-[200px] resize-none"
           placeholder="Ask Ugen to create a dashboard to..."
         />
 
         {/* Bottom Actions */}
         <div className="flex items-center justify-between px-2 pb-1">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            className="hidden"
-            multiple
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors disabled:opacity-50"
-            title="Add attachment"
-          >
-            {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={20} />}
-          </button>
+          <div className="flex items-center gap-1">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+              multiple
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors disabled:opacity-50"
+              title="Add attachment"
+            >
+              {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={20} />}
+            </button>
+
+            <ModelSelector
+              value={selectedModel}
+              onValueChange={setSelectedModel}
+              triggerClassName="h-8"
+            />
+          </div>
 
           <div className="flex items-center gap-3">
             <button
               type="button"
               className={
-                `text-sm font-medium text-text-muted hover:text-text-main transition-colors px-2 py-1 rounded-full  ${isPlanOn ? "bg-text-main text-bg-main" : ""}`
+                `text-sm font-medium text-text-muted hover:text-text-main transition-colors px-3 py-1 rounded-full  ${isPlanOn ? "bg-text-main text-bg-main" : "hover:bg-hover-bg"}`
               }
               onClick={handleTogglePlan}
             >
@@ -227,3 +254,4 @@ export const PromptInput = () => {
     </div>
   )
 }
+

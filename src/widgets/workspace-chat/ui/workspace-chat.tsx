@@ -23,6 +23,9 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const thinkingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -73,12 +76,17 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
         }
         setOffset(currentOffset + 10);
 
-        // Restore scroll position so user isn't snapped to the top
+        // Restore scroll position
         requestAnimationFrame(() => {
           if (scrollRef.current) {
-            const newScrollHeight = scrollRef.current.scrollHeight;
-            scrollRef.current.scrollTop =
-              newScrollHeight - previousScrollHeight;
+            if (currentOffset === 0) {
+              // Initial load - scroll to bottom
+              scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            } else {
+              // History load - maintain position
+              const newScrollHeight = scrollRef.current.scrollHeight;
+              scrollRef.current.scrollTop = newScrollHeight - previousScrollHeight;
+            }
           }
         });
       }
@@ -115,7 +123,15 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     }
   };
 
-  const handleSendMessage = async (text: string) => {
+  const handleAutoScroll = () => {
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    });
+  }
+
+  const handleSendMessage = async (text: string, files?: any[], model?: string) => {
     // Add user message locally
     addMessage({
       id: Date.now().toString(),
@@ -123,15 +139,24 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
       content: text,
     });
 
+    handleAutoScroll();
+
     if (chatId) {
+      setIsSending(true);
+      thinkingTimeoutRef.current = setTimeout(() => {
+        setIsThinking(true);
+        handleAutoScroll();
+      }, 2000);
+
       try {
         const { data: messageData } = await api.post(
           `/v1/ai-chat/new-messages/${chatId}`,
           {
             content: text,
-            images: [],
-            has_files: false,
+            images: files?.map(f => f.url) || [],
+            has_files: (files?.length || 0) > 0,
             tokens_used: 100,
+            model: model,
           },
         );
 
@@ -140,17 +165,21 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
             id: messageData.data.id || (Date.now() + 1).toString(),
             role: "ai",
             content: messageData.data.message?.content,
+            isFromResponse: true,
           });
 
           // Auto scroll down upon new message
-          requestAnimationFrame(() => {
-            if (scrollRef.current) {
-              scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-            }
-          });
+          handleAutoScroll();
         }
       } catch (err) {
         console.error(err);
+      } finally {
+        setIsSending(false);
+        setIsThinking(false);
+        if (thinkingTimeoutRef.current) {
+          clearTimeout(thinkingTimeoutRef.current);
+          thinkingTimeoutRef.current = null;
+        }
       }
     } else {
       // Fallback
@@ -164,70 +193,9 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     }
   };
 
-  const handleSendAudio = async (blob: Blob, url: string) => {
-    // Add user audio message locally
-    addMessage({
-      id: Date.now().toString(),
-      role: 'user',
-      content: '', // No text
-      type: 'audio',
-      audioUrl: url,
-    });
-
-    if (chatId) {
-      try {
-        const formData = new FormData();
-        formData.append('audio', blob, 'recording.webm');
-        formData.append('chat_id', chatId);
-
-        // Try to send audio to backend. We'll use the existing /new-messages endpoint 
-        // if it supports form data, or maybe a dedicated endpoint like /audio-message
-        // The prompt says "Подготовь аудио и для отправки в бэкенд."
-        // Meaning "Prepare audio for sending to the backend."
-        // The previous code had POST /api/upload-audio. Let's use that or a similar structure 
-        // through our api abstraction or just keep it generically ready.
-        // We'll prepare the form and hit the chat endpoint. Backends usually accept FormData if there are files.
-        const { data: messageData } = await api.post(
-          `/v1/ai-chat/new-messages/${chatId}`,
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            }
-          }
-        );
-
-        if (messageData?.data?.content) {
-          addMessage({
-            id: messageData.data.id || (Date.now() + 1).toString(),
-            role: 'ai',
-            content: messageData.data.content,
-          });
-
-          // Auto scroll down
-          requestAnimationFrame(() => {
-            if (scrollRef.current) {
-              scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-            }
-          });
-        }
-      } catch (err) {
-        console.error('Failed to send audio', err);
-      }
-    } else {
-      setTimeout(() => {
-        addMessage({
-          id: (Date.now() + 1).toString(),
-          role: 'ai',
-          content: '(Mock mode) Got your voice message! Loud and clear.',
-        });
-      }, 1000);
-    }
-  };
-
   return (
     <div
-      className={`bg-bg-main border-border-subtle relative flex h-full shrink-0 flex-col transition-all duration-300 ${isCollapsed ? "w-0 border-r-0" : "w-[450px] border-r"}`}
+      className={`bg-bg-main border-border-subtle relative flex h-full shrink-0 flex-col transition-all duration-300 ${isCollapsed ? "w-0 border-r-0" : "w-[550px] border-r"}`}
     >
       <div
         className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
@@ -248,13 +216,23 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
               key={msg.id}
               role={msg.role}
               content={msg.content}
+              isFromResponse={msg.isFromResponse}
+              onAutoScroll={handleAutoScroll}
             />
           ))}
+          {isThinking && (
+            <div className="flex w-full justify-start px-4">
+              <div className="flex items-center gap-2 text-text-muted text-sm italic py-2">
+                <Loader2 className="animate-spin" size={16} />
+                <span>Thinking...</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Fixed bottom input container */}
         <div className="shrink-0 bg-transparent px-4 pt-2 pb-4">
-          <ChatInput onSendMessage={handleSendMessage} onSendAudio={handleSendAudio} />
+          <ChatInput onSendMessage={handleSendMessage} isSending={isSending} />
         </div>
       </div>
     </div>

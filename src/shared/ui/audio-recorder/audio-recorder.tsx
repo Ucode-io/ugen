@@ -5,12 +5,15 @@ import { useState, useRef, useEffect } from 'react';
 
 interface AudioRecorderProps {
   onTranscription: (text: string) => void;
+  size?: 'sm' | 'md';
 }
 
-export const AudioRecorder = ({ onTranscription }: AudioRecorderProps) => {
+export const AudioRecorder = ({ onTranscription, size = 'md' }: AudioRecorderProps) => {
+  const sizeClasses = size === 'sm' ? 'h-8 w-8' : 'h-9 w-9';
+  const iconSize = size === 'sm' ? 16 : 18;
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-   
+
   const [timer, setTimer] = useState(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -25,6 +28,7 @@ export const AudioRecorder = ({ onTranscription }: AudioRecorderProps) => {
     return () => {
       stopRecordingCleanup();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startTimer = () => {
@@ -200,13 +204,13 @@ export const AudioRecorder = ({ onTranscription }: AudioRecorderProps) => {
       <button
         onClick={startRecording}
         disabled={isTranscribing}
-        className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex h-9 w-9 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${isRecording ? 'opacity-0 pointer-events-none' : ''}`}
+        className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex items-center justify-center rounded-full transition-colors disabled:opacity-50 ${sizeClasses} ${isRecording ? 'opacity-0 pointer-events-none' : ''}`}
         title="Voice message"
       >
         {isTranscribing ? (
-          <Loader2 size={18} className="animate-spin" />
+          <Loader2 size={iconSize} className="animate-spin" />
         ) : (
-          <Mic size={18} />
+          <Mic size={iconSize} />
         )}
       </button>
     </div>
