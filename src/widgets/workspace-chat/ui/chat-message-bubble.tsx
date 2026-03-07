@@ -31,7 +31,7 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
   if (role === 'user') {
     return (
       <div className="flex w-full justify-end px-4 py-3">
-        <div className="max-w-[85%] rounded-[20px] rounded-tr-[4px] bg-bg-card border border-border-subtle px-5 py-3.5 text-[15px] text-text-main shadow-sm flex flex-col gap-3 transition-all hover:shadow-md">
+        <div className="max-w-[85%] rounded-[20px] rounded-tr-[4px] overflow-hidden bg-bg-card border border-border-subtle px-5 py-3.5 text-[15px] text-text-main shadow-sm flex flex-col gap-3 transition-all hover:shadow-md">
           {type === 'audio' && audioUrl ? (
             <div className="rounded-xl bg-hover-bg/50 p-2">
               <audio src={audioUrl} controls className="h-9 w-[220px]" />

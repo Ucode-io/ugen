@@ -14,6 +14,8 @@ interface ChatState {
   chatId: string | null
   projectId: string | null
   messages: Message[]
+  pendingPrompt: { content: string, images?: string[], model?: string } | null
+  setPendingPrompt: (prompt: { content: string, images?: string[], model?: string } | null) => void
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void
   addMessage: (message: Message) => void
@@ -26,6 +28,8 @@ export const useChatStore = create<ChatState>((set) => ({
   chatId: null,
   projectId: null,
   messages: [],
+  pendingPrompt: null,
+  setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
   setChatId: (id) => set({ chatId: id }),
   setProjectId: (id) => set({ projectId: id }),
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
@@ -35,5 +39,5 @@ export const useChatStore = create<ChatState>((set) => ({
     return { messages: [...filtered, ...state.messages] }
   }),
   setMessages: (messages) => set({ messages }),
-  clearChat: () => set({ chatId: null, projectId: null, messages: [] }),
+  clearChat: () => set({ chatId: null, projectId: null, messages: [], pendingPrompt: null }),
 }))

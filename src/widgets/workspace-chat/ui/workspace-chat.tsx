@@ -60,6 +60,8 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
   const setChatId = useChatStore((state) => state.setChatId);
   const setStoreProjectId = useChatStore((state) => state.setProjectId);
   const clearChat = useChatStore((state) => state.clearChat);
+  const pendingPrompt = useChatStore((state) => state.pendingPrompt);
+  const setPendingPrompt = useChatStore((state) => state.setPendingPrompt);
 
   const setFiles = useFilesStore((state) => state.setFiles);
 
@@ -138,6 +140,23 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, offset]);
+
+  const lastProcessedPromptRef = useRef<any>(null);
+
+  // Handle pending prompt from dashboard
+  useEffect(() => {
+    if (chatId && projectId && pendingPrompt && lastProcessedPromptRef.current !== pendingPrompt) {
+      lastProcessedPromptRef.current = pendingPrompt;
+      const promptToProcess = pendingPrompt;
+      setPendingPrompt(null);
+      handleSendMessage(
+        promptToProcess.content,
+        promptToProcess.images?.map((url: string) => ({ url })),
+        promptToProcess.model
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId, projectId, pendingPrompt]);
 
   const handleScroll = () => {
     if (!scrollRef.current) return;

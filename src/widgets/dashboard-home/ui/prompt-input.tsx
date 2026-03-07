@@ -25,6 +25,7 @@ export const PromptInput = () => {
   const router = useRouter()
   const setChatId = useChatStore(state => state.setChatId)
   const setProjectId = useChatStore(state => state.setProjectId)
+  const setPendingPrompt = useChatStore(state => state.setPendingPrompt)
   const addMessage = useChatStore(state => state.addMessage)
   const clearChat = useChatStore(state => state.clearChat)
 
@@ -67,33 +68,14 @@ export const PromptInput = () => {
 
       setChatId(chatId)
       setProjectId(projectId)
-
-      // Add user message to local state immediately
-      addMessage({
-        id: Date.now().toString(),
-        role: 'user',
-        content: prompt
+      setPendingPrompt({
+        content: prompt,
+        images: uploadedFiles.map(f => f.url),
+        model: selectedModel
       })
 
       // 2. Navigate
       router.push(`/projects/${projectId}`)
-
-      // 3. Send message to chat background
-      const { data: messageData } = await api.post(`/v1/ai-chat/new-messages/${chatId}`, {
-        content: prompt,
-        images: uploadedFiles.map(f => f.url),
-        has_files: uploadedFiles.length > 0,
-        tokens_used: 100
-      })
-
-      if (messageData?.data?.message?.content) {
-        addMessage({
-          id: messageData.data.message.id || Date.now().toString(),
-          role: 'ai',
-          content: messageData.data.message?.content,
-          isFromResponse: true,
-        })
-      }
 
     } catch (e) {
       console.error(e)

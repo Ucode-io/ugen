@@ -35,8 +35,8 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview')
   const [projectTitle, setProjectTitle] = useState('Loading...')
   const [isLoading, setIsLoading] = useState(true)
-  const [hasNoFiles, setHasNoFiles] = useState(false)
-  const { setFiles, clearWorkspace } = useFilesStore()
+  const { files, setFiles, clearWorkspace } = useFilesStore()
+  const hasNoFiles = files.length === 0;
   const router = useRouter()
   const t = useTranslations('features.project')
 
@@ -47,7 +47,6 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
       .then(res => {
         const projectData = res.data?.data;
         if (!projectData) {
-          setHasNoFiles(true);
           return;
         }
 
@@ -62,15 +61,11 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             language: getLanguageByPath(file.path)
           }));
           setFiles(mappedFiles);
-          setHasNoFiles(false);
-        } else {
-          setHasNoFiles(true);
         }
       })
       .catch((err) => {
         console.error("Failed to load project details", err);
         setProjectTitle('Workspace Project');
-        setHasNoFiles(true);
       })
       .finally(() => {
         setIsLoading(false);
