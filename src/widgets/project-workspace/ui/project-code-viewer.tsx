@@ -8,6 +8,7 @@ import babelPlugin from 'prettier/plugins/babel'
 import estreePlugin from 'prettier/plugins/estree'
 import { useFilesStore, IFile } from '@/entities/project/model/files-store'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
+import { api } from '@/shared/api'
 
 interface FileNode {
   name: string
@@ -24,17 +25,17 @@ interface SearchResult {
   queryLength: number
 }
 
-export const ProjectCodeViewer = () => {
-  const {
-    files,
-    updateFile,
-    activeFile,
-    openedFiles,
-    expandedFolders,
-    setActiveFile,
-    setOpenedFiles,
-    setExpandedFolders
-  } = useFilesStore()
+export const ProjectCodeViewer = ({ projectId, getLanguageByPath }: { projectId: string, getLanguageByPath: (path: string) => string }) => {
+  const files = useFilesStore((state) => state.files)
+  const activeFile = useFilesStore((state) => state.activeFile)
+  const openedFiles = useFilesStore((state) => state.openedFiles)
+  const expandedFolders = useFilesStore((state) => state.expandedFolders)
+  const updatedFiles = useFilesStore((state) => state.updatedFiles)
+  const setActiveFile = useFilesStore((state) => state.setActiveFile)
+  const setOpenedFiles = useFilesStore((state) => state.setOpenedFiles)
+  const setExpandedFolders = useFilesStore((state) => state.setExpandedFolders)
+  const setUpdatedFiles = useFilesStore((state) => state.setUpdatedFiles)
+  const updateFile = useFilesStore((state) => state.updateFile)
 
   const [sidebarMode, setSidebarMode] = useState<'explorer' | 'search'>('explorer')
   const [searchQuery, setSearchQuery] = useState('')
@@ -118,29 +119,21 @@ export const ProjectCodeViewer = () => {
       },
     })
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => handleSave())
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      handleSave()
+    })
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF, () => {
       setSidebarMode('search')
       setSearchQuery('')
     })
   }
 
-  // Handle initial file selection when files are loaded
+  // Handle initial opened files if activeFile is set but not in openedFiles
   useEffect(() => {
-    if (files.length > 0 && !activeFile) {
-      const entry = files.find(f =>
-        f.path.includes('App.jsx') ||
-        f.path.includes('index.jsx') ||
-        f.path.includes('main.jsx') ||
-        f.path.includes('App.tsx')
-      ) || files[0];
-
-      if (entry) {
-        setActiveFile(entry.path);
-        setOpenedFiles([entry.path]);
-      }
+    if (activeFile && !openedFiles.includes(activeFile)) {
+      setOpenedFiles([...openedFiles, activeFile]);
     }
-  }, [files, activeFile]);
+  }, [activeFile, openedFiles, setOpenedFiles]);
 
   useEffect(() => {
     if (!monacoRef.current) return
@@ -156,21 +149,57 @@ export const ProjectCodeViewer = () => {
     })
   }, [files, activeFile])
 
+  // Use refs to avoid stale closures in event listeners and Monaco commands
+  const activeFileRef = useRef(activeFile)
+  const updatedFilesRef = useRef(updatedFiles)
+  const projectIdRef = useRef(projectId)
+
+  useEffect(() => {
+    activeFileRef.current = activeFile
+    updatedFilesRef.current = updatedFiles
+    projectIdRef.current = projectId
+  }, [activeFile, updatedFiles, projectId])
+
   const handleSave = () => {
+    const currentActiveFile = activeFileRef.current
+
     if (editorRef.current) {
       const val = editorRef.current.getValue()
-      updateFile(activeFile, val)
+      updateFile(currentActiveFile, val)
+      setUpdatedFiles(updatedFilesRef.current.filter((f) => f.path !== currentActiveFile))
+
+      api.put(`/v1/mcp_project/${projectIdRef.current}`, {
+        project_id: projectIdRef.current,
+        project_files: [{ path: currentActiveFile, content: val, language: getLanguageByPath(currentActiveFile) }]
+      })
     }
   }
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
-      updateFile(activeFile, value)
+      const currentActiveFile = activeFileRef.current
+      setUpdatedFiles([...updatedFilesRef.current, {
+        path: currentActiveFile,
+        content: value,
+        language: getLanguageByPath(currentActiveFile)
+      }])
     }
   }
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        handleSave()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const openFile = (path: string) => {
     if (!openedFiles.includes(path)) setOpenedFiles([...openedFiles, path])
+    console.log({ path })
     setActiveFile(path)
   }
 
@@ -382,6 +411,9 @@ export const ProjectCodeViewer = () => {
               >
                 {getFileIcon(path)}
                 <span className="truncate flex-1 font-medium">{path.split('/').pop()}</span>
+                {updatedFiles.some((f) => f.path === path) && (
+                  <span className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-white' : 'bg-text-muted'}`}></span>
+                )}
                 <button
                   onClick={(e) => closeFile(e, path)}
                   className={`p-0.5 rounded-sm hover:bg-black/10 dark:hover:bg-white/10 ${activeFile === path ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}

@@ -35,10 +35,25 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview')
   const [projectTitle, setProjectTitle] = useState('Loading...')
   const [isLoading, setIsLoading] = useState(true)
-  const { files, setFiles, clearWorkspace } = useFilesStore()
+  const { files, updatedFiles, setFiles, clearWorkspace } = useFilesStore()
   const hasNoFiles = files.length === 0;
   const router = useRouter()
   const t = useTranslations('features.project')
+
+  const handleSaveChanges = () => {
+    if (updatedFiles.length > 0) {
+      api.put(`/v1/mcp_project/${projectId}`, {
+        project_files: updatedFiles
+      })
+    }
+  }
+
+  const handleChangeTab = (tab: 'code' | 'preview') => {
+    if (tab === 'code') {
+      handleSaveChanges()
+    }
+    setActiveTab(tab)
+  }
 
   useEffect(() => {
     setIsLoading(true);
@@ -104,7 +119,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         <div className="flex items-center gap-1.5">
           <div className="flex items-center gap-1.5 bg-bg-main p-1 rounded-lg border border-border-subtle">
             <button
-              onClick={() => setActiveTab('preview')}
+              onClick={() => handleChangeTab('preview')}
               disabled={hasNoFiles || isLoading}
               className={`p-1 rounded-md transition-colors flex items-center justify-center shrink-0 group relative ${activeTab === 'preview'
                 ? 'bg-bg-card shadow-sm text-text-main'
@@ -117,7 +132,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('code')}
+              onClick={() => handleChangeTab('code')}
               disabled={hasNoFiles || isLoading}
               className={`p-1 rounded-md transition-colors flex items-center justify-center shrink-0 group relative ${activeTab === 'code'
                 ? 'bg-bg-card shadow-sm text-text-main'
@@ -175,7 +190,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               </div>
             </div>
           ) : activeTab === 'code' ? (
-            <ProjectCodeViewer />
+            <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
           ) : (
             <ProjectPreviewViewer />
           )}
