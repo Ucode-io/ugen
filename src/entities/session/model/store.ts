@@ -12,6 +12,8 @@ export interface UserData {
   login: string
   email: string
   company_id: string
+  environment_id: string
+  role: string
 }
 
 export interface ProjectData {

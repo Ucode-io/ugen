@@ -102,13 +102,14 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
   const handleLoginResponse = (responseData: any) => {
     const { project_data } = responseData
     const response = responseData?.response || responseData
-    const { user, permissions, role, app_permissions, global_permission, token } = response
+    const { user, permissions, role, app_permissions, global_permission, environment_id, token } = response
 
     const userData = {
       id: user?.id,
       login: user?.login,
       email: user?.email,
       company_id: user?.company_id,
+      environment_id,
       role
     }
 
