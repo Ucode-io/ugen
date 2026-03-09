@@ -80,7 +80,7 @@ export function DataTable<TData, TValue>({
     const showMax = 5
 
     let startPage = Math.max(1, page - 2)
-    let endPage = Math.min(totalPages, startPage + showMax - 1)
+    const endPage = Math.min(totalPages, startPage + showMax - 1)
 
     if (endPage - startPage < showMax - 1) {
       startPage = Math.max(1, endPage - showMax + 1)
