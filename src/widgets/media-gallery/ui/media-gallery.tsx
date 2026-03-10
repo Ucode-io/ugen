@@ -69,18 +69,13 @@ export const MediaGallery = ({
     return () => observer.disconnect()
   }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
-  const fetchedFiles = useMemo(() => {
-    if (!data?.pages) return []
+  const files = useMemo(() => {
+    if (!data?.pages) return initialFiles || []
     return data.pages.flatMap(p => Array.isArray(p?.files) ? p.files : [])
-  }, [data])
+  }, [data, initialFiles])
 
-  const [files, setFiles] = useState<FileItem[]>(initialFiles || [])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-
-  useEffect(() => {
-    setFiles(fetchedFiles)
-  }, [fetchedFiles])
 
   const isLoading = propIsLoading || (isQueryLoading && files.length === 0)
 
@@ -247,7 +242,7 @@ export const MediaGallery = ({
                     <span>Loading more...</span>
                   </div>
                 )}
-                {!hasNextPage && fetchedFiles.length > 0 && (
+                {!hasNextPage && files.length > 0 && (
                   <div className="text-text-muted text-sm font-medium">You've reached the end</div>
                 )}
               </div>
