@@ -19,13 +19,14 @@ export const useFileUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<{ id: string; url: string; name: string }[]>([]);
 
-  const uploadFile = useCallback(async (file: File) => {
+  const uploadFile = useCallback(async (file: File, folderName?: string) => {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
 
     try {
       const { data } = await api.post<FileUploadResponse>('/v1/files/folder_upload', formData, {
+        params: { folder_name: folderName },
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 

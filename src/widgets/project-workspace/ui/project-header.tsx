@@ -76,12 +76,13 @@ export const ProjectHeader = ({
         </h1>
       </div>
 
+      <ReusableTabs
+        options={tabOptions}
+        activeId={activeTab}
+        onTabChange={(id) => handleChangeTab(id as 'dashboard' | 'code' | 'preview')}
+      />
+
       <div className="flex items-center gap-1.5">
-        <ReusableTabs
-          options={tabOptions}
-          activeId={activeTab}
-          onTabChange={(id) => handleChangeTab(id as 'dashboard' | 'code' | 'preview')}
-        />
 
         <div className="bg-border-subtle w-[1px] h-4 mx-2" />
 

@@ -8,6 +8,7 @@ import * as z from "zod"
 
 import { PhoneInputReusable } from "@/shared/ui/phone-input"
 import { Button } from "@/shared/ui/ui/button"
+import { Input } from "@/shared/ui/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -267,12 +268,11 @@ export const InviteUserModal = ({
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-text-main">Login</label>
-                <input
+                <Input
                   {...register("login")}
                   type="text"
                   placeholder="Enter login"
                   readOnly={isEdit}
-                  className="w-full rounded-lg border border-border-subtle bg-bg-sidebar px-3 py-2 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all read-only:opacity-70"
                 />
                 {errors.login && <p className="text-xs text-destructive">{errors.login.message}</p>}
               </div>
@@ -296,11 +296,10 @@ export const InviteUserModal = ({
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-text-main">Email</label>
-                <input
+                <Input
                   {...register("email")}
                   type="email"
                   placeholder="Enter email"
-                  className="w-full rounded-lg border border-border-subtle bg-bg-sidebar px-3 py-2 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                 />
                 {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>

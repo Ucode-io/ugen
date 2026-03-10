@@ -157,7 +157,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
             className="bg-bg-card"
           />
         )}
-        <Button className="gap-2" onClick={() => setIsInviteModalOpen(true)}>
+        <Button className="px-8 gap-2" onClick={() => setIsInviteModalOpen(true)}>
           <UserPlus size={16} />
           Invite
         </Button>

@@ -16,6 +16,7 @@ interface ReusableTabsProps {
   onTabChange: (id: string) => void
   className?: string
   tabClassName?: string
+  size?: 'sm' | 'md' | 'lg'
 }
 
 export const ReusableTabs = ({
@@ -23,8 +24,15 @@ export const ReusableTabs = ({
   activeId,
   onTabChange,
   className,
-  tabClassName
+  tabClassName,
+  size = 'md'
 }: ReusableTabsProps) => {
+  const sizeClasses = {
+    sm: "text-[10px] px-1 py-0.5",
+    md: "text-[13px] px-2 py-1",
+    lg: "text-[15px] px-4 py-2",
+  }
+
   return (
     <div className={cn("flex items-center gap-1.5 bg-bg-main p-1 rounded-lg border border-border-subtle", className)}>
       {options.map((option) => {
@@ -36,7 +44,8 @@ export const ReusableTabs = ({
             onClick={() => onTabChange(option.id)}
             disabled={option.disabled}
             className={cn(
-              "p-1.5 px-3 rounded-md transition-all duration-200 flex items-center justify-center gap-2 text-[13px] font-medium shrink-0 group relative",
+              "p-1.5 px-3 rounded-md transition-all duration-200 flex items-center justify-center gap-2 font-medium shrink-0 group relative",
+              sizeClasses[size],
               isActive
                 ? "bg-bg-card shadow-sm text-text-main"
                 : "text-text-muted hover:text-text-main hover:bg-hover-bg disabled:opacity-50 disabled:cursor-not-allowed",
