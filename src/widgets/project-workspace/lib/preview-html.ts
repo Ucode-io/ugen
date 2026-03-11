@@ -186,16 +186,13 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
 
       <style>
         html, body, #root { height: 100%; margin: 0; padding: 0; }
-        
-        /* Исправление для Leaflet в Dark Mode (если будет использоваться) */
+
         html.dark .leaflet-layer,
         html.dark .leaflet-control { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
-        
-        /* Notion Dark Mode Colors */
+
         html.dark body { background-color: #191919; color: #D4D4D4; }
       </style>
-      
-      <!-- Глобальный CSS для Leaflet (на всякий случай) -->
+
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     </head>
     <body>

@@ -20,6 +20,7 @@ import { useMemo } from 'react'
 import { useMenus } from '@/entities/menu/lib/use-menus'
 import { MenuItem } from '@/entities/menu/model/types'
 import { DashboardSidebar, NavigationItem } from './dashboard-sidebar'
+import { RoleList } from '@/widgets/role-manage'
 
 type DashboardSection = string
 
@@ -93,8 +94,64 @@ export const ProjectDashboard = ({
 
   const activeItem = findActiveItem(navigationItems, activeSection)
 
+  const renderActiveSection = () => {
+    if (activeSection === "users") {
+      return (
+        <UsersManagement projectId={projectId} projectInfo={projectInfo} />
+      );
+    }
+
+    if (activeSection === "roles") {
+      return <RoleList />;
+    }
+
+    if (activeSection === "client_types") {
+      return <ClientTypeManagement />;
+    }
+
+    const filesGroup = navigationItems.find((n) => n.id === "files");
+    const activeFileItem = filesGroup?.items?.find(
+      (i: any) => i.id === activeSection,
+    );
+
+    if (activeFileItem) {
+      return (
+        <div className="ai-card flex min-h-[400px] items-center justify-center p-6">
+          <MediaGallery
+            activeMenuId={activeSection}
+            folderPath={(activeFileItem as any).path || "media"}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="ai-card flex min-h-[400px] items-center justify-center border-dashed p-6">
+        <div className="space-y-3 text-center">
+          {(() => {
+            const Icon = activeItem?.icon;
+            return (
+              <>
+                <div className="bg-primary/5 mx-auto flex h-12 w-12 items-center justify-center rounded-full">
+                  {Icon && <Icon size={24} className="text-primary/40" />}
+                </div>
+                <h3 className="text-text-main text-lg font-medium">
+                  {activeItem?.label} Content
+                </h3>
+              </>
+            );
+          })()}
+          <p className="text-text-muted mx-auto max-w-[300px] text-sm">
+            This section is under development. Here you will find management
+            tools for your project {activeItem?.label.toLowerCase()}.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-1 h-full overflow-hidden bg-bg-main relative">
+    <div className="bg-bg-main relative flex h-full flex-1 overflow-hidden">
       {/* Sidebar Component */}
       <DashboardSidebar
         items={navigationItems}
@@ -106,61 +163,11 @@ export const ProjectDashboard = ({
       />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto min-w-0">
-        <div className="p-8 max-w-5xl mx-auto w-full">
-          {/* <header className="mb-8 flex items-start justify-between">
-            <div className="flex flex-col">
-              <h2 className="text-2xl font-bold text-text-main capitalize">
-                {activeItem?.label || activeSection.replace('_', ' ')}
-              </h2>
-              <p className="text-text-muted mt-1">
-                Manage your project {activeItem?.label.toLowerCase() || activeSection.replace('_', ' ')} settings and data.
-              </p>
-            </div>
-          </header> */}
-
-          <div className="grid gap-6">
-            {activeSection === 'users' ? (
-              <UsersManagement projectId={projectId} projectInfo={projectInfo} />
-            ) : activeSection === 'client_types' ? (
-              <ClientTypeManagement />
-            ) : (() => {
-              const filesGroup = navigationItems.find(n => n.id === 'files')
-              const activeFileItem = filesGroup?.items?.find((i: any) => i.id === activeSection)
-
-              if (activeFileItem) {
-                return (
-                  <MediaGallery
-                    activeMenuId={activeSection}
-                    folderPath={(activeFileItem as any).path || 'media'}
-                  />
-                )
-              }
-
-              return (
-                <div className="ai-card p-6 min-h-[400px] flex items-center justify-center border-dashed">
-                  <div className="text-center space-y-3">
-                    {(() => {
-                      const Icon = activeItem?.icon
-                      return (
-                        <>
-                          <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center mx-auto">
-                            {Icon && <Icon size={24} className="text-primary/40" />}
-                          </div>
-                          <h3 className="text-lg font-medium text-text-main">{activeItem?.label} Content</h3>
-                        </>
-                      )
-                    })()}
-                    <p className="text-text-muted text-sm max-w-[300px] mx-auto">
-                      This section is under development. Here you will find management tools for your project {activeItem?.label.toLowerCase()}.
-                    </p>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-5xl p-8">
+          <div className="grid gap-6">{renderActiveSection()}</div>
         </div>
       </main>
     </div>
-  )
+  );
 }

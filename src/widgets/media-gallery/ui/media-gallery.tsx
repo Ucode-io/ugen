@@ -126,7 +126,7 @@ export const MediaGallery = ({
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex h-full w-full flex-col">
       {/* Media Header Controls */}
       <MediaActionBar
         selectedCount={selectedCount}
@@ -142,17 +142,21 @@ export const MediaGallery = ({
       />
 
       {/* Grid Content */}
-      <div className="flex-1 relative">
+      <div className="relative flex-1">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div
               layout
               className={cn(
                 "grid gap-4",
-                gridColumns === 7 && "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7",
-                gridColumns === 5 && "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
-                gridColumns === 4 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
-                gridColumns === 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                gridColumns === 7 &&
+                  "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7",
+                gridColumns === 5 &&
+                  "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+                gridColumns === 4 &&
+                  "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
+                gridColumns === 3 &&
+                  "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
               )}
             >
               <MediaSkeleton count={gridColumns * 2} />
@@ -162,43 +166,53 @@ export const MediaGallery = ({
               key="error"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center min-h-[400px] gap-6 text-center"
+              className="flex min-h-[400px] flex-col items-center justify-center gap-6 text-center"
             >
-              <div className="w-20 h-20 rounded-2xl bg-destructive/10 flex items-center justify-center">
-                <AlertCircle className="w-10 h-10 text-destructive" />
+              <div className="bg-destructive/10 flex h-20 w-20 items-center justify-center rounded-2xl">
+                <AlertCircle className="text-destructive h-10 w-10" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-text-main">Failed to load files</h3>
+                <h3 className="text-text-main text-xl font-bold">
+                  Failed to load files
+                </h3>
                 <p className="text-text-muted max-w-[300px]">
-                  Something went wrong while fetching the data. Please check your connection.
+                  Something went wrong while fetching the data. Please check
+                  your connection.
                 </p>
               </div>
-              <Button onClick={() => refetch()} variant="outline" className="rounded-xl px-8 h-12">
-                <RefreshCw className="mr-2 w-4 h-4" />
+              <Button
+                onClick={() => refetch()}
+                variant="outline"
+                className="h-12 rounded-xl px-8"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Retry
               </Button>
             </motion.div>
-          ) : filteredFiles.length === 0 ? (
+          ) : filteredFiles.length === 0 && !searchQuery ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="flex flex-col items-center justify-center min-h-[400px] gap-6 text-center"
+              className="flex min-h-[400px] flex-col items-center justify-center gap-6 text-center"
             >
-              <div className="relative group p-10 rounded-[32px] border-2 border-dashed border-white/10 hover:border-primary/40 transition-all duration-500 bg-white/5 shadow-inner">
-                <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                  <CloudUpload className="w-10 h-10 text-primary" />
+              <div className="group hover:border-primary/40 relative rounded-[32px] border-2 border-dashed border-white/10 bg-white/5 p-10 shadow-inner transition-all duration-500">
+                <div className="bg-primary/10 mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+                  <CloudUpload className="text-primary h-10 w-10" />
                 </div>
-                <h3 className="text-xl font-bold text-text-main">No Assets Yet</h3>
+                <h3 className="text-text-main text-xl font-bold">
+                  No Assets Yet
+                </h3>
                 <p className="text-text-muted mt-2 max-w-[280px]">
-                  Your media gallery is empty. Upload your first image, video, or document to get started.
+                  Your media gallery is empty. Upload your first image, video,
+                  or document to get started.
                 </p>
                 <Button
                   onClick={() => setIsModalOpen(true)}
-                  className="mt-8 px-8 py-6 rounded-2xl h-auto font-bold text-lg bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 scale-102 hover:scale-105 transition-all active:scale-95"
+                  className="bg-primary hover:bg-primary/90 shadow-primary/20 mt-8 h-auto scale-102 rounded-2xl px-8 py-6 text-lg font-bold text-white shadow-xl transition-all hover:scale-105 active:scale-95"
                 >
-                  <PlusCircle className="mr-2 w-6 h-6" />
+                  <PlusCircle className="mr-2 h-6 w-6" />
                   Create item
                 </Button>
               </div>
@@ -215,10 +229,14 @@ export const MediaGallery = ({
                   layout
                   className={cn(
                     "grid gap-4 transition-[grid-template-columns] duration-500 ease-in-out",
-                    gridColumns === 7 && "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7",
-                    gridColumns === 5 && "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
-                    gridColumns === 4 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
-                    gridColumns === 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    gridColumns === 7 &&
+                      "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7",
+                    gridColumns === 5 &&
+                      "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+                    gridColumns === 4 &&
+                      "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
+                    gridColumns === 3 &&
+                      "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
                   )}
                 >
                   <AnimatePresence>
@@ -235,15 +253,20 @@ export const MediaGallery = ({
               </LayoutGroup>
 
               {/* Bottom sentinel for infinite scroll */}
-              <div ref={bottomRef} className="h-20 flex items-center justify-center py-8">
+              <div
+                ref={bottomRef}
+                className="flex h-20 items-center justify-center py-8"
+              >
                 {isFetchingNextPage && (
-                  <div className="flex items-center gap-2 text-primary font-medium">
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                  <div className="text-primary flex items-center gap-2 font-medium">
+                    <Loader2 className="h-5 w-5 animate-spin" />
                     <span>Loading more...</span>
                   </div>
                 )}
-                {!hasNextPage && files.length > 0 && (
-                  <div className="text-text-muted text-sm font-medium">You've reached the end</div>
+                {!hasNextPage && files.length > 19 && (
+                  <div className="text-text-muted text-sm font-medium">
+                    You've reached the end
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -259,5 +282,5 @@ export const MediaGallery = ({
         onSuccess={() => refetch()}
       />
     </div>
-  )
+  );
 }
