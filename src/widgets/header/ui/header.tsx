@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { ThemeSwitcher } from '@/features/theme-switcher'
 import { LangSwitcher } from '@/features/lang-switcher'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AuthModal } from '@/features/auth'
 import { useAuthStore } from '@/entities/session'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
@@ -21,8 +21,17 @@ export const Header = () => {
     setIsAuthOpen(true)
   }
 
+  useEffect(() => {
+    const handleOpenAuth = (e: Event) => {
+      const customEvent = e as CustomEvent
+      openAuth(customEvent.detail || 'register')
+    }
+    window.addEventListener('open-auth', handleOpenAuth)
+    return () => window.removeEventListener('open-auth', handleOpenAuth)
+  }, [])
+
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border-subtle bg-bg-main px-6">
+    <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-border-subtle bg-bg-card/85 backdrop-blur-md px-6">
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2">
           <Image
@@ -33,15 +42,21 @@ export const Header = () => {
             className="h-7 w-auto"
           />
         </Link>
-        <nav className="flex items-center gap-6">
-          <Link href="/features" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
-            {t('features')}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link href="/#databases" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
+            Databases
+          </Link>
+          <Link href="/#edge-functions" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
+            Edge Functions
+          </Link>
+          <Link href="/#features" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
+            Features
           </Link>
           <Link href="/pricing" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
-            {t('pricing')}
+            Pricing
           </Link>
-          <Link href="/about" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
-            {t('about')}
+          <Link href="/#integrations" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
+            Integrations
           </Link>
         </nav>
       </div>

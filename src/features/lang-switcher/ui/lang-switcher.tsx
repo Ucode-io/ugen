@@ -3,6 +3,8 @@ import { usePathname, useRouter } from '@/shared/lib/i18n/navigation'
 import { useLocale } from 'next-intl'
 import { startTransition } from 'react'
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/ui/select'
+
 export const LangSwitcher = () => {
   const locale = useLocale()
   const router = useRouter()
@@ -15,18 +17,17 @@ export const LangSwitcher = () => {
   }
 
   return (
-    <div className="flex gap-1 bg-bg-main p-1 rounded-lg border border-border-subtle">
-      {['en', 'ru', 'uz'].map((lang) => (
-        <button
-          key={lang}
-          onClick={() => toggleLang(lang)}
-          className={`px-2 py-1 text-xs rounded-md transition-all ${
-            locale === lang ? 'bg-primary text-white' : 'text-text-muted hover:text-text-main'
-          }`}
-        >
-          {lang.toUpperCase()}
-        </button>
-      ))}
-    </div>
+    <Select value={locale} onValueChange={toggleLang}>
+      <SelectTrigger className="w-[80px] h-8 bg-transparent border-border-subtle hover:bg-bg-sidebar transition-colors rounded-md text-xs font-medium">
+        <SelectValue placeholder="Lang" />
+      </SelectTrigger>
+      <SelectContent>
+        {['en', 'ru', 'uz'].map((lang) => (
+          <SelectItem key={lang} value={lang} className="text-xs font-medium cursor-pointer">
+            {lang.toUpperCase()}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

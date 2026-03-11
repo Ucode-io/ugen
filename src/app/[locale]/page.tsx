@@ -1,19 +1,20 @@
-'use client'
-import { useAuthStore } from '@/entities/session'
-import { DashboardHome } from '@/widgets/dashboard-home'
+import { Metadata } from 'next'
+import { LandingPage, LandingPageClientWrapper } from '@/widgets/landing-page'
+
+export const metadata: Metadata = {
+  title: 'Ucode | AI-Based Backend as a Service',
+  description: 'Backend as a Service for your Digital Business. Every Ucode project is powered by an AI-based low-code platform that generates frontend and backend easily and quickly.',
+  openGraph: {
+    title: 'Ucode | AI-Based Backend as a Service',
+    description: 'Build fast. Scale easy. Every Ucode project is powered by an AI-based low-code platform.',
+    type: 'website',
+  }
+}
 
 export default function RootHomePage() {
-  const { activeView } = useAuthStore()
-
-  if (activeView === 'dashboard') {
-    return <DashboardHome />
-  }
-
   return (
-    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
-      <h1 className="text-4xl font-bold text-text-main">
-        Welcome to Ugen
-      </h1>
-    </div>
+    <LandingPageClientWrapper>
+      <LandingPage />
+    </LandingPageClientWrapper>
   )
 }

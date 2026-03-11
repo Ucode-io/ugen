@@ -21,6 +21,8 @@ import { useMenus } from '@/entities/menu/lib/use-menus'
 import { MenuItem } from '@/entities/menu/model/types'
 import { DashboardSidebar, NavigationItem } from './dashboard-sidebar'
 import { RoleList } from '@/widgets/role-manage'
+import { PermissionManage } from '@/widgets/permission-manage'
+import { useClientTypes } from '@/entities/client-type'
 
 type DashboardSection = string
 
@@ -42,6 +44,7 @@ export const ProjectDashboard = ({
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
 
   const { data: fileMenus, isLoading: isMenusLoading } = useMenus('8a6f913a-e3d4-4b73-9fc0-c942f343d0b9')
+  const { data: clientTypes = [] } = useClientTypes(projectId)
 
   const navigationItems: NavigationItem[] = useMemo(() => [
     { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
@@ -67,10 +70,19 @@ export const ProjectDashboard = ({
         path: menu.attributes.path
       })) || [{ id: 'media', label: 'Media', path: 'media' }]
     },
+    {
+      id: 'permissions_group',
+      icon: ShieldCheck,
+      label: 'Permissions',
+      isGroup: true,
+      items: clientTypes?.map((ct: any) => ({
+        id: `perm_${ct.guid}`,
+        label: ct.name,
+      })) || []
+    },
     { id: 'integrations', icon: Puzzle, label: 'Integrations' },
     { id: 'logs', icon: ScrollText, label: 'Logs' },
-    { id: 'security', icon: ShieldCheck, label: 'Security' },
-  ], [fileMenus])
+  ], [fileMenus, clientTypes])
 
   const findActiveItem = (items: any[], activeId: string): any => {
     for (const item of items) {
@@ -107,6 +119,11 @@ export const ProjectDashboard = ({
 
     if (activeSection === "client_types") {
       return <ClientTypeManagement />;
+    }
+
+    if (activeSection.startsWith("perm_")) {
+      const clientId = activeSection.split("perm_")[1];
+      return <PermissionManage clientTypeId={clientId} />;
     }
 
     const filesGroup = navigationItems.find((n) => n.id === "files");

@@ -174,7 +174,7 @@
   /* Стеклянный эффект для заголовков таблиц и панелей */
   .glass-header {
     @apply bg-bg-card/75 backdrop-blur-md border-b border-border-subtle transition-all;
-    
+
     [data-theme='dark'] & {
       @apply bg-bg-card/50;
     }
