@@ -53,7 +53,7 @@ export const DashboardTabs = () => {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 z-10 relative">
+    <div className="w-full max-w-5xl mx-auto p-6 z-10 relative bg-bg-main rounded-xl border border-border-subtle">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           {tabs.map((tab) => (

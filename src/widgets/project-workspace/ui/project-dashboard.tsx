@@ -6,8 +6,6 @@ import {
   Puzzle,
   ScrollText,
   ShieldCheck,
-  ChevronDown,
-  ChevronRight,
   UserCircle,
   ShieldAlert,
   Contact2,
@@ -23,6 +21,7 @@ import { DashboardSidebar, NavigationItem } from './dashboard-sidebar'
 import { RoleList } from '@/widgets/role-manage'
 import { PermissionManage } from '@/widgets/permission-manage'
 import { useClientTypes } from '@/entities/client-type'
+import { AppSettingsPage } from '@/widgets/app-settings'
 
 type DashboardSection = string
 
@@ -107,6 +106,10 @@ export const ProjectDashboard = ({
   const activeItem = findActiveItem(navigationItems, activeSection)
 
   const renderActiveSection = () => {
+    if (activeSection === 'overview') {
+      return <AppSettingsPage />
+    }
+
     if (activeSection === "users") {
       return (
         <UsersManagement projectId={projectId} projectInfo={projectInfo} />
