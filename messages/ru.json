@@ -67,5 +67,67 @@
       "emptyProjectDesc": "Ваше рабочее пространство в данный момент пусто. Опишите, что вы хотите создать, в чате, и ИИ сгенерирует для вас файлы и архитектуру за секунды.",
       "startChatting": "Начать чат"
     }
+  },
+  "databaseStudio": {
+    "title": "Database Studio",
+    "tabs": {
+      "tables": "Таблицы",
+      "logs": "Логи",
+      "security": "Аудит безопасности",
+      "advanced": "Расширенные"
+    },
+    "records": {
+      "count": "{count} записей",
+      "searchPlaceholder": "Поиск записей...",
+      "sqlQuery": "SQL Запрос",
+      "filter": "Фильтр",
+      "viewPolicies": "Просмотр политик",
+      "filters": "Фильтры",
+      "clearAll": "Очистить все",
+      "contains": "содержит",
+      "valuePlaceholder": "Значение...",
+      "addCondition": "Добавить условие",
+      "addRow": "Добавить строку",
+      "addRecordTitle": "Добавить запись в {table}",
+      "fieldRequired": "Обязательно",
+      "saveRecord": "Сохранить запись",
+      "noResults": "Нет результатов. Попробуйте изменить поисковый запрос."
+    },
+    "sqlConsole": {
+      "activeHeader": "Консоль активна",
+      "header": "SQL Консоль",
+      "explorer": "Проводник",
+      "scripts": "Скрипты",
+      "tables": "Таблицы",
+      "prettify": "Украсить",
+      "run": "Выполнить",
+      "results": "Результаты",
+      "rowsReturned": "Вернулось {count} строк",
+      "queryError": "Ошибка запроса",
+      "noResultsYet": "Нет данных. Выполните запрос для просмотра."
+    },
+    "tables": {
+      "rows": "{count} строк"
+    },
+    "query": {
+      "title": "Запрос {table}",
+      "runQuery": "Выполнить запрос",
+      "resultsPlaceholder": "Нет данных. Выполните запрос для просмотра."
+    },
+    "breadcrumbs": {
+      "tables": "Таблицы",
+      "query": "Запрос"
+    },
+    "columns": {
+      "timestamp": "Временная метка",
+      "event": "Событие",
+      "user": "Пользователь",
+      "status": "Статус"
+    },
+    "placeholders": {
+      "securityComingSoon": "Аудит безопасности скоро появится",
+      "advancedComingSoon": "Расширенные настройки скоро появятся",
+      "noLogs": "Логи не найдены"
+    }
   }
 }

@@ -9,10 +9,12 @@ import {
   UserCircle,
   ShieldAlert,
   Contact2,
-  Files
+  Files,
+  Database
 } from "lucide-react"
 import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
+import { DatabaseStudio } from '@/widgets/database-studio'
 import { ClientTypeManagement } from '@/widgets/client-type-management'
 import { useMemo } from 'react'
 import { useMenus } from '@/entities/menu/lib/use-menus'
@@ -80,6 +82,7 @@ export const ProjectDashboard = ({
       })) || []
     },
     { id: 'integrations', icon: Puzzle, label: 'Integrations' },
+    { id: 'database_studio', icon: Database, label: 'Database Studio' },
     { id: 'logs', icon: ScrollText, label: 'Logs' },
   ], [fileMenus, clientTypes])
 
@@ -122,6 +125,10 @@ export const ProjectDashboard = ({
 
     if (activeSection === "client_types") {
       return <ClientTypeManagement />;
+    }
+
+    if (activeSection === "database_studio") {
+      return <DatabaseStudio />;
     }
 
     if (activeSection.startsWith("perm_")) {

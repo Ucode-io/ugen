@@ -67,5 +67,67 @@
       "emptyProjectDesc": "Sizning ish maydoningiz hozirda bo`sh. Chatda nima qurmoqchi ekanligingizni tasvirlab bering va AI siz uchun materiallar va arxitekturani soniyalar ichida yaratib beradi.",
       "startChatting": "Suhbatni boshlash"
     }
+  },
+  "databaseStudio": {
+    "title": "Database Studio",
+    "tabs": {
+      "tables": "Jadvallar",
+      "logs": "Loglar",
+      "security": "Xavfsizlik auditi",
+      "advanced": "Kengaytirilgan"
+    },
+    "records": {
+      "count": "{count} yozuvlar",
+      "searchPlaceholder": "Yozuvlarni qidirish...",
+      "sqlQuery": "SQL So'rov",
+      "filter": "Filtr",
+      "viewPolicies": "Siyosatlarni ko'rish",
+      "filters": "Filtrlar",
+      "clearAll": "Hammasini tozalash",
+      "contains": "o'z ichiga oladi",
+      "valuePlaceholder": "Qiymat...",
+      "addCondition": "Shart qo'shish",
+      "addRow": "Qator qo'shish",
+      "addRecordTitle": "{table} jadvaliga yangi yozuv qo'shish",
+      "fieldRequired": "Majburiy",
+      "saveRecord": "Yozuvni saqlash",
+      "noResults": "Natijalar yo'q. Qidiruv so'rovini o'zgartirib ko'ring."
+    },
+    "sqlConsole": {
+      "activeHeader": "Konsol faol",
+      "header": "SQL Konsol",
+      "explorer": "Tana",
+      "scripts": "Skriptlar",
+      "tables": "Jadvallar",
+      "prettify": "Chiroyli qilish",
+      "run": "Bajarish",
+      "results": "Natijalar",
+      "rowsReturned": "{count} qator qaytarildi",
+      "queryError": "So'rov xatosi",
+      "noResultsYet": "Hozircha natijalar yo'q. Malumotni ko'rish uchun so'rovni bajaring."
+    },
+    "tables": {
+      "rows": "{count} qator"
+    },
+    "query": {
+      "title": "{table} so'rovi",
+      "runQuery": "So'rovni bajarish",
+      "resultsPlaceholder": "Hozircha natijalar yo'q. Malumotni ko'rish uchun so'rovni bajaring."
+    },
+    "breadcrumbs": {
+      "tables": "Jadvallar",
+      "query": "So'rov"
+    },
+    "columns": {
+      "timestamp": "Vaqt belgisi",
+      "event": "Hodisa",
+      "user": "Foydalanuvchi",
+      "status": "Holat"
+    },
+    "placeholders": {
+      "securityComingSoon": "Xavfsizlik auditi tez orada kutilmoqda",
+      "advancedComingSoon": "Kengaytirilgan sozlamalar tez orada kutilmoqda",
+      "noLogs": "Loglar topilmadi"
+    }
   }
 }

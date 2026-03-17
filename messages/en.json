@@ -67,5 +67,67 @@
       "emptyProjectDesc": "Your workspace is currently empty. Describe what you want to build in the chat, and the AI will generate the files and architecture for you in seconds.",
       "startChatting": "Start Chatting"
     }
+  },
+  "databaseStudio": {
+    "title": "Database Studio",
+    "tabs": {
+      "tables": "Tables",
+      "logs": "Logs",
+      "security": "Security Audit",
+      "advanced": "Advanced"
+    },
+    "records": {
+      "count": "{count} records",
+      "searchPlaceholder": "Search records...",
+      "sqlQuery": "SQL Query",
+      "filter": "Filter",
+      "viewPolicies": "View Policies",
+      "filters": "Filters",
+      "clearAll": "Clear all",
+      "contains": "contains",
+      "valuePlaceholder": "Value...",
+      "addCondition": "Add condition",
+      "addRow": "Add row",
+      "addRecordTitle": "Add new record to {table}",
+      "fieldRequired": "Required",
+      "saveRecord": "Save record",
+      "noResults": "No results. Try adjusting your search query or check back later."
+    },
+    "sqlConsole": {
+      "activeHeader": "Console Active",
+      "header": "SQL Console",
+      "explorer": "Explorer",
+      "scripts": "Scripts",
+      "tables": "Tables",
+      "prettify": "Prettify",
+      "run": "Run",
+      "results": "Results",
+      "rowsReturned": "{count} rows returned",
+      "queryError": "Query Error",
+      "noResultsYet": "No results yet. Run a query to see data."
+    },
+    "tables": {
+      "rows": "{count} rows"
+    },
+    "query": {
+      "title": "Query {table}",
+      "runQuery": "Run Query",
+      "resultsPlaceholder": "No results yet. Run the query to see data."
+    },
+    "breadcrumbs": {
+      "tables": "Tables",
+      "query": "Query"
+    },
+    "columns": {
+      "timestamp": "Timestamp",
+      "event": "Event",
+      "user": "User",
+      "status": "Status"
+    },
+    "placeholders": {
+      "securityComingSoon": "Security audit coming soon",
+      "advancedComingSoon": "Advanced settings coming soon",
+      "noLogs": "No logs found"
+    }
   }
 }
