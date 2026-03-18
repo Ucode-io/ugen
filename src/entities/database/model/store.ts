@@ -59,9 +59,12 @@ export const useDatabaseStore = create<DatabaseState>((set) => ({
 
   setBreadcrumbs: (breadcrumbs) => set({ breadcrumbs }),
 
-  resetToTables: () => set({ 
-    selectedTable: null, 
-    currentView: 'tables', 
-    breadcrumbs: [{ label: 'Tables', view: 'tables' }] 
+  resetToTables: () => set((state) => {
+    if (state.selectedTable === null && state.currentView === 'tables') return state;
+    return {
+      selectedTable: null,
+      currentView: 'tables',
+      breadcrumbs: [{ label: 'breadcrumbs.tables', view: 'tables' }]
+    }
   }),
 }));

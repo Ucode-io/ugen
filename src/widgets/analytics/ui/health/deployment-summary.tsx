@@ -1,0 +1,82 @@
+"use client"
+
+import { useDeploymentInfo } from "@/features/analytics";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { ExternalLink, Github } from "lucide-react";
+import { cn } from "@/shared/lib/utils/cn";
+
+export const DeploymentSummary = () => {
+  const { data: deployment, isLoading } = useDeploymentInfo();
+
+  if (isLoading) return <Skeleton className="h-40 w-full" />;
+  if (!deployment) return null;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+          <span className="text-text-muted">Environment</span>
+          <span className={cn(
+            "px-2 py-0.5 rounded text-[11px] font-bold uppercase",
+            deployment.environment === 'production' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+          )}>
+            {deployment.environment}
+          </span>
+        </div>
+        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+          <span className="text-text-muted">Project Name</span>
+          <span className="text-text-main font-medium">{deployment.projectName}</span>
+        </div>
+        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+          <span className="text-text-muted">Region</span>
+          <span className="text-text-main font-medium">{deployment.region}</span>
+        </div>
+        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+          <span className="text-text-muted">Runtime Version</span>
+          <div className="flex items-center gap-2">
+            <span className="text-text-main font-medium">{deployment.runtimeVersion}</span>
+            {deployment.hasUpdate && (
+              <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 text-[10px] font-bold">UPDATE AVAILABLE</span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+          <span className="text-text-muted">Last Deploy</span>
+          <span className="text-text-main font-medium">
+            {new Date(deployment.lastDeploy.date).toLocaleDateString()} by {deployment.lastDeploy.author}
+          </span>
+        </div>
+        <div className="flex items-center justify-between border-b border-border-subtle pb-2">
+          <span className="text-text-muted">Backup Status</span>
+          <span className="text-text-main font-medium">{deployment.backupStatus}</span>
+        </div>
+      </div>
+
+      <div className="space-y-4 h-full flex flex-col justify-start">
+        <div className="flex flex-col gap-2">
+          <span className="text-text-muted text-xs uppercase font-bold tracking-wider">Project URLs</span>
+          <a
+            href={deployment.cloudUrl}
+            target="_blank"
+            className="flex items-center gap-2 text-primary hover:underline group w-fit"
+          >
+            <span className="bg-primary/10 p-1.5 rounded-md group-hover:bg-primary/20 transition-colors">
+              <ExternalLink className="w-4 h-4" />
+            </span>
+            {deployment.cloudUrl}
+          </a>
+          <a
+            href={deployment.actionsUrl}
+            target="_blank"
+            className="flex items-center gap-2 text-primary hover:underline group w-fit"
+          >
+            <span className="bg-primary/10 p-1.5 rounded-md group-hover:bg-primary/20 transition-colors">
+              <Github className="w-4 h-4" />
+            </span>
+            HTTP Actions URL
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+};

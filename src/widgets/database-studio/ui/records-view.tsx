@@ -60,8 +60,13 @@ export const RecordsView = () => {
     }))
   }, [schema])
 
+  React.useEffect(() => {
+    if (!selectedTable) {
+      resetToTables()
+    }
+  }, [selectedTable, resetToTables])
+
   if (!selectedTable) {
-    resetToTables()
     return null
   }
 

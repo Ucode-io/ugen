@@ -2,19 +2,19 @@
 
 import React, { useState } from 'react'
 import Editor from '@monaco-editor/react'
-import { 
-  Play, 
-  Trash2, 
-  Plus, 
-  ChevronRight, 
-  Database, 
-  History, 
-  FileCode, 
-  LayoutGrid, 
-  Menu, 
-  ChevronLeft, 
-  Settings, 
-  Sparkles, 
+import {
+  Play,
+  Trash2,
+  Plus,
+  ChevronRight,
+  Database,
+  History,
+  FileCode,
+  LayoutGrid,
+  Menu,
+  ChevronLeft,
+  Settings,
+  Sparkles,
   RefreshCw,
   AlertCircle
 } from 'lucide-react'
@@ -78,13 +78,15 @@ export const SqlConsole = () => {
     }))
   }, [results])
 
+  console.log({ isSidebarOpen })
+
   return (
     <div className="flex bg-bg-card rounded-ai border border-border-subtle shadow-sm flex-1 flex-col sm:flex-row overflow-hidden min-h-[600px] h-[calc(100vh-280px)]">
       {/* Sidebar Panel */}
       <div
         className={cn(
           "w-64 flex flex-col border-r border-border-subtle bg-bg-main/50 transition-all duration-300",
-          !isSidebarOpen && "w-0 -translate-x-full sm:w-0 sm:opacity-0"
+          !isSidebarOpen && "w-0 -translate-x-full pointer-events-none sm:w-0 sm:opacity-0"
         )}
       >
         <div className="flex items-center justify-between p-4 border-b border-border-subtle h-[57px]">

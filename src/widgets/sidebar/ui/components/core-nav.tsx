@@ -1,7 +1,7 @@
 'use client'
 import { Link } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
-import { Home, Search, Layers } from "lucide-react"
+import { Home, Search, Layers, BarChart2 } from "lucide-react"
 import { usePathname } from "@/shared/lib/i18n/navigation"
 
 interface CoreNavProps {
@@ -17,6 +17,8 @@ export const CoreNav = ({ isCollapsed, onSearchClick }: CoreNavProps) => {
     { key: "home", href: "/", icon: Home },
     { key: "search", href: "/search", icon: Search },
     { key: "templates", href: "/dashboard/templates", icon: Layers },
+    // Adding Analytics to Sidebar core nav
+    { key: "analytics", href: "/dashboard/analytics", icon: BarChart2 },
   ]
 
   return (
