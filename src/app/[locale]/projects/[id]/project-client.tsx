@@ -7,6 +7,7 @@ import { ProjectPreviewViewer } from "@/widgets/project-workspace/ui/project-pre
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { api } from "@/shared/api"
 import { useTranslations } from "next-intl"
+import { useAuthStore } from '@/entities/session'
 
 import { useFilesStore, IFile } from "@/entities/project/model/files-store"
 
@@ -42,6 +43,8 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const [isLoading, setIsLoading] = useState(true)
   const [projectInfo, setProjectInfo] = useState<any>(null)
   const { files, updatedFiles, setFiles, clearWorkspace } = useFilesStore()
+  const setApiKey = useAuthStore(state => state.setApiKey)
+  const setUcodeProjectId = useAuthStore(state => state.setUcodeProjectId)
   const hasNoFiles = files.length === 0;
   const t = useTranslations('features.project')
 
@@ -61,6 +64,15 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         const projectData = res.data?.data;
         if (!projectData) {
           return;
+        }
+
+        // Save API key for dashboard requests
+        if (projectData.api_key) {
+          setApiKey(projectData.api_key)
+        }
+
+        if (projectData.ucode_project_id) {
+          setUcodeProjectId(projectData.ucode_project_id)
         }
 
         if (projectData.title) {
@@ -98,8 +110,9 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
     return () => {
       clearWorkspace();
+      setApiKey(null)   // clear api key when leaving project workspace
     };
-  }, [projectId, setFiles, clearWorkspace])
+  }, [projectId, setFiles, clearWorkspace, setApiKey])
 
   const showChat = activeTab === 'code' || activeTab === 'preview'
   const isSidebarCollapsed = activeTab === 'dashboard' ? isDashboardSidebarCollapsed : isChatCollapsed

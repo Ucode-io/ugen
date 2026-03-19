@@ -86,24 +86,28 @@ export const ClientTypeModal = ({
     }
   }, [open, initialData, reset])
 
-  const onSubmit = (data: ClientTypeFormValues) => {
+  const onSubmit = (clientTypeData: ClientTypeFormValues) => {
     if (isEdit) {
       updateMutation.mutate({
-        ...data,
-        id: initialData.guid,
-        guid: initialData.guid,
-        project_id: projectId,
-        "project-id": projectId,
-        columns: initialData.columns || [],
+        data: {
+          ...clientTypeData,
+          id: initialData.guid,
+          guid: initialData.guid,
+          project_id: projectId,
+          "project-id": projectId,
+          columns: initialData.columns || [],
+        }
       }, {
         onSuccess: () => onOpenChange(false)
       })
     } else {
       createMutation.mutate({
-        ...data,
-        project_id: projectId,
-        "project-id": projectId,
-        columns: [],
+        data: {
+          ...clientTypeData,
+          project_id: projectId,
+          "project-id": projectId,
+          columns: [],
+        }
       }, {
         onSuccess: () => onOpenChange(false)
       })

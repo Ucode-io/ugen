@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import { 
-  Database, 
-  Table as TableIcon, 
-  ShieldCheck, 
-  Terminal, 
-  Plus, 
-  RefreshCw, 
-  Filter, 
+import {
+  Database,
+  Table as TableIcon,
+  ShieldCheck,
+  Terminal,
+  Plus,
+  RefreshCw,
+  Filter,
   Play,
   ChevronRight,
   Search,
@@ -18,19 +18,19 @@ import {
 } from 'lucide-react'
 import { ReusableTabs } from '@/shared/ui/tabs'
 import { useDatabaseStore, DatabaseView } from '@/entities/database'
-import { 
-  TablesView, 
-  RecordsView, 
-  SqlConsole, 
-  QueryView, 
+import {
+  TablesView,
+  RecordsView,
+  SqlConsole,
+  QueryView,
   LogsView,
-  PlaceholderView 
+  PlaceholderView
 } from './index'
 import { cn } from '@/shared/lib/utils/cn'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 
-export const DatabaseStudio = () => {
+export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
   const t = useTranslations('databaseStudio')
   const { currentView, setCurrentView, breadcrumbs, resetToTables } = useDatabaseStore()
   const [activeTab, setActiveTab] = useState('tables')
@@ -65,18 +65,18 @@ export const DatabaseStudio = () => {
         return <LogsView />
       case 'security':
         return (
-          <PlaceholderView 
-            title={t('tabs.security')} 
-            description={t('placeholders.securityComingSoon')} 
-            icon={ShieldCheck} 
+          <PlaceholderView
+            title={t('tabs.security')}
+            description={t('placeholders.securityComingSoon')}
+            icon={ShieldCheck}
           />
         )
       case 'advanced':
         return (
-          <PlaceholderView 
-            title={t('tabs.advanced')} 
-            description={t('placeholders.advancedComingSoon')} 
-            icon={Settings2} 
+          <PlaceholderView
+            title={t('tabs.advanced')}
+            description={t('placeholders.advancedComingSoon')}
+            icon={Settings2}
           />
         )
       default:
@@ -86,8 +86,8 @@ export const DatabaseStudio = () => {
 
   return (
     <div className="flex flex-col h-full space-y-6">
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }} 
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between"
       >
@@ -96,7 +96,7 @@ export const DatabaseStudio = () => {
           <nav className="flex items-center text-sm text-text-muted">
             {breadcrumbs.map((crumb, idx) => (
               <React.Fragment key={idx}>
-                <button 
+                <button
                   onClick={() => setCurrentView(crumb.view)}
                   className={cn(
                     "hover:text-text-main transition-colors",
@@ -110,30 +110,30 @@ export const DatabaseStudio = () => {
             ))}
           </nav>
         </div>
-        
+
         <div className="flex items-center gap-2">
-           <button 
+          <button
             onClick={() => {
               setActiveTab('tables')
               setCurrentView('sql-console')
             }}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm"
-           >
-             <Terminal size={14} />
-             {activeTab === 'tables' && currentView === 'sql-console' 
-               ? t('sqlConsole.activeHeader') 
-               : t('sqlConsole.header')}
-           </button>
+          >
+            <Terminal size={14} />
+            {activeTab === 'tables' && currentView === 'sql-console'
+              ? t('sqlConsole.activeHeader')
+              : t('sqlConsole.header')}
+          </button>
         </div>
       </motion.div>
 
       <div className="flex flex-col gap-6 flex-1">
-        <ReusableTabs 
-          options={TABS} 
-          activeId={activeTab} 
-          onTabChange={handleTabChange} 
+        <ReusableTabs
+          options={TABS}
+          activeId={activeTab}
+          onTabChange={handleTabChange}
         />
-        
+
         <div className="min-h-0 flex-1 relative overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div

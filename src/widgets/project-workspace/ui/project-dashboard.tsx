@@ -11,7 +11,8 @@ import {
   Contact2,
   Files,
   Database,
-  BarChart2
+  BarChart2,
+  Box
 } from "lucide-react"
 import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
@@ -26,6 +27,7 @@ import { RoleList } from '@/widgets/role-manage'
 import { PermissionManage } from '@/widgets/permission-manage'
 import { useClientTypes } from '@/entities/client-type'
 import { AppSettingsPage } from '@/widgets/app-settings'
+import { ResourcesPage } from './resources-page'
 
 type DashboardSection = string
 
@@ -83,10 +85,9 @@ export const ProjectDashboard = ({
         label: ct.name,
       })) || []
     },
-    { id: 'integrations', icon: Puzzle, label: 'Integrations' },
+    { id: 'resources', icon: Box, label: 'Resources' },
     { id: 'database_studio', icon: Database, label: 'Database Studio' },
     { id: 'analytics', icon: BarChart2, label: 'Analytics' },
-    { id: 'logs', icon: ScrollText, label: 'Logs' },
   ], [fileMenus, clientTypes])
 
   const findActiveItem = (items: any[], activeId: string): any => {
@@ -123,15 +124,19 @@ export const ProjectDashboard = ({
     }
 
     if (activeSection === "roles") {
-      return <RoleList />;
+      return <RoleList projectId={projectId ?? ''} />;
     }
 
     if (activeSection === "client_types") {
-      return <ClientTypeManagement />;
+      return <ClientTypeManagement projectId={projectId ?? ''} />;
     }
 
     if (activeSection === "database_studio") {
-      return <DatabaseStudio />;
+      return <DatabaseStudio projectId={projectId ?? ''} />;
+    }
+
+    if (activeSection === 'resources') {
+      return <ResourcesPage projectId={projectId ?? ''} />
     }
 
     if (activeSection === "analytics") {
@@ -140,7 +145,7 @@ export const ProjectDashboard = ({
 
     if (activeSection.startsWith("perm_")) {
       const clientId = activeSection.split("perm_")[1];
-      return <PermissionManage clientTypeId={clientId} />;
+      return <PermissionManage projectId={projectId ?? ''} clientTypeId={clientId} />;
     }
 
     const filesGroup = navigationItems.find((n) => n.id === "files");

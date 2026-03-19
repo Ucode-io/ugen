@@ -44,7 +44,6 @@ interface InviteUserModalProps {
   projectName: string
   companyName: string
   envId: string
-  authProjectId: string
   initialData?: any
 }
 
@@ -55,11 +54,10 @@ export const InviteUserModal = ({
   projectName,
   companyName,
   envId,
-  authProjectId,
   initialData,
 }: InviteUserModalProps) => {
   const isEdit = !!initialData
-  const { data: clientTypeOptions = [], isLoading: isLoadingTypes } = useClientTypes()
+  const { data: clientTypeOptions = [], isLoading: isLoadingTypes } = useClientTypes(projectId)
   const [isCopied, setIsCopied] = useState(false)
   const queryClient = useQueryClient()
   const createUser = useCreateUser()
@@ -111,7 +109,7 @@ export const InviteUserModal = ({
   const currentClientType = watch('clientType')
   const { data: roleOptions = [], isLoading: isLoadingRoles } = useRoles({
     id: currentClientType || '',
-    projectId: authProjectId
+    projectId
   })
 
   // Handle initial data and defaults
@@ -150,7 +148,7 @@ export const InviteUserModal = ({
   const inviteLink = useMemo(() => {
     const domain = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_DOMAIN || 'localhost:3000')
     const params = new URLSearchParams({
-      'project-id': authProjectId,
+      'project-id': projectId,
       'env_id': envId,
       'role_id': formValues.role,
       'client_type_id': formValues.clientType,
@@ -158,7 +156,7 @@ export const InviteUserModal = ({
       'companyName': companyName
     })
     return `${domain}/invite-user?${params.toString()}`
-  }, [authProjectId, envId, formValues.role, formValues.clientType, projectName, companyName])
+  }, [projectId, envId, formValues.role, formValues.clientType, projectName, companyName])
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(inviteLink)
@@ -169,29 +167,33 @@ export const InviteUserModal = ({
   const onSubmit = (data: InviteFormValues) => {
     if (isEdit) {
       updateMutation({
-        id: initialData.id,
-        client_type_id: data.clientType,
-        login: data.login,
-        phone: data.phone,
-        email: data.email,
-        project_id: authProjectId,
-        role_id: data.role,
-        status: data.status,
-        env_id: envId,
-        company_id: initialData.company_id
+        data: {
+          id: initialData.id,
+          client_type_id: data.clientType,
+          login: data.login,
+          phone: data.phone,
+          email: data.email,
+          project_id: projectId,
+          role_id: data.role,
+          status: data.status,
+          env_id: envId,
+          company_id: initialData.company_id
+        }
       })
       return
     }
 
     inviteMutation({
-      client_type_id: data.clientType,
-      login: data.login,
-      phone: data.phone,
-      email: data.email,
-      project_id: authProjectId,
-      role_id: data.role,
-      status: data.status,
-      env_id: envId
+      data: {
+        client_type_id: data.clientType,
+        login: data.login,
+        phone: data.phone,
+        email: data.email,
+        project_id: projectId,
+        role_id: data.role,
+        status: data.status,
+        env_id: envId
+      }
     })
   }
 

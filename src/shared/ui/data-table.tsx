@@ -126,7 +126,7 @@ export function DataTable<TData, TValue>({
     <div className={cn("w-full h-full flex flex-col rounded-ai border border-border-subtle bg-bg-card shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden transition-all", className)}>
       <Table
         wrapperClassName={cn(
-          "transition-all",
+          "transition-all flex-1",
           containerClassName
         )}
       >

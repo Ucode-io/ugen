@@ -7,14 +7,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/shared/ui/ui/button"
 import { useClientTypes, ClientType } from "@/entities/client-type"
 import { ClientTypeModal } from "@/features/client-type-form"
-import { useAuthStore } from "@/entities/session"
 import { DataLoadingState, DataErrorState } from "@/shared/ui/data-states"
 
-export const ClientTypeManagement = () => {
-  const projectId = useAuthStore(state => state.project?.project_id)
+export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
   const { data: clientTypes = [], isLoading, isError, refetch } = useClientTypes(projectId)
-
-  console.log(clientTypes)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<ClientType | null>(null)
@@ -35,9 +31,9 @@ export const ClientTypeManagement = () => {
 
   if (isError) {
     return (
-      <DataErrorState 
-        title="Failed to load Client Types" 
-        onRetry={() => refetch()} 
+      <DataErrorState
+        title="Failed to load Client Types"
+        onRetry={() => refetch()}
       />
     )
   }

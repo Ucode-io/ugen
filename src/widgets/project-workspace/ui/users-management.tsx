@@ -71,14 +71,14 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
 
   const { data: roles = [] } = useRoles({
     id: activeClientType,
-    projectId: authProjectId
+    projectId
   })
 
   const { data, isLoading } = useUsers({
     clientTypeId: activeClientType,
     limit: pageSize,
     offset: currentPage,
-    projectId: authProjectId,
+    projectId,
   })
 
   const { mutate: deleteMutation, isPending: isDeleting } = useMutation({
@@ -183,7 +183,6 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
         projectName={projectName}
         companyName={companyName}
         envId={envId}
-        authProjectId={authProjectId}
         initialData={selectedUser}
       />
 

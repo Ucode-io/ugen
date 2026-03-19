@@ -6,6 +6,7 @@ export const useLoginTables = () => {
     queryKey: ["login-tables"],
     queryFn: async () => {
       const res = await collectionApi.getLoginTables();
+      console.log({ res })
       return (res as any).data?.tables?.map((el: any) => ({
         label: el?.label,
         value: el?.slug,

@@ -1,5 +1,12 @@
 import { z } from 'zod'
 
+// OLD loginSchema — commented out
+// export const loginSchema = z.object({
+//   login: z.string().min(1, "Login is required"),
+//   password: z.string().min(1, "Password is required")
+// })
+
+// NEW loginSchema — simplified, no length/regex checks
 export const loginSchema = z.object({
   login: z.string().min(1, "Login is required"),
   password: z.string().min(1, "Password is required")

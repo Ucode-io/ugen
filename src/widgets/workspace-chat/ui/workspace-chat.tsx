@@ -56,7 +56,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
   const unshiftMessages = useChatStore((state) => state.unshiftMessages);
   const setMessages = useChatStore((state) => state.setMessages);
   const chatId = useChatStore((state) => state.chatId);
-  const currentStoreProjectId = useChatStore((state) => state.projectId);
+  // const currentStoreProjectId = useChatStore((state) => state.projectId);
   const setChatId = useChatStore((state) => state.setChatId);
   const setStoreProjectId = useChatStore((state) => state.setProjectId);
   const clearChat = useChatStore((state) => state.clearChat);
@@ -124,13 +124,13 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
 
   // Reset logic when projectId changes
   useEffect(() => {
-    if (projectId && projectId !== currentStoreProjectId) {
+    if (projectId) {
       clearChat();
       setStoreProjectId(projectId);
       setOffset(0);
       setHasMore(true);
     }
-  }, [projectId, currentStoreProjectId, clearChat, setStoreProjectId]);
+  }, [projectId, clearChat, setStoreProjectId]);
 
   // Load history on mount or when projectId changes, but only if offset is 0
   useEffect(() => {

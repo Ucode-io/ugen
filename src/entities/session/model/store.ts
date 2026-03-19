@@ -34,6 +34,10 @@ export interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   activeView: "home" | "dashboard";
+  apiKey: string | null;
+  ucodeProjectId: string | null;
+  setApiKey: (key: string | null) => void;
+  setUcodeProjectId: (key: string | null) => void;
   setAuth: (
     user: UserData,
     project: ProjectData,
@@ -59,6 +63,10 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       isAuthenticated: false,
       activeView: 'home',
+      apiKey: null,
+      ucodeProjectId: null,
+      setApiKey: (key) => set({ apiKey: key }),
+      setUcodeProjectId: (key) => set({ ucodeProjectId: key }),
       setAuth: (user, project, permissions, appPermissions, globalPermission, accessToken, refreshToken) =>
         set({
           user,
@@ -81,7 +89,8 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
-          activeView: 'home'
+          activeView: 'home',
+          apiKey: null,
         }),
       setActiveView: (view) => set({ activeView: view }),
     }),

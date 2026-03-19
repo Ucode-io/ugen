@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { authApi } from '@/shared/api'
+import { userApi } from '@/entities/user/api/user-api'
+import { roleApi } from '@/entities/role/api/role-api'
+import { clientTypeApi } from '@/entities/client-type/api/client-type-api'
 
 export interface ClientTypeOption {
   label: string
@@ -9,35 +11,33 @@ export interface ClientTypeOption {
 /**
  * Fetches client type options from the server
  */
-export const useClientTypes = () => {
+export const useClientTypes = (projectId?: string) => {
   return useQuery({
-    queryKey: ['client-types'],
+    queryKey: ['client-types-workspace', projectId],
     queryFn: async () => {
-      const { data } = await authApi.get('/v2/client-type')
-      const items = data?.data?.data?.response || []
-
+      if (!projectId) return []
+      const items = await clientTypeApi.getClientTypes(projectId)
       return items.map((item: any) => ({
         label: item.name || item.label || 'Unknown',
         value: item.guid || item.value || item.id,
       })) as ClientTypeOption[]
     },
+    enabled: !!projectId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
 export const useRoles = ({ id, projectId }: { id: string, projectId: string }) => {
   return useQuery({
-    queryKey: ['roles', id],
+    queryKey: ['roles-workspace', id, projectId],
     queryFn: async () => {
-      const { data } = await authApi.get('/v2/role', { params: { "client-type-id": id, "project-id": projectId } })
-      const items = data?.data?.data?.response || []
-
+      const items = await roleApi.getRoles(projectId, id)
       return items.map((item: any) => ({
         label: item.name || item.label || 'Unknown',
         value: item.guid || item.value || item.id,
       })) as ClientTypeOption[]
     },
-    enabled: !!id,
+    enabled: !!id && !!projectId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
@@ -45,70 +45,20 @@ export const useRoles = ({ id, projectId }: { id: string, projectId: string }) =
 export const useUsers = ({ clientTypeId, projectId, limit, offset }: { clientTypeId: string, projectId: string, limit: number, offset: number }) => {
   return useQuery({
     queryKey: ['users', clientTypeId, projectId, limit, offset],
-    queryFn: async () => {
-      const { data } = await authApi.get('/v2/user', { params: { "client-type-id": clientTypeId, "project-id": projectId, limit, offset } })
-
-      return data?.data || [];
-    },
-    enabled: !!clientTypeId,
+    queryFn: () => userApi.getUsers({ clientTypeId, projectId, limit, offset }),
+    enabled: !!clientTypeId && !!projectId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
 export const useCreateUser = () => {
-  return async (data: {
-    client_type_id: string
-    login: string
-    phone: string
-    email: string
-    project_id: string
-    role_id: string
-    status: string
-    env_id: string
-  }) => {
-    const { role_id, env_id, ...body } = data
-
-    return authApi.post('/v2/user', body, {
-      params: { 'project-id': body.project_id },
-      headers: {
-        'environment-id': env_id,
-        'resource-id': role_id
-      }
-    })
-  }
+  return (data: any) => userApi.createUser(data)
 }
 
 export const useUpdateUser = () => {
-  return async (data: {
-    id: string
-    client_type_id: string
-    login: string
-    phone: string
-    email: string
-    project_id: string
-    role_id: string
-    status: string
-    env_id: string
-    company_id?: string
-  }) => {
-    const { role_id, env_id, ...body } = data
-
-    return authApi.put('/v2/user', body, {
-      params: { 'project-id': body.project_id },
-      headers: {
-        'environment-id': env_id,
-        'resource-id': role_id
-      }
-    })
-  }
+  return (data: any) => userApi.updateUser(data.id, data)
 }
 
 export const useDeleteUser = () => {
-  return async ({ id, clientTypeId }: { id: string, clientTypeId: string }) => {
-    return authApi.delete(`/v2/user/${id}`, {
-      params: {
-        "client-type-id": clientTypeId,
-      },
-    })
-  }
+  return ({ id, clientTypeId }: { id: string, clientTypeId: string }) => userApi.deleteUser(id, clientTypeId)
 }

@@ -1,39 +1,107 @@
 'use client'
-import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import { Filter, Table as TableIcon, Zap, Link as LinkIcon, Eye, Settings2, ShieldCheck, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Controller, useForm, useFieldArray } from 'react-hook-form'
+import {
+  Filter,
+  Table as TableIcon,
+  Zap,
+  Link as LinkIcon,
+  Eye,
+  Settings2,
+  ShieldCheck,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Save,
+  Loader2,
+  X
+} from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/ui/table'
 import { Button } from '@/shared/ui/ui/button'
 import { cn } from '@/shared/lib/utils/cn'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { authApi, api } from '@/shared/api'
+import { DataLoadingState, DataErrorState } from '@/shared/ui/data-states'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/shared/ui/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/ui/select"
+import { useAuthStore } from '@/entities/session'
+import { toast } from "sonner";
 
-const MOCK_DATA = [
-  {
-    label: "Роли",
-    slug: "role",
-    id: "1ab7fadc-1f2b-4934-879d-4e99772526ad",
-    record_permissions: {
-      read: "Yes",
-      write: "Yes",
-      update: "Yes",
-      delete: "Yes",
-      is_public: true
-    },
-    field_permissions: [
-      { field_id: "c12adfef-2991-4c6a-9dff-b4ab8810f0df", view_permission: true, edit_permission: true, label: "Название роли", table_slug: "role" },
-      { field_id: "3bb6863b-5024-4bfb-9fa0-6ed5bf8d2406", view_permission: true, edit_permission: true, label: "ID", table_slug: "role" },
-      { field_id: "123cd75b-2da5-458f-8020-8176a18b54ce", view_permission: true, edit_permission: true, label: "IT'S RELATION", table_slug: "role" },
-      { field_id: "cb677e25-ddb3-4a64-a0cd-5aa6653417ed", view_permission: true, edit_permission: true, label: "IT'S RELATION", table_slug: "role" },
-      { field_id: "110055ac-75ab-4c1f-ae35-67098d1816a5", view_permission: true, edit_permission: true, label: "IT'S RELATION", table_slug: "role" },
-      { field_id: "dd1cce54-2333-4556-97ab-3663c577a28c", view_permission: true, edit_permission: true, label: "Статус", table_slug: "role" }
-    ],
-    automatic_filters: {},
-    custom_permission: {
-      view_create: "Yes", share_modal: "Yes", settings: "Yes", automation: "Yes", language_btn: "Yes",
-      pdf_action: "Yes", add_field: "Yes", add_filter: "Yes", field_filter: "Yes", fix_column: "Yes",
-      tab_group: "Yes", columns: "Yes", group: "Yes", excel_menu: "Yes", search_button: "Yes"
-    }
+// --- Interfaces ---
+
+interface FieldPermission {
+  field_id: string
+  view_permission: boolean
+  edit_permission: boolean
+  label: string
+  table_slug: string
+}
+
+interface ViewPermission {
+  guid: string
+  relation_id?: string
+  view_permission: boolean
+  edit_permission: boolean
+  create_permission?: boolean
+  delete_permission?: boolean
+  table_slug: string
+}
+
+interface TableViewPermission {
+  guid: string
+  view: boolean
+  edit: boolean
+  delete: boolean
+  view_id: string
+  label?: string
+}
+
+interface ActionPermission {
+  guid: string
+  custom_event_id: string
+  permission: boolean
+  table_slug: string
+  label?: string
+}
+
+interface TablePermissionRow {
+  label: string
+  slug: string
+  id: string
+  record_permissions: {
+    read: string | boolean
+    write: string | boolean
+    update: string | boolean
+    delete: string | boolean
+    is_public: boolean
   }
-]
+  field_permissions: FieldPermission[]
+  view_permissions?: ViewPermission[]
+  automatic_filters: Record<string, any[]>
+  action_permissions?: ActionPermission[]
+  table_view_permissions?: TableViewPermission[]
+  custom_permission: Record<string, string>
+}
+
+interface TablePermissionsProps {
+  projectId: string
+  roleId: string
+  clientTypeId: string
+}
+
+// --- Components ---
 
 const CustomPermissionBadge = ({
   label,
@@ -61,7 +129,6 @@ const CustomPermissionBadge = ({
     >
       {checked && <ShieldCheck size={10} className="animate-in zoom-in duration-300" />}
       {label}
-      {checked && <div className="absolute inset-0 rounded-lg bg-white/10 animate-pulse pointer-events-none" />}
     </button>
     {hasFilter && (
       <button
@@ -79,57 +146,179 @@ const CustomPermissionBadge = ({
 )
 
 const ActionButton = ({ icon: Icon, onClick, label }: { icon: any, onClick: () => void, label: string }) => (
-  <div className="flex flex-col items-center gap-1 group/action">
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onClick}
-      className="h-9 w-9 rounded-xl border border-transparent bg-transparent text-text-muted hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all duration-300"
-    >
-      <Icon size={18} strokeWidth={2} />
-    </Button>
-  </div>
+  <Button
+    variant="ghost"
+    size="icon"
+    onClick={onClick}
+    title={label}
+    className="h-9 w-9 rounded-xl border border-transparent bg-transparent text-text-muted hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all duration-300"
+  >
+    <Icon size={18} strokeWidth={2} />
+  </Button>
 )
 
-export const TablePermissions = () => {
-  const { control, setValue, getValues, watch } = useForm({
+export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermissionsProps) => {
+  const queryClient = useQueryClient()
+  const [modalState, setModalState] = useState<{ type: string | null, tableIndex: number | null }>({ type: null, tableIndex: null })
+  const [filterType, setFilterType] = useState('read')
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
+
+  const { data: permissionDetail, isLoading, isError, refetch } = useQuery({
+    queryKey: ['permissions-detail', projectId, roleId],
+    queryFn: async () => {
+      const { data } = await authApi.get(`/v2/role-permission/detailed/${ucodeProjectId}/${roleId}`, {
+        params: { 'project-id': projectId }
+      })
+      return data.data.data
+    },
+    enabled: !!projectId && !!roleId
+  })
+
+  const { control, setValue, handleSubmit, watch, reset } = useForm({
     defaultValues: {
-      permissions: MOCK_DATA.map(p => ({
-        ...p,
-        record_permissions: {
-          read: p.record_permissions.read === 'Yes',
-          write: p.record_permissions.write === 'Yes',
-          update: p.record_permissions.update === 'Yes',
-          delete: p.record_permissions.delete === 'Yes',
-          is_public: p.record_permissions.is_public
-        }
-      }))
+      tables: [] as TablePermissionRow[],
+      global_permission: {} as any,
+      name: '',
+      guid: '',
+      project_id: '',
+      client_type_id: ''
     }
   })
 
-  const [modalType, setModalType] = useState<string | null>(null)
-  const [isScrolled, setIsScrolled] = useState(false)
-  const permissions = watch('permissions')
+  useEffect(() => {
+    if (permissionDetail) {
+      reset({
+        ...permissionDetail,
+        tables: permissionDetail.tables.map((t: any) => ({
+          ...t,
+          record_permissions: {
+            ...t.record_permissions,
+            read: t.record_permissions.read === 'Yes',
+            write: t.record_permissions.write === 'Yes',
+            update: t.record_permissions.update === 'Yes',
+            delete: t.record_permissions.delete === 'Yes',
+          }
+        }))
+      })
+    }
+  }, [permissionDetail, reset])
+
+  const tables = watch('tables')
+
+  const { mutate: savePermissions, isPending: isSaving } = useMutation({
+    mutationFn: async (formData: any) => {
+      const payload = {
+        data: {
+          ...formData,
+          tables: formData.tables.map((t: any) => ({
+            ...t,
+            record_permissions: {
+              ...t.record_permissions,
+              read: t.record_permissions.read ? 'Yes' : 'No',
+              write: t.record_permissions.write ? 'Yes' : 'No',
+              update: t.record_permissions.update ? 'Yes' : 'No',
+              delete: t.record_permissions.delete ? 'Yes' : 'No',
+            }
+          }))
+        },
+        project_id: projectId,
+        role_id: roleId
+      }
+      return authApi.put('/v2/role-permission/detailed', payload, {
+        params: { 'project-id': projectId }
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions-detail'] })
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    }
+  })
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setIsScrolled(e.currentTarget.scrollLeft > 0)
   }
 
   const handleSelectAll = (field: string, checked: boolean) => {
-    permissions.forEach((_, index) => {
-      setValue(`permissions.${index}.record_permissions.${field}` as any, checked)
+    tables.forEach((_, index) => {
+      setValue(`tables.${index}.record_permissions.${field}` as any, checked)
     })
   }
 
   const isAllSelected = (field: string) => {
-    return permissions.every((p: any) => p.record_permissions[field])
+    return tables?.length > 0 && tables.every((t: any) => t?.record_permissions?.[field])
   }
+
+  const openModal = (type: string, index: number) => {
+    setModalState({ type, tableIndex: index })
+  }
+
+  const closeModal = () => {
+    setModalState({ type: null, tableIndex: null })
+  }
+
+  // --- Modal Specific Data Fetching ---
+  const currentTableSlug = modalState.tableIndex !== null ? tables[modalState.tableIndex]?.slug : null
+
+  const { data: relationsData } = useQuery({
+    queryKey: ['relations', currentTableSlug, projectId],
+    queryFn: async () => {
+      const { data } = await api.post(`/v2/relations/${currentTableSlug}`, {}, {
+        params: { 'project-id': projectId, table_slug: currentTableSlug }
+      })
+      return (data.relations || [])
+        .filter((r: any) => (r.type === 'Many2Many' || r.type === 'Many2One') && r.table_from.slug === currentTableSlug)
+        .map((r: any) => ({
+          label: r.title || r.table_to.label,
+          value: `${r.table_to.slug}#${r.id}`
+        }))
+    },
+    enabled: modalState.type === 'filter' && !!currentTableSlug
+  })
+
+  const { data: connectionsData } = useQuery({
+    queryKey: ['connections', clientTypeId, projectId],
+    queryFn: async () => {
+      const { data } = await api.post('/v1/object/get-list/connections', {
+        data: { client_type_id: clientTypeId }
+      }, {
+        params: { 'project-id': projectId }
+      })
+      const results = (data.data.response || []).map((c: any) => ({
+        value: `${c.table_slug}_id`,
+        label: c.table_slug
+      }))
+      return [{ value: 'user_id', label: 'user' }, ...results]
+    },
+    enabled: modalState.type === 'filter'
+  })
+
+  if (isLoading) return <DataLoadingState message="Fetching granular permissions..." />
+  if (isError) return <DataErrorState onRetry={() => refetch()} />
 
   return (
     <div className="w-full relative animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex items-center justify-between px-6 pt-4">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-primary" />
+          <span className="text-sm font-bold text-text-main uppercase tracking-tight">Granular Table Controls</span>
+        </div>
+        <Button
+          disabled={isSaving}
+          onClick={handleSubmit((d) => savePermissions(d))}
+          className="bg-primary hover:bg-primary/90 text-white rounded-xl px-6"
+        >
+          {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+          Save Changes
+        </Button>
+      </div>
+
       <div className="px-6 py-4">
-        <div className="rounded-2xl border border-border-subtle/60 bg-bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04),0_4px_20px_rgb(0,0,0,0.02)] overflow-hidden">
-          <div onScroll={handleScroll} className="overflow-x-auto custom-scrollbar">
+        <div className="rounded-2xl border border-border-subtle/60 bg-bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04),0_4px_20px_rgb(0,0,0,0.02)] overflow-hidden max-w-[1000px]">
+          <div onScroll={handleScroll} className="overflow-auto max-h-[calc(100vh-320px)] custom-scrollbar">
             <Table className="border-collapse w-full min-w-[1100px]">
               <TableHeader>
                 <TableRow className="border-b-border-subtle/60 bg-bg-sidebar hover:bg-bg-sidebar transition-none">
@@ -179,9 +368,8 @@ export const TablePermissions = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_DATA.map((row, index) => (
+                {tables?.map((row, index) => (
                   <TableRow key={row.id} className="group/row transition-colors hover:bg-primary/[0.01]">
-                    {/* Fixed column */}
                     <TableCell className={cn(
                       "w-[280px] min-w-[280px] max-w-[280px] sticky left-0 bg-bg-card border-r border-border-subtle/40 z-30 px-6 py-5 transition-shadow duration-200",
                       isScrolled && "shadow-[10px_0_15px_-3px_rgba(0,0,0,0.1),4px_0_6px_-2px_rgba(0,0,0,0.05)]"
@@ -202,45 +390,51 @@ export const TablePermissions = () => {
                     </TableCell>
 
                     <TableCell className="align-middle px-2">
-                      <Controller name={`permissions.${index}.record_permissions.read`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="READ" checked={field.value} onChange={field.onChange} hasFilter onFilterClick={() => setModalType('filter')} />
+                      <Controller name={`tables.${index}.record_permissions.read`} control={control} render={({ field }) => (
+                        <CustomPermissionBadge
+                          label="READ"
+                          checked={field.value as boolean}
+                          onChange={field.onChange}
+                          hasFilter
+                          onFilterClick={() => openModal('filter', index)}
+                        />
                       )} />
                     </TableCell>
                     <TableCell className="align-middle px-2">
-                      <Controller name={`permissions.${index}.record_permissions.write`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="WRITE" checked={field.value} onChange={field.onChange} />
+                      <Controller name={`tables.${index}.record_permissions.write`} control={control} render={({ field }) => (
+                        <CustomPermissionBadge label="WRITE" checked={field.value as boolean} onChange={field.onChange} />
                       )} />
                     </TableCell>
                     <TableCell className="align-middle px-2">
-                      <Controller name={`permissions.${index}.record_permissions.update`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="UPDATE" checked={field.value} onChange={field.onChange} />
+                      <Controller name={`tables.${index}.record_permissions.update`} control={control} render={({ field }) => (
+                        <CustomPermissionBadge label="UPDATE" checked={field.value as boolean} onChange={field.onChange} />
                       )} />
                     </TableCell>
                     <TableCell className="align-middle px-2">
-                      <Controller name={`permissions.${index}.record_permissions.delete`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="DELETE" checked={field.value} onChange={field.onChange} />
+                      <Controller name={`tables.${index}.record_permissions.delete`} control={control} render={({ field }) => (
+                        <CustomPermissionBadge label="DELETE" checked={field.value as boolean} onChange={field.onChange} />
                       )} />
                     </TableCell>
                     <TableCell className="align-middle px-2">
-                      <Controller name={`permissions.${index}.record_permissions.is_public`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="PUBLIC" checked={field.value} onChange={field.onChange} />
+                      <Controller name={`tables.${index}.record_permissions.is_public`} control={control} render={({ field }) => (
+                        <CustomPermissionBadge label="PUBLIC" checked={field.value as boolean} onChange={field.onChange} />
                       )} />
                     </TableCell>
 
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={TableIcon} label="Fields" onClick={() => setModalType('field')} />
+                      <ActionButton icon={TableIcon} label="Fields" onClick={() => openModal('field', index)} />
                     </TableCell>
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={Zap} label="Actions" onClick={() => setModalType('action')} />
+                      <ActionButton icon={Zap} label="Actions" onClick={() => openModal('action', index)} />
                     </TableCell>
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={LinkIcon} label="Relations" onClick={() => setModalType('relation')} />
+                      <ActionButton icon={LinkIcon} label="Relations" onClick={() => openModal('relation', index)} />
                     </TableCell>
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={Eye} label="Views" onClick={() => setModalType('view')} />
+                      <ActionButton icon={Eye} label="Views" onClick={() => openModal('view', index)} />
                     </TableCell>
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={Settings2} label="Custom" onClick={() => setModalType('custom')} />
+                      <ActionButton icon={Settings2} label="Custom" onClick={() => openModal('custom', index)} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -250,51 +444,425 @@ export const TablePermissions = () => {
         </div>
       </div>
 
-      {modalType && (
-        <div
-          className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setModalType(null)}
-        >
-          <div
-            className="bg-bg-card rounded-[24px] w-full max-w-lg overflow-hidden border border-white/5 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] animate-in zoom-in-95 duration-200"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="p-8 pb-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 mb-6 shadow-inner">
-                <Settings2 className="text-primary" size={24} />
+      {modalState.type && (
+        <Dialog open={!!modalState.type} onOpenChange={closeModal}>
+          <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6 bg-bg-card border-border-subtle rounded-[24px]">
+            <DialogHeader className="mb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <Settings2 className="text-primary" size={20} />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-bold tracking-tight text-text-main">
+                    Configure {modalState.type.charAt(0).toUpperCase() + modalState.type.slice(1)} Settings
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-text-muted mt-0.5">
+                    Modifying granular controls for <span className="text-primary font-bold">{tables[modalState.tableIndex!]?.label}</span>
+                  </DialogDescription>
+                </div>
               </div>
-              <h2 className="text-xl font-bold tracking-tight text-text-main mb-2">
-                Configure {modalType.charAt(0).toUpperCase() + modalType.slice(1)} Settings
-              </h2>
-              <p className="text-text-muted text-[14px]">
-                Customize how this permission behaves. Define granular visibility and interaction rules.
-              </p>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
+              <ModalContent
+                type={modalState.type}
+                tableIndex={modalState.tableIndex!}
+                control={control}
+                setValue={setValue}
+                watch={watch}
+                filterType={filterType}
+                setFilterType={setFilterType}
+                relationsData={relationsData}
+                connectionsData={connectionsData}
+              />
             </div>
 
-            <div className="p-8 pt-4 flex flex-col gap-6">
-              <div className="h-[160px] rounded-2xl bg-bg-sidebar/30 border border-dashed border-border-subtle flex items-center justify-center shadow-inner">
-                <span className="text-text-muted font-mono text-[10px] uppercase tracking-widest opacity-50">Settings Workspace Coming Soon</span>
-              </div>
-
-              <div className="flex justify-end items-center gap-3">
-                <Button
-                  variant="ghost"
-                  onClick={() => setModalType(null)}
-                  className="px-6 font-semibold"
-                >
-                  Discard
-                </Button>
-                <Button
-                  onClick={() => setModalType(null)}
-                  className="px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 shadow-[0_4px_12px_rgba(var(--primary-rgb),0.25)]"
-                >
-                  Save Configuration
-                </Button>
-              </div>
+            <div className="mt-6 pt-4 border-t border-border-subtle flex justify-end items-center gap-3">
+              <Button variant="ghost" onClick={closeModal} className="px-6 font-semibold">
+                Close
+              </Button>
+              <Button onClick={closeModal} className="px-8 rounded-xl font-bold bg-primary hover:bg-primary/90">
+                Confirm
+              </Button>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
+    </div>
+  )
+}
+
+const ModalContent = ({
+  type,
+  tableIndex,
+  control,
+  setValue,
+  watch,
+  filterType,
+  setFilterType,
+  relationsData,
+  connectionsData
+}: any) => {
+  const table = watch(`tables.${tableIndex}`)
+
+  if (type === 'field') {
+    const fields = table.field_permissions || []
+
+    const handleToggleAll = (prop: 'view_permission' | 'edit_permission', checked: boolean) => {
+      fields.forEach((_: any, idx: number) => {
+        setValue(`tables.${tableIndex}.field_permissions.${idx}.${prop}`, checked)
+      })
+    }
+
+    const isAllFieldSelected = (prop: 'view_permission' | 'edit_permission') =>
+      fields.length > 0 && fields.every((f: any) => f[prop])
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-bg-sidebar/30">
+            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
+            <TableHead className="text-[10px] uppercase font-bold text-text-muted">Field Name</TableHead>
+            <TableHead className="w-[120px] text-center">
+              <label className="flex flex-col items-center gap-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isAllFieldSelected('view_permission')}
+                  onChange={(e) => handleToggleAll('view_permission', e.target.checked)}
+                  className="w-4 h-4 rounded border-border-subtle accent-primary"
+                />
+                <span className="text-[9px] uppercase font-bold text-text-muted">View</span>
+              </label>
+            </TableHead>
+            <TableHead className="w-[120px] text-center">
+              <label className="flex flex-col items-center gap-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isAllFieldSelected('edit_permission')}
+                  onChange={(e) => handleToggleAll('edit_permission', e.target.checked)}
+                  className="w-4 h-4 rounded border-border-subtle accent-primary"
+                />
+                <span className="text-[9px] uppercase font-bold text-text-muted">Edit</span>
+              </label>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fields.map((field: any, idx: number) => (
+            <TableRow key={field.field_id}>
+              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
+              <TableCell className="text-[13px] font-medium text-text-main">{field.label}</TableCell>
+              <TableCell className="text-center">
+                <Controller
+                  name={`tables.${tableIndex}.field_permissions.${idx}.view_permission`}
+                  control={control}
+                  render={({ field: f }) => (
+                    <input
+                      type="checkbox"
+                      checked={f.value}
+                      onChange={f.onChange}
+                      className="w-4 h-4 rounded border-border-subtle bg-bg-card checked:bg-primary checked:border-primary cursor-pointer accent-primary transition-all"
+                    />
+                  )}
+                />
+              </TableCell>
+              <TableCell className="text-center">
+                <Controller
+                  name={`tables.${tableIndex}.field_permissions.${idx}.edit_permission`}
+                  control={control}
+                  render={({ field: f }) => (
+                    <input
+                      type="checkbox"
+                      checked={f.value}
+                      onChange={f.onChange}
+                      className="w-4 h-4 rounded border-border-subtle bg-bg-card checked:bg-primary checked:border-primary cursor-pointer accent-primary transition-all"
+                    />
+                  )}
+                />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )
+  }
+
+  if (type === 'action') {
+    const actions = table.action_permissions || []
+    if (actions.length === 0) return <p className="text-center text-text-muted text-sm py-8">No actions available.</p>
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-bg-sidebar/30">
+            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
+            <TableHead className="text-[10px] uppercase font-bold text-text-muted">Action Name</TableHead>
+            <TableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted">Permission</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {actions.map((action: any, idx: number) => (
+            <TableRow key={action.guid}>
+              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
+              <TableCell className="text-[13px] font-medium text-text-main">{action.label || action.guid.slice(0, 8)}</TableCell>
+              <TableCell className="text-center">
+                <Controller
+                  name={`tables.${tableIndex}.action_permissions.${idx}.permission`}
+                  control={control}
+                  render={({ field: f }) => (
+                    <input
+                      type="checkbox"
+                      checked={f.value}
+                      onChange={f.onChange}
+                      className="w-4 h-4 rounded border-border-subtle bg-bg-card checked:bg-primary checked:border-primary cursor-pointer accent-primary transition-all"
+                    />
+                  )}
+                />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )
+  }
+
+  if (type === 'relation') {
+    const rels = table.view_permissions || []
+    if (rels.length === 0) return <p className="text-center text-text-muted text-sm py-8">No relations defined.</p>
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-bg-sidebar/30">
+            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
+            <TableHead className="text-[10px] uppercase font-bold text-text-muted">Relation Source</TableHead>
+            <TableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted">View Permission</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rels.map((rel: any, idx: number) => (
+            <TableRow key={rel.guid}>
+              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
+              <TableCell className="text-[13px] font-medium text-text-main">{rel.table_slug}</TableCell>
+              <TableCell className="text-center">
+                <Controller
+                  name={`tables.${tableIndex}.view_permissions.${idx}.view_permission`}
+                  control={control}
+                  render={({ field: f }) => (
+                    <input
+                      type="checkbox"
+                      checked={f.value}
+                      onChange={f.onChange}
+                      className="w-4 h-4 rounded border-border-subtle bg-bg-card checked:bg-primary checked:border-primary cursor-pointer accent-primary transition-all"
+                    />
+                  )}
+                />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )
+  }
+
+  if (type === 'view') {
+    const views = table.table_view_permissions || []
+    if (views.length === 0) return <p className="text-center text-text-muted text-sm py-8">No specific views configured.</p>
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-bg-sidebar/30">
+            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
+            <TableHead className="text-[10px] uppercase font-bold text-text-muted">View Label</TableHead>
+            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">View</TableHead>
+            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">Edit</TableHead>
+            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">Delete</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {views.map((v: any, idx: number) => (
+            <TableRow key={v.guid}>
+              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
+              <TableCell className="text-[13px] font-medium text-text-main">{v.label || v.view_id.slice(0, 8)}</TableCell>
+              <TableCell className="text-center">
+                <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.view`} control={control} render={({ field: f }) => (
+                  <input type="checkbox" checked={f.value} onChange={f.onChange} className="w-4 h-4 rounded border-border-subtle accent-primary" />
+                )} />
+              </TableCell>
+              <TableCell className="text-center">
+                <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.edit`} control={control} render={({ field: f }) => (
+                  <input type="checkbox" checked={f.value} onChange={f.onChange} className="w-4 h-4 rounded border-border-subtle accent-primary" />
+                )} />
+              </TableCell>
+              <TableCell className="text-center">
+                <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.delete`} control={control} render={({ field: f }) => (
+                  <input type="checkbox" checked={f.value} onChange={f.onChange} className="w-4 h-4 rounded border-border-subtle accent-primary" />
+                )} />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )
+  }
+
+  if (type === 'custom') {
+    const custom = table.custom_permission || {}
+    const keys = Object.keys(custom)
+
+    const formatKey = (k: string) => k.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-bg-sidebar/30">
+            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
+            <TableHead className="text-[10px] uppercase font-bold text-text-muted">Setting</TableHead>
+            <TableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted">Permission</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {keys.map((k, idx) => (
+            <TableRow key={k}>
+              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
+              <TableCell className="text-[13px] font-medium text-text-main">{formatKey(k)}</TableCell>
+              <TableCell className="text-center">
+                <Controller
+                  name={`tables.${tableIndex}.custom_permission.${k}`}
+                  control={control}
+                  render={({ field: f }) => (
+                    <input
+                      type="checkbox"
+                      checked={f.value === 'Yes'}
+                      onChange={(e) => f.onChange(e.target.checked ? 'Yes' : 'No')}
+                      className="w-4 h-4 rounded border-border-subtle accent-primary"
+                    />
+                  )}
+                />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )
+  }
+
+  if (type === 'filter') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-1 bg-bg-sidebar/50 p-1 rounded-xl w-fit border border-border-subtle/40">
+          {['read', 'write'].map(t => (
+            <button
+              key={t}
+              onClick={() => setFilterType(t)}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all uppercase tracking-tight",
+                filterType === t ? "bg-primary text-white shadow-sm" : "hover:bg-hover-bg text-text-muted"
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <FilterRows
+          tableIndex={tableIndex}
+          filterType={filterType}
+          control={control}
+          relationsData={relationsData}
+          connectionsData={connectionsData}
+        />
+      </div>
+    )
+  }
+
+  return null
+}
+
+const FilterRows = ({ tableIndex, filterType, control, relationsData, connectionsData }: any) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `tables.${tableIndex}.automatic_filters.${filterType}`
+  })
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {fields.length === 0 ? (
+          <div className="text-center py-10 bg-bg-sidebar/20 rounded-2xl border border-dashed border-border-subtle">
+            <p className="text-text-muted text-xs">No active filters. Records will be fully accessible.</p>
+          </div>
+        ) : (
+          fields.map((item, idx) => (
+            <div key={item.id} className="group relative flex items-center gap-4 bg-bg-card p-4 rounded-2xl border border-border-subtle/60 hover:border-primary/30 transition-all shadow-sm">
+              <div className="flex-1 space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider ml-1">Connect To</p>
+                    <Controller
+                      name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.object_field`}
+                      control={control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className="h-10 bg-bg-sidebar border-border-subtle text-text-main text-xs">
+                            <SelectValue placeholder="Select connection" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-bg-card border-border-subtle">
+                            {connectionsData?.map((c: any) => (
+                              <SelectItem key={c.value} value={c.value} className="text-xs">
+                                {c.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider ml-1">Table Relation</p>
+                    <Controller
+                      name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.custom_field`}
+                      control={control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className="h-10 bg-bg-sidebar border-border-subtle text-text-main text-xs">
+                            <SelectValue placeholder="Select relation" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-bg-card border-border-subtle">
+                            {relationsData?.map((r: any) => (
+                              <SelectItem key={r.value} value={r.value} className="text-xs">
+                                {r.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => remove(idx)}
+                className="h-9 w-9 text-text-muted hover:text-destructive hover:bg-destructive/10 rounded-xl"
+              >
+                <Trash2 size={16} />
+              </Button>
+            </div>
+          )
+          ))}
+      </div>
+
+      <Button
+        onClick={() => append({ object_field: '', custom_field: '', guid: crypto.randomUUID() })}
+        variant="ghost"
+        className="w-full h-11 border border-dashed border-border-subtle text-text-muted hover:text-primary hover:border-primary/30 rounded-2xl gap-2 font-semibold text-xs transition-all"
+      >
+        <Plus size={16} />
+        Add New Filter Condition
+      </Button>
     </div>
   )
 }

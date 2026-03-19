@@ -14,6 +14,13 @@ import { Button } from '@/shared/ui/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui/ui/dialog'
+import axios from 'axios'
+
+// New ugen auth API instance
+const ugenApi = axios.create({
+  baseURL: 'https://auth-api.ucode.run',
+  headers: { 'Content-Type': 'application/json' }
+})
 
 interface LoginFormProps {
   onSuccess: () => void
@@ -100,6 +107,8 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
   })
 
   const handleLoginResponse = (responseData: any) => {
+    // NOTE: response shape expected from /v3/ugen/login:
+    // { response: { user, permissions, role, app_permissions, global_permission, environment_id, token }, project_data }
     const { project_data } = responseData
     const response = responseData?.response || responseData
     const { user, permissions, role, app_permissions, global_permission, environment_id, token } = response
@@ -129,35 +138,50 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      const res = await authApi.post('/v3/multicompany/default-login', {
-        username: data.login,
+      // ─── NEW LOGIN LOGIC ────────────────────────────────────────────
+      const res = await ugenApi.post('/v3/ugen/login', {
+        login: data.login,
         password: data.password
       })
 
       const responseData = res.data?.data
       if (!responseData) throw new Error("Invalid response")
 
-      if (Array.isArray(responseData?.response)) {
-        setConnections(responseData.response)
-        setCredentials(data)
-        setExtraLoginData({
-          client_type: responseData.client_type,
-          environment_id: responseData.environment,
-          project_id: responseData.project,
-          company_id: responseData.project_data?.company_id,
-          project_data: responseData.project_data
-        })
-        connectionForm.reset({
-          tables: responseData.response.map((conn: any) => ({
-            object_id: '',
-            table_slug: conn?.table_slug || ''
-          }))
-        })
-        setShowModal(true)
-        return
-      }
-
       handleLoginResponse(responseData)
+      // ────────────────────────────────────────────────────────────────
+
+      // ─── OLD LOGIN LOGIC (commented out) ────────────────────────────
+      // const res = await authApi.post('/v3/multicompany/default-login', {
+      //   username: data.login,
+      //   password: data.password
+      // })
+      //
+      // const responseData = res.data?.data
+      // if (!responseData) throw new Error("Invalid response")
+      //
+      // if (Array.isArray(responseData?.response)) {
+      //   setConnections(responseData.response)
+      //   setCredentials(data)
+      //   setExtraLoginData({
+      //     client_type: responseData.client_type,
+      //     environment_id: responseData.environment,
+      //     project_id: responseData.project,
+      //     company_id: responseData.project_data?.company_id,
+      //     project_data: responseData.project_data
+      //   })
+      //   connectionForm.reset({
+      //     tables: responseData.response.map((conn: any) => ({
+      //       object_id: '',
+      //       table_slug: conn?.table_slug || ''
+      //     }))
+      //   })
+      //   setShowModal(true)
+      //   return
+      // }
+      //
+      // handleLoginResponse(responseData)
+      // ────────────────────────────────────────────────────────────────
+
     } catch (error: any) {
       console.error(error)
       form.setError('root', {
@@ -168,29 +192,31 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
   }
 
   const onStep2Submit = async (values: ConnectionFormValues) => {
-    setIsSecondStepSubmitting(true)
-    try {
-      const res = await authApi.post('/v2/login', {
-        username: credentials?.login,
-        password: credentials?.password,
-        tables: values.tables,
-        ...extraLoginData
-      })
-
-      const responseData = res.data?.data
-      if (!responseData) throw new Error("Invalid response")
-
-      handleLoginResponse(responseData)
-      setShowModal(false)
-    } catch (error: any) {
-      console.error(error)
-      connectionForm.setError('root', {
-        type: 'manual',
-        message: error.response?.data?.description || error.message || 'Login failed'
-      })
-    } finally {
-      setIsSecondStepSubmitting(false)
-    }
+    // ─── OLD STEP 2 LOGIC (commented out) ───────────────────────────
+    // setIsSecondStepSubmitting(true)
+    // try {
+    //   const res = await authApi.post('/v2/login', {
+    //     username: credentials?.login,
+    //     password: credentials?.password,
+    //     tables: values.tables,
+    //     ...extraLoginData
+    //   })
+    //
+    //   const responseData = res.data?.data
+    //   if (!responseData) throw new Error("Invalid response")
+    //
+    //   handleLoginResponse(responseData)
+    //   setShowModal(false)
+    // } catch (error: any) {
+    //   console.error(error)
+    //   connectionForm.setError('root', {
+    //     type: 'manual',
+    //     message: error.response?.data?.description || error.message || 'Login failed'
+    //   })
+    // } finally {
+    //   setIsSecondStepSubmitting(false)
+    // }
+    // ────────────────────────────────────────────────────────────────
   }
 
   return (

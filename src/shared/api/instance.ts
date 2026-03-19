@@ -31,9 +31,29 @@ api.interceptors.request.use(
     // Zustand's getState allows us to read values outside of React components
     const state = useAuthStore.getState()
     const token = state.accessToken
+    const apiKey = state.apiKey
 
-    if (token && config.headers) {
+    if (apiKey && config.headers) {
+      config.headers['Authorization'] = 'API-KEY'
+      config.headers['x-api-key'] = apiKey
+    } else if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Inject API key for dashboard requests (project workspace)  
+api.interceptors.request.use(
+  (config) => {
+    const state = useAuthStore.getState()
+    const apiKey = state.apiKey
+
+    if (apiKey && config.headers) {
+      config.headers['Authorization'] = 'API-KEY'
+      config.headers['x-api-key'] = apiKey
     }
 
     return config
@@ -47,8 +67,24 @@ authApi.interceptors.request.use(
     const state = useAuthStore.getState()
     const token = state.accessToken
 
-    if (token && config.headers) {
+    if (token && config.headers && !config.headers['Authorization']) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Inject API key for dashboard requests (project workspace)
+authApi.interceptors.request.use(
+  (config) => {
+    const state = useAuthStore.getState()
+    const apiKey = state.apiKey
+
+    if (apiKey && config.headers) {
+      config.headers['Authorization'] = 'API-KEY'
+      config.headers['x-api-key'] = apiKey
     }
 
     return config
