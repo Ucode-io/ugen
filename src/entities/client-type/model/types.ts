@@ -14,18 +14,31 @@ export interface ClientType {
 }
 
 export interface CreateClientTypePayload {
-  project_id: string;
-  name: string;
-  default_page: string;
-  self_recover: boolean;
-  self_register: boolean;
-  table_slug: string;
-  columns: any[];
-  session_limit: number;
-  "project-id": string;
+  data: {
+    project_id: string;
+    name: string;
+    default_page: string;
+    self_recover: boolean;
+    self_register: boolean;
+    table_slug: string;
+    columns: any[];
+    session_limit: number;
+    "project-id": string;
+  }
 }
 
-export interface UpdateClientTypePayload extends Partial<CreateClientTypePayload> {
-  id: string;
-  guid: string;
+export interface UpdateClientTypePayload {
+  data: {
+    id: string;
+    guid: string;
+    project_id: string;
+    name: string;
+    default_page: string;
+    self_recover: boolean;
+    self_register: boolean;
+    table_slug: string;
+    columns: any[];
+    session_limit: number;
+    "project-id": string;
+  }
 }
