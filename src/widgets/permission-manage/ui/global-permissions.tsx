@@ -47,7 +47,7 @@ export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPer
     queryKey: ['permissions-detail', projectId, roleId],
     queryFn: async () => {
       const { data } = await authApi.get(`/v2/role-permission/detailed/${ucodeProjectId}/${roleId}`, {
-        params: { 'project-id': projectId }
+        params: { 'project-id': ucodeProjectId }
       })
       return data.data.data
     },

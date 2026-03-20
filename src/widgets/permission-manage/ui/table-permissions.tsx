@@ -169,7 +169,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
     queryKey: ['permissions-detail', projectId, roleId],
     queryFn: async () => {
       const { data } = await authApi.get(`/v2/role-permission/detailed/${ucodeProjectId}/${roleId}`, {
-        params: { 'project-id': projectId }
+        params: { 'project-id': ucodeProjectId }
       })
       return data.data.data
     },
@@ -223,11 +223,11 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
             }
           }))
         },
-        project_id: projectId,
+        project_id: ucodeProjectId,
         role_id: roleId
       }
       return authApi.put('/v2/role-permission/detailed', payload, {
-        params: { 'project-id': projectId }
+        params: { 'project-id': ucodeProjectId }
       })
     },
     onSuccess: () => {

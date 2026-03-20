@@ -45,6 +45,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const { files, updatedFiles, setFiles, clearWorkspace } = useFilesStore()
   const setApiKey = useAuthStore(state => state.setApiKey)
   const setUcodeProjectId = useAuthStore(state => state.setUcodeProjectId)
+  const setActiveProjectTab = useAuthStore(state => state.setActiveProjectTab)
   const hasNoFiles = files.length === 0;
   const t = useTranslations('features.project')
 
@@ -111,8 +112,13 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     return () => {
       clearWorkspace();
       setApiKey(null)   // clear api key when leaving project workspace
+      setActiveProjectTab(null)
     };
-  }, [projectId, setFiles, clearWorkspace, setApiKey])
+  }, [projectId, setFiles, clearWorkspace, setApiKey, setActiveProjectTab])
+
+  useEffect(() => {
+    setActiveProjectTab(activeTab)
+  }, [activeTab, setActiveProjectTab])
 
   const showChat = activeTab === 'code' || activeTab === 'preview'
   const isSidebarCollapsed = activeTab === 'dashboard' ? isDashboardSidebarCollapsed : isChatCollapsed

@@ -33,7 +33,7 @@ api.interceptors.request.use(
     const token = state.accessToken
     const apiKey = state.apiKey
 
-    if (apiKey && config.headers) {
+    if (apiKey && state.activeProjectTab === 'dashboard' && config.headers) {
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
     } else if (token && config.headers) {
@@ -45,46 +45,19 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Inject API key for dashboard requests (project workspace)  
-api.interceptors.request.use(
-  (config) => {
-    const state = useAuthStore.getState()
-    const apiKey = state.apiKey
-
-    if (apiKey && config.headers) {
-      config.headers['Authorization'] = 'API-KEY'
-      config.headers['x-api-key'] = apiKey
-    }
-
-    return config
-  },
-  (error) => Promise.reject(error)
-)
 
 // Request interceptor: inject token for auth API (optional, if auth requires token)
 authApi.interceptors.request.use(
   (config) => {
     const state = useAuthStore.getState()
     const token = state.accessToken
-
-    if (token && config.headers && !config.headers['Authorization']) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Inject API key for dashboard requests (project workspace)
-authApi.interceptors.request.use(
-  (config) => {
-    const state = useAuthStore.getState()
     const apiKey = state.apiKey
 
-    if (apiKey && config.headers) {
+    if (apiKey && state.activeProjectTab === 'dashboard' && config.headers) {
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
+    } else if (token && config.headers && !config.headers['Authorization']) {
+      config.headers.Authorization = `Bearer ${token}`
     }
 
     return config
