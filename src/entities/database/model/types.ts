@@ -1,6 +1,7 @@
 export interface Table {
   id: string;
   label: string;
+  name: string;
   slug: string;
   show_in_menu?: boolean;
   increment_id?: any;
@@ -47,7 +48,7 @@ export interface DatabaseState {
   activeScriptId: string | null;
   filters: Record<string, any>;
   breadcrumbs: { label: string; view: DatabaseView; tableName?: string }[];
-  
+
   // Actions
   setSelectedTable: (tableName: string | null) => void;
   setCurrentView: (view: DatabaseView) => void;
