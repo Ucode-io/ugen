@@ -108,7 +108,16 @@
       "noResultsYet": "Нет данных. Выполните запрос для просмотра."
     },
     "tables": {
-      "rows": "{count} строк"
+      "rows": "{count} строк",
+      "delete": "Удалить",
+      "deleteConfirmTitle": "Удалить таблицу",
+      "deleteConfirmDescription": "Вы уверены, что хотите удалить таблицу {table}? Это действие нельзя отменить.",
+      "deleteSuccess": "Таблица успешно удалена",
+      "deleteError": "Ошибка при удалении таблицы"
+    },
+    "common": {
+      "cancel": "Отмена",
+      "delete": "Удалить"
     },
     "query": {
       "title": "Запрос {table}",

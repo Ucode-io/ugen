@@ -81,6 +81,10 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
     projectId,
   })
 
+  console.log({
+    data
+  })
+
   const { mutate: deleteMutation, isPending: isDeleting } = useMutation({
     mutationFn: deleteUser,
     onSuccess: () => {
@@ -164,9 +168,9 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
       </div>
 
       <DataTable
-        data={data?.users || []}
+        data={data?.data?.response || []}
         columns={columns}
-        totalCount={data?.count || 0}
+        totalCount={data?.data?.count || 0}
         page={currentPage + 1}
         limit={pageSize}
         onPageChange={(p) => setCurrentPage(p - 1)}

@@ -166,14 +166,14 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
 
   const { data: permissionDetail, isLoading, isError, refetch } = useQuery({
-    queryKey: ['permissions-detail', projectId, roleId],
+    queryKey: ['permissions-detail', ucodeProjectId, roleId],
     queryFn: async () => {
       const { data } = await authApi.get(`/v2/role-permission/detailed/${ucodeProjectId}/${roleId}`, {
         params: { 'project-id': ucodeProjectId }
       })
       return data.data.data
     },
-    enabled: !!projectId && !!roleId
+    enabled: !!ucodeProjectId && !!roleId
   })
 
   const { control, setValue, handleSubmit, watch, reset } = useForm({

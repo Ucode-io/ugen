@@ -1,27 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Table, Column, TableRecord } from '../model/types';
+import { api } from '@/shared/api';
+import { Table, Column, TableRecord, TableDetail } from '../model/types';
 
 // Mock DB Tables
-const MOCK_TABLES: Table[] = [
-  { name: 'users', rowsCount: 1240, description: 'Store user information' },
-  { name: 'profiles', rowsCount: 1240, description: 'User profile details' },
-  { name: 'properties', rowsCount: 54, description: 'Property assets' },
-  { name: 'sessions', rowsCount: 8900, description: 'Active user sessions' },
-  { name: 'contacts', rowsCount: 345, description: 'Contact list data' },
-];
-
 const MOCK_SCHEMAS: Record<string, Column[]> = {
   users: [
-    { name: 'id', type: 'uuid', isNullable: false, isPrimaryKey: true },
-    { name: 'email', type: 'varchar', isNullable: false, isPrimaryKey: false },
-    { name: 'role', type: 'varchar', isNullable: false, isPrimaryKey: false, defaultValue: 'user' },
-    { name: 'created_at', type: 'timestamp', isNullable: false, isPrimaryKey: false },
+    { id: '1', label: 'ID', slug: 'id', type: 'uuid', isNullable: false, isPrimaryKey: true },
+    { id: '2', label: 'Email', slug: 'email', type: 'varchar', isNullable: false, isPrimaryKey: false },
+    { id: '3', label: 'Role', slug: 'role', type: 'varchar', isNullable: false, isPrimaryKey: false, defaultValue: 'user' },
+    { id: '4', label: 'Created At', slug: 'created_at', type: 'timestamp', isNullable: false, isPrimaryKey: false },
   ],
   profiles: [
-    { name: 'id', type: 'uuid', isNullable: false, isPrimaryKey: true },
-    { name: 'user_id', type: 'uuid', isNullable: false, isPrimaryKey: false },
-    { name: 'full_name', type: 'varchar', isNullable: true, isPrimaryKey: false },
-    { name: 'avatar_url', type: 'text', isNullable: true, isPrimaryKey: false },
+    { id: '1', label: 'ID', slug: 'id', type: 'uuid', isNullable: false, isPrimaryKey: true },
+    { id: '2', label: 'User ID', slug: 'user_id', type: 'uuid', isNullable: false, isPrimaryKey: false },
+    { id: '3', label: 'Full Name', slug: 'full_name', type: 'varchar', isNullable: true, isPrimaryKey: false },
+    { id: '4', label: 'Avatar URL', slug: 'avatar_url', type: 'text', isNullable: true, isPrimaryKey: false },
   ]
 };
 
@@ -42,9 +35,11 @@ const MOCK_RECORDS: Record<string, TableRecord[]> = {
 
 // API Service
 export const databaseApi = {
-  fetchTables: async (databaseId?: string): Promise<Table[]> => {
-    await new Promise(r => setTimeout(r, 600));
-    return MOCK_TABLES;
+  fetchTables: async (search: string = '', limit: number = 20, offset: number = 0): Promise<Table[]> => {
+    const { data } = await api.get<{ data: { tables: Table[] } }>('/v1/table', {
+      params: { search, limit, offset }
+    });
+    return data?.data?.tables || [];
   },
 
   fetchTableRecords: async (tableName: string, filters?: any, pagination?: any): Promise<TableRecord[]> => {
@@ -58,6 +53,11 @@ export const databaseApi = {
       { name: 'id', type: 'uuid', isNullable: false, isPrimaryKey: true },
       { name: 'name', type: 'varchar', isNullable: true, isPrimaryKey: false }
     ];
+  },
+
+  fetchTableDetail: async (tableSlug: string, projectId: string): Promise<TableDetail> => {
+    const { data } = await api.post<{ data: TableDetail }>(`/v1/table-details/${tableSlug}?projectId=${projectId}`, { data: {} });
+    return data?.data;
   },
 
   executeQuery: async (sql: string): Promise<any[]> => {
@@ -79,25 +79,37 @@ export const databaseApi = {
       { timestamp: new Date(Date.now() - 5000).toISOString(), event: 'DELETE_TABLE', user: 'system', status: 'FAILURE' },
       { timestamp: new Date(Date.now() - 10000).toISOString(), event: 'CREATE_TABLE', user: 'dev@ucode.io', status: 'SUCCESS' },
     ];
+  },
+
+  deleteTable: async (tableId: string, projectId: string): Promise<any> => {
+    return api.delete(`/v1/table/${tableId}`, {
+      params: {
+        project_id: projectId,
+        'project-id': projectId
+      }
+    });
   }
 };
 
 // Hooks
-export const useTables = (databaseId?: string) => 
-  useQuery({ queryKey: ['db-tables', databaseId], queryFn: () => databaseApi.fetchTables(databaseId) });
-
-export const useTableRecords = (tableName: string | null) => 
-  useQuery({ 
-    queryKey: ['db-records', tableName], 
-    queryFn: () => databaseApi.fetchTableRecords(tableName!),
-    enabled: !!tableName 
+export const useTables = (search?: string, limit?: number, offset?: number) =>
+  useQuery({
+    queryKey: ['db-tables', search, limit, offset],
+    queryFn: () => databaseApi.fetchTables(search, limit, offset)
   });
 
-export const useTableSchema = (tableName: string | null) => 
-  useQuery({ 
-    queryKey: ['db-schema', tableName], 
+export const useTableRecords = (tableName: string | null) =>
+  useQuery({
+    queryKey: ['db-records', tableName],
+    queryFn: () => databaseApi.fetchTableRecords(tableName!),
+    enabled: !!tableName
+  });
+
+export const useTableSchema = (tableName: string | null) =>
+  useQuery({
+    queryKey: ['db-schema', tableName],
     queryFn: () => databaseApi.fetchTableSchema(tableName!),
-    enabled: !!tableName 
+    enabled: !!tableName
   });
 
 export const useExecuteQuery = () => {
@@ -120,5 +132,23 @@ export const useAddRecord = () => {
   });
 };
 
-export const useLogs = () => 
+export const useLogs = () =>
   useQuery({ queryKey: ['db-logs'], queryFn: () => databaseApi.fetchLogs() });
+
+export const useTableDetail = (tableSlug: string | null, projectId: string) =>
+  useQuery({
+    queryKey: ['db-table-detail', tableSlug],
+    queryFn: () => databaseApi.fetchTableDetail(tableSlug!, projectId),
+    enabled: !!tableSlug
+  });
+
+export const useDeleteTable = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tableId, projectId }: { tableId: string; projectId: string }) => 
+      databaseApi.deleteTable(tableId, projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['db-tables'] });
+    }
+  });
+};

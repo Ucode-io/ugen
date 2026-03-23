@@ -56,7 +56,7 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
       case 'tables':
         switch (currentView) {
           case 'tables': return <TablesView />
-          case 'records': return <RecordsView />
+          case 'records': return <RecordsView projectId={projectId} />
           case 'query': return <QueryView />
           case 'sql-console': return <SqlConsole />
           default: return <TablesView />

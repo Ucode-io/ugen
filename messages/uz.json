@@ -108,7 +108,16 @@
       "noResultsYet": "Hozircha natijalar yo'q. Malumotni ko'rish uchun so'rovni bajaring."
     },
     "tables": {
-      "rows": "{count} qator"
+      "rows": "{count} qator",
+      "delete": "O'chirish",
+      "deleteConfirmTitle": "Jadvalni o'chirish",
+      "deleteConfirmDescription": "Siz rostdan ham {table} jadvalini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.",
+      "deleteSuccess": "Jadval muvaffaqiyatli o'chirildi",
+      "deleteError": "Jadvalni o'chirishda xatolik yuz berdi"
+    },
+    "common": {
+      "cancel": "Bekor qilish",
+      "delete": "O'chirish"
     },
     "query": {
       "title": "{table} so'rovi",

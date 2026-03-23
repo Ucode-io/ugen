@@ -1,15 +1,30 @@
 export interface Table {
-  name: string;
-  rowsCount: number;
-  description?: string;
+  id: string;
+  label: string;
+  slug: string;
+  show_in_menu?: boolean;
+  increment_id?: any;
+  is_cached?: boolean;
+  attributes?: {
+    label?: string;
+    label_en?: string;
+    label_ru?: string;
+    label_uz?: string;
+  };
 }
 
 export interface Column {
-  name: string;
+  id: string;
+  label: string;
+  slug: string;
   type: string;
   isNullable: boolean;
   isPrimaryKey: boolean;
   defaultValue?: any;
+}
+
+export interface TableDetail extends Table {
+  fields: Column[];
 }
 
 export interface TableRecord {

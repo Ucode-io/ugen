@@ -32,7 +32,8 @@ const inviteSchema = z.object({
   login: z.string().min(2, "Login must be at least 2 characters"),
   phone: z.string().min(5, "Invalid phone number"),
   email: z.string().email("Invalid email address"),
-  status: z.string().min(1, "Required")
+  status: z.string().min(1, "Required"),
+  password: z.string().min(1, "Required"),
 })
 
 type InviteFormValues = z.infer<typeof inviteSchema>
@@ -45,6 +46,7 @@ interface InviteUserModalProps {
   companyName: string
   envId: string
   initialData?: any
+  password?: string
 }
 
 export const InviteUserModal = ({
@@ -78,14 +80,15 @@ export const InviteUserModal = ({
       login: '',
       phone: '',
       email: '',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      password: ''
     }
   })
 
   const { mutate: inviteMutation, isPending: isInviting } = useMutation({
     mutationFn: createUser,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['users-workspace'] })
       onOpenChange(false)
       reset()
     },
@@ -93,6 +96,17 @@ export const InviteUserModal = ({
       console.error("Failed to invite user:", error)
     }
   })
+  // const { mutate: inviteMutation, isPending: isInviting } = useMutation({
+  //   mutationFn: createUser,
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ['users'] })
+  //     onOpenChange(false)
+  //     reset()
+  //   },
+  //   onError: (error) => {
+  //     console.error("Failed to invite user:", error)
+  //   }
+  // })
 
   const { mutate: updateMutation, isPending: isUpdating } = useMutation({
     mutationFn: updateUser,
@@ -120,6 +134,7 @@ export const InviteUserModal = ({
           clientType: initialData.client_type_id || initialData.client_id || '',
           role: initialData.role_id || '',
           login: initialData.login || '',
+          password: initialData.password || '',
           phone: initialData.phone || '',
           email: initialData.email || initialData.mail || '',
           status: initialData.status || 'ACTIVE'
@@ -131,7 +146,8 @@ export const InviteUserModal = ({
           login: '',
           phone: '',
           email: '',
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          password: ''
         })
       }
     }
@@ -177,7 +193,8 @@ export const InviteUserModal = ({
           role_id: data.role,
           status: data.status,
           env_id: envId,
-          company_id: initialData.company_id
+          company_id: initialData.company_id,
+          password: data.password
         }
       })
       return
@@ -192,7 +209,8 @@ export const InviteUserModal = ({
         project_id: projectId,
         role_id: data.role,
         status: data.status,
-        env_id: envId
+        env_id: envId,
+        password: data.password
       }
     })
   }
@@ -277,6 +295,16 @@ export const InviteUserModal = ({
                   readOnly={isEdit}
                 />
                 {errors.login && <p className="text-xs text-destructive">{errors.login.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-text-main">Password</label>
+                <Input
+                  {...register("password")}
+                  type="text"
+                  placeholder="Enter password"
+                />
+                {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
               </div>
 
               <div className="space-y-1.5">

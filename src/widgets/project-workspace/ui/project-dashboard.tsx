@@ -3,8 +3,6 @@ import { useState } from 'react'
 import {
   LayoutDashboard,
   Users,
-  Puzzle,
-  ScrollText,
   ShieldCheck,
   UserCircle,
   ShieldAlert,

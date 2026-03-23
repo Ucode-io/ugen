@@ -108,7 +108,16 @@
       "noResultsYet": "No results yet. Run a query to see data."
     },
     "tables": {
-      "rows": "{count} rows"
+      "rows": "{count} rows",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete Table",
+      "deleteConfirmDescription": "Are you sure you want to delete the table {table}? This action cannot be undone.",
+      "deleteSuccess": "Table deleted successfully",
+      "deleteError": "Error deleting table"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "delete": "Delete"
     },
     "query": {
       "title": "Query {table}",
