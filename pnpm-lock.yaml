@@ -116,6 +116,9 @@ importers:
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
+      yet-another-react-lightbox:
+        specifier: ^3.29.2
+        version: 3.29.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -3350,6 +3353,20 @@ packages:
       bufferutil:
         optional: true
       utf-8-validate:
+        optional: true
+
+  yet-another-react-lightbox@3.29.2:
+    resolution: {integrity: sha512-TMDHPn1uDOkrjEysoKCt1xsswGTcC2DPXHmjFUG1szWJ8ksu7bp+l67h/ZV27miA5hkSCLtqGzkHGTMOurce9w==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      '@types/react': ^16 || ^17 || ^18 || ^19
+      '@types/react-dom': ^16 || ^17 || ^18 || ^19
+      react: ^16.8.0 || ^17 || ^18 || ^19
+      react-dom: ^16.8.0 || ^17 || ^18 || ^19
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
         optional: true
 
   yocto-queue@0.1.0:
@@ -6803,6 +6820,14 @@ snapshots:
   word-wrap@1.2.5: {}
 
   ws@8.19.0: {}
+
+  yet-another-react-lightbox@3.29.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+    optionalDependencies:
+      '@types/react': 19.2.14
+      '@types/react-dom': 19.2.3(@types/react@19.2.14)
 
   yocto-queue@0.1.0: {}
 

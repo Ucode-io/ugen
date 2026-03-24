@@ -16,15 +16,15 @@ export const PlatformBadgeCard = ({ isVisible, onToggle }: PlatformBadgeCardProp
         <div className="space-y-1.5">
           <CardTitle className="text-xl">Platform Badge</CardTitle>
           <CardDescription className="text-base">
-            The &quot;Edit with Base44&quot; badge is currently {isVisible ? (
+            The &quot;Edit with Ugen&quot; badge is currently {isVisible ? (
               <span className="text-green-500 font-semibold italic">visible</span>
             ) : (
               <span className="text-text-muted font-semibold italic">hidden</span>
             )} on your application
           </CardDescription>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="h-11 px-8 min-w-[160px] shrink-0"
           onClick={onToggle}
           leftIcon={isVisible ? EyeOff : Eye}

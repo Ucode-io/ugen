@@ -1,173 +1,394 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { 
-  Pencil, 
-  ExternalLink, 
-  Share2, 
-  Star, 
-  Check,
-  ChevronLeft
-} from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { VisibilitySelector } from "@/features/app-visibility";
-import { InviteUsersCard } from "@/features/invite-users";
-import { PlatformBadgeCard } from "@/features/platform-badge";
-import { AppSettings, AppVisibility } from "@/entities/app/model/types";
-import { cn } from "@/shared/lib/utils/cn";
+import { useState, useRef, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api, authApi } from '@/shared/api'
+import { useAuthStore } from '@/entities/session'
+import { Button } from '@/shared/ui/ui/button'
+import { Input } from '@/shared/ui/ui/input'
+import { cn } from '@/shared/lib/utils/cn'
+import {
+  Camera, ChevronDown, ChevronUp, Trash2, Loader2,
+  Monitor, Smartphone, Globe, Shield, Save, User
+} from 'lucide-react'
 
+// Profile Section Component
 export const AppSettingsPage = () => {
-  const [settings, setSettings] = useState<AppSettings>({
-    name: "HomeHub",
-    description: "Smart home management platform",
-    visibility: "Public",
-    requireLogin: true,
-    platformBadgeVisible: true,
-    createdAt: "2 hours ago",
-  });
+  const user = useAuthStore(s => s.user)
+  const project = useAuthStore(s => s.project)
+  const projectId = project?.project_id ?? ''
+  const companyId = user?.company_id ?? ''
+  const userId = user?.id ?? ''
+  const environmentId = user?.environment_id ?? ''
 
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [isEditingDesc, setIsEditingDesc] = useState(false);
-  const [isStarred, setIsStarred] = useState(false);
+  const queryClient = useQueryClient()
+  const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? ''
 
-  const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-  };
+  // Profile States
+  const [form, setForm] = useState({
+    name: typeof (user as any)?.name === 'string' ? (user as any).name : (typeof user?.login === 'string' ? user.login : ''),
+    email: typeof user?.email === 'string' ? user.email : '',
+    phone: typeof (user as any)?.phone === 'string' ? (user as any).phone : '',
+    login: typeof user?.login === 'string' ? user.login : '',
+  })
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [avatarFilename, setAvatarFilename] = useState<string | null>(
+    typeof (user as any)?.photo === 'string' ? (user as any).photo : null
+  )
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Sessions States
+  const [sessionsOpen, setSessionsOpen] = useState(false)
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
+
+  // Languages States
+  const [languagesOpen, setLanguagesOpen] = useState(false)
+  const [langFields, setLangFields] = useState<any[]>([])
+  const [langLoading, setLangLoading] = useState(false)
+
+  // API Functions
+  const uploadPhoto = async (file: File, projectId: string): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const { data } = await api.post('/v1/upload', formData, {
+      params: { 'project-id': projectId },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.data.filename as string
+  }
+
+  const updateUser = (projectId: string, payload: Record<string, any>) =>
+    authApi.put('/v2/user', payload, {
+      params: { 'project-id': projectId }
+    })
+
+  const fetchSessions = async (userId: string, projectId: string) => {
+    const { data } = await authApi.get('/v2/session', {
+      params: {
+        user_id: userId,
+        limit: 50,
+        offset: 0,
+        'project-id': projectId,
+      }
+    })
+    return data.data?.sessions ?? []
+  }
+
+  const deleteSession = (sessionId: string, projectId: string) =>
+    authApi.delete(`/v2/session/${sessionId}`, {
+      params: { 'project-id': projectId }
+    })
+
+  // Queries & Mutations
+  const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions } = useQuery({
+    queryKey: ['sessions', userId, projectId],
+    queryFn: () => fetchSessions(userId, projectId),
+    enabled: sessionsOpen && !!userId && !!projectId,
+  })
+
+  const { mutate: saveMutation, isPending: isSaving } = useMutation({
+    mutationFn: async () => {
+      let filename = avatarFilename
+
+      if (avatarFile) {
+        filename = await uploadPhoto(avatarFile, projectId)
+        setAvatarFilename(filename)
+        setAvatarFile(null)
+      }
+
+      await updateUser(projectId, {
+        id: userId,
+        login: form.login,
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        company_id: companyId,
+        project_id: projectId,
+        environment_id: environmentId,
+        ...(filename ? { photo: filename } : {}),
+      })
+    },
+    onSuccess: () => {
+      // Potentially update global auth store if name/photo changed
+      queryClient.invalidateQueries({ queryKey: ['current-user'] })
+    }
+  })
+
+  // Language Keys logic
+  useEffect(() => {
+    if (!languagesOpen) return
+    setLangLoading(true)
+    try {
+      import('@/shared/lib/i18n').then(() => {
+        // Assuming there might be a DB utility elsewhere if it's not at the requested path
+        // For now, using a stub as per request if the module is missing
+        setLangLoading(false)
+      }).catch(() => setLangLoading(false))
+    } catch {
+      setLangLoading(false)
+    }
+  }, [languagesOpen])
 
   return (
-    <div className="flex flex-col gap-10 w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Header section */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 pb-4 border-b border-border-subtle/50">
-        <div className="flex items-start gap-6">
-          {/* App Logo */}
-          <div className="relative group/logo w-20 h-20 shrink-0 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl transform transition-all duration-500 hover:rotate-3 hover:scale-105">
-            <span className="text-white text-3xl font-bold drop-shadow-md">{settings.name[0]}</span>
-            <div className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+    <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-3xl">
+      
+      {/* 1. Profile Block */}
+      <div className="bg-bg-card border border-border-subtle rounded-3xl p-8 space-y-8 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-text-main">Account Profile</h2>
+          <Button
+            onClick={() => saveMutation()}
+            disabled={isSaving}
+            className="rounded-xl px-6 h-10 shadow-sm"
+          >
+            {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+            Save Changes
+          </Button>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+          {/* Avatar Area */}
+          <div className="relative group shrink-0">
+            <div className="w-24 h-24 rounded-3xl overflow-hidden bg-bg-sidebar border-2 border-border-subtle ring-4 ring-bg-main">
+              {avatarPreview || avatarFilename ? (
+                <img
+                  src={avatarPreview ?? `${cdnBase}/${avatarFilename}`}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-primary/5">
+                  <User size={36} className="text-primary/40" />
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 rounded-3xl bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center backdrop-blur-[2px]"
+            >
+              <Camera size={24} className="text-white mb-1" />
+              <span className="text-[10px] font-bold text-white uppercase tracking-tight">Upload</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                setAvatarFile(file)
+                setAvatarPreview(URL.createObjectURL(file))
+              }}
+            />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3 group">
-              {isEditingName ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    autoFocus
-                    className="text-3xl font-bold bg-transparent border-b-2 border-primary outline-none px-1 py-0 min-w-[200px]"
-                    value={settings.name}
-                    onChange={(e) => updateSetting("name", e.target.value)}
-                    onBlur={() => setIsEditingName(false)}
-                    onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
-                  />
-                  <button 
-                    onClick={() => setIsEditingName(false)}
-                    className="p-1.5 rounded-full bg-green-500/10 text-green-500 hover:bg-green-500/20 transition-colors"
+          {/* Form Fields Area */}
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 w-full">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Full Name</label>
+              <Input
+                placeholder="Your name"
+                value={form.name}
+                onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
+                className="bg-bg-sidebar border-border-subtle h-12 rounded-xl focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Email Address</label>
+              <Input
+                type="email"
+                placeholder="email@example.com"
+                value={form.email}
+                onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
+                className="bg-bg-sidebar border-border-subtle h-12 rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Phone Number</label>
+              <Input
+                type="tel"
+                placeholder="+1 234 567 89 00"
+                value={form.phone}
+                onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))}
+                className="bg-bg-sidebar border-border-subtle h-12 rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Login / Username</label>
+              <Input
+                placeholder="username"
+                value={form.login}
+                onChange={(e) => setForm(p => ({ ...p, login: e.target.value }))}
+                className="bg-bg-sidebar border-border-subtle h-12 rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Account Type</label>
+              <div className="bg-bg-sidebar rounded-xl px-4 py-3 text-sm border border-border-subtle text-text-muted cursor-not-allowed">
+                {typeof user?.role === 'string' ? user.role : 'User'}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Assigned Role</label>
+              <div className="bg-bg-sidebar rounded-xl px-4 py-3 text-sm border border-border-subtle text-text-muted cursor-not-allowed">
+                {typeof user?.role === 'string' ? user.role : 'Member'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Sessions Accordion */}
+      <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
+        <button
+          onClick={() => setSessionsOpen(p => !p)}
+          className="w-full flex items-center justify-between px-8 py-6 hover:bg-bg-sidebar/50 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+              <Shield size={20} className="text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-text-main">Login Sessions</p>
+              <p className="text-xs text-text-muted mt-0.5">Manage your active sessions and connected devices.</p>
+            </div>
+            {sessions.length > 0 && (
+              <span className="bg-primary/10 text-primary text-[11px] font-bold px-2 py-0.5 rounded-full ml-2">
+                {sessions.length}
+              </span>
+            )}
+          </div>
+          {sessionsOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
+        </button>
+
+        {sessionsOpen && (
+          <div className="border-t border-border-subtle divide-y divide-border-subtle/50 max-h-[400px] overflow-y-auto custom-scrollbar">
+            {sessionsLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 size={24} className="animate-spin text-primary/40" />
+                <p className="text-sm text-text-muted font-medium">Verifying active sessions...</p>
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-12">
+                <Shield size={32} className="text-text-muted/20 mx-auto mb-3" />
+                <p className="text-text-muted text-sm">No active sessions detected.</p>
+              </div>
+            ) : (
+              sessions.map((session: any) => (
+                <div key={session.id} className="flex items-center gap-4 px-8 py-4 hover:bg-bg-sidebar/30 transition-colors">
+                  <div className="shrink-0 w-10 h-10 rounded-xl bg-bg-sidebar border border-border-subtle flex items-center justify-center shadow-sm">
+                    {session.data?.toLowerCase().includes('mobile')
+                      ? <Smartphone size={16} className="text-text-muted" />
+                      : <Monitor size={16} className="text-text-muted" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] text-text-main font-medium truncate">{session.data || 'Unknown Device'}</p>
+                    <div className="flex items-center gap-3 mt-1 text-[11px] text-text-muted">
+                      <span className="flex items-center gap-1">
+                        <Globe size={10} /> {session.ip}
+                      </span>
+                      <span className="w-1 h-1 rounded-full bg-border-subtle shrink-0" />
+                      <span>{new Date(session.created_at).toLocaleDateString()}</span>
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tight",
+                        session.is_changed
+                          ? "bg-amber-500/10 text-amber-600"
+                          : "bg-green-500/10 text-green-600"
+                      )}>
+                        {session.is_changed ? 'Modified' : 'Secure'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    disabled={deletingSessionId === session.id}
+                    onClick={async () => {
+                      setDeletingSessionId(session.id)
+                      try {
+                        await deleteSession(session.id, projectId)
+                        await refetchSessions()
+                      } finally {
+                        setDeletingSessionId(null)
+                      }
+                    }}
+                    className="h-9 w-9 flex items-center justify-center rounded-xl text-destructive hover:bg-destructive/10 transition-all group"
+                    title="Terminate session"
                   >
-                    <Check className="h-4 w-4" />
+                    {deletingSessionId === session.id
+                      ? <Loader2 size={16} className="animate-spin" />
+                      : <Trash2 size={16} className="transition-transform group-hover:scale-110" />}
                   </button>
                 </div>
-              ) : (
-                <h1 className="text-4xl font-extrabold tracking-tight text-text-main group-hover:text-primary transition-colors cursor-default">
-                  {settings.name}
-                </h1>
-              )}
-              {!isEditingName && (
-                <button 
-                  onClick={() => setIsEditingName(true)}
-                  className="p-2 rounded-full hover:bg-accent text-text-muted hover:text-primary transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 group">
-              {isEditingDesc ? (
-                <div className="flex items-center gap-2 w-full">
-                  <input
-                    autoFocus
-                    className="text-lg text-text-secondary bg-transparent border-b border-primary outline-none px-1 py-0 w-full"
-                    value={settings.description}
-                    onChange={(e) => updateSetting("description", e.target.value)}
-                    onBlur={() => setIsEditingDesc(false)}
-                    onKeyDown={(e) => e.key === "Enter" && setIsEditingDesc(false)}
-                  />
-                </div>
-              ) : (
-                <p className="text-xl text-text-secondary leading-relaxed">
-                  {settings.description}
-                </p>
-              )}
-              {!isEditingDesc && (
-                <button 
-                  onClick={() => setIsEditingDesc(true)}
-                  className="p-1.5 rounded-full hover:bg-accent text-text-muted hover:text-primary transition-all opacity-0 group-hover:opacity-100 scale-90"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3 pt-1">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                App ID: BH-9231
-              </span>
-              <p className="text-sm text-text-muted">
-                Created {settings.createdAt}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 self-end lg:self-center">
-          <button 
-            onClick={() => setIsStarred(!isStarred)}
-            title={isStarred ? "Remove from favorites" : "Add to favorites"}
-            className={cn(
-              "p-3 rounded-xl border transition-all duration-300",
-              isStarred 
-                ? "bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20 text-yellow-500 shadow-sm scale-110" 
-                : "bg-bg-card border-border-subtle text-text-muted hover:border-yellow-200 hover:text-yellow-500 hover:scale-105"
+              ))
             )}
-          >
-            <Star className={cn("h-5.5 w-5.5 transition-all duration-500", isStarred && "fill-current rotate-[360deg]")} />
-          </button>
-          
-          <Button variant="outline" size="lg" className="h-12 px-6" leftIcon={ExternalLink}>
-            Open App
-          </Button>
-          
-          <div className="relative">
-            <Button size="lg" className="h-12 px-6 shadow-lg shadow-primary/25" leftIcon={Share2}>
-              Share App
-            </Button>
-            <span className="absolute -top-3 -right-2 bg-gradient-to-r from-orange-500 to-amber-500 text-[10px] text-white px-2 py-0.5 rounded-full font-bold animate-bounce shadow-md">
-              win free credits!
-            </span>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Grid Content */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="col-span-1">
-          <VisibilitySelector 
-            value={settings.visibility}
-            onChange={(v) => updateSetting("visibility", v)}
-            requireLogin={settings.requireLogin}
-            onRequireLoginChange={(v) => updateSetting("requireLogin", v)}
-          />
-        </div>
-        
-        <div className="col-span-1">
-          <InviteUsersCard />
-        </div>
-        
-        <div className="md:col-span-2">
-          <PlatformBadgeCard 
-            isVisible={settings.platformBadgeVisible}
-            onToggle={() => updateSetting("platformBadgeVisible", !settings.platformBadgeVisible)}
-          />
-        </div>
+      {/* 3. Languages Accordion */}
+      <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
+        <button
+          onClick={() => setLanguagesOpen(p => !p)}
+          className="w-full flex items-center justify-between px-8 py-6 hover:bg-bg-sidebar/50 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+              <Globe size={20} className="text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-text-main">Language Keys</p>
+              <p className="text-xs text-text-muted mt-0.5">Explore available translations and localization keys.</p>
+            </div>
+          </div>
+          {languagesOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
+        </button>
+
+        {languagesOpen && (
+          <div className="border-t border-border-subtle p-6">
+            {langLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 size={24} className="animate-spin text-primary/40" />
+                <p className="text-sm text-text-muted">Accessing localization database...</p>
+              </div>
+            ) : langFields.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Globe size={32} className="text-text-muted/20 mb-3" />
+                <p className="text-text-muted text-sm font-medium">No localization keys indexed</p>
+                <p className="text-xs text-text-muted mt-1 opacity-60">Try refreshing or syncing your translations.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border-subtle/50 max-h-[500px] overflow-y-auto custom-scrollbar">
+                {langFields.map((category: any, catIdx: number) => (
+                  <div key={catIdx} className="py-4">
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-3 px-2">
+                      {category.key}
+                    </p>
+                    <div className="space-y-2">
+                      {category.values?.map((item: any, idx: number) => (
+                        <div key={idx} className="flex bg-bg-sidebar/30 border border-border-subtle/40 rounded-xl p-3 items-center gap-4 text-sm group hover:border-primary/20 transition-colors">
+                          <code className="text-text-muted font-mono text-[11px] w-48 shrink-0 truncate bg-bg-sidebar px-2 py-0.5 rounded-md border border-border-subtle/50">
+                            {item.key}
+                          </code>
+                          <div className="flex flex-1 gap-4 overflow-x-auto no-scrollbar">
+                            {item.translations && Object.entries(item.translations).map(([lang, val]: [string, any]) => (
+                              <div key={lang} className="flex flex-col gap-0.5 min-w-[140px]">
+                                <span className="text-[9px] font-bold text-text-muted/60 uppercase tracking-tighter">{lang}</span>
+                                <span className="text-text-main text-xs font-medium truncate">{val}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
     </div>
-  );
-};
+  )
+}

@@ -10,7 +10,11 @@ import {
   Files,
   Database,
   BarChart2,
-  Box
+  Box,
+  Globe,
+  KeyRound,
+  Zap,
+  Layers2
 } from "lucide-react"
 import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
@@ -26,8 +30,31 @@ import { PermissionManage } from '@/widgets/permission-manage'
 import { useClientTypes } from '@/entities/client-type'
 import { AppSettingsPage } from '@/widgets/app-settings'
 import { ResourcesPage } from './resources-page'
+import { EnvironmentPage } from './environment-page'
+import { ApiKeysPage } from './api-keys-page'
+import { FunctionsPage } from './functions-page'
+import { MicrofrontendPage } from './microfrontend-page'
 
 type DashboardSection = string
+
+interface EmptySectionPlaceholderProps {
+  icon: React.ElementType
+  label: string
+}
+
+const EmptySectionPlaceholder = ({ icon: Icon, label }: EmptySectionPlaceholderProps) => (
+  <div className="ai-card flex min-h-[400px] items-center justify-center border-dashed p-6">
+    <div className="space-y-3 text-center">
+      <div className="bg-primary/5 mx-auto flex h-12 w-12 items-center justify-center rounded-full">
+        <Icon size={24} className="text-primary/40" />
+      </div>
+      <h3 className="text-text-main text-lg font-medium">{label}</h3>
+      <p className="text-text-muted mx-auto max-w-[300px] text-sm">
+        This section is under development. Here you will find management tools for your project {label.toLowerCase()}.
+      </p>
+    </div>
+  </div>
+)
 
 interface ProjectDashboardProps {
   isSidebarCollapsed: boolean
@@ -84,6 +111,10 @@ export const ProjectDashboard = ({
       })) || []
     },
     { id: 'resources', icon: Box, label: 'Resources' },
+    { id: 'environment', icon: Globe, label: 'Environment' },
+    { id: 'api_keys', icon: KeyRound, label: 'Api Keys' },
+    { id: 'functions', icon: Zap, label: 'Functions' },
+    { id: 'microfrontend', icon: Layers2, label: 'Microfrontend' },
     { id: 'database_studio', icon: Database, label: 'Database Studio' },
     { id: 'analytics', icon: BarChart2, label: 'Analytics' },
   ], [fileMenus, clientTypes])
@@ -146,6 +177,22 @@ export const ProjectDashboard = ({
       return <PermissionManage projectId={projectId ?? ''} clientTypeId={clientId} />;
     }
 
+    if (activeSection === 'environment') {
+      return <EnvironmentPage projectId={projectId ?? ''} />
+    }
+
+    if (activeSection === 'api_keys') {
+      return <ApiKeysPage projectId={projectId ?? ''} />
+    }
+
+    if (activeSection === 'functions') {
+      return <FunctionsPage projectId={projectId ?? ''} />
+    }
+
+    if (activeSection === 'microfrontend') {
+      return <MicrofrontendPage projectId={projectId ?? ''} />
+    }
+
     const filesGroup = navigationItems.find((n) => n.id === "files");
     const activeFileItem = filesGroup?.items?.find(
       (i: any) => i.id === activeSection,
@@ -162,29 +209,7 @@ export const ProjectDashboard = ({
       );
     }
 
-    return (
-      <div className="ai-card flex min-h-[400px] items-center justify-center border-dashed p-6">
-        <div className="space-y-3 text-center">
-          {(() => {
-            const Icon = activeItem?.icon;
-            return (
-              <>
-                <div className="bg-primary/5 mx-auto flex h-12 w-12 items-center justify-center rounded-full">
-                  {Icon && <Icon size={24} className="text-primary/40" />}
-                </div>
-                <h3 className="text-text-main text-lg font-medium">
-                  {activeItem?.label} Content
-                </h3>
-              </>
-            );
-          })()}
-          <p className="text-text-muted mx-auto max-w-[300px] text-sm">
-            This section is under development. Here you will find management
-            tools for your project {activeItem?.label.toLowerCase()}.
-          </p>
-        </div>
-      </div>
-    );
+    return <EmptySectionPlaceholder icon={activeItem?.icon ?? LayoutDashboard} label={activeItem?.label ?? ''} />
   };
 
   return (

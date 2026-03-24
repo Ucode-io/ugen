@@ -38,8 +38,8 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
   const TABS = [
     { id: 'tables', label: t('tabs.tables'), icon: <TableIcon size={16} /> },
     { id: 'logs', label: t('tabs.logs'), icon: <History size={16} /> },
-    { id: 'security', label: t('tabs.security'), icon: <Lock size={16} /> },
-    { id: 'advanced', label: t('tabs.advanced'), icon: <Settings2 size={16} /> },
+    // { id: 'security', label: t('tabs.security'), icon: <Lock size={16} /> },
+    // { id: 'advanced', label: t('tabs.advanced'), icon: <Settings2 size={16} /> },
   ]
 
   const handleTabChange = (tabId: string) => {

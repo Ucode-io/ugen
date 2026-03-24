@@ -9,9 +9,17 @@ interface MediaCardProps {
   item: FileItem;
   isSelected: boolean;
   onToggle: (id: string) => void;
+  isSelectionMode: boolean;
+  onPreview: (item: FileItem) => void;
 }
 
-export const MediaCard = ({ item, isSelected, onToggle }: MediaCardProps) => {
+export const MediaCard = ({
+  item,
+  isSelected,
+  onToggle,
+  isSelectionMode,
+  onPreview
+}: MediaCardProps) => {
   const [hasError, setHasError] = useState(false)
 
   const isVideo = useMemo(() => {
@@ -40,16 +48,18 @@ export const MediaCard = ({ item, isSelected, onToggle }: MediaCardProps) => {
       exit={{ opacity: 0, scale: 0.9 }}
       whileHover={{ scale: 1.02 }}
       transition={{ duration: 0.2 }}
-      onClick={() => onToggle(item.id)}
+      onClick={() => isSelectionMode ? onToggle(item.id) : onPreview(item)}
       className={`group relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all duration-300 shadow-sm
-        ${isSelected
-          ? 'border-primary shadow-lg ring-1 ring-primary/40 bg-primary/5'
-          : 'border-transparent hover:border-primary/30 bg-bg-card'
+        ${isSelectionMode
+          ? isSelected
+            ? 'border-primary shadow-lg ring-1 ring-primary/40 bg-primary/5'
+            : 'border-transparent hover:border-primary/30 bg-bg-card'
+          : 'border-transparent hover:border-primary/40 hover:ring-2 hover:ring-primary/40 bg-bg-card'
         }`}
     >
       {/* Selection Overlay */}
       <AnimatePresence>
-        {isSelected && (
+        {isSelectionMode && isSelected && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -60,13 +70,15 @@ export const MediaCard = ({ item, isSelected, onToggle }: MediaCardProps) => {
       </AnimatePresence>
 
       {/* Checkbox Icon */}
-      <div className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-full flex items-center justify-center border transition-all duration-300
-        ${isSelected
-          ? 'bg-primary border-primary'
-          : 'bg-white/50 border-white/80 group-hover:border-primary/50'
-        }`}>
-        {isSelected && <Check className="w-4 h-4 text-white" />}
-      </div>
+      {isSelectionMode && (
+        <div className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-full flex items-center justify-center border transition-all duration-300
+          ${isSelected
+            ? 'bg-primary border-primary'
+            : 'bg-white/50 border-white/80 group-hover:border-primary/50'
+          }`}>
+          {isSelected && <Check className="w-4 h-4 text-white" />}
+        </div>
+      )}
 
       {/* Content Rendering */}
       <div className="w-full h-full flex items-center justify-center bg-bg-subtle relative transition-opacity group-hover:opacity-90">

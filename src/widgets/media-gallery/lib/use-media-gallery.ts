@@ -6,6 +6,7 @@ import { FileItem } from '@/entities/media-file/model/types'
 export const useMediaGallery = (files: FileItem[]) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [gridColumns, setGridColumns] = useState<number>(7)
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
 
   // Memoize selectedIds to avoid unnecessary re-renders
   const selectedIdsArray = useMemo(() => Array.from(selectedIds), [selectedIds])
@@ -50,6 +51,12 @@ export const useMediaGallery = (files: FileItem[]) => {
     setSelectedIds(new Set())
   }, [])
 
+  const enterSelectionMode = useCallback(() => setIsSelectionMode(true), [])
+  const exitSelectionMode = useCallback(() => {
+    setIsSelectionMode(false)
+    clearSelection()
+  }, [clearSelection])
+
   return {
     selectedIds,
     toggleSelection,
@@ -59,6 +66,9 @@ export const useMediaGallery = (files: FileItem[]) => {
     cycleGridColumns,
     selectedCount,
     clearSelection,
-    selectedIdsArray
+    selectedIdsArray,
+    isSelectionMode,
+    enterSelectionMode,
+    exitSelectionMode
   }
 }

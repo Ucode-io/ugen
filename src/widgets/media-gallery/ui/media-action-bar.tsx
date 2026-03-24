@@ -9,7 +9,9 @@ import {
   Search,
   Loader2,
   CheckCircle2,
-  XCircle
+  XCircle,
+  CheckSquare,
+  X
 } from 'lucide-react'
 import { Button } from '@/shared/ui/ui/button'
 
@@ -24,6 +26,9 @@ interface MediaActionBarProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   isDeleting?: boolean;
+  isSelectionMode: boolean;
+  onEnterSelectionMode: () => void;
+  onExitSelectionMode: () => void;
 }
 
 export const MediaActionBar = ({
@@ -36,25 +41,77 @@ export const MediaActionBar = ({
   onCycleGrid,
   searchQuery,
   onSearchChange,
-  isDeleting = false
+  isDeleting = false,
+  isSelectionMode,
+  onEnterSelectionMode,
+  onExitSelectionMode
 }: MediaActionBarProps) => {
   return (
     <div className="flex flex-col gap-4 mb-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSelectAllToggle}
-            className="text-[13px] font-medium h-9 px-4 rounded-lg bg-white/5 border-white/10 hover:bg-white/10"
-          >
-            {isAllSelected ? (
-              <XCircle className="w-4 h-4 mr-2 text-destructive" />
+          <AnimatePresence mode="wait">
+            {!isSelectionMode ? (
+              <motion.div
+                key="select"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onEnterSelectionMode}
+                  className="text-[13px] font-medium h-9 px-4 rounded-lg bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  <CheckSquare className="w-4 h-4 mr-2 text-primary" />
+                  Select
+                </Button>
+              </motion.div>
             ) : (
-              <CheckCircle2 className="w-4 h-4 mr-2 text-primary" />
+              <motion.div
+                key="cancel"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onExitSelectionMode}
+                  className="text-[13px] font-medium h-9 px-4 rounded-lg text-text-muted hover:bg-white/5"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Отмена
+                </Button>
+              </motion.div>
             )}
-            {isAllSelected ? 'Deselect All' : 'Select All'}
-          </Button>
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {isSelectionMode && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="flex items-center gap-2"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onSelectAllToggle}
+                  className="text-[13px] font-medium h-9 px-4 rounded-lg bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  {isAllSelected ? (
+                    <XCircle className="w-4 h-4 mr-2 text-destructive" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 mr-2 text-primary" />
+                  )}
+                  {isAllSelected ? 'Deselect All' : 'Select All'}
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <Button
             variant="ghost"
@@ -83,7 +140,7 @@ export const MediaActionBar = ({
 
         <div className="flex items-center gap-3">
           <AnimatePresence mode='wait'>
-            {selectedCount > 0 && (
+            {isSelectionMode && selectedCount > 0 && (
               <motion.div
                 initial={{ opacity: 0, x: 20, scale: 0.9 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import {
   PlusCircle,
@@ -17,6 +17,7 @@ import { useMediaGallery } from '../lib/use-media-gallery'
 import { MediaCard } from './media-card'
 import { MediaActionBar } from './media-action-bar'
 import { FileUploadModal } from '@/features/file-upload'
+import { MediaViewerModal } from './media-viewer-modal'
 import { Button } from '@/shared/ui/ui/button'
 import { cn } from '@/shared/lib/utils/cn'
 import { MediaSkeleton } from './media-skeleton'
@@ -76,6 +77,7 @@ export const MediaGallery = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
 
   const isLoading = propIsLoading || (isQueryLoading && files.length === 0)
 
@@ -90,7 +92,10 @@ export const MediaGallery = ({
     cycleGridColumns,
     selectedCount,
     clearSelection,
-    selectedIdsArray
+    selectedIdsArray,
+    isSelectionMode,
+    enterSelectionMode,
+    exitSelectionMode
   } = useMediaGallery(files)
 
   const filteredFiles = useMemo(() => {
@@ -125,6 +130,11 @@ export const MediaGallery = ({
     })
   }
 
+  const handlePreview = useCallback((item: FileItem) => {
+    const index = filteredFiles.findIndex((f) => f.id === item.id)
+    if (index !== -1) setPreviewIndex(index)
+  }, [filteredFiles])
+
   return (
     <div className="flex h-full w-full flex-col">
       {/* Media Header Controls */}
@@ -139,6 +149,9 @@ export const MediaGallery = ({
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         isDeleting={isDeleting}
+        isSelectionMode={isSelectionMode}
+        onEnterSelectionMode={enterSelectionMode}
+        onExitSelectionMode={exitSelectionMode}
       />
 
       {/* Grid Content */}
@@ -246,6 +259,8 @@ export const MediaGallery = ({
                         item={file}
                         isSelected={selectedIds.has(file.id)}
                         onToggle={toggleSelection}
+                        isSelectionMode={isSelectionMode}
+                        onPreview={handlePreview}
                       />
                     ))}
                   </AnimatePresence>
@@ -280,6 +295,13 @@ export const MediaGallery = ({
         onClose={() => setIsModalOpen(false)}
         folderName={folderPath}
         onSuccess={() => refetch()}
+      />
+
+      <MediaViewerModal
+        files={filteredFiles}
+        initialIndex={previewIndex ?? 0}
+        isOpen={previewIndex !== null}
+        onClose={() => setPreviewIndex(null)}
       />
     </div>
   );
