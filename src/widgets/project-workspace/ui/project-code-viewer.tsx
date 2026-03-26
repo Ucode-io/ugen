@@ -91,8 +91,13 @@ export const ProjectCodeViewer = ({ projectId, getLanguageByPath }: { projectId:
     })
 
     files.forEach((file) => {
-      if (!monaco.editor.getModel(monaco.Uri.parse(`file:///${file.path}`))) {
-        monaco.editor.createModel(file.content, file.language, monaco.Uri.parse(`file:///${file.path}`))
+      try {
+        const uri = monaco.Uri.parse(`file:///${file.path}`)
+        if (!monaco.editor.getModel(uri)) {
+          monaco.editor.createModel(file.content || '', file.language || 'javascript', uri)
+        }
+      } catch (err) {
+        console.warn(`[Monaco] Failed to create model for ${file.path}:`, err)
       }
     })
 
@@ -139,12 +144,16 @@ export const ProjectCodeViewer = ({ projectId, getLanguageByPath }: { projectId:
     if (!monacoRef.current) return
     const monaco = monacoRef.current
     files.forEach((file) => {
-      const uri = monaco.Uri.parse(`file:///${file.path}`)
-      const model = monaco.editor.getModel(uri)
-      if (!model) {
-        monaco.editor.createModel(file.content, file.language, uri)
-      } else if (model.getValue() !== file.content && file.path !== activeFile) {
-        model.setValue(file.content)
+      try {
+        const uri = monaco.Uri.parse(`file:///${file.path}`)
+        const model = monaco.editor.getModel(uri)
+        if (!model) {
+          monaco.editor.createModel(file.content || '', file.language || 'javascript', uri)
+        } else if (model.getValue() !== file.content && file.path !== activeFile) {
+          model.setValue(file.content || '')
+        }
+      } catch (err) {
+        console.warn(`[Monaco] Failed to update model for ${file.path}:`, err)
       }
     })
   }, [files, activeFile])
@@ -213,10 +222,14 @@ export const ProjectCodeViewer = ({ projectId, getLanguageByPath }: { projectId:
   const jumpToLine = (path: string, lineNumber: number, column: number) => {
     openFile(path)
     setTimeout(() => {
-      if (editorRef.current) {
-        editorRef.current.revealLineInCenter(lineNumber)
-        editorRef.current.setPosition({ lineNumber, column })
-        editorRef.current.focus()
+      try {
+        if (editorRef.current) {
+          editorRef.current.revealLineInCenter(lineNumber)
+          editorRef.current.setPosition({ lineNumber, column })
+          editorRef.current.focus()
+        }
+      } catch (err) {
+        console.warn(`[Monaco] Failed to jump to line ${lineNumber}:`, err)
       }
     }, 100)
   }
@@ -271,8 +284,8 @@ export const ProjectCodeViewer = ({ projectId, getLanguageByPath }: { projectId:
     const q = searchQuery.toLowerCase()
 
     files.forEach((file) => {
-      const lines = file.content.split('\n')
-      lines.forEach((line, index) => {
+      const lines = file.content?.split('\n')
+      lines?.forEach((line, index) => {
         const matchCol = line.toLowerCase().indexOf(q)
         if (matchCol !== -1) {
           results.push({

@@ -14,6 +14,7 @@ import { useFilesStore, IFile } from "@/entities/project/model/files-store"
 import { ProjectHeader } from "@/widgets/project-workspace/ui/project-header"
 import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard"
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view"
+import { ErrorBoundary } from "@/shared/ui/error-boundary"
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -132,49 +133,51 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   }
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-main relative">
-      <ProjectHeader
-        projectTitle={projectTitle}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isSidebarCollapsed={isSidebarCollapsed}
-        onToggleSidebar={handleToggleSidebar}
-        isLoading={isLoading}
-        hasNoFiles={hasNoFiles}
-        onSave={handleSaveChanges}
-      />
+    <ErrorBoundary>
+      <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-main relative">
+        <ProjectHeader
+          projectTitle={projectTitle}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={handleToggleSidebar}
+          isLoading={isLoading}
+          hasNoFiles={hasNoFiles}
+          onSave={handleSaveChanges}
+        />
 
-      <div className="flex flex-1 overflow-hidden">
-        {showChat && <WorkspaceChat projectId={projectId} isCollapsed={isChatCollapsed} />}
+        <div className="flex flex-1 overflow-hidden">
+          {showChat && <WorkspaceChat projectId={projectId} isCollapsed={isChatCollapsed} />}
 
-        {/* Content Area */}
-        <div className="flex-1 flex overflow-hidden">
-          {isLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center bg-bg-main text-text-muted">
-              <Loader2 className="animate-spin mb-4" size={32} />
-              <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
-            </div>
-          ) : activeTab === 'dashboard' ? (
-            <ProjectDashboard
-              isSidebarCollapsed={isDashboardSidebarCollapsed}
-              setIsSidebarCollapsed={setIsDashboardSidebarCollapsed}
-              projectInfo={projectInfo}
-              projectId={projectId}
-            />
-          ) : hasNoFiles ? (
-            <EmptyProjectView
-              onStartChatting={() => {
-                setActiveTab('preview')
-                if (isChatCollapsed) setIsChatCollapsed(false);
-              }}
-            />
-          ) : activeTab === 'code' ? (
-            <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
-          ) : (
-            <ProjectPreviewViewer />
-          )}
+          {/* Content Area */}
+          <div className="flex-1 flex overflow-hidden">
+            {isLoading ? (
+              <div className="flex-1 flex flex-col items-center justify-center bg-bg-main text-text-muted">
+                <Loader2 className="animate-spin mb-4" size={32} />
+                <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
+              </div>
+            ) : activeTab === 'dashboard' ? (
+              <ProjectDashboard
+                isSidebarCollapsed={isDashboardSidebarCollapsed}
+                setIsSidebarCollapsed={setIsDashboardSidebarCollapsed}
+                projectInfo={projectInfo}
+                projectId={projectId}
+              />
+            ) : hasNoFiles ? (
+              <EmptyProjectView
+                onStartChatting={() => {
+                  setActiveTab('preview')
+                  if (isChatCollapsed) setIsChatCollapsed(false);
+                }}
+              />
+            ) : activeTab === 'code' ? (
+              <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
+            ) : (
+              <ProjectPreviewViewer />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </ErrorBoundary>
   )
 }

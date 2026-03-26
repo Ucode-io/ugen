@@ -86,7 +86,8 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
         : resData.messages || resData.data || [];
 
       if (historyMessages.length > 0) {
-        setChatId(historyMessages[0].chat_id);
+        console.log({ historyMessages })
+        setChatId(historyMessages[0].chat_id || historyMessages?.[1]?.chat_id);
         const formatted = historyMessages.map((m: any) => ({
           id: m.id || m.message_id || Date.now().toString(),
           role: m.role || "ai",
@@ -182,11 +183,17 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     handleAutoScroll();
 
     let activeChatId = chatId;
-
     if (!activeChatId) {
       try {
-        const { data } = await api.post(`/v1/ai-chat/create`, { project_id: projectId });
-        activeChatId = data.data.id || data.data.chat_id;
+        const { data } = await api.get(`/v1/ai-chat/project/${projectId}`, {
+          params: { limit: 10, offset: 0 },
+        });
+        const resData = data.data || data.messages || [];
+        const historyMessages = Array.isArray(resData)
+          ? resData
+          : resData.messages || resData.data || [];
+
+        activeChatId = historyMessages[0].chat_id || historyMessages?.[1]?.chat_id;
         setChatId(activeChatId);
       } catch (err) {
         console.error("Failed to create chat", err);

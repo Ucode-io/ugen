@@ -52,18 +52,18 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
 
   // Parse .env and .env.example for env variables
   const envFiles = files.filter((f: any) => f.path.endsWith(".env") || f.path.endsWith(".env.example"));
-  
+
   // Sort so .env.example comes first, and .env overrides it
   envFiles.sort((a, b) => b.path.length - a.path.length);
 
   for (const file of envFiles) {
-    file.content.split("\n").forEach((line: string) => {
+    // Use ?. to safely access split, or ?? "" to provide a fallback
+    file.content?.split("\n").forEach((line: string) => {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) return;
 
       const [key, ...rest] = trimmed.split("=");
       if (key?.startsWith("VITE_")) {
-        // Use the value from the current file (either .env.example or .env)
         env[key.trim()] = rest.join("=").trim();
       }
     });
@@ -110,7 +110,7 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
 
     let content = file.content;
 
-    if (content.includes("react-router-dom") && content.includes("BrowserRouter")) {
+    if (content?.includes("react-router-dom") && content?.includes("BrowserRouter")) {
       console.log(`[Bundler] Patching BrowserRouter to MemoryRouter in ${path}`);
       content = content.replace(/BrowserRouter/g, "MemoryRouter");
     }
@@ -169,6 +169,7 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
     plugins: [virtualFsPlugin(fs)],
     external: allExternals,
     jsx: "automatic",
+    logLevel: "silent",
     define: {
       "process.env.NODE_ENV": '"development"',
       // Define import.meta.env as a FULL object so both static

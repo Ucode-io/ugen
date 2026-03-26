@@ -45,9 +45,10 @@ export const ProjectPreviewViewer = () => {
 
       setSrcDoc(html);
     } catch (err: any) {
-      console.error("Build failed:", err);
+      console.warn("[Preview] Build failed:", err.message || err);
+      // Wait, isBuilding is ref, it won't trigger re-render, so just set srcDoc
       setSrcDoc(
-        `<html><body><pre style="color:red; padding:2rem; font-family:monospace;">${err.message}</pre></body></html>`,
+        `<html><body style="background:#1e1e1e;color:#f87171;padding:2rem;font-family:monospace;white-space:pre-wrap;">${err.message || 'Unknown build error'}</body></html>`
       );
     } finally {
       setIsLoading(false);
@@ -57,7 +58,7 @@ export const ProjectPreviewViewer = () => {
 
   // Stable hash of files to avoid infinite re-render loops
   const filesHash = useMemo(() => {
-    return files.map(f => f.path + ':' + f.content.length).join('|');
+    return files.map(f => f.path + ':' + f.content?.length).join('|');
   }, [files]);
 
   useEffect(() => {

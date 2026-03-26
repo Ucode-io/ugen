@@ -52,7 +52,7 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
 
         // Relative imports
         if (args.path.startsWith(".")) {
-          const importerDir = args.importer.includes("/")
+          const importerDir = args.importer?.includes("/")
             ? args.importer.substring(0, args.importer.lastIndexOf("/"))
             : "/";
           const resolved = normalizePath(importerDir + "/" + args.path);
