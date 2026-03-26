@@ -7,6 +7,9 @@ import { useChatStore, Message } from "@/entities/chat";
 import { api } from "@/shared/api";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import React from 'react';
+import { BpmnViewer } from "@/shared/ui/bpmn-viewer";
+import { bpmnXmlContnet } from "./bpmn";
+import { FlowDiagram } from "@/shared/ui/flow-diagram";
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -175,16 +178,23 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
 
   const handleSendMessage = async (text: string, files?: any[], model?: string) => {
     // Add user message locally
-    addMessage({
-      id: Date.now().toString(),
-      role: "user",
-      content: text,
-      images: files?.map(f => f.url) || [],
-    });
-
+    addMessage({ id: Date.now().toString(), role: "user", content: text, images: files?.map(f => f.url) || [] });
     handleAutoScroll();
 
-    if (chatId) {
+    let activeChatId = chatId;
+
+    if (!activeChatId) {
+      try {
+        const { data } = await api.post(`/v1/ai-chat/create`, { project_id: projectId });
+        activeChatId = data.data.id || data.data.chat_id;
+        setChatId(activeChatId);
+      } catch (err) {
+        console.error("Failed to create chat", err);
+        return;
+      }
+    }
+
+    if (activeChatId) {
       setIsSending(true);
       thinkingTimeoutRef.current = setTimeout(() => {
         setIsThinking(true);
@@ -233,17 +243,8 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
           thinkingTimeoutRef.current = null;
         }
       }
-    } else {
-      // Fallback
-      setTimeout(() => {
-        addMessage({
-          id: (Date.now() + 1).toString(),
-          role: "ai",
-          content: `(Mock mode - no Chat ID) I received: \n\n\`\`\`text\n${text}\n\`\`\``,
-        });
-      }, 1000);
     }
-  };
+  }
 
   return (
     <div
@@ -263,6 +264,21 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
               <Loader2 className="text-text-muted animate-spin" size={20} />
             </div>
           )}
+          {/* <BpmnViewer
+            bpmnXml={bpmnXmlContnet}
+          />
+          <FlowDiagram edges={
+            [
+              { "from": "Web / Mobile", "to": "API Gateway", "label": "HTTPS" },
+              { "from": "API Gateway", "to": "Auth Service", "label": "JWT" },
+              { "from": "API Gateway", "to": "TMS Core API", "label": "REST" },
+              { "from": "TMS Core API", "to": "PostgreSQL", "label": "queries" },
+              { "from": "TMS Core API", "to": "Redis Cache", "label": "cache" },
+              { "from": "TMS Core API", "to": "WebSocket Hub", "label": "live" },
+              { "from": "GPS / IoT Devices", "to": "WebSocket Hub", "label": "stream" }
+            ]
+          }
+          /> */}
           {displayMessages.map((msg: Message) => (
             <React.Fragment key={msg.id}>
               {msg?.images && msg.images.length > 0 && (

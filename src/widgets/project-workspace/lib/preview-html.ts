@@ -139,34 +139,64 @@ export const INSPECTOR_SCRIPT = `
 `
 
 export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record<string, string> = {}) {
-  const REACT_VERSION = "18.0.0";
+  const REACT_VERSION = "18.3.1";
 
   const depsParam = `?deps=react@${REACT_VERSION},react-dom@${REACT_VERSION}`;
 
+  // Static imports: only React core (version must be pinned and consistent)
   const imports: Record<string, string> = {
     "react": `https://esm.sh/react@${REACT_VERSION}`,
     "react/jsx-runtime": `https://esm.sh/react@${REACT_VERSION}/jsx-runtime`,
     "react-dom": `https://esm.sh/react-dom@${REACT_VERSION}`,
     "react-dom/client": `https://esm.sh/react-dom@${REACT_VERSION}/client`,
     "react-dom/server": `https://esm.sh/react-dom@${REACT_VERSION}/server`,
-
-    "react-router-dom": `https://esm.sh/react-router-dom@6.3.0${depsParam}`,
-
-    "lucide-react": `https://esm.sh/lucide-react@0.294.0${depsParam}`, // Added specifically for the mock code
-
-    "axios": "https://esm.sh/axios@1.6.0",
-    "clsx": "https://esm.sh/clsx",
-    "tailwind-merge": "https://esm.sh/tailwind-merge",
   };
 
+  // Dynamic imports: everything from package.json dependencies
+  // This covers react-router-dom, lucide-react, all Radix packages, etc.
   Object.entries(dependenciesMap).forEach(([name, versionSpec]) => {
+    // Skip already-defined and React itself (pinned above)
     if (imports[name]) return;
     if (name === "react" || name === "react-dom") return;
 
-    const version = versionSpec || "latest";
+    // Skip dev-only dependencies that shouldn't run in the browser bundle
+    if (name === "tailwindcss-animate" || name === "tailwindcss" || name === "autoprefixer" || name === "postcss") return;
 
+    const version = versionSpec.replace(/[\^~]/, "") || "latest";
+
+    // For Radix UI packages, we need sub-path exports to work
+    // esm.sh handles this automatically when version is specified
     imports[name] = `https://esm.sh/${name}@${version}${depsParam}`;
   });
+
+  // ── Auto-detect sub-path imports from the bundled output ──
+  // esbuild marks externals as bare imports in ESM output.
+  // The importmap has "zustand" but not "zustand/middleware".
+  // We scan the bundle for ALL bare specifiers and fill in any gaps.
+  const importPattern = /(?:from|import)\s+["']([^"']+)["']/g;
+  let match: RegExpExecArray | null;
+  while ((match = importPattern.exec(bundledCode)) !== null) {
+    const specifier = match[1];
+    if (!specifier || imports[specifier]) continue;
+    // Skip relative, absolute, and URL imports
+    if (specifier.startsWith(".") || specifier.startsWith("/") || specifier.startsWith("http")) continue;
+
+    // Extract the package name (handles @scope/package/subpath)
+    const pkgName = specifier.startsWith("@")
+      ? specifier.split("/").slice(0, 2).join("/")
+      : specifier.split("/")[0];
+
+    const versionSpec = dependenciesMap[pkgName];
+    if (versionSpec) {
+      const cleanVersion = versionSpec.replace(/[\^~]/, "") || "latest";
+      // Build the sub-path URL: e.g. zustand@5.0.0/middleware?deps=...
+      const subPath = specifier.slice(pkgName.length); // e.g. "/middleware"
+      imports[specifier] = `https://esm.sh/${pkgName}@${cleanVersion}${subPath}${depsParam}`;
+    } else {
+      // Unknown package (not in package.json) — try latest from esm.sh
+      imports[specifier] = `https://esm.sh/${specifier}${depsParam}`;
+    }
+  }
 
   return `
     <!DOCTYPE html>

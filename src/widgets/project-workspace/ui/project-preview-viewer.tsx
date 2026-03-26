@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useVisualEditorStore } from "@/entities/visual-editor"
 import { MoveablePrompt } from "./moveable-prompt"
 import { useFilesStore } from "@/entities/project/model/files-store"
@@ -15,16 +15,33 @@ export const ProjectPreviewViewer = () => {
   const containerRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
+  const isBuilding = useRef(false);
+
   // Floating Prompt States
   const [isPromptVisible, setIsPromptVisible] = useState(false)
   const [promptPosition, setPromptPosition] = useState({ x: 0, y: 0 })
 
   const runCode = async () => {
+    if (isBuilding.current) return;
+    isBuilding.current = true;
     setIsLoading(true);
     try {
       await ensureEsbuild();
-      const { code, dependencies } = await buildProjectFromFiles(files, { NODE_ENV: 'development' });
+      console.log("[Preview] esbuild ready, building project...");
+      const { code, dependencies } = await buildProjectFromFiles(files,
+        {
+          VITE_API_BASE_URL: "http://localhost:3000",
+          VITE_API_KEY: "",
+          VITE_X_API_KEY: "",
+          VITE_MAP_TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          VITE_APP_NAME: "App",
+          NODE_ENV: 'development'
+        }
+      );
+      console.log("[Preview] Build successful, code length:", code.length);
+      console.log("[Preview] Dependencies:", Object.keys(dependencies));
       const html = generatePreviewHtml(code, dependencies);
+      console.log("[Preview] HTML generated, length:", html.length);
 
       setSrcDoc(html);
     } catch (err: any) {
@@ -34,15 +51,21 @@ export const ProjectPreviewViewer = () => {
       );
     } finally {
       setIsLoading(false);
+      isBuilding.current = false;
     }
   };
+
+  // Stable hash of files to avoid infinite re-render loops
+  const filesHash = useMemo(() => {
+    return files.map(f => f.path + ':' + f.content.length).join('|');
+  }, [files]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       runCode();
     }, 1000);
     return () => clearTimeout(timeout);
-  }, [files]);
+  }, [filesHash]);
 
   useEffect(() => {
     if (iframeRef.current?.contentWindow) {
