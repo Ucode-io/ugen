@@ -317,12 +317,10 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     });
   }
 
-  const [isDisabled, setIsDisabled] = useState(false)
+  const isDisabled = displayMessages.some((msg: Message) => msg.pending_action && msg.pending_action.approved === false);
 
   const isPendingActionConfirm = (msg: Message) => {
-    const isConfirming = msg.pending_action && msg.pending_action.approved === false
-    setIsDisabled(isConfirming)
-    return isConfirming
+    return msg.pending_action && msg.pending_action.approved === false;
   }
 
   return (
