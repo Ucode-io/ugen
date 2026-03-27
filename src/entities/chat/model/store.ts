@@ -8,6 +8,7 @@ export type Message = {
   audioUrl?: string
   isFromResponse?: boolean
   images?: string[]
+  pending_action?: any
 }
 
 interface ChatState {
@@ -21,6 +22,7 @@ interface ChatState {
   addMessage: (message: Message) => void
   unshiftMessages: (messages: Message[]) => void
   setMessages: (messages: Message[]) => void
+  updateMessage: (id: string, updated: Partial<Message>) => void
   clearChat: () => void
 }
 
@@ -39,5 +41,8 @@ export const useChatStore = create<ChatState>((set) => ({
     return { messages: [...filtered, ...state.messages] }
   }),
   setMessages: (messages) => set({ messages }),
+  updateMessage: (id, updated) => set((state) => ({
+    messages: state.messages.map(m => m.id === id ? { ...m, ...updated } : m)
+  })),
   clearChat: () => set({ chatId: null, projectId: null, messages: [], pendingPrompt: null }),
 }))

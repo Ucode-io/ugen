@@ -44,6 +44,51 @@ const MOCK_CHAT: Message[] = [
   }
 ]
 
+const PendingActionConfirm = ({
+  action,
+  onConfirm,
+  disabled
+}: {
+  action: any,
+  onConfirm: (approved: boolean, text: string) => void,
+  disabled: boolean
+}) => {
+  const isDelete = action.action === 'delete';
+
+  let btnText = '✓ Да, подтвердить';
+  if (action.action === 'create') btnText = '✓ Да, создать';
+  if (action.action === 'update') btnText = '✓ Да, обновить';
+  if (action.action === 'delete') btnText = '✓ Да, удалить';
+
+  return (
+    <div className="flex flex-col gap-2 p-3 mt-1 ml-4 mr-4 bg-bg-card border border-border-subtle rounded-md text-sm shadow-sm max-w-[85%] self-start">
+      <div className="font-medium text-text-main leading-snug">
+        {action.confirmation_prompt || action.description}
+      </div>
+      <div className="flex items-center gap-2 mt-2">
+        <button
+          disabled={disabled}
+          onClick={() => onConfirm(true, "Да")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors disabled:opacity-50
+            ${isDelete
+              ? 'bg-red-500/10 text-red-600 hover:bg-red-500/20 border border-red-500/20'
+              : 'bg-green-500/10 text-green-600 hover:bg-green-500/20 border border-green-500/20'
+            }`}
+        >
+          {btnText}
+        </button>
+        <button
+          disabled={disabled}
+          onClick={() => onConfirm(false, "Нет")}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md text-text-main bg-bg-main hover:bg-hover-bg border border-border-subtle transition-colors disabled:opacity-50"
+        >
+          ✕ Отмена
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatProps) => {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -58,6 +103,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
   const addMessage = useChatStore((state) => state.addMessage);
   const unshiftMessages = useChatStore((state) => state.unshiftMessages);
   const setMessages = useChatStore((state) => state.setMessages);
+  const updateMessage = useChatStore((state) => state.updateMessage);
   const chatId = useChatStore((state) => state.chatId);
   // const currentStoreProjectId = useChatStore((state) => state.projectId);
   const setChatId = useChatStore((state) => state.setChatId);
@@ -92,6 +138,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
           id: m.id || m.message_id || Date.now().toString(),
           role: m.role || "ai",
           content: m.content || "",
+          pending_action: m.pending_action,
         }));
 
         const previousScrollHeight = scrollRef.current?.scrollHeight || 0;
@@ -177,7 +224,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     });
   }, []);
 
-  const handleSendMessage = async (text: string, files?: any[], model?: string) => {
+  const handleSendMessage = async (text: string, files?: any[], model?: string, pendingActionPayload?: any) => {
     // Add user message locally
     addMessage({ id: Date.now().toString(), role: "user", content: text, images: files?.map(f => f.url) || [] });
     handleAutoScroll();
@@ -193,6 +240,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
           ? resData
           : resData.messages || resData.data || [];
 
+        console.log({ data, historyMessages })
         activeChatId = historyMessages[0].chat_id || historyMessages?.[1]?.chat_id;
         setChatId(activeChatId);
       } catch (err) {
@@ -217,6 +265,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
             has_files: (files?.length || 0) > 0,
             tokens_used: 100,
             model: model,
+            ...(pendingActionPayload ? { pending_action: pendingActionPayload } : {})
           },
         );
 
@@ -229,11 +278,15 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
           setFiles(mappedFiles);
         }
 
-        if (messageData?.data?.message?.content) {
+        const responseMsg = messageData?.data?.message;
+        const pendingAction = messageData?.data?.pending_action;
+
+        if (responseMsg?.content || pendingAction) {
           addMessage({
-            id: messageData.data.message.id || messageData.data.id || (Date.now() + 1).toString(),
+            id: responseMsg?.id || messageData?.data?.id || (Date.now() + 1).toString(),
             role: "ai",
-            content: messageData.data.message?.content,
+            content: responseMsg?.content || "",
+            pending_action: pendingAction,
             isFromResponse: true,
           });
 
@@ -251,6 +304,17 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
         }
       }
     }
+  }
+
+  const handleConfirmAction = async (originalMsg: Message, approved: boolean, text: string) => {
+    updateMessage(originalMsg.id, {
+      pending_action: { ...originalMsg.pending_action, approved: true } // optimistically hide buttons
+    });
+    // Post the action
+    handleSendMessage(text, undefined, undefined, {
+      ...originalMsg.pending_action,
+      approved
+    });
   }
 
   return (
@@ -306,6 +370,13 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                   />
                 )
               }
+              {msg.pending_action && msg.pending_action.approved === false && (
+                <PendingActionConfirm
+                  action={msg.pending_action}
+                  onConfirm={(approved, text) => handleConfirmAction(msg, approved, text)}
+                  disabled={isSending}
+                />
+              )}
             </React.Fragment>
           ))}
           {isThinking && (
