@@ -7,10 +7,11 @@ import { ModelSelector, DEFAULT_MODEL_ID } from "@/entities/ai-model"
 
 interface ChatInputProps {
   onSendMessage: (msg: string, files?: any[], model?: string) => void
-  isSending?: boolean
+  isSending?: boolean,
+  disabled?: boolean,
 }
 
-export const ChatInput = ({ onSendMessage, isSending }: ChatInputProps) => {
+export const ChatInput = ({ onSendMessage, isSending, disabled }: ChatInputProps) => {
   const { isInspectMode, selectedElements, setInspectMode, removeSelectedElement } = useVisualEditorStore()
   const [value, setValue] = useState("")
   const [isPlanOn, setIsPlanOn] = useState(false)
@@ -162,7 +163,7 @@ export const ChatInput = ({ onSendMessage, isSending }: ChatInputProps) => {
         onChange={handleInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        disabled={isSending}
+        disabled={isSending || disabled}
         placeholder="How can I help you today?"
         className="text-text-main placeholder:text-text-muted w-full resize-none bg-transparent px-3 py-3 text-[15px] outline-none disabled:opacity-70"
         style={{ minHeight: "44px", maxHeight: "200px" }}

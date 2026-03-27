@@ -317,6 +317,14 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     });
   }
 
+  const [isDisabled, setIsDisabled] = useState(false)
+
+  const isPendingActionConfirm = (msg: Message) => {
+    const isConfirming = msg.pending_action && msg.pending_action.approved === false
+    setIsDisabled(isConfirming)
+    return isConfirming
+  }
+
   return (
     <div
       className={`bg-bg-main border-border-subtle relative flex h-full shrink-0 flex-col transition-all duration-300 ${isCollapsed ? "w-0 border-r-0" : "w-[550px] border-r"}`}
@@ -370,7 +378,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                   />
                 )
               }
-              {msg.pending_action && msg.pending_action.approved === false && (
+              {isPendingActionConfirm(msg) && (
                 <PendingActionConfirm
                   action={msg.pending_action}
                   onConfirm={(approved, text) => handleConfirmAction(msg, approved, text)}
@@ -391,7 +399,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
 
         {/* Fixed bottom input container */}
         <div className="shrink-0 bg-transparent px-4 pt-2 pb-4">
-          <ChatInput onSendMessage={handleSendMessage} isSending={isSending} />
+          <ChatInput onSendMessage={handleSendMessage} isSending={isSending} disabled={isDisabled} />
         </div>
       </div>
     </div>
