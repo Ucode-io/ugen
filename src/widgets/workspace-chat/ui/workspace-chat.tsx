@@ -54,25 +54,45 @@ const PendingActionConfirm = ({
   disabled: boolean
 }) => {
   const isDelete = action.action === 'delete';
+  const isCreate = action.action === 'create';
+  const isUpdate = action.action === 'update';
 
   let btnText = '✓ Да, подтвердить';
-  if (action.action === 'create') btnText = '✓ Да, создать';
-  if (action.action === 'update') btnText = '✓ Да, обновить';
-  if (action.action === 'delete') btnText = '✓ Да, удалить';
+  if (isCreate) btnText = '✓ Да, создать';
+  if (isUpdate) btnText = '✓ Да, обновить';
+  if (isDelete) btnText = '✓ Да, удалить';
+
+  const showBulkInfo = action.affected_count > 1;
 
   return (
-    <div className="flex flex-col gap-2 p-3 mt-1 ml-4 mr-4 bg-bg-card border border-border-subtle rounded-md text-sm shadow-sm max-w-[85%] self-start">
+    <div className="flex flex-col gap-2 p-4 mt-2 ml-4 mr-4 bg-bg-card border border-border-subtle rounded-xl text-sm shadow-sm max-w-[90%] self-start animate-in fade-in slide-in-from-left-2 duration-300">
       <div className="font-medium text-text-main leading-snug">
-        {action.confirmation_prompt || action.description}
+        {action.description || action.confirmation_prompt}
       </div>
+
+      {showBulkInfo && (
+        <div className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-md w-fit
+          ${isDelete ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
+          {isDelete ? `Будет удалено ${action.affected_count} записей` :
+           isUpdate ? `Будет обновлено ${action.affected_count} записей` :
+           `Будет создано ${action.affected_count} записей`}
+        </div>
+      )}
+
+      {action.confirmation_prompt && action.confirmation_prompt !== action.description && (
+        <div className="text-xs text-text-muted italic bg-bg-sidebar/50 p-2 rounded-lg border border-border-subtle/50">
+          {action.confirmation_prompt}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mt-2">
         <button
           disabled={disabled}
           onClick={() => onConfirm(true, "Да")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors disabled:opacity-50
+          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50
             ${isDelete
-              ? 'bg-red-500/10 text-red-600 hover:bg-red-500/20 border border-red-500/20'
-              : 'bg-green-500/10 text-green-600 hover:bg-green-500/20 border border-green-500/20'
+              ? 'bg-destructive text-white hover:bg-destructive/90 shadow-sm'
+              : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
             }`}
         >
           {btnText}
@@ -80,7 +100,7 @@ const PendingActionConfirm = ({
         <button
           disabled={disabled}
           onClick={() => onConfirm(false, "Нет")}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md text-text-main bg-bg-main hover:bg-hover-bg border border-border-subtle transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl text-text-main bg-bg-main hover:bg-hover-bg border border-border-subtle transition-all active:scale-95 disabled:opacity-50"
         >
           ✕ Отмена
         </button>
