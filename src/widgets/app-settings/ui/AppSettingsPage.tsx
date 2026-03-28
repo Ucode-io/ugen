@@ -9,8 +9,9 @@ import { Input } from '@/shared/ui/ui/input'
 import { cn } from '@/shared/lib/utils/cn'
 import {
   Camera, ChevronDown, ChevronUp, Trash2, Loader2,
-  Monitor, Smartphone, Globe, Shield, Save, User
+  Monitor, Smartphone, Globe, Shield, Save, User, Layers
 } from 'lucide-react'
+import { EnvironmentPage } from '@/widgets/project-workspace'
 
 // Profile Section Component
 export const AppSettingsPage = () => {
@@ -46,6 +47,8 @@ export const AppSettingsPage = () => {
   const [languagesOpen, setLanguagesOpen] = useState(false)
   const [langFields, setLangFields] = useState<any[]>([])
   const [langLoading, setLangLoading] = useState(false)
+  // Environment States
+  const [environmentOpen, setEnvironmentOpen] = useState(false)
 
   // API Functions
   const uploadPhoto = async (file: File, projectId: string): Promise<string> => {
@@ -385,6 +388,31 @@ export const AppSettingsPage = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* 4. Environment Accordion */}
+      <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
+        <button
+          onClick={() => setEnvironmentOpen(p => !p)}
+          className="w-full flex items-center justify-between px-8 py-6 hover:bg-bg-sidebar/50 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+              <Layers size={20} className="text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-text-main">Environment Management</p>
+              <p className="text-xs text-text-muted mt-0.5">Configure and switch between project environments.</p>
+            </div>
+          </div>
+          {environmentOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
+        </button>
+
+        {environmentOpen && (
+          <div className="border-t border-border-subtle p-8">
+            <EnvironmentPage projectId={projectId} />
           </div>
         )}
       </div>

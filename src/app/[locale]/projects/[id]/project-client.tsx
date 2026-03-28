@@ -121,16 +121,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setActiveProjectTab(activeTab)
   }, [activeTab, setActiveProjectTab])
 
-  const showChat = activeTab === 'code' || activeTab === 'preview'
-  const isSidebarCollapsed = activeTab === 'dashboard' ? isDashboardSidebarCollapsed : isChatCollapsed
 
-  const handleToggleSidebar = () => {
-    if (activeTab === 'dashboard') {
-      setIsDashboardSidebarCollapsed(!isDashboardSidebarCollapsed)
-    } else {
-      setIsChatCollapsed(!isChatCollapsed)
-    }
-  }
 
   return (
     <ErrorBoundary>
@@ -139,15 +130,17 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           projectTitle={projectTitle}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          isSidebarCollapsed={isSidebarCollapsed}
-          onToggleSidebar={handleToggleSidebar}
+          isSidebarCollapsed={isDashboardSidebarCollapsed}
+          onToggleSidebar={() => setIsDashboardSidebarCollapsed(!isDashboardSidebarCollapsed)}
+          isChatCollapsed={isChatCollapsed}
+          onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
           isLoading={isLoading}
           hasNoFiles={hasNoFiles}
           onSave={handleSaveChanges}
         />
 
         <div className="flex flex-1 overflow-hidden">
-          {showChat && <WorkspaceChat projectId={projectId} isCollapsed={isChatCollapsed} />}
+          <WorkspaceChat projectId={projectId} isCollapsed={isChatCollapsed} />
 
           {/* Content Area */}
           <div className="flex-1 flex overflow-hidden">

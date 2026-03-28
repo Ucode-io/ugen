@@ -10,6 +10,8 @@ interface ProjectHeaderProps {
   setActiveTab: (tab: 'dashboard' | 'code' | 'preview') => void
   isSidebarCollapsed: boolean
   onToggleSidebar: () => void
+  isChatCollapsed: boolean
+  onToggleChat: () => void
   isLoading: boolean
   hasNoFiles: boolean
   onSave?: () => void
@@ -21,6 +23,8 @@ export const ProjectHeader = ({
   setActiveTab,
   isSidebarCollapsed,
   onToggleSidebar,
+  isChatCollapsed,
+  onToggleChat,
   isLoading,
   hasNoFiles,
   onSave,
@@ -34,8 +38,6 @@ export const ProjectHeader = ({
     }
     setActiveTab(tab)
   }
-
-  const sidebarTitle = activeTab === 'dashboard' ? 'Sidebar' : 'AI Chat'
 
   const tabOptions = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
@@ -55,14 +57,25 @@ export const ProjectHeader = ({
 
   return (
     <header className="h-[48px] border-b border-border-subtle bg-bg-card flex items-center justify-between px-4 shrink-0 z-10 transition-all duration-300">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <button
-          onClick={onToggleSidebar}
+          onClick={onToggleChat}
           className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
-          title={isSidebarCollapsed ? `Open ${sidebarTitle}` : `Collapse ${sidebarTitle}`}
+          title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
         >
-          {isSidebarCollapsed ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
+          {isChatCollapsed ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
         </button>
+
+        {activeTab === 'dashboard' && (
+          <button
+            onClick={onToggleSidebar}
+            className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
+            title={isSidebarCollapsed ? `Open Sidebar` : `Collapse Sidebar`}
+          >
+            <LayoutDashboard size={16} className={isSidebarCollapsed ? "opacity-50" : "opacity-100"} />
+          </button>
+        )}
+
         <div className="bg-border-subtle w-[1px] h-4 mx-1" />
         <button
           onClick={() => router.push('/projects')}

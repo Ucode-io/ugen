@@ -13,13 +13,14 @@ import {
   Box,
   Globe,
   KeyRound,
-  Zap,
-  Layers2
+  Layers2,
+  History,
+  Code
 } from "lucide-react"
 import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
-import { DatabaseStudio } from '@/widgets/database-studio'
-import { AnalyticsDashboard } from "@/widgets/analytics"
+import { DatabaseStudio, LogsView } from '@/widgets/database-studio'
+import { CodeView } from '@/widgets/project-workspace'
 import { ClientTypeManagement } from '@/widgets/client-type-management'
 import { useMemo } from 'react'
 import { useMenus } from '@/entities/menu/lib/use-menus'
@@ -30,10 +31,8 @@ import { PermissionManage } from '@/widgets/permission-manage'
 import { useClientTypes } from '@/entities/client-type'
 import { AppSettingsPage } from '@/widgets/app-settings'
 import { ResourcesPage } from './resources-page'
-import { EnvironmentPage } from './environment-page'
 import { ApiKeysPage } from './api-keys-page'
-import { FunctionsPage } from './functions-page'
-import { MicrofrontendPage } from './microfrontend-page'
+import { AnalyticsDashboard } from "@/widgets/analytics"
 
 type DashboardSection = string
 
@@ -111,11 +110,10 @@ export const ProjectDashboard = ({
       })) || []
     },
     { id: 'resources', icon: Box, label: 'Resources' },
-    { id: 'environment', icon: Globe, label: 'Environment' },
-    { id: 'api_keys', icon: KeyRound, label: 'Api Keys' },
-    { id: 'functions', icon: Zap, label: 'Functions' },
-    { id: 'microfrontend', icon: Layers2, label: 'Microfrontend' },
-    { id: 'database_studio', icon: Database, label: 'Database Studio' },
+    { id: 'api_keys', icon: KeyRound, label: 'Api' },
+    { id: 'code', icon: Code, label: 'Code' },
+    { id: 'database_studio', icon: Database, label: 'Database' },
+    { id: 'activity_logs', icon: History, label: 'Activity logs' },
     { id: 'analytics', icon: BarChart2, label: 'Analytics' },
   ], [fileMenus, clientTypes])
 
@@ -164,6 +162,10 @@ export const ProjectDashboard = ({
       return <DatabaseStudio projectId={projectId ?? ''} />;
     }
 
+    if (activeSection === "activity_logs") {
+      return <LogsView />;
+    }
+
     if (activeSection === 'resources') {
       return <ResourcesPage projectId={projectId ?? ''} />
     }
@@ -177,20 +179,14 @@ export const ProjectDashboard = ({
       return <PermissionManage projectId={projectId ?? ''} clientTypeId={clientId} />;
     }
 
-    if (activeSection === 'environment') {
-      return <EnvironmentPage projectId={projectId ?? ''} />
-    }
+
 
     if (activeSection === 'api_keys') {
       return <ApiKeysPage projectId={projectId ?? ''} />
     }
 
-    if (activeSection === 'functions') {
-      return <FunctionsPage projectId={projectId ?? ''} />
-    }
-
-    if (activeSection === 'microfrontend') {
-      return <MicrofrontendPage projectId={projectId ?? ''} />
+    if (activeSection === 'code') {
+      return <CodeView projectId={projectId ?? ''} />
     }
 
     const filesGroup = navigationItems.find((n) => n.id === "files");

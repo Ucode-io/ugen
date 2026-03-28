@@ -12,7 +12,6 @@ import {
   Play,
   ChevronRight,
   Search,
-  History,
   Lock,
   Settings2
 } from 'lucide-react'
@@ -37,8 +36,7 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
 
   const TABS = [
     { id: 'tables', label: t('tabs.tables'), icon: <TableIcon size={16} /> },
-    { id: 'logs', label: t('tabs.logs'), icon: <History size={16} /> },
-    // { id: 'security', label: t('tabs.security'), icon: <Lock size={16} /> },
+    // { id: 'security', label: t('tabs.security'), icon: <ShieldCheck size={16} /> },
     // { id: 'advanced', label: t('tabs.advanced'), icon: <Settings2 size={16} /> },
   ]
 
@@ -61,8 +59,7 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
           case 'sql-console': return <SqlConsole />
           default: return <TablesView />
         }
-      case 'logs':
-        return <LogsView />
+
       case 'security':
         return (
           <PlaceholderView
