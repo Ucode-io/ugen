@@ -74,8 +74,8 @@ const PendingActionConfirm = ({
         <div className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-md w-fit
           ${isDelete ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
           {isDelete ? `Будет удалено ${action.affected_count} записей` :
-           isUpdate ? `Будет обновлено ${action.affected_count} записей` :
-           `Будет создано ${action.affected_count} записей`}
+            isUpdate ? `Будет обновлено ${action.affected_count} записей` :
+              `Будет создано ${action.affected_count} записей`}
         </div>
       )}
 
@@ -337,10 +337,10 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     });
   }
 
-  const isDisabled = displayMessages.some((msg: Message) => msg.pending_action && msg.pending_action.approved === false);
+  const isDisabled = displayMessages.some((msg: Message) => msg.pending_action && !msg.pending_action.approved);
 
   const isPendingActionConfirm = (msg: Message) => {
-    return msg.pending_action && msg.pending_action.approved === false;
+    return msg.pending_action && !msg.pending_action.approved;
   }
 
   return (
