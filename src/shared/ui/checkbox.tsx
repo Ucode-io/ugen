@@ -20,7 +20,7 @@ const Checkbox = React.forwardRef<
   }
 
   return (
-    <div className="flex items-start space-x-3">
+    <div className="flex items-center space-x-3">
       <div className="relative flex items-center h-5">
         <input
           type="checkbox"

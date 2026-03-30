@@ -95,8 +95,10 @@ const getLastDayOfMonthDate = () => {
   return new Date(now.getFullYear(), now.getMonth() + 1, 0)
 }
 
-export const LogsView = () => {
-  const [activeTab, setActiveTab] = useState('activity')
+export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string }) => {
+  const [internalActiveTab, setInternalActiveTab] = useState('activity')
+  const activeTab = externalActiveTab || internalActiveTab
+  const setActiveTab = externalActiveTab ? () => {} : setInternalActiveTab
   const environmentId = useAuthStore((state) => state.user?.environment_id)
   const projectId = useAuthStore((state) => state.project?.project_id)
 
@@ -415,16 +417,32 @@ export const LogsView = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <ReusableTabs
-          activeId={activeTab}
-          onTabChange={(id) => setActiveTab(id)}
-          options={[
-            { id: 'activity', label: 'Activity Logs', icon: <Activity size={14} /> },
-            { id: 'function', label: 'Function Logs', icon: <FileText size={14} /> },
-          ]}
-        />
+      <div className="mb-2">
+        {activeTab === 'activity' ? (
+          <div>
+            <h1 className="text-2xl font-bold text-text-main tracking-tight">Activity Logs</h1>
+            <p className="text-text-muted text-sm mt-1">Track and monitor all global activities and resource changes.</p>
+          </div>
+        ) : (
+          <div>
+            <h1 className="text-2xl font-bold text-text-main tracking-tight">Function Logs</h1>
+            <p className="text-text-muted text-sm mt-1">Monitor the execution, status, and performance of individual functions.</p>
+          </div>
+        )}
       </div>
+
+      {!externalActiveTab && (
+        <div className="flex items-center justify-between">
+          <ReusableTabs
+            activeId={activeTab}
+            onTabChange={(id) => setActiveTab(id)}
+            options={[
+              { id: 'activity', label: 'Activity Logs', icon: <Activity size={14} /> },
+              { id: 'function', label: 'Function Logs', icon: <FileText size={14} /> },
+            ]}
+          />
+        </div>
+      )}
 
       <div className="bg-bg-card border border-border-subtle rounded-ai shadow-sm overflow-hidden flex flex-col min-h-[500px]">
         {activeTab === 'activity' ? (

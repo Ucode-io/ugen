@@ -72,13 +72,18 @@ interface TokenItem {
 
 interface ApiKeysPageProps {
   projectId: string
+  activeTab?: 'api_keys' | 'secrets'
 }
 
 type View = 'list' | 'create' | 'detail'
 
-export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
+export const ApiKeysPage = ({ projectId, activeTab: externalActiveTab }: ApiKeysPageProps) => {
   const [view, setView] = useState<View>('list')
-  const [activeTab, setActiveTab] = useState('api_keys')
+  const [internalActiveTab, setInternalActiveTab] = useState('api_keys')
+  
+  const activeTab = externalActiveTab || internalActiveTab
+  const setActiveTab = externalActiveTab ? () => {} : setInternalActiveTab
+
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null)
   const [detailTab, setDetailTab] = useState<'api_key' | 'log' | 'tokens'>('api_key')
   const [showSecret, setShowSecret] = useState(false)
@@ -268,16 +273,18 @@ export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
   if (view === 'list') {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex items-center justify-between">
-          <ReusableTabs
-            activeId={activeTab}
-            onTabChange={setActiveTab}
-            options={[
-              { id: 'api_keys', label: 'API keys', icon: <KeyRound size={14} /> },
-              { id: 'secrets', label: 'Secrets', icon: <LockIcon size={14} /> },
-            ]}
-          />
-        </div>
+        {!externalActiveTab && (
+          <div className="flex items-center justify-between">
+            <ReusableTabs
+              activeId={activeTab}
+              onTabChange={setActiveTab}
+              options={[
+                { id: 'api_keys', label: 'API keys', icon: <KeyRound size={14} /> },
+                { id: 'secrets', label: 'Secrets', icon: <LockIcon size={14} /> },
+              ]}
+            />
+          </div>
+        )}
 
         {activeTab === 'api_keys' ? (
           <>

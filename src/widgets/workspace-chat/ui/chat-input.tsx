@@ -4,14 +4,16 @@ import { AudioRecorder } from "@/shared/ui/audio-recorder"
 import { useFileUpload } from "@/shared/hooks/useFileUpload"
 import { useVisualEditorStore } from "@/entities/visual-editor"
 import { ModelSelector, DEFAULT_MODEL_ID } from "@/entities/ai-model"
+import { cn } from "@/shared/lib/utils/cn"
 
 interface ChatInputProps {
   onSendMessage: (msg: string, files?: any[], model?: string) => void
   isSending?: boolean,
   disabled?: boolean,
+  className?: string
 }
 
-export const ChatInput = ({ onSendMessage, isSending, disabled }: ChatInputProps) => {
+export const ChatInput = ({ onSendMessage, isSending, disabled, className }: ChatInputProps) => {
   const { isInspectMode, selectedElements, setInspectMode, removeSelectedElement } = useVisualEditorStore()
   const [value, setValue] = useState("")
   const [isPlanOn, setIsPlanOn] = useState(false)
@@ -102,7 +104,10 @@ export const ChatInput = ({ onSendMessage, isSending, disabled }: ChatInputProps
 
   return (
     <div
-      className="relative overflow-hidden bg-bg-card border-border-subtle focus-within:ring-border-subtle flex w-full flex-col rounded-[20px] border p-2 shadow-sm transition-all focus-within:ring-1"
+      className={cn(
+        "relative overflow-hidden bg-bg-card border-border-subtle focus-within:ring-border-subtle flex w-full flex-col rounded-[20px] border p-2 shadow-sm transition-all focus-within:ring-1",
+        className
+      )}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >

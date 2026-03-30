@@ -4,12 +4,14 @@ import { Loader2 } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
+import { Checkbox } from "@/shared/ui/checkbox";
 import { api } from "@/shared/api";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import React from 'react';
 import { BpmnViewer } from "@/shared/ui/bpmn-viewer";
 import { bpmnXmlContnet } from "./bpmn";
 import { FlowDiagram } from "@/shared/ui/flow-diagram";
+import { cn } from "@/shared/lib/utils/cn";
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -35,6 +37,52 @@ interface WorkspaceChatProps {
   projectId: string
   isCollapsed?: boolean;
 }
+
+interface QuestionOption {
+  id: string;
+  label: string;
+}
+
+interface Question {
+  id: string;
+  title: string;
+  type: 'single' | 'multi';
+  options: QuestionOption[];
+}
+
+const QUESTION_DATA: Question[] = [
+  {
+    id: 'panel-type',
+    title: 'Какой тип админ панеля вы хотите ?',
+    type: 'multi',
+    options: [
+      { id: 'crm', label: 'Админ панель для CRM систем' },
+      { id: 'tms', label: 'Админ панель для TMS систем' },
+      { id: 'erp', label: 'Админ панель для ERP систем' },
+    ]
+  },
+  {
+    id: 'framework',
+    title: 'Выберите фреймворк',
+    type: 'single',
+    options: [
+      { id: 'nextjs', label: 'Next.js (Recommended)' },
+      { id: 'vite', label: 'Vite + React' },
+      { id: 'remix', label: 'Remix' },
+    ]
+  },
+  {
+    id: 'features',
+    title: 'Дополнительные функции',
+    type: 'multi',
+    options: [
+      { id: 'auth', label: 'Авторизация' },
+      { id: 'i18n', label: 'Интернационализация' },
+      { id: 'pwa', label: 'PWA поддержка' },
+      { id: 'analytics', label: 'Аналитика' },
+    ]
+  }
+];
 
 const MOCK_CHAT: Message[] = [
   {
@@ -110,6 +158,10 @@ const PendingActionConfirm = ({
 }
 
 export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatProps) => {
+  const [width, setWidth] = useState(550);
+  const [isResizing, setIsResizing] = useState(false);
+  const dragStartWidthRef = useRef(550);
+  const dragStartXRef = useRef(0);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -125,16 +177,67 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
   const setMessages = useChatStore((state) => state.setMessages);
   const updateMessage = useChatStore((state) => state.updateMessage);
   const chatId = useChatStore((state) => state.chatId);
-  // const currentStoreProjectId = useChatStore((state) => state.projectId);
   const setChatId = useChatStore((state) => state.setChatId);
   const setStoreProjectId = useChatStore((state) => state.setProjectId);
   const clearChat = useChatStore((state) => state.clearChat);
   const pendingPrompt = useChatStore((state) => state.pendingPrompt);
   const setPendingPrompt = useChatStore((state) => state.setPendingPrompt);
 
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+
+  const handleOptionToggle = (questionId: string, optionId: string, type: 'single' | 'multi') => {
+    setAnswers(prev => {
+      const currentAnswers = prev[questionId] || [];
+      if (type === 'single') {
+        setCustomAnswers(prevCustom => ({ ...prevCustom, [questionId]: '' }));
+        return { ...prev, [questionId]: [optionId] };
+      }
+      if (currentAnswers.includes(optionId)) {
+        return { ...prev, [questionId]: currentAnswers.filter(id => id !== optionId) };
+      }
+      return { ...prev, [questionId]: [...currentAnswers, optionId] };
+    });
+  }
+
+  const handleCustomAnswerChange = (questionId: string, value: string, type: 'single' | 'multi') => {
+    setCustomAnswers(prev => ({ ...prev, [questionId]: value }));
+    if (value.trim() && type === 'single') {
+      setAnswers(prevAnswers => ({ ...prevAnswers, [questionId]: [] }));
+    }
+  }
+
+  const handleFinish = () => {
+    const formattedAnswers: string[] = [];
+    QUESTION_DATA.forEach(q => {
+      const selectedOptionLabels = q.options
+        .filter(opt => (answers[q.id] || []).includes(opt.id))
+        .map(opt => opt.label);
+
+      const customVal = customAnswers[q.id];
+      const allAnswers = [...selectedOptionLabels];
+      if (customVal?.trim()) allAnswers.push(customVal.trim());
+
+      if (allAnswers.length > 0) {
+        formattedAnswers.push(`Question: ${q.title}\nUser answer: ${allAnswers.join(', ')}`);
+      }
+    });
+
+    if (formattedAnswers.length > 0) {
+      addMessage({
+        id: Date.now().toString() + Math.random(),
+        role: 'user',
+        content: formattedAnswers.join('\n\n')
+      });
+    }
+
+    setShowQuestionnaire(false);
+  }
+
   const setFiles = useFilesStore((state) => state.setFiles);
 
-  // Use global messages if available, else fallback to mock if not loading.
   const displayMessages = messages.length > 0 ? messages : (!isLoadingHistory && offset === 0 ? MOCK_CHAT : []);
 
   const fetchHistory = async (currentOffset: number) => {
@@ -152,7 +255,6 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
         : resData.messages || resData.data || [];
 
       if (historyMessages.length > 0) {
-        console.log({ historyMessages })
         setChatId(historyMessages[0].chat_id || historyMessages?.[1]?.chat_id);
         const formatted = historyMessages.map((m: any) => ({
           id: m.id || m.message_id || Date.now().toString(),
@@ -170,14 +272,11 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
         }
         setOffset(currentOffset + 10);
 
-        // Restore scroll position
         requestAnimationFrame(() => {
           if (scrollRef.current) {
             if (currentOffset === 0) {
-              // Initial load - scroll to bottom
               scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
             } else {
-              // History load - maintain position
               const newScrollHeight = scrollRef.current.scrollHeight;
               scrollRef.current.scrollTop = newScrollHeight - previousScrollHeight;
             }
@@ -193,7 +292,58 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     }
   };
 
-  // Reset logic when projectId changes
+  const startResizing = useCallback((e: React.PointerEvent) => {
+    setIsResizing(true);
+    dragStartXRef.current = e.clientX;
+    dragStartWidthRef.current = width;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, [width]);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = useCallback(
+    (e: PointerEvent) => {
+      if (isResizing) {
+        const deltaX = e.clientX - dragStartXRef.current;
+        const newWidth = dragStartWidthRef.current + deltaX;
+
+        if (newWidth >= 360 && newWidth <= 580) {
+          setWidth(newWidth);
+        } else if (newWidth < 360) {
+          setWidth(360);
+        } else if (newWidth > 580) {
+          setWidth(580);
+        }
+      }
+    },
+    [isResizing]
+  );
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener("pointermove", resize);
+      window.addEventListener("pointerup", stopResizing);
+      window.addEventListener("pointercancel", stopResizing);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    } else {
+      window.removeEventListener("pointermove", resize);
+      window.removeEventListener("pointerup", stopResizing);
+      window.removeEventListener("pointercancel", stopResizing);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+    return () => {
+      window.removeEventListener("pointermove", resize);
+      window.removeEventListener("pointerup", stopResizing);
+      window.removeEventListener("pointercancel", stopResizing);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing, resize, stopResizing]);
+
   useEffect(() => {
     if (projectId) {
       clearChat();
@@ -203,10 +353,8 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     }
   }, [projectId, clearChat, setStoreProjectId]);
 
-  // Load history on mount or when projectId changes, but only if offset is 0
   useEffect(() => {
     if (projectId && offset === 0 && hasMore && !isLoadingHistory) {
-      console.log("fetching history for project", projectId);
       fetchHistory(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,7 +362,6 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
 
   const lastProcessedPromptRef = useRef<any>(null);
 
-  // Handle pending prompt from dashboard
   useEffect(() => {
     if (chatId && projectId && pendingPrompt && lastProcessedPromptRef.current !== pendingPrompt) {
       lastProcessedPromptRef.current = pendingPrompt;
@@ -245,7 +392,6 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
   }, []);
 
   const handleSendMessage = async (text: string, files?: any[], model?: string, pendingActionPayload?: any) => {
-    // Add user message locally
     addMessage({ id: Date.now().toString(), role: "user", content: text, images: files?.map(f => f.url) || [] });
     handleAutoScroll();
 
@@ -260,7 +406,6 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
           ? resData
           : resData.messages || resData.data || [];
 
-        console.log({ data, historyMessages })
         activeChatId = historyMessages[0].chat_id || historyMessages?.[1]?.chat_id;
         setChatId(activeChatId);
       } catch (err) {
@@ -309,8 +454,6 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
             pending_action: pendingAction,
             isFromResponse: true,
           });
-
-          // Auto scroll down upon new message
           handleAutoScroll();
         }
       } catch (err) {
@@ -328,65 +471,66 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
 
   const handleConfirmAction = async (originalMsg: Message, approved: boolean, text: string) => {
     updateMessage(originalMsg.id, {
-      pending_action: { ...originalMsg.pending_action, approved: true } // optimistically hide buttons
+      pending_action: { ...originalMsg.pending_action, approved: true }
     });
-    // Post the action
     handleSendMessage(text, undefined, undefined, {
       ...originalMsg.pending_action,
       approved
     });
   }
 
-  const isDisabled = displayMessages.some((msg: Message) => msg.pending_action && !msg.pending_action.approved);
+  const isDisabled = displayMessages.some((msg: Message) => msg.pending_action && !msg.pending_action.approved) || (showQuestionnaire && QUESTION_DATA.length > 0);
 
   const isPendingActionConfirm = (msg: Message) => {
     return msg.pending_action && !msg.pending_action.approved;
   }
 
   return (
-    <div
-      className={`bg-bg-main border-border-subtle relative flex h-full shrink-0 flex-col transition-all duration-300 ${isCollapsed ? "w-0 border-r-0" : "w-[550px] border-r"}`}
-    >
+    <>
+      {isResizing && (
+        <div className="fixed inset-0 z-[9999] cursor-col-resize select-none pointer-events-auto" />
+      )}
       <div
-        className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        className={`bg-bg-main border-border-subtle relative flex h-full shrink-0 flex-col ${isCollapsed ? "w-0 border-r-0" : "border-r"}`}
+        style={{
+          width: isCollapsed ? 0 : `${width}px`,
+          transition: isResizing ? 'none' : 'width 300ms cubic-bezier(0.4, 0, 0.2, 1), border 300ms opacity 300ms'
+        }}
       >
-        {/* Messages list */}
+        {/* Resize Handle */}
+        {!isCollapsed && (
+          <div
+            onPointerDown={startResizing}
+            className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 transition-colors group z-50 flex items-center justify-center translate-x-1/2"
+          >
+            <div className="w-1 h-12 bg-border-subtle group-hover:bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm" />
+          </div>
+        )}
         <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="flex-1 space-y-4 overflow-y-auto p-4"
+          className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
         >
-          {isLoadingHistory && (
-            <div className="flex justify-center p-2">
-              <Loader2 className="text-text-muted animate-spin" size={20} />
-            </div>
-          )}
-          {/* <BpmnViewer
-            bpmnXml={bpmnXmlContnet}
-          />
-          <FlowDiagram edges={
-            [
-              { "from": "Web / Mobile", "to": "API Gateway", "label": "HTTPS" },
-              { "from": "API Gateway", "to": "Auth Service", "label": "JWT" },
-              { "from": "API Gateway", "to": "TMS Core API", "label": "REST" },
-              { "from": "TMS Core API", "to": "PostgreSQL", "label": "queries" },
-              { "from": "TMS Core API", "to": "Redis Cache", "label": "cache" },
-              { "from": "TMS Core API", "to": "WebSocket Hub", "label": "live" },
-              { "from": "GPS / IoT Devices", "to": "WebSocket Hub", "label": "stream" }
-            ]
-          }
-          /> */}
-          {displayMessages.map((msg: Message) => (
-            <React.Fragment key={msg.id}>
-              {msg?.images && msg.images.length > 0 && (
-                <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-2 mb-2`}>
-                  {msg.images.map((image) => (
-                    <img key={image} src={image} alt={image} className="w-20 h-20 object-cover rounded-sm" />
-                  ))}
-                </div>
-              )}
-              {
-                msg.content && (
+          {/* Messages list */}
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex-1 space-y-4 overflow-y-auto p-4"
+          >
+            {isLoadingHistory && (
+              <div className="flex justify-center p-2">
+                <Loader2 className="text-text-muted animate-spin" size={20} />
+              </div>
+            )}
+
+            {displayMessages.map((msg: Message) => (
+              <React.Fragment key={msg.id}>
+                {msg?.images && msg.images.length > 0 && (
+                  <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-2 mb-2`}>
+                    {msg.images.map((image) => (
+                      <img key={image} src={image} alt={image} className="w-20 h-20 object-cover rounded-sm" />
+                    ))}
+                  </div>
+                )}
+                {msg.content && (
                   <ChatMessageBubble
                     key={msg.id}
                     role={msg.role}
@@ -394,32 +538,142 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                     isFromResponse={msg.isFromResponse}
                     onAutoScroll={handleAutoScroll}
                   />
-                )
-              }
-              {isPendingActionConfirm(msg) && (
-                <PendingActionConfirm
-                  action={msg.pending_action}
-                  onConfirm={(approved, text) => handleConfirmAction(msg, approved, text)}
-                  disabled={isSending}
-                />
-              )}
-            </React.Fragment>
-          ))}
-          {isThinking && (
-            <div className="flex w-full justify-start px-4">
-              <div className="flex items-center gap-2 text-text-muted text-sm italic py-2">
-                <Loader2 className="animate-spin" size={16} />
-                <span>Thinking...</span>
-              </div>
-            </div>
-          )}
-        </div>
+                )}
+                {isPendingActionConfirm(msg) && (
+                  <PendingActionConfirm
+                    action={msg.pending_action}
+                    onConfirm={(approved, text) => handleConfirmAction(msg, approved, text)}
+                    disabled={isSending}
+                  />
+                )}
+              </React.Fragment>
+            ))}
 
-        {/* Fixed bottom input container */}
-        <div className="shrink-0 bg-transparent px-4 pt-2 pb-4">
-          <ChatInput onSendMessage={handleSendMessage} isSending={isSending} disabled={isDisabled} />
+            {isThinking && (
+              <div className="flex w-full justify-start px-4">
+                <div className="flex items-center gap-2 text-text-muted text-sm italic py-2">
+                  <Loader2 className="animate-spin" size={16} />
+                  <span>Thinking...</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Fixed bottom input container */}
+          <div className="shrink-0 bg-transparent px-4 pt-2 pb-4">
+            {/* Questionnaire Container (Glued to Input) */}
+            {showQuestionnaire && (
+              <div className="bg-bg-card border border-border-subtle border-b-0 rounded-t-[20px] p-4 flex flex-col gap-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center justify-between gap-4">
+                  <h4 className="text-sm font-bold text-text-main line-clamp-1">
+                    {QUESTION_DATA[currentQuestionIndex].title}
+                  </h4>
+                  <span className="text-[10px] font-bold text-text-muted bg-bg-sidebar px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                    Step {currentQuestionIndex + 1} / {QUESTION_DATA.length}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {QUESTION_DATA[currentQuestionIndex].options.map((option) => {
+                    const isChecked = (answers[QUESTION_DATA[currentQuestionIndex].id] || []).includes(option.id);
+                    return (
+                      <div
+                        key={option.id}
+                        onClick={() => handleOptionToggle(
+                          QUESTION_DATA[currentQuestionIndex].id,
+                          option.id,
+                          QUESTION_DATA[currentQuestionIndex].type
+                        )}
+                        className={`
+                          flex items-center gap-3 p-2 rounded-xl border transition-all cursor-pointer select-none
+                          ${isChecked
+                            ? 'border-primary/50 bg-primary/5 shadow-sm'
+                            : 'border-border-subtle hover:border-border-subtle/80 hover:bg-hover-bg/50'}
+                        `}
+                      >
+                        <Checkbox
+                          id={option.id}
+                          checked={isChecked}
+                          readOnly
+                          className="pointer-events-none"
+                        />
+                        <span className={`text-sm font-medium transition-colors ${isChecked ? 'text-text-main' : 'text-text-muted'}`}>
+                          {option.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  {/* Own Answer Input */}
+                  <div
+                    className={`
+                      flex items-center gap-3 p-2 rounded-xl border transition-all cursor-pointer group
+                      ${customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim()
+                        ? 'border-primary/50 bg-primary/5 shadow-sm'
+                        : 'border-border-subtle hover:border-border-subtle/80 hover:bg-hover-bg/50'}
+                    `}
+                  >
+                    <Checkbox
+                      id={`${QUESTION_DATA[currentQuestionIndex].id}-custom`}
+                      checked={!!customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim()}
+                      readOnly
+                      className="pointer-events-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Свой ответ"
+                      value={customAnswers[QUESTION_DATA[currentQuestionIndex].id] || ''}
+                      onChange={(e) => handleCustomAnswerChange(
+                        QUESTION_DATA[currentQuestionIndex].id,
+                        e.target.value,
+                        QUESTION_DATA[currentQuestionIndex].type
+                      )}
+                      className="flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-text-muted text-text-main disabled:cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-subtle/50 mt-1">
+                  <button
+                    onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                    disabled={currentQuestionIndex === 0}
+                    className="text-xs font-bold text-text-muted hover:text-text-main disabled:opacity-30 disabled:pointer-events-none transition-colors px-3 py-1.5 rounded-lg hover:bg-hover-bg"
+                  >
+                    ← Back
+                  </button>
+                  {currentQuestionIndex === QUESTION_DATA.length - 1 ? (
+                    <button
+                      onClick={handleFinish}
+                      disabled={!(answers[QUESTION_DATA[currentQuestionIndex].id]?.length || customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim())}
+                      className="text-xs font-bold bg-primary text-white px-6 py-1.5 rounded-lg hover:bg-primary/90 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                    >
+                      Finish
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setCurrentQuestionIndex(prev => Math.min(QUESTION_DATA.length - 1, prev + 1))}
+                      disabled={!(answers[QUESTION_DATA[currentQuestionIndex].id]?.length || customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim())}
+                      className="text-xs font-bold bg-primary text-white px-4 py-1.5 rounded-lg hover:bg-primary/90 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                    >
+                      Next Step →
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              isSending={isSending}
+              disabled={isDisabled}
+              className={cn(
+                "!rounded-t-none !border-t-0",
+                !showQuestionnaire && "!rounded-t-[20px] !border-t"
+              )}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };

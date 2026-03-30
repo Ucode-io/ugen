@@ -110,10 +110,37 @@ export const ProjectDashboard = ({
       })) || []
     },
     { id: 'resources', icon: Box, label: 'Resources' },
-    { id: 'api_keys', icon: KeyRound, label: 'Api' },
-    { id: 'code', icon: Code, label: 'Code' },
+    {
+      id: 'api_group',
+      icon: KeyRound,
+      label: 'Api',
+      isGroup: true,
+      items: [
+        { id: 'api_keys', label: 'API keys' },
+        { id: 'secrets', label: 'Secrets' },
+      ]
+    },
+    {
+      id: 'code_group',
+      icon: Code,
+      label: 'Code',
+      isGroup: true,
+      items: [
+        { id: 'functions', label: 'Functions' },
+        { id: 'microfrontend', label: 'Microfrontend' },
+      ]
+    },
     { id: 'database_studio', icon: Database, label: 'Database' },
-    { id: 'activity_logs', icon: History, label: 'Activity logs' },
+    {
+      id: 'activity_group',
+      icon: History,
+      label: 'Logs',
+      isGroup: true,
+      items: [
+        { id: 'activity_logs', label: 'Activity Logs' },
+        { id: 'function_logs', label: 'Function Logs' },
+      ]
+    },
     { id: 'analytics', icon: BarChart2, label: 'Analytics' },
   ], [fileMenus, clientTypes])
 
@@ -163,7 +190,11 @@ export const ProjectDashboard = ({
     }
 
     if (activeSection === "activity_logs") {
-      return <LogsView />;
+      return <LogsView activeTab="activity" />;
+    }
+
+    if (activeSection === "function_logs") {
+      return <LogsView activeTab="function" />;
     }
 
     if (activeSection === 'resources') {
@@ -182,11 +213,19 @@ export const ProjectDashboard = ({
 
 
     if (activeSection === 'api_keys') {
-      return <ApiKeysPage projectId={projectId ?? ''} />
+      return <ApiKeysPage projectId={projectId ?? ''} activeTab="api_keys" />
     }
 
-    if (activeSection === 'code') {
-      return <CodeView projectId={projectId ?? ''} />
+    if (activeSection === 'secrets') {
+      return <ApiKeysPage projectId={projectId ?? ''} activeTab="secrets" />
+    }
+
+    if (activeSection === "functions") {
+      return <CodeView projectId={projectId ?? ""} activeTab="functions" />;
+    }
+
+    if (activeSection === "microfrontend") {
+      return <CodeView projectId={projectId ?? ""} activeTab="microfrontend" />;
     }
 
     const filesGroup = navigationItems.find((n) => n.id === "files");
