@@ -1,6 +1,7 @@
 import { Plus, Star, Link as LinkIcon, Folder, FolderPlus } from "lucide-react"
 import { Link } from "@/shared/lib/i18n/navigation"
 import { ProjectCardActions } from "./project-card-actions"
+import { useTranslations } from "next-intl"
 
 interface ProjectsGridProps {
   projects: any[];
@@ -8,6 +9,8 @@ interface ProjectsGridProps {
 }
 
 export const ProjectsGrid = ({ projects, variant = "projects" }: ProjectsGridProps) => {
+  const t = useTranslations('widgets.projects')
+
   return (
     <div className={
       variant === "dashboard" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
@@ -20,7 +23,7 @@ export const ProjectsGrid = ({ projects, variant = "projects" }: ProjectsGridPro
               <Plus size={24} className="text-text-muted transition-colors group-hover:text-text-main" />
             </div>
             <div className="mt-3">
-              <h3 className="text-[15px] font-medium text-text-main">Create new project</h3>
+              <h3 className="text-[15px] font-medium text-text-main">{t("createNewProject")}</h3>
             </div>
           </Link>
         )

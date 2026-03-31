@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog"
 import { useDeleteProject, useUpdateProject } from "@/entities/project"
 import { useProjectFolders, useCreateProjectFolder, useDeleteProjectFolder, ProjectFolder } from "@/entities/project-folder"
 import { useQueryClient } from "@tanstack/react-query"
+import { useTranslations } from "next-intl"
 
 interface ProjectCardActionsProps {
   project: {
@@ -16,6 +17,9 @@ interface ProjectCardActionsProps {
 }
 
 export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActionsProps) => {
+  const t = useTranslations('widgets.projects')
+  const tCommon = useTranslations('widgets.common')
+  const tNav = useTranslations('Navigation')
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -59,7 +63,6 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
   }
 
   const handleUpdate = async () => {
-    console.log(project)
     try {
       await updateProject.mutateAsync({
         id: project.id,
@@ -143,7 +146,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
             >
               <Edit size={14} />
-              Edit
+              {tNav("edit") || tCommon("edit")}
             </button>
             <button
               onClick={(e) => {
@@ -155,7 +158,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors whitespace-nowrap"
             >
               <MoveRight size={14} />
-              Move to folder
+              {t("moveToFolder")}
             </button>
             {folderItemId && (
               <button
@@ -167,7 +170,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors whitespace-nowrap"
               >
                 <FolderMinus size={14} />
-                Remove from folder
+                {t("removeFromFolder")}
               </button>
             )}
             <button
@@ -180,7 +183,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-red-500 hover:bg-red-500/10 transition-colors"
             >
               <Trash2 size={14} />
-              Delete
+              {tNav("delete") || tCommon("delete")}
             </button>
           </div>
         )}
@@ -198,15 +201,15 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
             onClick={(e) => e.stopPropagation()}
           >
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
-              Delete Project
+              {t("deleteProject")}
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm text-text-muted">
-              Are you sure you want to delete <span className="font-bold text-text-main">{project.name}</span>? This action cannot be undone.
+              {t("deleteProjectDescription", { name: project.name })}
             </Dialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
                 <button className="rounded-lg border border-border-subtle px-4 py-2 text-sm font-medium text-text-main hover:bg-hover-bg transition-colors">
-                  Cancel
+                  {tCommon("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -214,7 +217,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
                 disabled={deleteProject.isPending}
                 className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
               >
-                {deleteProject.isPending ? "Deleting..." : "Delete"}
+                {deleteProject.isPending ? tNav("deleting") || tCommon("deleting") || "Deleting..." : tCommon("delete")}
               </button>
             </div>
           </Dialog.Content>
@@ -233,38 +236,38 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
             onClick={(e) => e.stopPropagation()}
           >
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
-              Edit Project
+              {t("editProject")}
             </Dialog.Title>
             <div className="mt-4 space-y-4">
               <div className="space-y-1.5">
                 <label htmlFor="title" className="text-sm font-medium text-text-main">
-                  Title
+                  {tCommon("title") || "Title"}
                 </label>
                 <input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full rounded-lg border border-border-subtle bg-bg-main px-3 py-2 text-sm text-text-main outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all"
-                  placeholder="Project name"
+                  placeholder={t("projectName")}
                 />
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="description" className="text-sm font-medium text-text-main">
-                  Description
+                  {tCommon("description") || "Description"}
                 </label>
                 <textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full min-h-[100px] rounded-lg border border-border-subtle bg-bg-main px-3 py-2 text-sm text-text-main outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all resize-none"
-                  placeholder="Brief description of your project"
+                  placeholder={t("projectDescriptionPlaceholder")}
                 />
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
                 <button className="rounded-lg border border-border-subtle px-4 py-2 text-sm font-medium text-text-main hover:bg-hover-bg transition-colors">
-                  Cancel
+                  {tCommon("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -272,7 +275,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
                 disabled={updateProject.isPending}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors disabled:opacity-50"
               >
-                {updateProject.isPending ? "Saving..." : "Save changes"}
+                {updateProject.isPending ? t("saving") : t("saveChanges")}
               </button>
             </div>
           </Dialog.Content>
@@ -291,19 +294,19 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
             onClick={(e) => e.stopPropagation()}
           >
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
-              Move Project to Folder
+              {t("moveProjectTitle")}
             </Dialog.Title>
             <div className="mt-4 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-text-main">
-                  Select folder
+                  {t("selectFolder")}
                 </label>
                 <select
                   className="w-full rounded-lg border border-border-subtle bg-bg-main px-3 py-2 text-sm text-text-main outline-none focus:border-primary/50 transition-all"
                   value={selectedParentId || ''}
                   onChange={e => setSelectedParentId(e.target.value || null)}
                 >
-                  <option value="">Root directory</option>
+                  <option value="">{t("rootDirectory")}</option>
                   {allFoldersData?.filter((f: ProjectFolder) => f.type?.toUpperCase() === 'FOLDER').map((f: ProjectFolder) => (
                     <option key={f.id} value={f.id}>{f.label}</option>
                   ))}
@@ -313,7 +316,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
                 <button className="rounded-lg border border-border-subtle px-4 py-2 text-sm font-medium text-text-main hover:bg-hover-bg transition-colors">
-                  Cancel
+                  {tCommon("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -321,7 +324,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
                 disabled={createFolder.isPending}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors disabled:opacity-50"
               >
-                {createFolder.isPending ? "Moving..." : "Move"}
+                {createFolder.isPending ? t("moving") : tNav("move") || "Move"}
               </button>
             </div>
           </Dialog.Content>

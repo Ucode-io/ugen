@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { LucideIcon, ChevronRight, Info } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/shared/ui/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
 
 interface MetricCardProps {

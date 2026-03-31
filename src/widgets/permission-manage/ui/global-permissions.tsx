@@ -2,12 +2,13 @@
 
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/ui/table'
-import { Switch } from '@/shared/ui/ui/switch'
+import { useTranslations } from 'next-intl'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui'
+import { Switch } from '@/shared/ui'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi } from '@/shared/api'
-import { DataLoadingState, DataErrorState } from '@/shared/ui/data-states'
-import { Button } from '@/shared/ui/ui/button'
+import { DataLoadingState, DataErrorState } from '@/shared/ui'
+import { Button } from '@/shared/ui'
 import { Save, Loader2, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '@/entities/session'
 
@@ -39,6 +40,7 @@ interface GlobalPermissionsProps {
 }
 
 export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPermissionsProps) => {
+  const t = useTranslations('widgets.permissionManage.globalPermissions')
   const queryClient = useQueryClient()
 
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
@@ -95,7 +97,7 @@ export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPer
       .join(' ')
   }
 
-  if (isLoading) return <DataLoadingState message="Fetching global permissions..." />
+  if (isLoading) return <DataLoadingState message={t('fetching')} />
   if (isError) return <DataErrorState onRetry={() => refetch()} />
 
   const booleanKeys = Object.keys(permissionDetail?.global_permission || {}).filter(k => k !== 'id')
@@ -105,7 +107,7 @@ export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPer
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-primary" />
-          <span className="text-sm font-bold text-text-main uppercase tracking-tight">System Access Controls</span>
+          <span className="text-sm font-bold text-text-main uppercase tracking-tight">{t('title')}</span>
         </div>
         <Button
           disabled={isSaving}
@@ -113,7 +115,7 @@ export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPer
           className="bg-primary hover:bg-primary/90 text-white rounded-xl px-6"
         >
           {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-          Save Changes
+          {t('save')}
         </Button>
       </div>
 
@@ -121,8 +123,8 @@ export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPer
         <Table wrapperClassName="max-h-[600px] custom-scrollbar rounded-2xl" className="border-collapse w-full">
           <TableHeader>
             <TableRow className="border-b-border-subtle/60 bg-bg-sidebar hover:bg-bg-sidebar transition-none">
-              <TableHead className="sticky top-0 z-10 bg-bg-sidebar font-bold text-text-main py-4 px-6 text-[14px] tracking-tight border-b border-border-subtle/60">Global Permission Name</TableHead>
-              <TableHead className="sticky top-0 z-10 bg-bg-sidebar text-center font-bold text-text-main py-4 px-6 w-[120px] text-[11px] uppercase tracking-widest text-text-muted/70 border-b border-border-subtle/60">Access Check</TableHead>
+              <TableHead className="sticky top-0 z-10 bg-bg-sidebar font-bold text-text-main py-4 px-6 text-[14px] tracking-tight border-b border-border-subtle/60">{t('nameHeader')}</TableHead>
+              <TableHead className="sticky top-0 z-10 bg-bg-sidebar text-center font-bold text-text-main py-4 px-6 w-[120px] text-[11px] uppercase tracking-widest text-text-muted/70 border-b border-border-subtle/60">{t('checkHeader')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -156,4 +158,5 @@ export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPer
     </div>
   )
 }
+
 

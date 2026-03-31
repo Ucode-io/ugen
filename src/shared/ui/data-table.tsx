@@ -16,7 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/shared/ui/ui/table"
+} from "@/shared/ui"
 import {
   Pagination,
   PaginationContent,
@@ -25,15 +25,17 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/shared/ui/ui/pagination"
+} from "@/shared/ui"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/ui/ui/select"
+} from "@/shared/ui"
 import { cn } from "@/shared/lib/utils/cn"
+
+import { useTranslations } from "next-intl"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -61,9 +63,10 @@ export function DataTable<TData, TValue>({
   isLoading = false,
   className,
   containerClassName,
-  emptyMessage = "No results found.",
+  emptyMessage,
   onRowClick,
 }: DataTableProps<TData, TValue>) {
+  const t = useTranslations('shared.dataTable')
   const table = useReactTable({
     data,
     columns,
@@ -180,7 +183,7 @@ export function DataTable<TData, TValue>({
                 colSpan={columns.length}
                 className="h-24 py-4 text-center text-text-muted whitespace-pre-wrap"
               >
-                {emptyMessage}
+                {emptyMessage || t('emptyMessage')}
               </TableCell>
             </TableRow>
           )}
@@ -191,7 +194,7 @@ export function DataTable<TData, TValue>({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-y-4 sm:gap-x-6 px-4 py-3 border-t border-border-subtle bg-bg-card/40 backdrop-blur-md">
           <div className="flex flex-col sm:flex-row items-center gap-y-3 sm:gap-x-6 w-full sm:w-auto">
             <div className="flex items-center gap-x-2 w-full sm:w-auto justify-center sm:justify-start">
-              <p className="text-[13px] font-medium text-text-muted whitespace-nowrap">Rows per page</p>
+              <p className="text-[13px] font-medium text-text-muted whitespace-nowrap">{t('rowsPerPage')}</p>
               <Select
                 value={limit.toString()}
                 onValueChange={(value) => onLimitChange?.(Number(value))}
@@ -209,7 +212,11 @@ export function DataTable<TData, TValue>({
               </Select>
             </div>
             <p className="text-[12px] text-text-muted whitespace-nowrap w-full text-center sm:text-left">
-              Showing {Math.min((page - 1) * limit + 1, totalCount)} to {Math.min(page * limit, totalCount)} of {totalCount} entries
+              {t('showingEntries', {
+                start: Math.min((page - 1) * limit + 1, totalCount),
+                end: Math.min(page * limit, totalCount),
+                total: totalCount
+              })}
             </p>
           </div>
 

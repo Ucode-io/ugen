@@ -13,7 +13,9 @@ import {
   CheckSquare,
   X
 } from 'lucide-react'
-import { Button } from '@/shared/ui/ui/button'
+import { Button } from '@/shared/ui'
+
+import { useTranslations } from 'next-intl'
 
 interface MediaActionBarProps {
   selectedCount: number;
@@ -46,6 +48,8 @@ export const MediaActionBar = ({
   onEnterSelectionMode,
   onExitSelectionMode
 }: MediaActionBarProps) => {
+  const t = useTranslations('widgets.mediaGallery')
+
   return (
     <div className="flex flex-col gap-4 mb-6">
       <div className="flex items-center justify-between">
@@ -65,7 +69,7 @@ export const MediaActionBar = ({
                   className="text-[13px] font-medium h-9 px-4 rounded-lg bg-white/5 border-white/10 hover:bg-white/10"
                 >
                   <CheckSquare className="w-4 h-4 mr-2 text-primary" />
-                  Select
+                  {t('select')}
                 </Button>
               </motion.div>
             ) : (
@@ -82,7 +86,7 @@ export const MediaActionBar = ({
                   className="text-[13px] font-medium h-9 px-4 rounded-lg text-text-muted hover:bg-white/5"
                 >
                   <X className="w-4 h-4 mr-2" />
-                  Отмена
+                  {t('cancel')}
                 </Button>
               </motion.div>
             )}
@@ -107,7 +111,7 @@ export const MediaActionBar = ({
                   ) : (
                     <CheckCircle2 className="w-4 h-4 mr-2 text-primary" />
                   )}
-                  {isAllSelected ? 'Deselect All' : 'Select All'}
+                  {isAllSelected ? t('deselectAll') : t('selectAll')}
                 </Button>
               </motion.div>
             )}
@@ -118,7 +122,7 @@ export const MediaActionBar = ({
             size="icon"
             onClick={onCycleGrid}
             className="w-9 h-9 rounded-lg hover:bg-white/10 transition-colors"
-            title={`Current: ${gridColumns} columns. Click to scale.`}
+            title={t('gridTooltip', { count: gridColumns })}
           >
             <Maximize2 className="w-4.5 h-4.5 text-text-muted transition-transform hover:scale-110 active:scale-95" />
           </Button>
@@ -132,7 +136,7 @@ export const MediaActionBar = ({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search assets..."
+              placeholder={t('searchPlaceholder')}
               className="w-full h-10 pl-10 pr-4 rounded-xl bg-white/5 border border-white/10 text-[13px] text-text-main placeholder:text-text-muted transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white/[0.08] focus:border-primary/40"
             />
           </div>
@@ -159,7 +163,7 @@ export const MediaActionBar = ({
                   ) : (
                     <Trash2 className="w-4 h-4 mr-2" />
                   )}
-                  {isDeleting ? 'Deleting...' : `Delete (${selectedCount})`}
+                  {isDeleting ? t('deleting') : t('deleteCount', { count: selectedCount })}
                 </Button>
               </motion.div>
             )}
@@ -172,10 +176,11 @@ export const MediaActionBar = ({
             className="text-[13px] font-semibold h-9 px-4 rounded-lg bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
           >
             <PlusCircle className="w-4 h-4 mr-2" />
-            Create item
+            {t('createItem')}
           </Button>
         </div>
       </div>
     </div>
   )
 }
+

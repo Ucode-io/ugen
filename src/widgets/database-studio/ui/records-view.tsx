@@ -20,8 +20,8 @@ import {
   useAddRecord,
   useTableDetail
 } from '@/entities/database'
-import { DataTable } from '@/shared/ui/data-table'
-import { Button } from '@/shared/ui/button'
+import { DataTable } from '@/shared/ui'
+import { Button } from '@/shared/ui'
 import {
   Dialog,
   DialogContent,
@@ -29,19 +29,19 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter
-} from '@/shared/ui/ui/dialog'
+} from '@/shared/ui'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '@/shared/lib/utils/cn'
 
-import { Skeleton } from '@/shared/ui/skeleton'
+import { Skeleton } from '@/shared/ui'
 import { useTranslations } from 'next-intl'
 import { Column } from '@/entities/database/model/types'
 import { useAuthStore } from '@/entities/session'
 
 export const RecordsView = ({ projectId }: { projectId: string }) => {
-  const t = useTranslations('databaseStudio')
+  const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
   const { selectedTable, setCurrentView, resetToTables, setFilters } = useDatabaseStore()
   const { data: records, isLoading: isRecordsLoading, refetch } = useTableRecords(selectedTable)

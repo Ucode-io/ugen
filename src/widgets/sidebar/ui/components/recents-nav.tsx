@@ -9,7 +9,8 @@ interface RecentsNavProps {
 }
 
 export const RecentsNav = ({ isCollapsed }: RecentsNavProps) => {
-  const t = useTranslations('Navigation')
+  const tNav = useTranslations('Navigation')
+  const tWidgets = useTranslations('widgets.sidebar')
   const { data: projectsResponse, isLoading } = useProjectsList({
     order_by: "updated_at",
     order_direction: "desc",
@@ -24,24 +25,24 @@ export const RecentsNav = ({ isCollapsed }: RecentsNavProps) => {
 
   const recents = projectsList.map((p: any) => ({
     id: p.id,
-    name: p.name || p.title || "Untitled Project",
+    name: p.name || p.title || tWidgets("untitledProject"),
   }));
 
   return (
     <div>
       {!isCollapsed && (
-        <h3 className="text-text-muted/70 mb-2 px-3 text-xs font-semibold tracking-wide">
-          {t("recents")}
+        <h3 className="text-text-muted/70 mb-2 px-3 text-xs font-semibold tracking-wide uppercase">
+          {tNav("recents")}
         </h3>
       )}
       <nav className="space-y-0.5">
         {isLoading ? (
           <div className="text-text-muted/50 px-3 py-2 text-xs">
-            {!isCollapsed && "Loading..."}
+            {!isCollapsed && tWidgets("loading")}
           </div>
         ) : recents.length === 0 ? (
           <div className="text-text-muted/50 px-3 py-2 text-xs">
-            {!isCollapsed && "No recent projects"}
+            {!isCollapsed && tWidgets("noRecentProjects")}
           </div>
         ) : (
           recents.map((project: { id: string | number; name: string }) => (

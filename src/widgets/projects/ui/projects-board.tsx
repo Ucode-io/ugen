@@ -14,7 +14,9 @@ import * as Dialog from "@radix-ui/react-dialog"
 import { useMemo } from "react"
 
 export const ProjectsBoard = () => {
-  const t = useTranslations('Navigation')
+  const tNav = useTranslations('Navigation')
+  const tWidgets = useTranslations('widgets.projects')
+  const tCommon = useTranslations('widgets.common')
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -93,12 +95,12 @@ export const ProjectsBoard = () => {
       isFolder: false,
       mcp_project_id: p.id,
       folderItemId: folderItem?.id,
-      name: p.name || p.title || "Untitled Project",
+      name: p.name || p.title || tWidgets("untitledProject"),
       description: p.description || "",
-      editedAt: p.updated_at ? `Edited: ${new Date(p.updated_at).toLocaleDateString()}` : "Recently edited",
-      createdAt: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Unknown",
+      editedAt: p.updated_at ? tWidgets('edited', { date: new Date(p.updated_at).toLocaleDateString() }) : tWidgets("recentlyEdited"),
+      createdAt: p.created_at ? new Date(p.created_at).toLocaleDateString() : tWidgets("unknown"),
       author: {
-        name: p.user?.name || p.owner || "Unknown Author",
+        name: p.user?.name || p.owner || tWidgets("unknownAuthor"),
         initials: (p.user?.name || p.owner || "U").substring(0, 2).toUpperCase()
       },
       image: p.image || p.thumbnail || null,
@@ -144,13 +146,13 @@ export const ProjectsBoard = () => {
           {folderId ? (
             <>
               <button onClick={() => router.push(pathname)} className="hover:text-primary transition-colors">
-                {t("projects")}
+                {tNav("projects")}
               </button>
               <ChevronRight size={20} className="text-text-muted" />
-              <span>{currentFolder?.label || "Loading..."}</span>
+              <span>{currentFolder?.label || tWidgets("loading")}</span>
             </>
           ) : (
-            t("projects")
+            tNav("projects")
           )}
         </h1>
 
@@ -171,7 +173,7 @@ export const ProjectsBoard = () => {
               className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm font-medium text-text-main hover:bg-hover-bg transition-colors"
             >
               <FolderPlus size={16} />
-              Create new folder
+              {tWidgets("createFolder")}
             </button>
           </div>
         )}
@@ -212,17 +214,17 @@ export const ProjectsBoard = () => {
           <Dialog.Overlay className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-[120] w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border-subtle bg-bg-card p-6 shadow-2xl focus:outline-none">
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
-              Create New Folder
+              {tWidgets("createFolder")}
             </Dialog.Title>
             <div className="mt-4 space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="folderName" className="text-sm font-medium text-text-main">Folder Name</label>
+                <label htmlFor="folderName" className="text-sm font-medium text-text-main">{tWidgets("folderName")}</label>
                 <input
                   id="folderName"
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   className="w-full rounded-lg border border-border-subtle bg-bg-main px-3 py-2 text-sm text-text-main outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all"
-                  placeholder="e.g. My Folder"
+                  placeholder={tWidgets("folderPlaceholder")}
                   autoFocus
                   onKeyDown={e => e.key === 'Enter' && handleCreateFolderSave()}
                 />
@@ -231,7 +233,7 @@ export const ProjectsBoard = () => {
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
                 <button className="rounded-lg border border-border-subtle px-4 py-2 text-sm font-medium text-text-main hover:bg-hover-bg transition-colors">
-                  Cancel
+                  {tCommon("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -239,7 +241,7 @@ export const ProjectsBoard = () => {
                 disabled={createFolder.isPending || !newFolderName.trim()}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors disabled:opacity-50"
               >
-                {createFolder.isPending ? "Creating..." : "Create"}
+                {createFolder.isPending ? tWidgets("creating") : tWidgets("create")}
               </button>
             </div>
           </Dialog.Content>

@@ -21,86 +21,88 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { ReusableTabs } from '@/shared/ui/tabs'
-import { DataTable } from '@/shared/ui/data-table'
+import { ReusableTabs } from '@/shared/ui'
+import { DataTable } from '@/shared/ui'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/ui/select'
+} from '@/shared/ui'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/shared/ui/ui/dialog'
+} from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
-import { DatePickerWithRange } from '@/shared/ui/date-range-picker'
-
-const ACTION_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Create", value: "CREATE" },
-  { label: "Update", value: "UPDATE" },
-  { label: "Delete", value: "DELETE" },
-  { label: "Bulkwrite", value: "BULKWRITE" },
-  { label: "Get", value: "GET" },
-  { label: "Login", value: "LOGIN" },
-  { label: "Delete Item", value: "DELETE ITEM" },
-  { label: "Create Item", value: "CREATE ITEM" },
-  { label: "Update Item", value: "UPDATE ITEM" },
-  { label: "Create Table", value: "CREATE TABLE" },
-  { label: "Update Table", value: "UPDATE TABLE" },
-  { label: "Delete Table", value: "DELETE TABLE" },
-  { label: "Create Menu", value: "CREATE MENU" },
-  { label: "Delete Menu", value: "DELETE MENU" },
-  { label: "Update Menu", value: "UPDATE MENU" },
-  { label: "Create Field", value: "CREATE FIELD" },
-  { label: "Update Field", value: "UPDATE FIELD" },
-  { label: "Delete Field", value: "DELETE FIELD" },
-  { label: "Create View", value: "CREATE VIEW" },
-  { label: "Delete View", value: "DELETE VIEW" },
-  { label: "Update View", value: "UPDATE VIEW" },
-  { label: "Create Relation", value: "CREATE RELATION" },
-  { label: "Delete Relation", value: "DELETE RELATION" },
-  { label: "Update Relation", value: "UPDATE RELATION" },
-  { label: "Delete Layout", value: "DELETE LAYOUT" },
-  { label: "Update Layout", value: "UPDATE LAYOUT" },
-  { label: "Create Client Type", value: "CREATE CLIENT TYPE" },
-  { label: "Update Client Type", value: "UPDATE CLIENT TYPE" },
-  { label: "Delete Client Type", value: "DELETE CLIENT TYPE" },
-  { label: "Create Role", value: "CREATE ROLE" },
-  { label: "Delete Role", value: "DELETE ROLE" },
-  { label: "Update Permission", value: "UPDATE PERMISSION" },
-  { label: "Create User", value: "CREATE USER" },
-  { label: "Update User", value: "UPDATE USER" },
-  { label: "Delete User", value: "DELETE USER" },
-  { label: "Upsert Many Item", value: "UPSERT MANY ITEM" },
-]
-
-const STATUS_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Success", value: "success" },
-  { label: "Error", value: "error" },
-]
-
-const getFirstDayOfMonthDate = () => {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), 1)
-}
-
-const getLastDayOfMonthDate = () => {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0)
-}
+import { DatePickerWithRange } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 
 export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string }) => {
+  const t = useTranslations('widgets.databaseStudio')
+
+  const ACTION_OPTIONS = [
+    { label: t("logs.allActions"), value: "all" },
+    { label: "Create", value: "CREATE" },
+    { label: "Update", value: "UPDATE" },
+    { label: "Delete", value: "DELETE" },
+    { label: "Bulkwrite", value: "BULKWRITE" },
+    { label: "Get", value: "GET" },
+    { label: "Login", value: "LOGIN" },
+    { label: "Delete Item", value: "DELETE ITEM" },
+    { label: "Create Item", value: "CREATE ITEM" },
+    { label: "Update Item", value: "UPDATE ITEM" },
+    { label: "Create Table", value: "CREATE TABLE" },
+    { label: "Update Table", value: "UPDATE TABLE" },
+    { label: "Delete Table", value: "DELETE TABLE" },
+    { label: "Create Menu", value: "CREATE MENU" },
+    { label: "Delete Menu", value: "DELETE MENU" },
+    { label: "Update Menu", value: "UPDATE MENU" },
+    { label: "Create Field", value: "CREATE FIELD" },
+    { label: "Update Field", value: "UPDATE FIELD" },
+    { label: "Delete Field", value: "DELETE FIELD" },
+    { label: "Create View", value: "CREATE VIEW" },
+    { label: "Delete View", value: "DELETE VIEW" },
+    { label: "Update View", value: "UPDATE VIEW" },
+    { label: "Create Relation", value: "CREATE RELATION" },
+    { label: "Delete Relation", value: "DELETE RELATION" },
+    { label: "Update Relation", value: "UPDATE RELATION" },
+    { label: "Delete Layout", value: "DELETE LAYOUT" },
+    { label: "Update Layout", value: "UPDATE LAYOUT" },
+    { label: "Create Client Type", value: "CREATE CLIENT TYPE" },
+    { label: "Update Client Type", value: "UPDATE CLIENT TYPE" },
+    { label: "Delete Client Type", value: "DELETE CLIENT TYPE" },
+    { label: "Create Role", value: "CREATE ROLE" },
+    { label: "Delete Role", value: "DELETE ROLE" },
+    { label: "Update Permission", value: "UPDATE PERMISSION" },
+    { label: "Create User", value: "CREATE USER" },
+    { label: "Update User", value: "UPDATE USER" },
+    { label: "Delete User", value: "DELETE USER" },
+    { label: "Upsert Many Item", value: "UPSERT MANY ITEM" },
+  ]
+
+  const STATUS_OPTIONS = [
+    { label: t("logs.allStatuses"), value: "all" },
+    { label: "Success", value: "success" },
+    { label: "Error", value: "error" },
+  ]
   const [internalActiveTab, setInternalActiveTab] = useState('activity')
   const activeTab = externalActiveTab || internalActiveTab
-  const setActiveTab = externalActiveTab ? () => {} : setInternalActiveTab
+  const setActiveTab = externalActiveTab ? () => { } : setInternalActiveTab
   const environmentId = useAuthStore((state) => state.user?.environment_id)
   const projectId = useAuthStore((state) => state.project?.project_id)
+
+  const getFirstDayOfMonthDate = () => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  }
+
+  const getLastDayOfMonthDate = () => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  }
 
   // Activity Logs States
   const [activityPage, setActivityPage] = useState(1)
@@ -182,12 +184,12 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
   const activityColumns = useMemo(() => [
     {
       id: 'index',
-      header: '№',
+      header: t('logs.columns.index'),
       cell: ({ row }: any) => (activityPage - 1) * activityLimit + row.index + 1
     },
     {
       accessorKey: 'action_type',
-      header: 'Action',
+      header: t('logs.columns.action'),
       cell: ({ getValue }: any) => (
         <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase">
           {getValue()}
@@ -196,7 +198,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     },
     {
       accessorKey: 'table_slug',
-      header: 'Collection',
+      header: t('logs.columns.collection'),
       cell: ({ getValue }: any) => (
         <span className="font-mono text-xs text-text-muted">
           {getValue() || '-'}
@@ -205,7 +207,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     },
     {
       accessorKey: 'action_source',
-      header: 'Action On',
+      header: t('logs.columns.actionOn'),
       cell: ({ getValue }: any) => (
         <span className="text-sm text-text-main">
           {getValue() || '-'}
@@ -214,7 +216,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     },
     {
       accessorKey: 'user_info',
-      header: 'Action By',
+      header: t('logs.columns.actionBy'),
       cell: ({ getValue }: any) => (
         <div className="flex items-center gap-1.5 text-xs text-text-muted">
           <User size={12} />
@@ -222,17 +224,17 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
         </div>
       )
     },
-  ], [activityPage, activityLimit])
+  ], [activityPage, activityLimit, t])
 
   const functionColumns = useMemo(() => [
     {
       id: 'index',
-      header: '№',
+      header: t('logs.columns.index'),
       cell: ({ row }: any) => (functionPage - 1) * functionLimit + row.index + 1
     },
     {
       accessorKey: 'name',
-      header: 'Function',
+      header: t('logs.columns.function'),
       cell: ({ getValue }: any) => (
         <span className="text-sm text-text-main font-bold">
           {getValue()}
@@ -241,7 +243,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     },
     {
       accessorKey: 'started_at',
-      header: 'Time',
+      header: t('logs.columns.time'),
       cell: ({ getValue }: any) => (
         <span className="text-xs text-text-muted">
           {new Date(getValue()).toLocaleString()}
@@ -250,7 +252,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     },
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: t('logs.columns.status'),
       cell: ({ getValue }: any) => {
         const val = getValue()
         const isSuccess = val === 'success'
@@ -268,7 +270,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     },
     {
       accessorKey: 'duration',
-      header: 'Duration',
+      header: t('logs.columns.duration'),
       cell: ({ getValue }: any) => (
         <span className="text-xs font-mono text-text-muted">
           {getValue()}ms
@@ -277,14 +279,14 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     },
     {
       accessorKey: 'table_slug',
-      header: 'Table Slug',
+      header: t('logs.columns.tableSlug'),
       cell: ({ getValue }: any) => (
         <span className="font-mono text-xs text-text-muted">
           {getValue() || '-'}
         </span>
       )
     },
-  ], [functionPage, functionLimit])
+  ], [functionPage, functionLimit, t])
 
   const parseJson = (str: string) => {
     try {
@@ -303,30 +305,30 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
       <div className="space-y-4 py-2">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">User</p>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">{t('logs.details.user')}</p>
             <p className="text-sm text-text-main">{item.user_info || 'System'}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Action</p>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">{t('logs.details.action')}</p>
             <p className="text-sm text-text-main">{item.action_type}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Date</p>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">{t('logs.details.date')}</p>
             <p className="text-sm text-text-main">{new Date(item.date).toLocaleString()}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Collection</p>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">{t('logs.details.collection')}</p>
             <p className="text-sm text-text-main">{item.table_slug || '-'}</p>
           </div>
         </div>
         <div>
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Request</p>
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">{t('logs.details.request')}</p>
           <pre className="bg-bg-sidebar rounded-lg p-3 text-xs font-mono text-text-main overflow-auto max-h-[200px] border border-border-subtle whitespace-pre-wrap">
             {typeof req === 'object' ? JSON.stringify(req, null, 2) : req}
           </pre>
         </div>
         <div>
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Response</p>
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">{t('logs.details.response')}</p>
           <pre className="bg-bg-sidebar rounded-lg p-3 text-xs font-mono text-text-main overflow-auto max-h-[200px] border border-border-subtle whitespace-pre-wrap">
             {typeof res === 'object' ? JSON.stringify(res, null, 2) : res}
           </pre>
@@ -342,14 +344,14 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     return (
       <div className="space-y-6 py-2">
         <section>
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">General Info</p>
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t('logs.details.generalInfo')}</p>
           <div className="grid grid-cols-2 gap-y-4 gap-x-6">
             <div>
-              <p className="text-xs text-text-muted mb-1">Name</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.name')}</p>
               <p className="text-sm font-semibold text-text-main">{item.name}</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Status</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.status')}</p>
               <span className={cn(
                 "inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase border",
                 isSuccess
@@ -360,53 +362,53 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
               </span>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Request Method</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.requestMethod')}</p>
               <p className="text-sm font-semibold text-text-main uppercase">{item.request_method || '-'}</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Action Type</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.actionType')}</p>
               <p className="text-sm font-semibold text-text-main">{item.action_type || '-'}</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Started At</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.startedAt')}</p>
               <p className="text-sm font-semibold text-text-main">{new Date(item.started_at).toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Completed At</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.completedAt')}</p>
               <p className="text-sm font-semibold text-text-main">{new Date(item.completed_at).toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Duration</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.duration')}</p>
               <p className="text-sm font-semibold text-text-main">{item.duration}ms</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Table Slug</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.tableSlug')}</p>
               <p className="text-sm font-semibold text-text-main">{item.table_slug || '-'}</p>
             </div>
           </div>
         </section>
 
         <section>
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Resource Usage</p>
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t('logs.details.resourceUsage')}</p>
           <div className="bg-bg-sidebar rounded-lg p-4 border border-border-subtle grid grid-cols-2 gap-3">
             <div>
-              <p className="text-xs text-text-muted mb-1">Return Size</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.returnSize')}</p>
               <p className="text-sm font-semibold text-text-main">{item.return_size || 0} B</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Compute</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.compute')}</p>
               <p className="text-sm font-semibold text-text-main">{item.compute || 0} ms</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">DB Bandwidth</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.dbBandwidth')}</p>
               <p className="text-sm font-semibold text-text-main">{item.db_bandwidth || 0} B</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">File Bandwidth</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.fileBandwidth')}</p>
               <p className="text-sm font-semibold text-text-main">{item.file_bandwidth || 0} B</p>
             </div>
             <div>
-              <p className="text-xs text-text-muted mb-1">Vector Bandwidth</p>
+              <p className="text-xs text-text-muted mb-1">{t('logs.details.vectorBandwidth')}</p>
               <p className="text-sm font-semibold text-text-main">{item.vector_bandwidth || 0} B</p>
             </div>
           </div>
@@ -420,13 +422,13 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
       <div className="mb-2">
         {activeTab === 'activity' ? (
           <div>
-            <h1 className="text-2xl font-bold text-text-main tracking-tight">Activity Logs</h1>
-            <p className="text-text-muted text-sm mt-1">Track and monitor all global activities and resource changes.</p>
+            <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('logs.activityTitle')}</h1>
+            <p className="text-text-muted text-sm mt-1">{t('logs.activityDescription')}</p>
           </div>
         ) : (
           <div>
-            <h1 className="text-2xl font-bold text-text-main tracking-tight">Function Logs</h1>
-            <p className="text-text-muted text-sm mt-1">Monitor the execution, status, and performance of individual functions.</p>
+            <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('logs.functionTitle')}</h1>
+            <p className="text-text-muted text-sm mt-1">{t('logs.functionDescription')}</p>
           </div>
         )}
       </div>
@@ -437,8 +439,8 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
             activeId={activeTab}
             onTabChange={(id) => setActiveTab(id)}
             options={[
-              { id: 'activity', label: 'Activity Logs', icon: <Activity size={14} /> },
-              { id: 'function', label: 'Function Logs', icon: <FileText size={14} /> },
+              { id: 'activity', label: t('logs.activityTitle'), icon: <Activity size={14} /> },
+              { id: 'function', label: t('logs.functionTitle'), icon: <FileText size={14} /> },
             ]}
           />
         </div>
@@ -465,7 +467,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                   }}
                 >
                   <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9 text-sm">
-                    <SelectValue placeholder="All actions" />
+                    <SelectValue placeholder={t('logs.allActions')} />
                   </SelectTrigger>
                   <SelectContent>
                     {ACTION_OPTIONS.map(opt => (
@@ -478,7 +480,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
               <div className="relative group">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" />
                 <input
-                  placeholder="Search collection..."
+                  placeholder={t('logs.searchCollection')}
                   value={collection}
                   onChange={(e) => {
                     setCollection(e.target.value)
@@ -491,7 +493,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
               <div className="relative group">
                 <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" />
                 <input
-                  placeholder="Search by user..."
+                  placeholder={t('logs.searchByUser')}
                   value={userInfo}
                   onChange={(e) => {
                     setUserInfo(e.target.value)
@@ -527,10 +529,10 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                   }}
                 >
                   <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9 text-sm">
-                    <SelectValue placeholder="All functions" />
+                    <SelectValue placeholder={t('logs.allFunctions')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All functions</SelectItem>
+                    <SelectItem value="all">{t('logs.allFunctions')}</SelectItem>
                     {functionsListData?.map((f: any) => (
                       <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
                     ))}
@@ -547,7 +549,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                   }}
                 >
                   <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9 text-sm">
-                    <SelectValue placeholder="All statuses" />
+                    <SelectValue placeholder={t('logs.allStatuses')} />
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map(opt => (
@@ -580,7 +582,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
           <DialogHeader className="p-6 border-b border-border-subtle bg-bg-main/5">
             <DialogTitle className="flex items-center gap-2 text-text-main">
               <Info size={18} className="text-primary" />
-              Activity Log Details
+              {t('logs.activityDetailTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="p-6 overflow-y-auto max-h-[80vh]">
@@ -595,7 +597,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
           <DialogHeader className="p-6 border-b border-border-subtle bg-bg-main/5">
             <DialogTitle className="flex items-center gap-2 text-text-main">
               <Zap size={18} className="text-primary" />
-              Function Log Details
+              {t('logs.functionDetailTitle')}
             </DialogTitle>
           </DialogHeader>
           <div className="p-6 overflow-y-auto max-h-[80vh]">

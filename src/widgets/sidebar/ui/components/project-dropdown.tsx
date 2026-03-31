@@ -24,6 +24,8 @@ export const ProjectDropdown = ({
   setIsProjectPopupOpen,
   projectPopupRef,
 }: ProjectPopupProps) => {
+  const t = useTranslations('widgets.sidebar')
+
   return (
     <div className="relative" ref={projectPopupRef}>
       <button
@@ -39,7 +41,7 @@ export const ProjectDropdown = ({
         {!isCollapsed && (
           <>
             <span className="text-text-main flex-1 truncate text-left text-sm whitespace-nowrap">
-              {project?.title || "My Workspace"}
+              {project?.title || t("myWorkspace")}
             </span>
             <ChevronDown
               size={14}
@@ -57,10 +59,10 @@ export const ProjectDropdown = ({
           <div className="border-border-subtle bg-bg-sidebar/50 flex items-center justify-between border-b p-3">
             <div className="overflow-hidden">
               <div className="text-text-main truncate text-sm font-bold">
-                {project?.title || "Workspace"}
+                {project?.title || t("workspace")}
               </div>
               <div className="text-text-muted truncate text-xs capitalize">
-                {project?.subscription_type || "Free plan"}
+                {project?.subscription_type || t("freePlan")}
               </div>
             </div>
             <button className="text-text-muted hover:text-text-main hover:bg-hover-bg shrink-0 rounded-md p-1.5 transition-colors">
@@ -70,14 +72,14 @@ export const ProjectDropdown = ({
           {/* Body */}
           <div className="max-h-48 space-y-0.5 overflow-y-auto p-1.5">
             <div className="text-text-muted/70 px-2 py-1 text-xs font-semibold uppercase">
-              All workspaces
+              {t("allWorkspaces")}
             </div>
             <button className="bg-hover-bg text-text-main flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left">
               <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#d946ef]/10 font-mono text-xs font-bold text-[#d946ef]">
                 {projectInitial}
               </div>
               <span className="flex-1 truncate text-sm">
-                {project?.title || "Workspace"}
+                {project?.title || t("workspace")}
               </span>
               <Check size={14} className="text-primary shrink-0" />
             </button>
@@ -90,7 +92,7 @@ export const ProjectDropdown = ({
                   +
                 </span>
               </div>
-              <span className="text-sm font-medium">Create workspace</span>
+              <span className="text-sm font-medium">{t("createWorkspace")}</span>
             </button>
           </div>
         </div>

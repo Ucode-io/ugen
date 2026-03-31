@@ -17,18 +17,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { api, authApi } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
-import { Button } from '@/shared/ui/ui/button'
-import { Input } from '@/shared/ui/ui/input'
+import { Button } from '@/shared/ui'
+import { Input } from '@/shared/ui'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/ui/select'
-import { DataTable } from '@/shared/ui/data-table'
-import { ReusableTabs } from '@/shared/ui/tabs'
-import { DataLoadingState } from '@/shared/ui/data-states'
+} from '@/shared/ui'
+import { DataTable } from '@/shared/ui'
+import { ReusableTabs } from '@/shared/ui'
+import { DataLoadingState } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 
 interface ClientPlatform {

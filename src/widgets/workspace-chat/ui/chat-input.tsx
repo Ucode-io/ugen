@@ -1,10 +1,11 @@
 import { Paperclip, MousePointerClick, ArrowUp, X, FileIcon, Loader2 } from "lucide-react"
 import { useState, useRef, KeyboardEvent, ClipboardEvent, DragEvent, useEffect } from "react"
-import { AudioRecorder } from "@/shared/ui/audio-recorder"
+import { AudioRecorder } from "@/shared/ui"
 import { useFileUpload } from "@/shared/hooks/useFileUpload"
 import { useVisualEditorStore } from "@/entities/visual-editor"
 import { ModelSelector, DEFAULT_MODEL_ID } from "@/entities/ai-model"
 import { cn } from "@/shared/lib/utils/cn"
+import { useTranslations } from "next-intl"
 
 interface ChatInputProps {
   onSendMessage: (msg: string, files?: any[], model?: string) => void
@@ -14,6 +15,7 @@ interface ChatInputProps {
 }
 
 export const ChatInput = ({ onSendMessage, isSending, disabled, className }: ChatInputProps) => {
+  const t = useTranslations('widgets.workspaceChat')
   const { isInspectMode, selectedElements, setInspectMode, removeSelectedElement } = useVisualEditorStore()
   const [value, setValue] = useState("")
   const [isPlanOn, setIsPlanOn] = useState(false)
@@ -120,7 +122,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
               className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary px-2 py-1 rounded-md text-xs font-medium group"
             >
               <span className="opacity-70 font-mono text-[10px]">&lt;{el.tagName.toLowerCase()}&gt;</span>
-              <span className="truncate max-w-[120px]">{el.text || el.className || 'Element'}</span>
+              <span className="truncate max-w-[120px]">{el.text || el.className || t('input.element')}</span>
               <button
                 onClick={() => removeSelectedElement(el.id)}
                 className="hover:bg-primary/20 rounded-sm p-0.5"
@@ -169,7 +171,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
         disabled={isSending || disabled}
-        placeholder="How can I help you today?"
+        placeholder={t('input.placeholder')}
         className="text-text-main placeholder:text-text-muted w-full resize-none bg-transparent px-3 py-3 text-[15px] outline-none disabled:opacity-70"
         style={{ minHeight: "44px", maxHeight: "200px" }}
       />
@@ -187,7 +189,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
             className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50"
-            title="Attach file"
+            title={t('input.attachFile')}
           >
             {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
           </button>
@@ -210,7 +212,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
             onClick={handleToggleVisualEdit}
           >
             <MousePointerClick size={14} />
-            <span>Visual edits</span>
+            <span>{t('input.visualEdits')}</span>
           </button>
         </div>
 
@@ -226,7 +228,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
             }
             onClick={handleTogglePlan}
           >
-            Plan
+            {t('input.plan')}
           </button>
           <AudioRecorder
             onTranscription={(text) => {
@@ -241,7 +243,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
             onClick={handleSend}
             disabled={(!value.trim() && uploadedFiles.length === 0) || isUploading || isSending}
             className="bg-text-main text-bg-main ml-1 flex h-8 w-8 items-center justify-center rounded-full transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            title="Send (Enter)"
+            title={t('input.send')}
           >
             {isSending ? (
               <Loader2 size={16} className="animate-spin" />

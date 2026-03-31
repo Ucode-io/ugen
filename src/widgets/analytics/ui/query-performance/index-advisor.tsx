@@ -2,7 +2,7 @@
 
 import { Lightbulb, X } from "lucide-react";
 import { useAnalyticsStore } from "@/entities/analytics";
-import { Button } from "@/shared/ui/button";
+import { Button } from "@/shared/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const IndexAdvisor = () => {

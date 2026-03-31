@@ -13,6 +13,7 @@ type TabType = 'recently_viewed' | 'my_projects' | 'templates'
 export const DashboardTabs = () => {
   const tNav = useTranslations('Navigation')
   const tTemp = useTranslations('Templates')
+  const tD = useTranslations('widgets.dashboard')
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('my_projects')
 
@@ -32,12 +33,12 @@ export const DashboardTabs = () => {
     isFolder: false,
     mcp_project_id: p.id,
     folderItemId: undefined,
-    name: p.name || p.title || "Untitled Project",
+    name: p.name || p.title || tD("untitledProject"),
     description: p.description || "",
-    editedAt: p.updated_at ? `Edited: ${new Date(p.updated_at).toLocaleDateString()}` : "Recently edited",
-    createdAt: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Unknown",
+    editedAt: p.updated_at ? tD("editedAt", { date: new Date(p.updated_at).toLocaleDateString() }) : tD("recentlyEdited"),
+    createdAt: p.created_at ? new Date(p.created_at).toLocaleDateString() : tD("unknownDate"),
     author: {
-      name: p.user?.name || p.owner || "Unknown Author",
+      name: p.user?.name || p.owner || tD("unknownAuthor"),
       initials: (p.user?.name || p.owner || "U").substring(0, 2).toUpperCase()
     },
     image: p.image || p.thumbnail || null,
@@ -111,14 +112,14 @@ export const DashboardTabs = () => {
               <ProjectsGrid projects={projectsDisplay.slice(0, 8)} variant="dashboard" />
             ) : (
               <div className="py-12 text-center text-text-muted border border-dashed border-border-subtle rounded-xl">
-                Nothing to show here yet.
+                {tD("nothingToShow")}
               </div>
             )}
           </div>
         )}
         {activeTab === 'recently_viewed' && (
           <div className="col-span-full py-12 text-center text-text-muted border border-dashed border-border-subtle rounded-xl">
-            Nothing to show here yet.
+            {tD("nothingToShow")}
           </div>
         )}
       </div>

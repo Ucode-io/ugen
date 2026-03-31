@@ -1,20 +1,23 @@
 import { Star, Link as LinkIcon, Folder, FolderPlus } from "lucide-react"
 import { Link } from "@/shared/lib/i18n/navigation"
 import { ProjectCardActions } from "./project-card-actions"
+import { useTranslations } from "next-intl"
 
 interface ProjectsListProps {
   projects: any[]
 }
 
 export const ProjectsList = ({ projects }: ProjectsListProps) => {
+  const t = useTranslations('widgets.projects')
+
   return (
     <div className="w-full">
       {/* Header */}
       <div className="grid grid-cols-[140px_1fr_150px_250px] items-center gap-4 px-4 py-2 text-[13px] font-semibold text-text-muted border-b border-border-subtle/50 mb-2">
         <div className="invisible">Image</div>
-        <div>Name</div>
-        <div className="hidden sm:block">Created at</div>
-        <div className="hidden sm:block">Created by</div>
+        <div>{t("name")}</div>
+        <div className="hidden sm:block">{t("createdAt")}</div>
+        <div className="hidden sm:block">{t("createdBy")}</div>
       </div>
 
       {/* List */}

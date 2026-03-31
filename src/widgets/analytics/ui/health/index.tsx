@@ -7,15 +7,17 @@ import { InsightsPanel } from "./insights-panel";
 import { useAnalyticsStore } from "@/entities/analytics";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from "next-intl";
 
 export const HealthTab = () => {
+  const t = useTranslations('widgets.analytics');
   const { collapsedSections, toggleSection } = useAnalyticsStore();
 
   const sections = [
-    { id: 'summary', title: 'Deployment Summary', Component: DeploymentSummary },
-    { id: 'functions', title: 'Functions', Component: FunctionsCharts },
-    { id: 'concurrency', title: 'Concurrency', Component: ConcurrencyCharts },
-    { id: 'insights', title: 'Insights', Component: InsightsPanel },
+    { id: 'summary', title: t("deploymentSummary"), Component: DeploymentSummary },
+    { id: 'functions', title: t("functions"), Component: FunctionsCharts },
+    { id: 'concurrency', title: t("concurrency"), Component: ConcurrencyCharts },
+    { id: 'insights', title: t("insights"), Component: InsightsPanel },
   ];
 
   return (

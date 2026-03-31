@@ -10,6 +10,7 @@ import {
 } from "@/entities/project-folder"
 import { useProjectsList } from "@/entities/project"
 import { ProjectFolder } from "@/entities/project-folder"
+import { useTranslations } from "next-intl"
 
 interface FolderCardActionsProps {
   folder: {
@@ -20,6 +21,9 @@ interface FolderCardActionsProps {
 }
 
 export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
+  const t = useTranslations('widgets.projects')
+  const tCommon = useTranslations('widgets.common')
+  const tNav = useTranslations('Navigation')
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -140,7 +144,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
             >
               <Plus size={14} />
-              Add projects
+              {t("addProjects")}
             </button>
             <button
               onClick={(e) => {
@@ -152,7 +156,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
             >
               <Edit size={14} />
-              Edit
+              {tNav("edit") || tCommon("edit")}
             </button>
             <button
               onClick={(e) => {
@@ -164,7 +168,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
             >
               <MoveRight size={14} />
-              Move folder
+              {t("moveFolder")}
             </button>
             <div className="h-px w-full bg-border-subtle/50 my-1" />
             <button
@@ -177,7 +181,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-red-500 hover:bg-red-500/10 transition-colors"
             >
               <Trash2 size={14} />
-              Delete
+              {tNav("delete") || tCommon("delete")}
             </button>
           </div>
         )}
@@ -195,15 +199,15 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
             onClick={(e) => e.stopPropagation()}
           >
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
-              Delete Folder
+              {t("deleteFolder")}
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm text-text-muted">
-              Are you sure you want to delete <span className="font-bold text-text-main">{folder.name}</span>? All nested items will be deleted permanently.
+              {t("deleteDescription", { name: folder.name })}
             </Dialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
                 <button className="rounded-lg border border-border-subtle px-4 py-2 text-sm font-medium text-text-main hover:bg-hover-bg transition-colors">
-                  Cancel
+                  {tCommon("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -211,7 +215,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
                 disabled={deleteFolder.isPending}
                 className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors disabled:opacity-50"
               >
-                {deleteFolder.isPending ? "Deleting..." : "Delete"}
+                {deleteFolder.isPending ? tNav("deleting") || tCommon("deleting") || "Deleting..." : tCommon("delete")}
               </button>
             </div>
           </Dialog.Content>
@@ -230,26 +234,26 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
             onClick={(e) => e.stopPropagation()}
           >
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
-              Rename Folder
+              {t("renameFolder")}
             </Dialog.Title>
             <div className="mt-4 space-y-4">
               <div className="space-y-1.5">
                 <label htmlFor="title" className="text-sm font-medium text-text-main">
-                  Name
+                  {t("name")}
                 </label>
                 <input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full rounded-lg border border-border-subtle bg-bg-main px-3 py-2 text-sm text-text-main outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all"
-                  placeholder="Folder name"
+                  placeholder={t("folderNameInput")}
                 />
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
                 <button className="rounded-lg border border-border-subtle px-4 py-2 text-sm font-medium text-text-main hover:bg-hover-bg transition-colors">
-                  Cancel
+                  {tCommon("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -257,7 +261,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
                 disabled={updateFolder.isPending}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors disabled:opacity-50"
               >
-                {updateFolder.isPending ? "Saving..." : "Save changes"}
+                {updateFolder.isPending ? t("saving") : t("saveChanges")}
               </button>
             </div>
           </Dialog.Content>
@@ -276,19 +280,19 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
             onClick={(e) => e.stopPropagation()}
           >
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
-              Move Folder
+              {t("moveFolderTitle")}
             </Dialog.Title>
             <div className="mt-4 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-text-main">
-                  Select new parent
+                  {t("selectNewParent")}
                 </label>
                 <select
                   className="w-full rounded-lg border border-border-subtle bg-bg-main px-3 py-2 text-sm text-text-main outline-none focus:border-primary/50 transition-all"
                   value={selectedParentId || ''}
                   onChange={e => setSelectedParentId(e.target.value || null)}
                 >
-                  <option value="">Root directory</option>
+                  <option value="">{t("rootDirectory")}</option>
                   {allFoldersData?.filter((f: ProjectFolder) => f.type?.toUpperCase() === 'FOLDER' && f.id !== folder.id).map((f: ProjectFolder) => (
                     <option key={f.id} value={f.id}>{f.label}</option>
                   ))}
@@ -298,7 +302,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
                 <button className="rounded-lg border border-border-subtle px-4 py-2 text-sm font-medium text-text-main hover:bg-hover-bg transition-colors">
-                  Cancel
+                  {tCommon("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -306,7 +310,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
                 disabled={updateFolder.isPending}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors disabled:opacity-50"
               >
-                {updateFolder.isPending ? "Moving..." : "Move"}
+                {updateFolder.isPending ? t("moving") : t("moveFolder")}
               </button>
             </div>
           </Dialog.Content>
@@ -325,10 +329,10 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
             onClick={(e) => e.stopPropagation()}
           >
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
-              Add Projects
+              {t("addProjectsTitle")}
             </Dialog.Title>
             <div className="mt-4 overflow-y-auto flex-1 pr-2">
-              <p className="text-sm text-text-muted mb-3">Select existing projects to add to this folder:</p>
+              <p className="text-sm text-text-muted mb-3">{t("selectProjectsDescription")}</p>
               <div className="space-y-2">
                 {projectsList.map((p: { id: string, name: string, title: string }) => (
                   <label key={p.id} className="flex items-center gap-3 p-2 hover:bg-hover-bg rounded-lg cursor-pointer transition-colors border border-transparent hover:border-border-subtle">
@@ -341,18 +345,18 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
                       }}
                       className="rounded text-primary focus:ring-primary w-4 h-4"
                     />
-                    <span className="text-sm font-medium text-text-main">{p.name || p.title || 'Untitled Project'}</span>
+                    <span className="text-sm font-medium text-text-main">{p.name || p.title || t("untitledProject")}</span>
                   </label>
                 ))}
                 {projectsList.length === 0 && (
-                  <p className="text-sm text-text-muted italic">No projects found.</p>
+                  <p className="text-sm text-text-muted italic">{t("noProjectsFound")}</p>
                 )}
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-border-subtle">
               <Dialog.Close asChild>
                 <button className="rounded-lg border border-border-subtle px-4 py-2 text-sm font-medium text-text-main hover:bg-hover-bg transition-colors">
-                  Cancel
+                  {tCommon("cancel")}
                 </button>
               </Dialog.Close>
               <button
@@ -360,7 +364,7 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
                 disabled={createFolder.isPending || selectedProjectIds.length === 0}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors disabled:opacity-50"
               >
-                {createFolder.isPending ? "Adding..." : "Add to folder"}
+                {createFolder.isPending ? t("adding") : t("addToFolder")}
               </button>
             </div>
           </Dialog.Content>

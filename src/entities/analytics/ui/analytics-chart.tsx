@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
-import { TooltipProvider, Tooltip as RadixTooltip, TooltipTrigger, TooltipContent } from "@/shared/ui/ui/tooltip";
+import { TooltipProvider, Tooltip as RadixTooltip, TooltipTrigger, TooltipContent } from "@/shared/ui";
 import { Info } from "lucide-react";
 
 interface AnalyticsChartProps {

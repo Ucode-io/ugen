@@ -2,6 +2,7 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { Search, X, Folder, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useProjectsList } from "@/entities/project"
 import { useDebounce } from "@/shared/hooks/useDebounce"
 import { useRouter } from "@/shared/lib/i18n/navigation"
@@ -12,6 +13,7 @@ interface SearchModalProps {
 }
 
 export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
+  const t = useTranslations('features.search')
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
   const router = useRouter()
@@ -38,10 +40,10 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
 
   const formattedProjects = projectsList.map((p: { id: string, name: string, title: string, user: { name: string }, owner: string, updated_at: string, image: string, thumbnail: string }) => ({
     id: p.id,
-    title: p.name || p.title || "Untitled Project",
-    user: p.user?.name || p.owner || "Unknown Author",
+    title: p.name || p.title || t('untitledProject'),
+    user: p.user?.name || p.owner || t('unknownAuthor'),
     userInitial: (p.user?.name || p.owner || "U").substring(0, 1).toUpperCase(),
-    time: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : "Recently",
+    time: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : t('recently'),
     type: p.image || p.thumbnail ? 'image' : 'folder',
     image: p.image || p.thumbnail || null
   }))
@@ -58,15 +60,15 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
         <Dialog.Content
           className="fixed left-[50%] top-[50%] z-50 w-full max-w-[700px] translate-x-[-50%] translate-y-[-50%] bg-bg-card border border-border-subtle rounded-xl shadow-2xl overflow-hidden focus:outline-none"
         >
-          <Dialog.Title className="sr-only">Search</Dialog.Title>
-          <Dialog.Description className="sr-only">Search projects and folders</Dialog.Description>
+          <Dialog.Title className="sr-only">{t('title')}</Dialog.Title>
+          <Dialog.Description className="sr-only">{t('description')}</Dialog.Description>
 
           {/* Header - Search Input */}
           <div className="flex items-center px-4 py-3 border-b border-border-subtle">
             <Search className="text-text-muted mr-3" size={24} />
             <input
               type="text"
-              placeholder="Search projects and folders"
+              placeholder={t('placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent text-xl text-text-main outline-none placeholder:text-text-muted"
@@ -82,7 +84,7 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
           {/* Body - Results */}
           <div className="p-2 max-h-[50vh] overflow-y-auto">
             <div className="px-3 py-2 text-[11px] font-bold tracking-wider text-text-muted uppercase">
-              {searchQuery ? "Search Results" : "Recent Projects"}
+              {searchQuery ? t('searchResults') : t('recentProjects')}
             </div>
 
             {isLoading && (
@@ -93,7 +95,7 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
 
             {!isLoading && formattedProjects.length === 0 && (
               <div className="text-center p-8 text-text-muted text-sm">
-                No projects found.
+                {t('noProjects')}
               </div>
             )}
 

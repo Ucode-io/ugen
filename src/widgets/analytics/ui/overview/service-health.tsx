@@ -2,11 +2,12 @@
 
 import { useServiceHealth } from "@/features/analytics";
 import { ServiceHealth, useAnalyticsStore } from "@/entities/analytics";
-import { Skeleton } from "@/shared/ui/skeleton";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/shared/ui/ui/tooltip";
+import { Skeleton } from "@/shared/ui";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/shared/ui";
 import { Info, ChevronRight } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, Cell, XAxis } from "recharts";
 import { cn } from "@/shared/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 export const ServiceHealthList = () => {
   const { activePeriod } = useAnalyticsStore();
@@ -32,6 +33,7 @@ export const ServiceHealthList = () => {
 };
 
 const ServiceItem = ({ service }: { service: ServiceHealth }) => {
+  const t = useTranslations('widgets.analytics');
   const isHealthy = service.status === 'HEALTHY';
   const statusColor = isHealthy ? 'var(--color-primary)' : service.status === 'UNHEALTHY' ? 'var(--color-destructive)' : 'var(--text-muted)';
   
@@ -45,7 +47,7 @@ const ServiceItem = ({ service }: { service: ServiceHealth }) => {
               <TooltipTrigger>
                 <Info className="w-3.5 h-3.5 text-text-muted" />
               </TooltipTrigger>
-              <TooltipContent>Status: {service.status}</TooltipContent>
+              <TooltipContent>{t("postgresRole", { role: service.status })}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -73,13 +75,13 @@ const ServiceItem = ({ service }: { service: ServiceHealth }) => {
               <span>{new Date(service.history[0].timestamp).toLocaleDateString()}</span>
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
-                <span>{service.errorRate}% Errors</span>
+                <span>{t("errorRate", { rate: service.errorRate })}</span>
               </div>
               <span>{new Date(service.history[service.history.length - 1].timestamp).toLocaleDateString()}</span>
             </div>
           </div>
         ) : (
-          <div className="text-center text-text-muted text-sm py-2">No data</div>
+          <div className="text-center text-text-muted text-sm py-2">{t("noData")}</div>
         )}
       </div>
 

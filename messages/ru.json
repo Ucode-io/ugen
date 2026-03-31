@@ -28,7 +28,11 @@
     "analytics": "Аналитика",
     "browse_all": "Смотреть все",
     "recently_viewed": "Недавно просмотренные",
-    "my_projects": "Мои проекты"
+    "my_projects": "Мои проекты",
+    "move": "Переместить",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "deleting": "Удаление..."
   },
   "Templates": {
     "title": "Шаблоны",
@@ -67,6 +71,98 @@
       "createProject": "Создайте свой проект",
       "emptyProjectDesc": "Ваше рабочее пространство в данный момент пусто. Опишите, что вы хотите создать, в чате, и ИИ сгенерирует для вас файлы и архитектуру за секунды.",
       "startChatting": "Начать чат"
+    },
+    "auth": {
+      "login": {
+        "title": "С возвращением",
+        "subtitle": "Войдите в свой аккаунт",
+        "loginLabel": "Логин",
+        "passwordLabel": "Пароль",
+        "forgotPassword": "Забыли?",
+        "loginPlaceholder": "Введите ваш логин",
+        "passwordPlaceholder": "Введите ваш пароль",
+        "submit": "Войти"
+      },
+      "register": {
+        "title": "Создать аккаунт",
+        "subtitle": "Присоединяйтесь к Ugen, чтобы начать",
+        "companyName": "Название компании",
+        "companyPlaceholder": "Введите название компании",
+        "loginLabel": "Логин пользователя",
+        "loginPlaceholder": "Введите ваш логин",
+        "emailLabel": "Email",
+        "emailPlaceholder": "Введите ваш email",
+        "passwordLabel": "Пароль",
+        "passwordPlaceholder": "Создайте пароль",
+        "submit": "Создать аккаунт"
+      },
+      "common": {
+        "authTitle": "Аутентификация",
+        "authDescription": "Войдите или зарегистрируйтесь в своем аккаунте.",
+        "ariaClose": "Закрыть",
+        "selectConnections": "Выберите подключения",
+        "configureConnections": "Пожалуйста, настройте подключения перед входом в систему."
+      }
+    },
+    "appVisibility": {
+      "title": "Видимость приложения",
+      "description": "Управление доступом к вашему приложению",
+      "placeholder": "Выберите видимость",
+      "requireLogin": "Требовать вход для доступа",
+      "options": {
+        "public": "Публичный",
+        "private": "Приватный",
+        "teamOnly": "Только для команды"
+      }
+    },
+    "clientTypeForm": {
+      "titleEdit": "Редактировать тип клиента",
+      "titleNew": "Новый тип клиента",
+      "description": "Настройте параметры платформы и поведение регистрации пользователей.",
+      "displayName": "Отображаемое имя",
+      "displayNamePlaceholder": "например, Админ, Клиент",
+      "table": "Таблица",
+      "tablePlaceholder": "Выберите таблицу",
+      "loading": "Загрузка...",
+      "defaultPageUrl": "URL страницы по умолчанию",
+      "defaultPageUrlPlaceholder": "https://app.social.com/dashboard",
+      "sessionLimit": "Лимит сессий",
+      "selfRecover": "Самовосстановление",
+      "selfRegister": "Саморегистрация",
+      "saveChanges": "Сохранить изменения",
+      "createType": "Создать тип"
+    },
+    "inviteUsers": {
+      "title": "Пригласить пользователей",
+      "description": "Расширьте свою базу пользователей, приглашая других",
+      "copyLink": "Копировать ссылку",
+      "copied": "Скопировано!",
+      "sendInvites": "Отправить приглашения"
+    },
+    "platformBadge": {
+      "title": "Значок платформы",
+      "description": "Значок «Edit with Ugen» в данный момент {status} в вашем приложении",
+      "visible": "видимый",
+      "hidden": "скрытый",
+      "hideBadge": "Скрыть значок",
+      "showBadge": "Показать значок"
+    },
+    "search": {
+      "title": "Поиск",
+      "description": "Поиск проектов и папок",
+      "placeholder": "Поиск проектов и папок",
+      "searchResults": "Результаты поиска",
+      "recentProjects": "Недавние проекты",
+      "noProjects": "Проекты не найдены.",
+      "untitledProject": "Проект без названия",
+      "unknownAuthor": "Неизвестный автор",
+      "recently": "Недавно"
+    },
+    "langSwitcher": {
+      "placeholder": "Язык"
+    },
+    "themeSwitcher": {
+      "ariaLabel": "Переключить тему"
     }
   },
   "databaseStudio": {
@@ -138,6 +234,672 @@
       "securityComingSoon": "Аудит безопасности скоро появится",
       "advancedComingSoon": "Расширенные настройки скоро появятся",
       "noLogs": "Логи не найдены"
+    }
+  },
+  "entities": {
+    "aiModel": {
+      "modelSelector": {
+        "placeholder": "Модель"
+      }
+    },
+    "analytics": {
+      "periodSelector": {
+        "placeholder": "Выберите период",
+        "last24h": "Последние 24 часа",
+        "last7d": "Последние 7 дней",
+        "last30d": "Последние 30 дней",
+        "last90d": "Последние 90 дней"
+      }
+    }
+  },
+  "shared": {
+    "dataStates": {
+      "loading": "Загрузка данных...",
+      "errorTitle": "Не удалось загрузить данные",
+      "errorDescription": "Мы не смогли получить список с сервера. Пожалуйста, попробуйте еще раз.",
+      "retry": "Повторить"
+    },
+    "dataTable": {
+      "emptyMessage": "Результаты не найдены.",
+      "rowsPerPage": "Строк на странице",
+      "showingEntries": "Показано с {start} по {end} из {total} записей"
+    },
+    "pagination": {
+      "previous": "Назад",
+      "next": "Вперед",
+      "morePages": "Больше страниц",
+      "paginationAria": "пагинация",
+      "previousAria": "Перейти на предыдущую страницу",
+      "nextAria": "Перейти на следующую страницу"
+    },
+    "audioRecorder": {
+      "start": "Начать запись",
+      "stop": "Остановить запись",
+      "cancel": "Отмена",
+      "confirm": "Подтвердить",
+      "voiceMessage": "Голосовое сообщение",
+      "delete": "Удалить",
+      "upload": "Загрузить",
+      "uploading": "Загрузка...",
+      "processing": "Обработка...",
+      "error": "Ошибка записи аудио"
+    },
+    "bpmnViewer": {
+      "loading": "Загрузка BPMN...",
+      "error": "Ошибка загрузки BPMN",
+      "noXml": "BPMN XML не предоставлен",
+      "parseError": "Не удалось разобрать BPMN XML",
+      "protocol": "BPMN Протокол",
+      "title": "Схема процесса",
+      "summary": "{lanes} ролей · {nodes} задач · {crossFlows} межслойных соединений",
+      "deselectHint": "Нажмите снова, чтобы отменить выбор",
+      "step": "Шаг {index}",
+      "unnamedLane": "Безымянная дорожка",
+      "nodeTypes": {
+        "start": "старт",
+        "end": "конец",
+        "gateway": "шлюз",
+        "task": "задача"
+      },
+      "crossLaneTrigger": "межслойный триггер",
+      "triggeredBy": "вызвано {lane}",
+      "otherLane": "другой дорожкой",
+      "interactivity": "Межслойное взаимодействие"
+    },
+    "errorBoundary": {
+      "title": "Что-то пошло не так",
+      "description": "Произошла непредвиденная ошибка.",
+      "retry": "Попробовать снова",
+      "goHome": "Вернуться на главную"
+    },
+    "dateRangePicker": {
+      "placeholder": "Выберите диапазон дат"
+    }
+  },
+  "widgets": {
+    "header": {
+      "databases": "Базы данных",
+      "edgeFunctions": "Edge-функции",
+      "features": "Возможности",
+      "pricing": "Цены",
+      "integrations": "Интеграции",
+      "openUgen": "Открыть ugen"
+    },
+    "footer": {
+      "copyright": "© {year} Ucode UI. Все права защищены."
+    },
+    "common": {
+      "save": "Сохранить",
+      "cancel": "Отмена",
+      "delete": "Удалить",
+      "edit": "Редактировать",
+      "add": "Добавить",
+      "confirm": "Подтвердить",
+      "upload": "Загрузить",
+      "deleting": "Удаление...",
+      "title": "Название",
+      "description": "Описание",
+      "status": "Статус"
+    },
+    "sidebar": {
+      "profile": "Профиль",
+      "settings": "Настройки",
+      "appearance": "Внешний вид",
+      "theme": "Тема",
+      "light": "Светлая",
+      "dark": "Темная",
+      "homePage": "Главная",
+      "logout": "Выйти",
+      "upgradePro": "Обновить до Pro",
+      "unlockBenefits": "Разблокировать преимущества",
+      "myWorkspace": "Мое рабочее пространство",
+      "workspace": "Рабочее пространство",
+      "freePlan": "Бесплатный план",
+      "allWorkspaces": "Все рабочие пространства",
+      "createWorkspace": "Создать рабочее пространство",
+      "dropHere": "Перетащите сюда",
+      "addChild": "Добавить дочерний элемент",
+      "edit": "Редактировать",
+      "delete": "Удалить",
+      "untitledProject": "Проект без названия",
+      "loading": "Загрузка...",
+      "noRecentProjects": "Нет недавних проектов"
+    },
+    "landingPage": {
+      "aiBasedPlatform": "Платформа на базе ИИ",
+      "heroTitle": "Разрабатывайте быстро.\nМасштабируйте легко.",
+      "heroSubtitle": "Backend как сервис для вашего цифрового бизнеса. Каждый проект Ucode работает на базе low-code платформы с ИИ, которая легко и быстро генерирует фронтенд и бэкенд.",
+      "databases": {
+        "title": "База данных и аналитика",
+        "description": "Каждый проект Ucode — это выделенная база данных PostgreSQL или MongoDB, которой доверяют миллионы разработчиков.",
+        "list": {
+          "manageData": "Легко управляйте своими данными",
+          "scalable": "PostgreSQL и MongoDB — самые масштабируемые базы данных в мире",
+          "lowcode": "Подключайте и управляйте данными с помощью нашего Lowcode решения"
+        },
+        "postgresql": "PostgreSQL",
+        "mongodb": "MongoDB",
+        "clickhouse": "ClickHouse",
+        "relational": "Реляционный движок",
+        "document": "Документное хранилище",
+        "analytics": "Движок аналитики",
+        "ready": "Готово"
+      },
+      "edgeFunctions": {
+        "title": "Edge-функции",
+        "description": "Настраивайте функции и легко создавайте, развертывайте и отслеживайте серверные функции без управления серверами или хостингом. Легко пишите собственный код.",
+        "platforms": {
+          "mobile": "Мобильные",
+          "web": "Веб",
+          "backend": "Бэкенд",
+          "microfrontend": "Микрофронтенд"
+        }
+      },
+      "features": {
+        "title": "Все, что вам нужно",
+        "subtitle": "Полный набор инструментов для запуска вашего проекта за считанные дни, а не месяцы.",
+        "list": {
+          "storage": {
+            "title": "Хранилище",
+            "description": "Храните, организовывайте и раздавайте большие файлы, от видео до изображений. (Minio, Amazon S3, R3)"
+          },
+          "dataApi": {
+            "title": "Data API",
+            "description": "Мгновенные готовые к использованию Restful API. Подключайте существующие сервисы мгновенно."
+          },
+          "auth": {
+            "title": "Аутентификация",
+            "description": "Приглашайте и легко управляйте своими пользователями с помощью встроенного мощного управления разрешениями и доступом."
+          },
+          "role": {
+            "title": "Роли и доступ",
+            "description": "Комплексное управление ролями, управление доступом и управление пользователями встроено."
+          }
+        }
+      },
+      "integrations": {
+        "title": "Интеграции",
+        "description": "Найдите интеграцию. Бесшовно подключайтесь к своим любимым инструментам.",
+        "viewAll": "Посмотреть все интеграции",
+        "categories": {
+          "databases": "Базы данных",
+          "storage": "Файловое хранилище",
+          "apis": "API",
+          "versionControl": "Контроль версий",
+          "maps": "Карты",
+          "customFunctions": "Кастомные функции"
+        }
+      }
+    },
+    "appSettings": {
+      "accountProfile": "Профиль аккаунта",
+      "saveChanges": "Сохранить изменения",
+      "fullName": "Полное имя",
+      "emailAddress": "Электронная почта",
+      "phoneNumber": "Номер телефона",
+      "loginUsername": "Логин / Имя пользователя",
+      "accountType": "Тип аккаунта",
+      "assignedRole": "Назначенная роль",
+      "namePlaceholder": "Ваше имя",
+      "loginSessions": "Сессии входа",
+      "sessionsDescription": "Управляйте активными сессиями и подключенными устройствами.",
+      "verifyingSessions": "Проверка активных сессий...",
+      "noSessions": "Активных сессий не обнаружено.",
+      "secure": "Безопасно",
+      "modified": "Изменено",
+      "terminateSession": "Завершить сессию",
+      "languageKeys": "Языковые ключи",
+      "langDescription": "Изучите доступные переводы и ключи локализации.",
+      "accessingLangDb": "Доступ к базе данных локализации...",
+      "noLangKeys": "Ключи локализации не проиндексированы",
+      "refreshSyncHint": "Попробуйте обновить или синхронизировать свои переводы.",
+      "environmentManagement": "Управление окружением",
+      "envDescription": "Настраивайте и переключайтесь между окружениями проекта.",
+      "unknownDevice": "Неизвестное устройство"
+    },
+    "projects": {
+      "title": "Проекты",
+      "edited": "Изменено: {date}",
+      "recentlyEdited": "Изменено недавно",
+      "unknown": "Неизвестно",
+      "unknownAuthor": "Неизвестный автор",
+      "createFolder": "Создать новую папку",
+      "folderName": "Имя папки",
+      "folderPlaceholder": "например, Моя папка",
+      "creating": "Создание...",
+      "create": "Создать",
+      "searchPlaceholder": "Поиск проектов...",
+      "toggleSelection": "Переключить режим выбора",
+      "gridView": "Сетка",
+      "listView": "Список",
+      "addProjects": "Добавить проекты",
+      "moveFolder": "Переместить папку",
+      "deleteFolder": "Удалить папку",
+      "deleteDescription": "Вы уверены, что хотите удалить {name}? Все вложенные элементы будут удалены навсегда.",
+      "renameFolder": "Переименовать папку",
+      "editProject": "Редактировать проект",
+      "deleteProject": "Удалить проект",
+      "deleteProjectDescription": "Вы уверены, что хотите удалить {name}? Это действие нельзя отменить.",
+      "name": "Имя",
+      "folderNameInput": "Имя папки",
+      "saveChanges": "Сохранить изменения",
+      "saving": "Сохранение...",
+      "moveFolderTitle": "Переместить папку",
+      "selectNewParent": "Выберите новый родительский каталог",
+      "rootDirectory": "Корневой каталог",
+      "moving": "Перемещение...",
+      "addProjectsTitle": "Добавить проекты",
+      "selectProjectsDescription": "Выберите существующие проекты для добавления в эту папку:",
+      "noProjectsFound": "Проекты не найдены.",
+      "addToFolder": "Добавить в папку",
+      "adding": "Добавление...",
+      "createNewProject": "Создать новый проект",
+      "createdAt": "Дата создания",
+      "createdBy": "Автор",
+      "moveToFolder": "Переместить в папку",
+      "removeFromFolder": "Удалить из папки",
+      "projectName": "Имя проекта",
+      "projectDescription": "Описание проекта",
+      "projectDescriptionPlaceholder": "Краткое описание вашего проекта",
+      "moveProjectTitle": "Переместить проект в папку",
+      "selectFolder": "Выберите папку"
+    },
+    "analytics": {
+      "title": "Аналитика",
+      "overview": "Обзор",
+      "health": "Состояние",
+      "queryPerformance": "Производительность запросов",
+      "visitors": "Посетители",
+      "noData": "Нет данных",
+      "loading": "Загрузка...",
+      "databaseOverview": "Обзор базы данных",
+      "serviceHealth": "Состояние сервисов",
+      "errorRate": "{rate}% Ошибок",
+      "metricTooltip": "Аналитика для {title}",
+      "deploymentSummary": "Сводка развертывания",
+      "functions": "Функции",
+      "concurrency": "Параллелизм",
+      "insights": "Инсайты",
+      "environment": "Окружение",
+      "projectName": "Имя проекта",
+      "region": "Регион",
+      "runtimeVersion": "Версия рантайма",
+      "updateAvailable": "ДОСТУПНО ОБНОВЛЕНИЕ",
+      "lastDeploy": "Последнее развертывание",
+      "lastDeployBy": "{date}, автор: {author}",
+      "backupStatus": "Статус бэкапа",
+      "projectUrls": "URL проекта",
+      "httpActionsUrl": "URL HTTP действий",
+      "slowQueries": "Медленные запросы",
+      "cacheHitRate": "Попадание в кэш",
+      "avgRowsPerCall": "Ср. строк на вызов",
+      "searchPlaceholder": "Поиск по запросу",
+      "calls": "Вызовы",
+      "totalTime": "Общее время",
+      "roles": "Роли",
+      "export": "Экспорт",
+      "resetReport": "Сбросить отчет",
+      "resetDescription": "Очистить всю историю статистики производительности запросов и начать заново. Это действие нельзя отменить.",
+      "resetStats": "Сбросить статистику",
+      "howReportGenerated": "Как создается этот отчет?",
+      "reportExplanation": "Этот отчет использует расширение pg_stat_statements для сбора данных в реальном времени из вашей базы данных.",
+      "learnMore": "Узнать больше о pg_stat_statements",
+      "indexAdvisor": "Консультант по индексам",
+      "indexAdvisorDescription": "Консультант по индексам анализирует ваши медленные запросы и предлагает потенциальные индексы для повышения производительности.",
+      "seeRecommendations": "Посмотреть все рекомендации",
+      "query": "Запрос",
+      "timeConsumed": "Затраченное время",
+      "maxTime": "Макс. время",
+      "meanTime": "Среднее время",
+      "minTime": "Мин. время",
+      "rowsProcessed": "Обработано строк",
+      "role": "Роль",
+      "postgresRole": "Роль Postgres: {role}",
+      "fullQuery": "Полный запрос",
+      "visitorAnalytics": "Аналитика посетителей",
+      "currentVisitors": "{count} текущих посетителей",
+      "audienceBreakdown": "Аудитория в деталях"
+    },
+    "dashboard": {
+      "untitledProject": "Название отсутствует",
+      "editedAt": "Изменено: {date}",
+      "recentlyEdited": "Изменено недавно",
+      "unknownDate": "Неизвестно",
+      "unknownAuthor": "Неизвестный автор",
+      "nothingToShow": "Здесь пока ничего нет.",
+      "newProject": "Новый проект",
+      "promptPlaceholder": "Попросите Ugen создать дашборд для...",
+      "addAttachment": "Прикрепить файл",
+      "plan": "План"
+    },
+    "databaseStudio": {
+      "tabs": {
+        "tables": "Таблицы",
+        "security": "Безопасность",
+        "advanced": "Расширенные"
+      },
+      "placeholders": {
+        "securityComingSoon": "Управление безопасностью скоро появится.",
+        "advancedComingSoon": "Расширенные настройки скоро появятся."
+      },
+      "title": "Database Studio",
+      "sqlConsole": {
+        "header": "SQL Консоль",
+        "activeHeader": "Консоль активна",
+        "explorer": "Проводник",
+        "scripts": "Скрипты",
+        "tables": "Таблицы",
+        "prettify": "Форматировать",
+        "run": "Запустить",
+        "results": "Результаты",
+        "rowsReturned": "Возвращено строк: {count}",
+        "queryError": "Ошибка запроса",
+        "noResultsYet": "Результатов пока нет. Запустите запрос, чтобы увидеть данные."
+      },
+      "records": {
+        "count": "Записей: {count}",
+        "searchPlaceholder": "Поиск записей...",
+        "sqlQuery": "SQL Запрос",
+        "filter": "Фильтр",
+        "viewPolicies": "Политики просмотра",
+        "filters": "Фильтры",
+        "clearAll": "Очистить все",
+        "contains": "содержит",
+        "valuePlaceholder": "Значение...",
+        "addCondition": "Добавить условие",
+        "noResults": "Записи не найдены",
+        "addRow": "Добавить строку",
+        "addRecordTitle": "Добавить запись в {table}",
+        "fieldRequired": "Это поле обязательно",
+        "saveRecord": "Сохранить запись"
+      },
+      "tables": {
+        "delete": "Удалить таблицу",
+        "deleteConfirmTitle": "Удаление таблицы",
+        "deleteConfirmDescription": "Вы уверены, что хотите удалить таблицу '{table}'? Это действие нельзя отменить.",
+        "deleteSuccess": "Таблица успешно удалена",
+        "deleteError": "Не удалось удалить таблицу"
+      },
+      "logs": {
+        "activityTitle": "Логи активности",
+        "activityDescription": "Отслеживайте и контролируйте все глобальные действия и изменения ресурсов.",
+        "functionTitle": "Логи функций",
+        "functionDescription": "Мониторинг выполнения, статуса и производительности отдельных функций.",
+        "allActions": "Все действия",
+        "searchCollection": "Поиск коллекции...",
+        "searchByUser": "Поиск по пользователю...",
+        "allFunctions": "Все функции",
+        "allStatuses": "Все статусы",
+        "activityDetailTitle": "Детали лога активности",
+        "functionDetailTitle": "Детали лога функции",
+        "columns": {
+          "index": "№",
+          "action": "Действие",
+          "collection": "Коллекция",
+          "actionOn": "Действие над",
+          "actionBy": "Кем выполнено",
+          "function": "Функция",
+          "time": "Время",
+          "status": "Статус",
+          "duration": "Длительность",
+          "tableSlug": "Slug таблицы"
+        },
+        "details": {
+          "user": "Пользователь",
+          "action": "Действие",
+          "date": "Дата",
+          "collection": "Коллекция",
+          "request": "Запрос",
+          "response": "Ответ",
+          "generalInfo": "Общая информация",
+          "name": "Имя",
+          "status": "Статус",
+          "requestMethod": "Метод запроса",
+          "actionType": "Тип действия",
+          "startedAt": "Начало",
+          "completedAt": "Завершение",
+          "duration": "Длительность",
+          "tableSlug": "Slug таблицы",
+          "resourceUsage": "Использование ресурсов",
+          "returnSize": "Размер ответа",
+          "compute": "Вычисления",
+          "dbBandwidth": "Трафик БД",
+          "fileBandwidth": "Трафик файлов",
+          "vectorBandwidth": "Векторный трафик"
+        }
+      },
+      "common": {
+        "cancel": "Отмена",
+        "delete": "Удалить"
+      }
+    },
+    "workspaceChat": {
+      "mockMessage": "Привет! Я твой ИИ-помощник в этом рабочем пространстве. Чем я могу помочь тебе в создании твоего проекта сегодня? \n\nТы можешь попросить меня написать код, отладить проблемы или спланировать архитектуру.",
+      "thinking": "Думаю...",
+      "pendingAction": {
+        "confirm": "✓ Да, подтвердить",
+        "create": "✓ Да, создать",
+        "update": "✓ Да, обновить",
+        "delete": "✓ Да, удалить",
+        "cancel": "✕ Отмена",
+        "yes": "Да",
+        "no": "Нет",
+        "bulkDelete": "Будет удалено {count} записей",
+        "bulkUpdate": "Будет обновлено {count} записей",
+        "bulkCreate": "Будет создано {count} записей"
+      },
+      "questionnaire": {
+        "step": "Шаг {current} / {total}",
+        "ownAnswer": "Свой ответ",
+        "back": "← Назад",
+        "finish": "Завершить",
+        "nextStep": "Следующий шаг →"
+      },
+      "input": {
+        "placeholder": "Чем я могу вам помочь сегодня?",
+        "attachFile": "Прикрепить файл",
+        "visualEdits": "Визуальное редактирование",
+        "plan": "План",
+        "send": "Отправить (Enter)",
+        "element": "Элемент"
+      },
+      "codeBlock": {
+        "copy": "Копировать",
+        "copied": "Скопировано!"
+      },
+      "questions": {
+        "panelType": {
+          "title": "Какой тип админ панеля вы хотите ?",
+          "crm": "Админ панель для CRM систем",
+          "tms": "Админ панель для TMS систем",
+          "erp": "Админ панель для ERP систем"
+        },
+        "framework": {
+          "title": "Выберите фреймворк",
+          "nextjs": "Next.js (Рекомендуется)",
+          "vite": "Vite + React",
+          "remix": "Remix"
+        },
+        "features": {
+          "title": "Дополнительные функции",
+          "auth": "Авторизация",
+          "i18n": "Интернационализация",
+          "pwa": "PWA поддержка",
+          "analytics": "Аналитика"
+        }
+      }
+    },
+    "mediaGallery": {
+      "failedToLoad": "Ошибка загрузки файлов",
+      "errorDescription": "Что-то пошло не так при получении данных. Пожалуйста, проверьте ваше соединение.",
+      "retry": "Повторить",
+      "noAssets": "Активов пока нет",
+      "emptyDescription": "Ваша медиагалерея пуста. Загрузите свое первое изображение, видео или документ, чтобы начать.",
+      "createItem": "Создать элемент",
+      "loadingMore": "Загрузка...",
+      "reachedEnd": "Вы достигли конца",
+      "select": "Выбрать",
+      "cancel": "Отмена",
+      "selectAll": "Выбрать все",
+      "deselectAll": "Снять выделение",
+      "gridTooltip": "Сейчас: {count} колонок. Нажмите, чтобы изменить масштаб.",
+      "searchPlaceholder": "Поиск активов...",
+      "deleting": "Удаление...",
+      "deleteCount": "Удалить ({count})"
+    },
+    "pricing": {
+      "plans": "Тарифные планы",
+      "compareTitle": "Сравните наши тарифы <br /> и выберите свой",
+      "compareSubtitle": "Простое и прозрачное ценообразование, которое растет вместе с вами. <br /> Попробуйте любой тариф бесплатно в течение 30 дней. Кредитная карта не требуется.",
+      "getStarted": "Начать",
+      "chatSales": "Связаться с отделом продаж",
+      "popular": "Популярный",
+      "compareFeatures": "Подробное сравнение функций",
+      "findPerfect": "Найдите идеальное сочетание услуг и лимитов для вашего проекта.",
+      "month": "/ мес",
+      "categories": {
+        "general": "Общие",
+        "servers": "Серверы",
+        "support": "Поддержка",
+        "security": "Соответствие и безопасность",
+        "connectivity": "Связанность"
+      },
+      "cards": {
+        "os": {
+          "title": "Open source",
+          "price": "Бесплатно",
+          "description": "Базовые функции для 10 сотрудников со всем необходимым."
+        },
+        "small": {
+          "title": "Small",
+          "price": "$300",
+          "description": "Расширенные функции для растущих команд и стартапов."
+        },
+        "medium": {
+          "title": "Medium",
+          "price": "$600",
+          "description": "Расширенные функции и отчетность, улучшенные рабочие процессы и автоматизация."
+        },
+        "enterprise": {
+          "title": "Enterprise",
+          "price": "Индивидуально",
+          "description": "Персонализированный сервис и корпоративная безопасность для крупных команд."
+        }
+      },
+      "features": {
+        "totalUsers": "Всего пользователей и ролей",
+        "configuration": "Конфигурация",
+        "apiRequestsMonth": "API запросов в месяц",
+        "apiRequestsSecond": "API запросов в секунду",
+        "functions": "Функции",
+        "microfrontend": "Микрофронтенд",
+        "databaseSize": "Размер базы данных",
+        "assetSize": "Размер активов",
+        "dbServer": "Сервер базы данных",
+        "fileServer": "Файловый сервер",
+        "functionServer": "Сервер функций",
+        "microfrontendServer": "Сервер микрофронтендов",
+        "customDomain": "Собственный домен",
+        "failover": "Отказоустойчивые инстансы",
+        "communitySupport": "Поддержка сообщества",
+        "designatedSupport": "Выделенная поддержка",
+        "dedicatedDeveloper": "Персональный разработчик",
+        "logRetention": "Хранение логов",
+        "rbac": "Управление доступом на основе ролей",
+        "menuPermissions": "Разрешения меню",
+        "tablePermissions": "Разрешения таблиц",
+        "fieldPermissions": "Разрешения полей",
+        "restApi": "REST API",
+        "assetApi": "API изображений и активов",
+        "webHooks": "Веб-хуки",
+        "directDb": "Прямой доступ к базе данных"
+      }
+    },
+    "clientTypeManagement": {
+      "loading": "Загрузка клиентских платформ...",
+      "error": "Не удалось загрузить типы клиентов",
+      "title": "Типы клиентов",
+      "subtitle": "Управляйте платформами аутентификации вашего проекта и областями доступа пользователей.",
+      "add": "Добавить тип клиента",
+      "system": "Системный",
+      "sessions": "Сессии",
+      "registration": "Регистрация",
+      "public": "Публичная",
+      "private": "Приватная",
+      "recovery": "Восстановление",
+      "enabled": "Включено",
+      "disabled": "Выключено"
+    },
+    "permissionManage": {
+      "table": "Разрешения таблицы",
+      "global": "Глобальные разрешения",
+      "title": "Управление разрешениями",
+      "subtitle": "Управляйте записями таблиц и глобальной доступностью для этого типа клиента.",
+      "selectRole": "Выберите роль",
+      "selectRolePlaceholder": "Пожалуйста, выберите роль для управления разрешениями.",
+      "globalPermissions": {
+        "fetching": "Получение глобальных разрешений...",
+        "title": "Системный контроль доступа",
+        "save": "Сохранить изменения",
+        "nameHeader": "Имя глобального разрешения",
+        "checkHeader": "Проверка доступа"
+      },
+      "tablePermissions": {
+        "fetching": "Получение детальных разрешений...",
+        "title": "Гарнулярный контроль таблиц",
+        "save": "Сохранить изменения",
+        "objectsHeader": "Объекты данных",
+        "recordLevelHeader": "Разрешения на уровне записей",
+        "fieldHeader": "Поле",
+        "actionHeader": "Действие",
+        "relationHeader": "Связь",
+        "viewHeader": "Вид",
+        "customHeader": "Пользовательские",
+        "read": "Чтение",
+        "write": "Запись",
+        "update": "Обновление",
+        "delete": "Удаление",
+        "public": "Публичный",
+        "configTitle": "Настроить {type}",
+        "modifyingFor": "Изменение гранулярного контроля для {label}",
+        "close": "Закрыть",
+        "confirm": "Подтвердить",
+        "noActions": "Действия недоступны.",
+        "noRelations": "Связи не определены.",
+        "noViews": "Специфические виды не настроены.",
+        "noFilters": "Активные фильтры отсутствуют. Записи будут полностью доступны.",
+        "connectTo": "Подключить к",
+        "selectConnection": "Выбрать подключение",
+        "tableRelation": "Связь таблицы",
+        "selectRelation": "Выбрать связь",
+        "addNewFilter": "Добавить новое условие фильтра"
+      }
+    },
+    "roleManage": {
+      "loading": "Загрузка ролей...",
+      "error": "Не удалось загрузить роли",
+      "title": "Управление ролями",
+      "subtitle": "Управляйте ролями и разрешениями вашего проекта.",
+      "add": "Добавить роль",
+      "noRoles": "Роли не найдены.",
+      "status": "Статус",
+      "active": "Активен",
+      "inactive": "Неактивен",
+      "editRole": "Изменить роль",
+      "createRole": "Создать роль",
+      "editDescription": "Обновите данные роли и ее операционный статус.",
+      "createDescription": "Заполните данные ниже, чтобы определить новую роль приложения.",
+      "roleName": "Имя роли",
+      "roleNamePlaceholder": "Менеджер, Модератор и т.д.",
+      "clientType": "Тип клиента",
+      "selectClientType": "Выберите тип клиента",
+      "statusDescription": {
+        "active": "Роль активна и доступна для использования",
+        "inactive": "Роль неактивна"
+      },
+      "saving": "Сохранение...",
+      "cancel": "Отмена",
+      "save": "Сохранить изменения"
     }
   }
 }

@@ -5,9 +5,9 @@ import { ChevronLeft, Loader2, PenLine, ArrowLeftRight, Globe, Plus } from 'luci
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, authApi } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
-import { Button } from '@/shared/ui/ui/button'
-import { Input } from '@/shared/ui/ui/input'
-import { DataLoadingState } from '@/shared/ui/data-states'
+import { Button } from '@/shared/ui'
+import { Input } from '@/shared/ui'
+import { DataLoadingState } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 
 interface Environment {

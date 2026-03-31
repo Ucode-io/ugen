@@ -10,10 +10,10 @@ import { useAuthStore } from '@/entities/session'
 import { loginSchema, type LoginFormValues } from '../model/validation'
 import { authApi } from '@/shared/api'
 import { useRouter } from '@/shared/lib/i18n/navigation'
-import { Button } from '@/shared/ui/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/ui/form'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui/ui/dialog'
+import { Button } from '@/shared/ui'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
 import axios from 'axios'
 
 // New ugen auth API instance
@@ -83,7 +83,7 @@ const ConnectionSelect = ({ conn, index, form }: { conn: any, index: number, for
 }
 
 export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
-  const t = useTranslations('Navigation')
+  const t = useTranslations('features.auth')
   const { setAuth } = useAuthStore()
   const router = useRouter()
 
@@ -228,13 +228,13 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
           </div>
         )}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-text-main">Login</label>
+          <label className="text-sm font-medium text-text-main">{t('login.loginLabel')}</label>
           <div className="relative">
             <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
             <input
               {...form.register('login')}
               type="text"
-              placeholder="Enter your login"
+              placeholder={t('login.loginPlaceholder')}
               className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
             />
           </div>
@@ -243,15 +243,15 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-text-main">Password</label>
-            <a href="#" className="text-xs text-primary hover:underline">Forgot?</a>
+            <label className="text-sm font-medium text-text-main">{t('login.passwordLabel')}</label>
+            <a href="#" className="text-xs text-primary hover:underline">{t('login.forgotPassword')}</a>
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
             <input
               {...form.register('password')}
               type="password"
-              placeholder="Enter your password"
+              placeholder={t('login.passwordPlaceholder')}
               className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
             />
           </div>
@@ -263,15 +263,15 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
           disabled={form.formState.isSubmitting}
           className="w-full mt-2"
         >
-          {t('login')}
+          {t('login.submit')}
         </Button>
       </form>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Select Connections</DialogTitle>
-            <DialogDescription>Please configure your connections before logging in.</DialogDescription>
+            <DialogTitle>{t('common.selectConnections')}</DialogTitle>
+            <DialogDescription>{t('common.configureConnections')}</DialogDescription>
           </DialogHeader>
           <Form {...connectionForm}>
             <form onSubmit={connectionForm.handleSubmit(onStep2Submit)} className="space-y-4">
@@ -284,7 +284,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
                 <ConnectionSelect key={index} conn={conn} index={index} form={connectionForm} />
               ))}
               <Button type="submit" className="w-full mt-4" disabled={isSecondStepSubmitting}>
-                Confirm
+                {t('login.submit')}
               </Button>
             </form>
           </Form>

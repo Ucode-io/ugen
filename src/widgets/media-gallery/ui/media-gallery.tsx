@@ -18,9 +18,10 @@ import { MediaCard } from './media-card'
 import { MediaActionBar } from './media-action-bar'
 import { FileUploadModal } from '@/features/file-upload'
 import { MediaViewerModal } from './media-viewer-modal'
-import { Button } from '@/shared/ui/ui/button'
+import { Button } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import { MediaSkeleton } from './media-skeleton'
+import { useTranslations } from 'next-intl'
 import { useEffect, useRef } from 'react'
 
 interface MediaGalleryProps {
@@ -36,6 +37,7 @@ export const MediaGallery = ({
   activeMenuId = 'media',
   folderPath = 'media'
 }: MediaGalleryProps) => {
+  const t = useTranslations('widgets.mediaGallery')
   const {
     data,
     isLoading: isQueryLoading,
@@ -186,11 +188,10 @@ export const MediaGallery = ({
               </div>
               <div className="space-y-2">
                 <h3 className="text-text-main text-xl font-bold">
-                  Failed to load files
+                  {t('failedToLoad')}
                 </h3>
                 <p className="text-text-muted max-w-[300px]">
-                  Something went wrong while fetching the data. Please check
-                  your connection.
+                  {t('errorDescription')}
                 </p>
               </div>
               <Button
@@ -199,7 +200,7 @@ export const MediaGallery = ({
                 className="h-12 rounded-xl px-8"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Retry
+                {t('retry')}
               </Button>
             </motion.div>
           ) : filteredFiles.length === 0 && !searchQuery ? (
@@ -215,18 +216,17 @@ export const MediaGallery = ({
                   <CloudUpload className="text-primary h-10 w-10" />
                 </div>
                 <h3 className="text-text-main text-xl font-bold">
-                  No Assets Yet
+                  {t('noAssets')}
                 </h3>
                 <p className="text-text-muted mt-2 max-w-[280px]">
-                  Your media gallery is empty. Upload your first image, video,
-                  or document to get started.
+                  {t('emptyDescription')}
                 </p>
                 <Button
                   onClick={() => setIsModalOpen(true)}
                   className="bg-primary hover:bg-primary/90 shadow-primary/20 mt-8 h-auto scale-102 rounded-2xl px-8 py-6 text-lg font-bold text-white shadow-xl transition-all hover:scale-105 active:scale-95"
                 >
                   <PlusCircle className="mr-2 h-6 w-6" />
-                  Create item
+                  {t('createItem')}
                 </Button>
               </div>
             </motion.div>
@@ -275,12 +275,12 @@ export const MediaGallery = ({
                 {isFetchingNextPage && (
                   <div className="text-primary flex items-center gap-2 font-medium">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Loading more...</span>
+                    <span>{t('loadingMore')}</span>
                   </div>
                 )}
                 {!hasNextPage && files.length > 19 && (
                   <div className="text-text-muted text-sm font-medium">
-                    You've reached the end
+                    {t('reachedEnd')}
                   </div>
                 )}
               </div>
@@ -306,3 +306,4 @@ export const MediaGallery = ({
     </div>
   );
 }
+

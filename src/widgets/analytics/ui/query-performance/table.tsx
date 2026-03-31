@@ -18,13 +18,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/shared/ui/ui/table";
+} from "@/shared/ui";
 import { Info, ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/shared/ui/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 export const QueryPerformanceTable = () => {
+  const t = useTranslations('widgets.analytics');
   const { queryPerformanceFilters, expandedQueryRow, toggleExpandedQueryRow } = useAnalyticsStore();
   const { data: queries, isLoading } = useQueryPerformance(queryPerformanceFilters);
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -32,7 +34,7 @@ export const QueryPerformanceTable = () => {
   const columns: ColumnDef<QueryPerformanceMetric>[] = [
     {
       accessorKey: "query",
-      header: "Query",
+      header: t("query"),
       cell: ({ row }) => (
         <div className="max-w-[300px] truncate font-mono text-xs">
           <HighlightSQL query={row.original.query} />
@@ -41,7 +43,7 @@ export const QueryPerformanceTable = () => {
     },
     {
       accessorKey: "timeConsumedSeconds",
-      header: ({ column }) => <SortableHeader column={column} title="Time consumed" />,
+      header: ({ column }) => <SortableHeader column={column} title={t("timeConsumed")} />,
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="text-text-main font-medium">{row.original.timeConsumedPercent}%</span>
@@ -51,37 +53,37 @@ export const QueryPerformanceTable = () => {
     },
     {
       accessorKey: "calls",
-      header: ({ column }) => <SortableHeader column={column} title="Calls" />,
+      header: ({ column }) => <SortableHeader column={column} title={t("calls")} />,
       cell: ({ row }) => <span>{row.original.calls.toLocaleString()}</span>,
     },
     {
       accessorKey: "maxTime",
-      header: ({ column }) => <SortableHeader column={column} title="Max time" />,
+      header: ({ column }) => <SortableHeader column={column} title={t("maxTime")} />,
       cell: ({ row }) => <TimeCell value={row.original.maxTime} />,
     },
     {
       accessorKey: "meanTime",
-      header: ({ column }) => <SortableHeader column={column} title="Mean time" />,
+      header: ({ column }) => <SortableHeader column={column} title={t("meanTime")} />,
       cell: ({ row }) => <TimeCell value={row.original.meanTime} />,
     },
     {
       accessorKey: "minTime",
-      header: ({ column }) => <SortableHeader column={column} title="Min time" />,
+      header: ({ column }) => <SortableHeader column={column} title={t("minTime")} />,
       cell: ({ row }) => <TimeCell value={row.original.minTime} />,
     },
     {
       accessorKey: "rowsProcessed",
-      header: ({ column }) => <SortableHeader column={column} title="Rows processed" />,
+      header: ({ column }) => <SortableHeader column={column} title={t("rowsProcessed")} />,
       cell: ({ row }) => <span>{row.original.rowsProcessed.toLocaleString()}</span>,
     },
     {
       accessorKey: "cacheHitRate",
-      header: ({ column }) => <SortableHeader column={column} title="Cache hit rate" />,
+      header: ({ column }) => <SortableHeader column={column} title={t("cacheHitRate")} />,
       cell: ({ row }) => <span>{row.original.cacheHitRate}%</span>,
     },
     {
       accessorKey: "role",
-      header: "Role",
+      header: t("role"),
       cell: ({ row }) => (
         <div className="flex items-center gap-1.5">
           <span className="text-xs">{row.original.role}</span>
@@ -90,7 +92,7 @@ export const QueryPerformanceTable = () => {
               <TooltipTrigger>
                 <Info className="w-3 h-3 text-text-muted" />
               </TooltipTrigger>
-              <TooltipContent>Postgres Role: {row.original.role}</TooltipContent>
+              <TooltipContent>{t("postgresRole", { role: row.original.role })}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -159,7 +161,7 @@ export const QueryPerformanceTable = () => {
                           className="overflow-hidden"
                         >
                           <div className="p-6 bg-hover-bg/30 border-y border-border-subtle">
-                            <h4 className="text-xs font-bold text-text-muted uppercase mb-3">Full Query</h4>
+                            <h4 className="text-xs font-bold text-text-muted uppercase mb-3">{t("fullQuery")}</h4>
                             <div className="bg-bg-card p-4 rounded-lg border border-border-subtle overflow-x-auto">
                               <pre className="font-mono text-xs whitespace-pre-wrap leading-relaxed">
                                 <HighlightSQL query={row.original.query} />

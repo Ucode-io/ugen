@@ -10,7 +10,8 @@ import { useAuthStore } from '@/entities/session'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
 
 export const Header = () => {
-  const t = useTranslations('Navigation')
+  const tNav = useTranslations('Navigation')
+  const tWidgets = useTranslations('widgets.header')
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
   const { isAuthenticated, setActiveView } = useAuthStore()
@@ -44,19 +45,19 @@ export const Header = () => {
         </Link>
         <nav className="hidden md:flex items-center gap-6">
           <Link href="/#databases" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
-            Databases
+            {tWidgets('databases')}
           </Link>
           <Link href="/#edge-functions" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
-            Edge Functions
+            {tWidgets('edgeFunctions')}
           </Link>
           <Link href="/#features" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
-            Features
+            {tWidgets('features')}
           </Link>
           <Link href="/pricing" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
-            Pricing
+            {tWidgets('pricing')}
           </Link>
           <Link href="/#integrations" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
-            Integrations
+            {tWidgets('integrations')}
           </Link>
         </nav>
       </div>
@@ -73,7 +74,7 @@ export const Header = () => {
               onClick={() => setActiveView('dashboard')}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 cursor-pointer"
             >
-              Open ugen
+              {tWidgets('openUgen')}
             </button>
           ) : (
             <>
@@ -81,13 +82,13 @@ export const Header = () => {
                 onClick={() => openAuth('login')}
                 className="text-sm font-medium text-text-main hover:text-primary transition-colors cursor-pointer"
               >
-                {t('login')}
+                {tNav('login')}
               </button>
               <button
                 onClick={() => openAuth('register')}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 cursor-pointer"
               >
-                {t('get_started')}
+                {tNav('get_started')}
               </button>
             </>
           )}

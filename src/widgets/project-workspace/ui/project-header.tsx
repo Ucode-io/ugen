@@ -2,7 +2,7 @@
 import { PanelLeftClose, PanelRightClose, ChevronLeft, CodeXml, Globe, LayoutDashboard } from "lucide-react"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
-import { ReusableTabs } from "@/shared/ui/tabs"
+import { ReusableTabs } from "@/shared/ui"
 
 interface ProjectHeaderProps {
   projectTitle: string

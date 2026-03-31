@@ -6,23 +6,23 @@ import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
-import { PhoneInputReusable } from "@/shared/ui/phone-input"
-import { Button } from "@/shared/ui/ui/button"
-import { Input } from "@/shared/ui/ui/input"
+import { PhoneInputReusable } from "@/shared/ui"
+import { Button } from "@/shared/ui"
+import { Input } from "@/shared/ui"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/shared/ui/ui/dialog"
+} from "@/shared/ui"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/ui/ui/select"
+} from "@/shared/ui"
 import { useClientTypes, useRoles, useCreateUser, useUpdateUser } from "../api/users"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 

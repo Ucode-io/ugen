@@ -1,15 +1,17 @@
 'use client'
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { Plus, Edit2, Shield, Globe, Users2, Database, AlertCircle, RefreshCw, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
-import { Button } from "@/shared/ui/ui/button"
+import { Button } from "@/shared/ui"
 import { useClientTypes, ClientType } from "@/entities/client-type"
 import { ClientTypeModal } from "@/features/client-type-form"
-import { DataLoadingState, DataErrorState } from "@/shared/ui/data-states"
+import { DataLoadingState, DataErrorState } from "@/shared/ui"
 
 export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
+  const t = useTranslations('widgets.clientTypeManagement')
   const { data: clientTypes = [], isLoading, isError, refetch } = useClientTypes(projectId)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -26,13 +28,13 @@ export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
   }
 
   if (isLoading) {
-    return <DataLoadingState message="Loading client platforms..." />
+    return <DataLoadingState message={t('loading')} />
   }
 
   if (isError) {
     return (
       <DataErrorState
-        title="Failed to load Client Types"
+        title={t('error')}
         onRetry={() => refetch()}
       />
     )
@@ -43,10 +45,10 @@ export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-text-main to-text-muted bg-clip-text text-transparent">
-            Client Types
+            {t('title')}
           </h1>
           <p className="text-text-muted text-sm mt-1">
-            Manage your project's authentication platforms and user scopes.
+            {t('subtitle')}
           </p>
         </div>
         <Button
@@ -54,7 +56,7 @@ export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
           className="rounded-lg px-8"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Add Client Type
+          {t('add')}
         </Button>
       </div>
 
@@ -89,7 +91,7 @@ export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
                         </h3>
                         {item.is_system && (
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-tighter">
-                            System
+                            {t('system')}
                           </span>
                         )}
                       </div>
@@ -114,7 +116,7 @@ export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-bg-sidebar border border-border-subtle/50 group-hover:border-border-subtle transition-colors">
                     <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-tight">
                       <Users2 size={13} strokeWidth={2.5} />
-                      Sessions
+                      {t('sessions')}
                     </div>
                     <span className="text-sm font-bold text-text-main">{item.session_limit}</span>
                   </div>
@@ -122,20 +124,20 @@ export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-bg-sidebar border border-border-subtle/50 group-hover:border-border-subtle transition-colors">
                     <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-tight">
                       <Globe size={13} strokeWidth={2.5} />
-                      Registration
+                      {t('registration')}
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.self_register ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-text-muted/10 text-text-muted border border-text-muted/20'}`}>
-                      {item.self_register ? 'Public' : 'Private'}
+                      {item.self_register ? t('public') : t('private')}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-bg-sidebar border border-border-subtle/50 group-hover:border-border-subtle transition-colors">
                     <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-tight">
                       <RefreshCw size={13} strokeWidth={2.5} />
-                      Recovery
+                      {t('recovery')}
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.self_recover ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'bg-text-muted/10 text-text-muted border border-text-muted/20'}`}>
-                      {item.self_recover ? 'Enabled' : 'Disabled'}
+                      {item.self_recover ? t('enabled') : t('disabled')}
                     </span>
                   </div>
                 </div>
@@ -165,3 +167,4 @@ export const ClientTypeManagement = ({ projectId }: { projectId: string }) => {
     </div>
   )
 }
+

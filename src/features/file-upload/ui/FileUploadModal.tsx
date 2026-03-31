@@ -10,8 +10,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter
-} from '@/shared/ui/ui/dialog'
-import { Button } from '@/shared/ui/ui/button'
+} from '@/shared/ui'
+import { Button } from '@/shared/ui'
 import { useFileUpload } from '../model/use-file-upload'
 
 interface FileUploadModalProps {

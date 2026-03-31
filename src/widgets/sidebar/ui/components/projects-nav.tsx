@@ -36,7 +36,7 @@ const FolderEmptyDropZone = ({ folderId }: { folderId: string }) => {
       ref={setNodeRef}
       className={`py-1.5 px-2 text-xs text-center border border-dashed rounded-lg transition-colors mx-1 ${isOver ? 'bg-primary/10 border-primary text-primary' : 'border-transparent text-text-muted/50'}`}
     >
-      Drop here
+      {useTranslations('widgets.sidebar')('dropHere')}
     </div>
   )
 }
@@ -109,7 +109,9 @@ const FolderNodeContent = ({ folder, level, isCollapsed, attributes, listeners, 
   const [editName, setEditName] = useState(folder.label)
   const [isHovered, setIsHovered] = useState(false)
   const [isCreatingChild, setIsCreatingChild] = useState(false)
-  const [newChildName, setNewChildName] = useState('New folder')
+  const tNav = useTranslations('Navigation')
+  const tWidgets = useTranslations('widgets.sidebar')
+  const [newChildName, setNewChildName] = useState(tNav('new_folder'))
   const newChildInputRef = useRef<HTMLInputElement>(null)
 
   const { data: children } = useProjectFolders(folder.id, undefined, isOpen || isHovered)
@@ -134,7 +136,7 @@ const FolderNodeContent = ({ folder, level, isCollapsed, attributes, listeners, 
       }, {
         onSuccess: () => {
           setIsCreatingChild(false)
-          setNewChildName('New folder')
+          setNewChildName(tNav('new_folder'))
           setIsOpen(true)
         }
       })
@@ -215,21 +217,21 @@ const FolderNodeContent = ({ folder, level, isCollapsed, attributes, listeners, 
             <button
               onClick={(e) => { e.stopPropagation(); setIsCreatingChild(true); setIsOpen(true); }}
               className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
-              title="Add child"
+              title={tWidgets("addChild")}
             >
               <Plus size={12} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
               className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
-              title="Edit"
+              title={tWidgets("edit")}
             >
               <Edit2 size={12} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); deleteFolder.mutate(folder.id); }}
               className="p-1 hover:bg-red-500/10 hover:text-red-500 rounded"
-              title="Delete"
+              title={tWidgets("delete")}
             >
               <Trash2 size={12} />
             </button>
@@ -275,7 +277,7 @@ interface ProjectsNavProps {
 }
 
 export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOpen }: ProjectsNavProps) => {
-  const t = useTranslations('Navigation')
+  const tNav = useTranslations('Navigation')
   const { data: rootFolders } = useProjectFolders(undefined, undefined, !isCollapsed && isAllProjectsOpen)
   const createFolder = useCreateProjectFolder()
   const updateFolder = useUpdateProjectFolder()
@@ -284,7 +286,7 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
 
   const [activeItem, setActiveItem] = useState<ProjectFolder | null>(null)
   const [isCreatingRoot, setIsCreatingRoot] = useState(false)
-  const [newRootName, setNewRootName] = useState('New folder')
+  const [newRootName, setNewRootName] = useState(tNav('new_folder'))
   const rootInputRef = useRef<HTMLInputElement>(null)
 
   const sensors = useSensors(
@@ -386,7 +388,7 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
       }, {
         onSuccess: () => {
           setIsCreatingRoot(false)
-          setNewRootName('New folder')
+          setNewRootName(tNav('new_folder'))
           if (!isAllProjectsOpen) setIsAllProjectsOpen(true)
         }
       })
@@ -414,14 +416,14 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
       <div>
         {!isCollapsed && (
           <h3 className="text-text-muted/70 mb-2 px-3 text-xs font-semibold tracking-wide uppercase">
-            {t("projects")}
+            {tNav("projects")}
           </h3>
         )}
         <nav className="space-y-0.5">
           <div>
             <div
               className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex w-full items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "py-1.5 pl-1.5 pr-3"}`}
-              title={isCollapsed ? t("all_projects") : undefined}
+              title={isCollapsed ? tNav("all_projects") : undefined}
             >
               {!isCollapsed && (
                 <button
@@ -446,7 +448,7 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
               >
                 <LayoutGrid size={16} strokeWidth={2} className="shrink-0" />
                 {!isCollapsed && (
-                  <span className="flex-1 truncate text-left">{t("all_projects")}</span>
+                  <span className="flex-1 truncate text-left">{tNav("all_projects")}</span>
                 )}
               </Link>
             </div>
@@ -458,7 +460,7 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
                   className="text-text-muted hover:bg-hover-bg hover:text-text-main flex w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors text-sm"
                 >
                   <FolderPlus size={16} strokeWidth={2} className="shrink-0" />
-                  <span className="truncate">{t("new_folder")}</span>
+                  <span className="truncate">{tNav("new_folder")}</span>
                 </button>
 
                 {isCreatingRoot && (

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Mic, X, Check, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -9,6 +10,7 @@ interface AudioRecorderProps {
 }
 
 export const AudioRecorder = ({ onTranscription, size = 'md' }: AudioRecorderProps) => {
+  const t = useTranslations('shared.audioRecorder');
   const sizeClasses = size === 'sm' ? 'h-8 w-8' : 'h-9 w-9';
   const iconSize = size === 'sm' ? 16 : 18;
   const [isRecording, setIsRecording] = useState(false);
@@ -186,14 +188,14 @@ export const AudioRecorder = ({ onTranscription, size = 'md' }: AudioRecorderPro
             <button
               onClick={handleCancel}
               className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white"
-              title="Cancel"
+              title={t('cancel')}
             >
               <X size={20} />
             </button>
             <button
               onClick={handleConfirm}
               className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white"
-              title="Confirm"
+              title={t('confirm')}
             >
               <Check size={20} />
             </button>
@@ -205,7 +207,7 @@ export const AudioRecorder = ({ onTranscription, size = 'md' }: AudioRecorderPro
         onClick={startRecording}
         disabled={isTranscribing}
         className={`text-text-muted hover:bg-hover-bg hover:text-text-main flex items-center justify-center rounded-full transition-colors disabled:opacity-50 ${sizeClasses} ${isRecording ? 'opacity-0 pointer-events-none' : ''}`}
-        title="Voice message"
+        title={t('voiceMessage')}
       >
         {isTranscribing ? (
           <Loader2 size={iconSize} className="animate-spin" />

@@ -2,13 +2,14 @@
 
 import React from 'react';
 import { Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/ui/select';
+} from '@/shared/ui';
 import { MODELS } from '../model/types';
 import { cn } from '@/shared/lib/utils/cn';
 
@@ -27,6 +28,7 @@ export const ModelSelector = ({
   triggerClassName,
   size = 'md'
 }: ModelSelectorProps) => {
+  const t = useTranslations();
   const sizeClasses = {
     sm: "h-8 px-2 text-xs gap-1.5",
     md: "h-9 px-2.5 text-sm gap-2",
@@ -56,7 +58,7 @@ export const ModelSelector = ({
           )}
         >
           <Sparkles size={iconSize} className="text-primary/60" />
-          <SelectValue placeholder="Model" />
+          <SelectValue placeholder={t('entities.aiModel.modelSelector.placeholder')} />
         </SelectTrigger>
         <SelectContent>
           {MODELS.map((model) => (

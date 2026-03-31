@@ -2,7 +2,7 @@
 
 import { useVisitorBreakdown, useAnalyticsStore } from "@/features/analytics";
 import { BreakdownItem } from "@/entities/analytics";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { Skeleton } from "@/shared/ui";
 import { Monitor, Smartphone, Tablet, Globe, Link2, FileText, LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
 

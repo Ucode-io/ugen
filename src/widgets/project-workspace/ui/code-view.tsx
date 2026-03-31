@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Zap, Layers2 } from 'lucide-react'
-import { ReusableTabs } from '@/shared/ui/tabs'
+import { ReusableTabs } from '@/shared/ui'
 import { FunctionsPage } from './functions-page'
 import { MicrofrontendPage } from './microfrontend-page'
 

@@ -4,16 +4,16 @@ import { useState, useEffect, useMemo } from 'react'
 import { ChevronLeft, Loader2, Trash2, RefreshCw, Box } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi, api } from '@/shared/api'
-import { Button } from '@/shared/ui/ui/button'
-import { Input } from '@/shared/ui/ui/input'
-import { Switch } from '@/shared/ui/ui/switch'
+import { Button } from '@/shared/ui'
+import { Input } from '@/shared/ui'
+import { Switch } from '@/shared/ui'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/ui/select'
+} from '@/shared/ui'
 import {
   Table,
   TableBody,
@@ -21,8 +21,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/shared/ui/ui/table'
-import { DataLoadingState } from '@/shared/ui/data-states'
+} from '@/shared/ui'
+import { DataLoadingState } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 
 // Resource type options — these are static, no API needed

@@ -1,7 +1,7 @@
 "use client"
 
 import { useVisitorStats, useAnalyticsStore } from "@/features/analytics";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { Skeleton } from "@/shared/ui";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export const VisitorsMainChart = () => {

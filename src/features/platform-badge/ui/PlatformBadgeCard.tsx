@@ -1,8 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Eye, EyeOff } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
-import { Button } from "@/shared/ui/button";
+import { Card, CardTitle, CardDescription, CardContent, Button } from "@/shared/ui";
 
 interface PlatformBadgeCardProps {
   isVisible: boolean;
@@ -10,17 +10,21 @@ interface PlatformBadgeCardProps {
 }
 
 export const PlatformBadgeCard = ({ isVisible, onToggle }: PlatformBadgeCardProps) => {
+  const t = useTranslations('features.platformBadge')
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="space-y-1.5">
-          <CardTitle className="text-xl">Platform Badge</CardTitle>
-          <CardDescription className="text-base">
-            The &quot;Edit with Ugen&quot; badge is currently {isVisible ? (
-              <span className="text-green-500 font-semibold italic">visible</span>
-            ) : (
-              <span className="text-text-muted font-semibold italic">hidden</span>
-            )} on your application
+          <CardTitle className="text-xl">{t('title')}</CardTitle>
+          <CardDescription className="text-base text-text-muted">
+            {t.rich('description', {
+              status: () => (
+                <span className={isVisible ? "text-green-500 font-semibold italic" : "text-text-muted font-semibold italic"}>
+                  {isVisible ? t('visible') : t('hidden')}
+                </span>
+              )
+            })}
           </CardDescription>
         </div>
         <Button
@@ -29,7 +33,7 @@ export const PlatformBadgeCard = ({ isVisible, onToggle }: PlatformBadgeCardProp
           onClick={onToggle}
           leftIcon={isVisible ? EyeOff : Eye}
         >
-          {isVisible ? "Hide Badge" : "Show Badge"}
+          {isVisible ? t('hideBadge') : t('showBadge')}
         </Button>
       </CardContent>
     </Card>

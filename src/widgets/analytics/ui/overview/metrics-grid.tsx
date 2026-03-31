@@ -3,10 +3,12 @@
 import { useOverviewMetrics } from "@/features/analytics";
 import { useAnalyticsStore } from "@/entities/analytics";
 import { MetricCard } from "@/entities/analytics/ui/metrics-card";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { Skeleton } from "@/shared/ui";
 import { Zap, Network, HardDrive, Activity, Cpu, BarChart2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export const MetricsGrid = () => {
+  const t = useTranslations('widgets.analytics');
   const { activePeriod } = useAnalyticsStore();
   const { data: metrics, isLoading } = useOverviewMetrics(activePeriod);
 
@@ -38,7 +40,7 @@ export const MetricsGrid = () => {
           value={metric.value}
           unit={metric.unit}
           icon={iconMap[metric.id]}
-          tooltip={`Analytics for ${metric.title}`}
+          tooltip={t("metricTooltip", { title: metric.title })}
           onClick={() => console.log(`Clicked ${metric.id}`)}
         />
       ))}

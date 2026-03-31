@@ -1,6 +1,7 @@
 'use client'
 import { Rocket } from 'lucide-react'
-import { Button } from '@/shared/ui/ui/button'
+import { Button } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 
 export const StartProjectButton = ({ 
   className, 
@@ -11,6 +12,7 @@ export const StartProjectButton = ({
   variant?: any,
   children?: React.ReactNode 
 }) => {
+  const t = useTranslations('Navigation')
   const handleClick = () => {
     window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))
   }
@@ -24,7 +26,7 @@ export const StartProjectButton = ({
     >
       {children || (
         <>
-          Start your project
+          {t('get_started')}
           <Rocket size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
         </>
       )}

@@ -4,14 +4,15 @@ import { Loader2 } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
-import { Checkbox } from "@/shared/ui/checkbox";
+import { Checkbox } from "@/shared/ui";
 import { api } from "@/shared/api";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import React from 'react';
-import { BpmnViewer } from "@/shared/ui/bpmn-viewer";
+import { BpmnViewer } from "@/shared/ui";
 import { bpmnXmlContnet } from "./bpmn";
-import { FlowDiagram } from "@/shared/ui/flow-diagram";
+import { FlowDiagram } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -50,47 +51,7 @@ interface Question {
   options: QuestionOption[];
 }
 
-const QUESTION_DATA: Question[] = [
-  {
-    id: 'panel-type',
-    title: 'Какой тип админ панеля вы хотите ?',
-    type: 'multi',
-    options: [
-      { id: 'crm', label: 'Админ панель для CRM систем' },
-      { id: 'tms', label: 'Админ панель для TMS систем' },
-      { id: 'erp', label: 'Админ панель для ERP систем' },
-    ]
-  },
-  {
-    id: 'framework',
-    title: 'Выберите фреймворк',
-    type: 'single',
-    options: [
-      { id: 'nextjs', label: 'Next.js (Recommended)' },
-      { id: 'vite', label: 'Vite + React' },
-      { id: 'remix', label: 'Remix' },
-    ]
-  },
-  {
-    id: 'features',
-    title: 'Дополнительные функции',
-    type: 'multi',
-    options: [
-      { id: 'auth', label: 'Авторизация' },
-      { id: 'i18n', label: 'Интернационализация' },
-      { id: 'pwa', label: 'PWA поддержка' },
-      { id: 'analytics', label: 'Аналитика' },
-    ]
-  }
-];
 
-const MOCK_CHAT: Message[] = [
-  {
-    id: '1',
-    role: 'ai',
-    content: "Hi there! I am your AI assistant for this workspace. How can I help you build your project today? \n\nYou can ask me to write code, debug issues, or plan architecture."
-  }
-]
 
 const PendingActionConfirm = ({
   action,
@@ -101,14 +62,15 @@ const PendingActionConfirm = ({
   onConfirm: (approved: boolean, text: string) => void,
   disabled: boolean
 }) => {
+  const t = useTranslations('widgets.workspaceChat');
   const isDelete = action.action === 'delete';
   const isCreate = action.action === 'create';
   const isUpdate = action.action === 'update';
 
-  let btnText = '✓ Да, подтвердить';
-  if (isCreate) btnText = '✓ Да, создать';
-  if (isUpdate) btnText = '✓ Да, обновить';
-  if (isDelete) btnText = '✓ Да, удалить';
+  let btnText = t('pendingAction.confirm');
+  if (isCreate) btnText = t('pendingAction.create');
+  if (isUpdate) btnText = t('pendingAction.update');
+  if (isDelete) btnText = t('pendingAction.delete');
 
   const showBulkInfo = action.affected_count > 1;
 
@@ -121,9 +83,9 @@ const PendingActionConfirm = ({
       {showBulkInfo && (
         <div className={`text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-md w-fit
           ${isDelete ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
-          {isDelete ? `Будет удалено ${action.affected_count} записей` :
-            isUpdate ? `Будет обновлено ${action.affected_count} записей` :
-              `Будет создано ${action.affected_count} записей`}
+          {isDelete ? t('pendingAction.bulkDelete', { count: action.affected_count }) :
+            isUpdate ? t('pendingAction.bulkUpdate', { count: action.affected_count }) :
+              t('pendingAction.bulkCreate', { count: action.affected_count })}
         </div>
       )}
 
@@ -136,7 +98,7 @@ const PendingActionConfirm = ({
       <div className="flex items-center gap-2 mt-2">
         <button
           disabled={disabled}
-          onClick={() => onConfirm(true, "Да")}
+          onClick={() => onConfirm(true, t("pendingAction.yes"))}
           className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50
             ${isDelete
               ? 'bg-destructive text-white hover:bg-destructive/90 shadow-sm'
@@ -147,10 +109,10 @@ const PendingActionConfirm = ({
         </button>
         <button
           disabled={disabled}
-          onClick={() => onConfirm(false, "Нет")}
+          onClick={() => onConfirm(false, t("pendingAction.no"))}
           className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl text-text-main bg-bg-main hover:bg-hover-bg border border-border-subtle transition-all active:scale-95 disabled:opacity-50"
         >
-          ✕ Отмена
+          {t('pendingAction.cancel')}
         </button>
       </div>
     </div>
@@ -158,6 +120,50 @@ const PendingActionConfirm = ({
 }
 
 export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatProps) => {
+  const t = useTranslations('widgets.workspaceChat');
+
+  const QUESTION_DATA: Question[] = [
+    {
+      id: 'panel-type',
+      title: t('questions.panelType.title'),
+      type: 'multi',
+      options: [
+        { id: 'crm', label: t('questions.panelType.crm') },
+        { id: 'tms', label: t('questions.panelType.tms') },
+        { id: 'erp', label: t('questions.panelType.erp') },
+      ]
+    },
+    {
+      id: 'framework',
+      title: t('questions.framework.title'),
+      type: 'single',
+      options: [
+        { id: 'nextjs', label: t('questions.framework.nextjs') },
+        { id: 'vite', label: t('questions.framework.vite') },
+        { id: 'remix', label: t('questions.framework.remix') },
+      ]
+    },
+    {
+      id: 'features',
+      title: t('questions.features.title'),
+      type: 'multi',
+      options: [
+        { id: 'auth', label: t('questions.features.auth') },
+        { id: 'i18n', label: t('questions.features.i18n') },
+        { id: 'pwa', label: t('questions.features.pwa') },
+        { id: 'analytics', label: t('questions.features.analytics') },
+      ]
+    }
+  ];
+
+  const MOCK_CHAT: Message[] = [
+    {
+      id: '1',
+      role: 'ai',
+      content: t('mockMessage')
+    }
+  ]
+
   const [width, setWidth] = useState(550);
   const [isResizing, setIsResizing] = useState(false);
   const dragStartWidthRef = useRef(550);
@@ -553,7 +559,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
               <div className="flex w-full justify-start px-4">
                 <div className="flex items-center gap-2 text-text-muted text-sm italic py-2">
                   <Loader2 className="animate-spin" size={16} />
-                  <span>Thinking...</span>
+                  <span>{t('thinking')}</span>
                 </div>
               </div>
             )}
@@ -569,7 +575,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                     {QUESTION_DATA[currentQuestionIndex].title}
                   </h4>
                   <span className="text-[10px] font-bold text-text-muted bg-bg-sidebar px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                    Step {currentQuestionIndex + 1} / {QUESTION_DATA.length}
+                    {t('questionnaire.step', { current: currentQuestionIndex + 1, total: QUESTION_DATA.length })}
                   </span>
                 </div>
 
@@ -621,7 +627,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                     />
                     <input
                       type="text"
-                      placeholder="Свой ответ"
+                      placeholder={t('questionnaire.ownAnswer')}
                       value={customAnswers[QUESTION_DATA[currentQuestionIndex].id] || ''}
                       onChange={(e) => handleCustomAnswerChange(
                         QUESTION_DATA[currentQuestionIndex].id,
@@ -639,7 +645,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                     disabled={currentQuestionIndex === 0}
                     className="text-xs font-bold text-text-muted hover:text-text-main disabled:opacity-30 disabled:pointer-events-none transition-colors px-3 py-1.5 rounded-lg hover:bg-hover-bg"
                   >
-                    ← Back
+                    {t('questionnaire.back')}
                   </button>
                   {currentQuestionIndex === QUESTION_DATA.length - 1 ? (
                     <button
@@ -647,7 +653,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                       disabled={!(answers[QUESTION_DATA[currentQuestionIndex].id]?.length || customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim())}
                       className="text-xs font-bold bg-primary text-white px-6 py-1.5 rounded-lg hover:bg-primary/90 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
                     >
-                      Finish
+                      {t('questionnaire.finish')}
                     </button>
                   ) : (
                     <button
@@ -655,7 +661,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                       disabled={!(answers[QUESTION_DATA[currentQuestionIndex].id]?.length || customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim())}
                       className="text-xs font-bold bg-primary text-white px-4 py-1.5 rounded-lg hover:bg-primary/90 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
                     >
-                      Next Step →
+                      {t('questionnaire.nextStep')}
                     </button>
                   )}
                 </div>

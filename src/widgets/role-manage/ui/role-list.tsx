@@ -8,14 +8,13 @@ import {
   User,
   Key,
   RefreshCw,
-  Info
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 
-import { Button } from "@/shared/ui/ui/button"
-import { DataLoadingState, DataErrorState } from "@/shared/ui/data-states"
+import { Button } from "@/shared/ui"
+import { DataLoadingState, DataErrorState } from "@/shared/ui"
 import { roleApi, Role } from "@/entities/role/api/role-api"
 import { useAuthStore } from "@/entities/session"
 import { useClientTypes } from "@/entities/client-type"
@@ -25,17 +24,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/shared/ui/ui/dialog"
-import { Input } from "@/shared/ui/ui/input"
-import { Switch } from "@/shared/ui/ui/switch"
+} from "@/shared/ui"
+import { Input } from "@/shared/ui"
+import { Switch } from "@/shared/ui"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/ui/ui/select"
+} from "@/shared/ui"
 import { cn } from "@/shared/lib/utils/cn"
+import { useTranslations } from "next-intl"
 
 interface RoleFormValues {
   name: string;
@@ -44,7 +44,7 @@ interface RoleFormValues {
 }
 
 export const RoleList = ({ projectId }: { projectId: string }) => {
-
+  const t = useTranslations('widgets.roleManage')
   const queryClient = useQueryClient()
 
   const [selectedClientTypeId, setSelectedClientTypeId] = useState('')
@@ -152,7 +152,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
   }
 
   if (isLoading && !rolesData) {
-    return <DataLoadingState message="Loading roles..." />
+    return <DataLoadingState message={t('loading')} />
   }
 
   return (
@@ -160,10 +160,10 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-text-main to-text-muted bg-clip-text text-transparent">
-            Roles Management
+            {t('title')}
           </h1>
           <p className="text-text-muted text-sm mt-1">
-            Manage your project's roles and permissions.
+            {t('subtitle')}
           </p>
         </div>
         <Button
@@ -171,13 +171,13 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
           className="rounded-lg px-8 bg-primary hover:bg-primary/90 text-white"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Add Role
+          {t('add')}
         </Button>
       </div>
 
       {isError ? (
         <DataErrorState
-          title="Failed to load Roles"
+          title={t('error')}
           onRetry={() => refetch()}
         />
       ) : (
@@ -189,7 +189,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                 animate={{ opacity: 1 }}
                 className="col-span-full py-12 text-center text-text-muted bg-bg-card border border-border-subtle rounded-2xl border-dashed"
               >
-                No roles found.
+                {t('noRoles')}
               </motion.div>
             ) : (
               rolesData?.map((item: Role, index: number) => (
@@ -232,7 +232,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                             </div>
                             {item.is_system && (
                               <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-tighter">
-                                System
+                                {t('system')}
                               </span>
                             )}
                           </div>
@@ -253,7 +253,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                       <div className="flex items-center justify-between p-2.5 rounded-xl bg-bg-sidebar border border-border-subtle/50 group-hover:border-border-subtle transition-colors">
                         <div className="flex items-center gap-2 text-xs font-semibold text-text-muted uppercase tracking-tight">
                           <RefreshCw size={13} strokeWidth={2.5} />
-                          Status
+                          {t('status')}
                         </div>
                         <span className={cn(
                           "text-[10px] font-bold px-2 py-0.5 rounded-full border",
@@ -261,7 +261,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                             ? 'bg-green-500/10 text-green-500 border-green-500/20'
                             : 'bg-destructive/10 text-destructive border-destructive/20'
                         )}>
-                          {item.status ? 'Active' : 'Inactive'}
+                          {item.status ? t('active') : t('inactive')}
                         </span>
                       </div>
                     </div>
@@ -278,19 +278,19 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
           <DialogHeader>
             <DialogTitle className="uppercase text-text-main flex items-center gap-2">
               <Shield className="w-5 h-5 text-primary" />
-              {isEdit ? 'Edit Role' : 'Create Role'}
+              {isEdit ? t('editRole') : t('createRole')}
             </DialogTitle>
             <DialogDescription className="text-text-muted">
-              {isEdit ? 'Update role details and its operational status.' : 'Fill in the details below to define a new application role.'}
+              {isEdit ? t('editDescription') : t('createDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 mt-4">
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide ml-1">Role Name</p>
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide ml-1">{t('roleName')}</p>
               <Input
                 {...register('name', { required: true, minLength: 2 })}
-                placeholder="Manager, Moderator, etc."
+                placeholder={t('roleNamePlaceholder')}
                 className="bg-bg-sidebar border-border-subtle focus:border-primary/50"
               />
               {errors.name && (
@@ -300,13 +300,13 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
 
             {!isEdit ? (
               <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide ml-1">Client Type</p>
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide ml-1">{t('clientType')}</p>
                 <Select
                   value={watchedClientType}
                   onValueChange={(v) => setValue('client_type_id', v)}
                 >
                   <SelectTrigger className="bg-bg-sidebar border-border-subtle text-text-main">
-                    <SelectValue placeholder="Select client type" />
+                    <SelectValue placeholder={t('selectClientType')} />
                   </SelectTrigger>
                   <SelectContent className="bg-bg-card border-border-subtle">
                     {clientTypes.map(ct => (
@@ -322,7 +322,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
               </div>
             ) : (
               <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide ml-1">Client Type</p>
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide ml-1">{t('clientType')}</p>
                 <div className="p-2.5 rounded-lg bg-bg-sidebar/50 border border-border-subtle text-sm text-text-muted font-medium">
                   {clientTypes.find(c => c.guid === selectedItem?.client_type_id)?.name || 'Unknown'}
                 </div>
@@ -338,9 +338,9 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                   {watchedStatus ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-text-main">Status</p>
+                  <p className="text-sm font-bold text-text-main">{t('status')}</p>
                   <p className="text-[11px] text-text-muted leading-tight">
-                    {watchedStatus ? 'Role is active and usable' : 'Role is inactive'}
+                    {watchedStatus ? t('statusDescription.active') : t('statusDescription.inactive')}
                   </p>
                 </div>
               </div>
@@ -358,7 +358,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                 disabled={isPending}
                 className="text-text-muted hover:text-text-main"
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 type="submit"
@@ -368,9 +368,9 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                 {isPending ? (
                   <div className="flex items-center gap-2">
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    Saving...
+                    {t('saving')}
                   </div>
-                ) : isEdit ? 'Save Changes' : 'Create Role'}
+                ) : isEdit ? t('save') : t('createRole')}
               </Button>
             </div>
           </form>

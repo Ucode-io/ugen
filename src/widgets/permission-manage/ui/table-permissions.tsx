@@ -16,26 +16,27 @@ import {
   Loader2,
   X
 } from 'lucide-react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/ui/table'
-import { Button } from '@/shared/ui/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui'
+import { Button } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi, api } from '@/shared/api'
-import { DataLoadingState, DataErrorState } from '@/shared/ui/data-states'
+import { DataLoadingState, DataErrorState } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/shared/ui/ui/dialog'
+} from '@/shared/ui'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/ui/ui/select"
+} from "@/shared/ui"
 import { useAuthStore } from '@/entities/session'
 import { toast } from "sonner";
 
@@ -158,6 +159,7 @@ const ActionButton = ({ icon: Icon, onClick, label }: { icon: any, onClick: () =
 )
 
 export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermissionsProps) => {
+  const t = useTranslations('widgets.permissionManage.tablePermissions')
   const queryClient = useQueryClient()
   const [modalState, setModalState] = useState<{ type: string | null, tableIndex: number | null }>({ type: null, tableIndex: null })
   const [filterType, setFilterType] = useState('read')
@@ -296,7 +298,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
     enabled: modalState.type === 'filter'
   })
 
-  if (isLoading) return <DataLoadingState message="Fetching granular permissions..." />
+  if (isLoading) return <DataLoadingState message={t('fetching')} />
   if (isError) return <DataErrorState onRetry={() => refetch()} />
 
   return (
@@ -304,7 +306,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
       <div className="flex items-center justify-between px-6 pt-4">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-primary" />
-          <span className="text-sm font-bold text-text-main uppercase tracking-tight">Granular Table Controls</span>
+          <span className="text-sm font-bold text-text-main uppercase tracking-tight">{t('title')}</span>
         </div>
         <Button
           disabled={isSaving}
@@ -312,7 +314,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
           className="bg-primary hover:bg-primary/90 text-white rounded-xl px-6"
         >
           {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-          Save Changes
+          {t('save')}
         </Button>
       </div>
 
@@ -330,28 +332,28 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
                         <TableIcon size={16} className="text-primary" />
                       </div>
-                      <span className="text-[14px] tracking-tight">Data Objects</span>
+                      <span className="text-[14px] tracking-tight">{t('objectsHeader')}</span>
                     </div>
                   </TableHead>
                   <TableHead colSpan={5} className="text-center py-4 border-b border-border-subtle/40 bg-bg-sidebar">
                     <div className="flex items-center justify-center gap-2">
                       <ShieldCheck size={14} className="text-primary" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted/60">Record Level Permissions</span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted/60">{t('recordLevelHeader')}</span>
                     </div>
                   </TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">Field</TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">Action</TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">Relation</TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">View</TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 rounded-tr-2xl">Custom</TableHead>
+                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">{t('fieldHeader')}</TableHead>
+                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">{t('actionHeader')}</TableHead>
+                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">{t('relationHeader')}</TableHead>
+                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">{t('viewHeader')}</TableHead>
+                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 rounded-tr-2xl">{t('customHeader')}</TableHead>
                 </TableRow>
                 <TableRow className="border-b-border-subtle/60 bg-bg-sidebar hover:bg-bg-sidebar transition-none">
                   {[
-                    { label: 'Read', field: 'read' },
-                    { label: 'Write', field: 'write' },
-                    { label: 'Update', field: 'update' },
-                    { label: 'Delete', field: 'delete' },
-                    { label: 'Public', field: 'is_public' }
+                    { label: t('read'), field: 'read' },
+                    { label: t('write'), field: 'write' },
+                    { label: t('update'), field: 'update' },
+                    { label: t('delete'), field: 'delete' },
+                    { label: t('public'), field: 'is_public' }
                   ].map(({ label, field }) => (
                     <TableHead key={label} className="w-[130px] text-center py-3">
                       <label className="flex items-center justify-center gap-2 group/header cursor-pointer select-none">
@@ -422,19 +424,19 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
                     </TableCell>
 
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={TableIcon} label="Fields" onClick={() => openModal('field', index)} />
+                      <ActionButton icon={TableIcon} label={t('fieldHeader')} onClick={() => openModal('field', index)} />
                     </TableCell>
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={Zap} label="Actions" onClick={() => openModal('action', index)} />
+                      <ActionButton icon={Zap} label={t('actionHeader')} onClick={() => openModal('action', index)} />
                     </TableCell>
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={LinkIcon} label="Relations" onClick={() => openModal('relation', index)} />
+                      <ActionButton icon={LinkIcon} label={t('relationHeader')} onClick={() => openModal('relation', index)} />
                     </TableCell>
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={Eye} label="Views" onClick={() => openModal('view', index)} />
+                      <ActionButton icon={Eye} label={t('viewHeader')} onClick={() => openModal('view', index)} />
                     </TableCell>
                     <TableCell className="text-center align-middle">
-                      <ActionButton icon={Settings2} label="Custom" onClick={() => openModal('custom', index)} />
+                      <ActionButton icon={Settings2} label={t('customHeader')} onClick={() => openModal('custom', index)} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -454,10 +456,10 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
                 </div>
                 <div>
                   <DialogTitle className="text-xl font-bold tracking-tight text-text-main">
-                    Configure {modalState.type.charAt(0).toUpperCase() + modalState.type.slice(1)} Settings
+                    {t('configTitle', { type: modalState.type.charAt(0).toUpperCase() + modalState.type.slice(1) })}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-text-muted mt-0.5">
-                    Modifying granular controls for <span className="text-primary font-bold">{tables[modalState.tableIndex!]?.label}</span>
+                    {t('modifyingFor', { label: tables[modalState.tableIndex!]?.label })}
                   </DialogDescription>
                 </div>
               </div>
@@ -479,10 +481,10 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
 
             <div className="mt-6 pt-4 border-t border-border-subtle flex justify-end items-center gap-3">
               <Button variant="ghost" onClick={closeModal} className="px-6 font-semibold">
-                Close
+                {t('close')}
               </Button>
               <Button onClick={closeModal} className="px-8 rounded-xl font-bold bg-primary hover:bg-primary/90">
-                Confirm
+                {t('confirm')}
               </Button>
             </div>
           </DialogContent>
@@ -503,6 +505,7 @@ const ModalContent = ({
   relationsData,
   connectionsData
 }: any) => {
+  const t = useTranslations('widgets.permissionManage.tablePermissions')
   const table = watch(`tables.${tableIndex}`)
 
   if (type === 'field') {
@@ -522,7 +525,7 @@ const ModalContent = ({
         <TableHeader>
           <TableRow className="bg-bg-sidebar/30">
             <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
-            <TableHead className="text-[10px] uppercase font-bold text-text-muted">Field Name</TableHead>
+            <TableHead className="text-[10px] uppercase font-bold text-text-muted">{t('fieldHeader')} Name</TableHead>
             <TableHead className="w-[120px] text-center">
               <label className="flex flex-col items-center gap-1 cursor-pointer">
                 <input
@@ -531,7 +534,7 @@ const ModalContent = ({
                   onChange={(e) => handleToggleAll('view_permission', e.target.checked)}
                   className="w-4 h-4 rounded border-border-subtle accent-primary"
                 />
-                <span className="text-[9px] uppercase font-bold text-text-muted">View</span>
+                <span className="text-[9px] uppercase font-bold text-text-muted">{t('view')}</span>
               </label>
             </TableHead>
             <TableHead className="w-[120px] text-center">
@@ -542,7 +545,7 @@ const ModalContent = ({
                   onChange={(e) => handleToggleAll('edit_permission', e.target.checked)}
                   className="w-4 h-4 rounded border-border-subtle accent-primary"
                 />
-                <span className="text-[9px] uppercase font-bold text-text-muted">Edit</span>
+                <span className="text-[9px] uppercase font-bold text-text-muted">{t('update')}</span>
               </label>
             </TableHead>
           </TableRow>
@@ -589,14 +592,14 @@ const ModalContent = ({
 
   if (type === 'action') {
     const actions = table.action_permissions || []
-    if (actions.length === 0) return <p className="text-center text-text-muted text-sm py-8">No actions available.</p>
+    if (actions.length === 0) return <p className="text-center text-text-muted text-sm py-8">{t('noActions')}</p>
 
     return (
       <Table>
         <TableHeader>
           <TableRow className="bg-bg-sidebar/30">
             <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
-            <TableHead className="text-[10px] uppercase font-bold text-text-muted">Action Name</TableHead>
+            <TableHead className="text-[10px] uppercase font-bold text-text-muted">{t('actionHeader')} Name</TableHead>
             <TableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted">Permission</TableHead>
           </TableRow>
         </TableHeader>
@@ -628,14 +631,14 @@ const ModalContent = ({
 
   if (type === 'relation') {
     const rels = table.view_permissions || []
-    if (rels.length === 0) return <p className="text-center text-text-muted text-sm py-8">No relations defined.</p>
+    if (rels.length === 0) return <p className="text-center text-text-muted text-sm py-8">{t('noRelations')}</p>
 
     return (
       <Table>
         <TableHeader>
           <TableRow className="bg-bg-sidebar/30">
             <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
-            <TableHead className="text-[10px] uppercase font-bold text-text-muted">Relation Source</TableHead>
+            <TableHead className="text-[10px] uppercase font-bold text-text-muted">{t('relationHeader')} Source</TableHead>
             <TableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted">View Permission</TableHead>
           </TableRow>
         </TableHeader>
@@ -667,7 +670,7 @@ const ModalContent = ({
 
   if (type === 'view') {
     const views = table.table_view_permissions || []
-    if (views.length === 0) return <p className="text-center text-text-muted text-sm py-8">No specific views configured.</p>
+    if (views.length === 0) return <p className="text-center text-text-muted text-sm py-8">{t('noViews')}</p>
 
     return (
       <Table>
@@ -675,9 +678,9 @@ const ModalContent = ({
           <TableRow className="bg-bg-sidebar/30">
             <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
             <TableHead className="text-[10px] uppercase font-bold text-text-muted">View Label</TableHead>
-            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">View</TableHead>
-            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">Edit</TableHead>
-            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">Delete</TableHead>
+            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">{t('view')}</TableHead>
+            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">{t('update')}</TableHead>
+            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">{t('delete')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -781,6 +784,7 @@ const ModalContent = ({
 }
 
 const FilterRows = ({ tableIndex, filterType, control, relationsData, connectionsData }: any) => {
+  const t = useTranslations('widgets.permissionManage.tablePermissions')
   const { fields, append, remove } = useFieldArray({
     control,
     name: `tables.${tableIndex}.automatic_filters.${filterType}`
@@ -791,7 +795,7 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
       <div className="space-y-3">
         {fields.length === 0 ? (
           <div className="text-center py-10 bg-bg-sidebar/20 rounded-2xl border border-dashed border-border-subtle">
-            <p className="text-text-muted text-xs">No active filters. Records will be fully accessible.</p>
+            <p className="text-text-muted text-xs">{t('noFilters')}</p>
           </div>
         ) : (
           fields.map((item, idx) => (
@@ -799,14 +803,14 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
               <div className="flex-1 space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider ml-1">Connect To</p>
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('connectTo')}</p>
                     <Controller
                       name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.object_field`}
                       control={control}
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger className="h-10 bg-bg-sidebar border-border-subtle text-text-main text-xs">
-                            <SelectValue placeholder="Select connection" />
+                            <SelectValue placeholder={t('selectConnection')} />
                           </SelectTrigger>
                           <SelectContent className="bg-bg-card border-border-subtle">
                             {connectionsData?.map((c: any) => (
@@ -820,14 +824,14 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider ml-1">Table Relation</p>
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('tableRelation')}</p>
                     <Controller
                       name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.custom_field`}
                       control={control}
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger className="h-10 bg-bg-sidebar border-border-subtle text-text-main text-xs">
-                            <SelectValue placeholder="Select relation" />
+                            <SelectValue placeholder={t('selectRelation')} />
                           </SelectTrigger>
                           <SelectContent className="bg-bg-card border-border-subtle">
                             {relationsData?.map((r: any) => (
@@ -861,7 +865,7 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
         className="w-full h-11 border border-dashed border-border-subtle text-text-muted hover:text-primary hover:border-primary/30 rounded-2xl gap-2 font-semibold text-xs transition-all"
       >
         <Plus size={16} />
-        Add New Filter Condition
+        {t('addNewFilter')}
       </Button>
     </div>
   )

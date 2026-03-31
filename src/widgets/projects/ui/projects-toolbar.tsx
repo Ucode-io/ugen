@@ -18,7 +18,7 @@ export const ProjectsToolbar = ({
   searchQuery,
   setSearchQuery
 }: ProjectsToolbarProps) => {
-  const t = useTranslations('Navigation')
+  const t = useTranslations('widgets.projects')
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -27,7 +27,7 @@ export const ProjectsToolbar = ({
           <Search className="text-text-muted shrink-0" size={18} />
           <input
             type="text"
-            placeholder="Search projects..."
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-transparent text-sm text-text-main outline-none placeholder:text-text-muted"
@@ -37,7 +37,7 @@ export const ProjectsToolbar = ({
         <button
           onClick={() => setCanSelectProject(!canSelectProject)}
           className={`flex items-center justify-center rounded-xl border border-border-subtle p-2 transition-colors ${canSelectProject ? 'bg-bg-secondary text-bg-main' : 'bg-input-bg text-text-muted hover:bg-hover-bg hover:text-text-main'}`}
-          title="Toggle Selection Mode"
+          title={t("toggleSelection")}
         >
           <SquareDashed size={16} />
         </button>
@@ -46,14 +46,14 @@ export const ProjectsToolbar = ({
           <button
             onClick={() => setViewType("grid")}
             className={`rounded-lg transition-colors p-2 ${viewType === 'grid' ? 'bg-input-bg text-text-main shadow-sm' : 'text-text-muted hover:text-text-main'}`}
-            title="Grid View"
+            title={t("gridView")}
           >
             <LayoutGrid size={14} />
           </button>
           <button
             onClick={() => setViewType("list")}
             className={`rounded-lg transition-colors p-2 ${viewType === 'list' ? 'bg-input-bg text-text-main shadow-sm' : 'text-text-muted hover:text-text-main'}`}
-            title="List View"
+            title={t("listView")}
           >
             <List size={14} />
           </button>

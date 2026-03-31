@@ -15,7 +15,7 @@ import {
   Lock,
   Settings2
 } from 'lucide-react'
-import { ReusableTabs } from '@/shared/ui/tabs'
+import { ReusableTabs } from '@/shared/ui'
 import { useDatabaseStore, DatabaseView } from '@/entities/database'
 import {
   TablesView,
@@ -30,7 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 
 export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
-  const t = useTranslations('databaseStudio')
+  const t = useTranslations('widgets.databaseStudio')
   const { currentView, setCurrentView, breadcrumbs, resetToTables } = useDatabaseStore()
   const [activeTab, setActiveTab] = useState('tables')
 

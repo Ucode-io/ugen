@@ -100,7 +100,7 @@ export const DashboardSidebar = ({
                             key={sub.id}
                             onClick={() => onSelectSection(sub.id)}
                             className={cn(
-                              "flex items-center gap-3.5 pl-10 pr-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 group relative",
+                              "flex items-center gap-3.5 pl-14 pr-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 group relative",
                               isActive
                                 ? "bg-primary/5 text-primary shadow-[inset_0_0_0_1px_rgba(var(--primary-rgb),0.05)]"
                                 : "text-text-muted/80 hover:text-text-main hover:bg-white/[0.02] active:scale-[0.98]"
@@ -109,7 +109,7 @@ export const DashboardSidebar = ({
                             {isActive && (
                               <motion.div
                                 layoutId="active-indicator-sub"
-                                className="absolute left-4 w-1 h-4 bg-primary rounded-full shadow-[0_0_8px_rgba(var(--primary-colors-main),0.5)]"
+                                className="absolute left-8 w-1 h-4 bg-primary rounded-full shadow-[0_0_8px_rgba(var(--primary-colors-main),0.5)]"
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                               />
                             )}

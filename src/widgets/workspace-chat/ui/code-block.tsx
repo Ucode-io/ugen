@@ -6,6 +6,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Check, Copy } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/shared/lib/utils/cn';
+import { useTranslations } from 'next-intl';
 
 interface CodeBlockProps {
   language: string;
@@ -13,6 +14,7 @@ interface CodeBlockProps {
 }
 
 const CodeBlock = ({ language, value }: CodeBlockProps) => {
+  const t = useTranslations('workspaceChat');
   const [isCopied, setIsCopied] = useState(false);
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -61,12 +63,12 @@ const CodeBlock = ({ language, value }: CodeBlockProps) => {
           {isCopied ? (
             <>
               <Check size={14} className="text-primary" />
-              <span className="text-primary">Copied!</span>
+              <span className="text-primary">{t('codeBlock.copied')}</span>
             </>
           ) : (
             <>
               <Copy size={14} className="opacity-70" />
-              <span>Copy</span>
+              <span>{t('codeBlock.copy')}</span>
             </>
           )}
         </button>

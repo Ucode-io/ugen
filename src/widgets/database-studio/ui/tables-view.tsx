@@ -4,7 +4,7 @@ import React from 'react'
 import { Table as TableIcon, ChevronRight, Trash2 } from 'lucide-react'
 import { useTables, useDatabaseStore, useDeleteTable } from '@/entities/database'
 import { useAuthStore } from '@/entities/session'
-import { Skeleton } from '@/shared/ui/skeleton'
+import { Skeleton } from '@/shared/ui'
 import { Table } from '@/entities/database/model/types'
 import { useTranslations } from 'next-intl'
 import {
@@ -14,12 +14,12 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/shared/ui/ui/dialog'
-import { Button } from '@/shared/ui/button'
+} from '@/shared/ui'
+import { Button } from '@/shared/ui'
 import { toast } from 'sonner'
 
 export const TablesView = () => {
-  const t = useTranslations('databaseStudio')
+  const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
   const { data: tables, isLoading } = useTables()
   const { setSelectedTable, setCurrentView } = useDatabaseStore()

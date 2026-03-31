@@ -4,13 +4,13 @@ import React, { useState, useEffect } from 'react'
 import Editor from '@monaco-editor/react'
 import { Play, Terminal, ChevronLeft, RefreshCw, Sparkles, AlertCircle } from 'lucide-react'
 import { useDatabaseStore, useExecuteQuery } from '@/entities/database'
-import { DataTable } from '@/shared/ui/data-table'
+import { DataTable } from '@/shared/ui'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
 
 import { useTranslations } from 'next-intl'
 
 export const QueryView = () => {
-  const t = useTranslations('databaseStudio')
+  const t = useTranslations('widgets.databaseStudio')
   const { theme } = useUIStore()
   const { selectedTable, setCurrentView } = useDatabaseStore()
   const executeMutation = useExecuteQuery()

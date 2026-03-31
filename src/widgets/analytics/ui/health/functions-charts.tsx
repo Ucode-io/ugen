@@ -3,7 +3,7 @@
 import * as React from "react";
 import dynamic from 'next/dynamic';
 import { useHealthMetrics, useAnalyticsStore } from "@/features/analytics";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { Skeleton } from "@/shared/ui";
 
 // Use dynamic import for chart to avoid hydration issues with Recharts in Next.js 15
 const AnalyticsChart = dynamic(() => import("@/entities/analytics/ui/analytics-chart").then(mod => mod.AnalyticsChart), { 

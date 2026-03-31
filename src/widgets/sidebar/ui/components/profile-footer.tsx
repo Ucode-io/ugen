@@ -44,7 +44,8 @@ export const ProfileFooter = ({
   router,
   handleLogout,
 }: ProfileFooterProps) => {
-  const t = useTranslations('Navigation')
+  const tNav = useTranslations('Navigation')
+  const tWidgets = useTranslations('widgets.sidebar')
 
   return (
     <div
@@ -54,7 +55,7 @@ export const ProfileFooter = ({
       {isCollapsed ? (
         <button
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2e2b5c] transition-opacity hover:opacity-90"
-          title={t("upgrade_pro")}
+          title={tNav("upgrade_pro")}
         >
           <Zap size={16} className="fill-white text-white" />
         </button>
@@ -62,10 +63,10 @@ export const ProfileFooter = ({
         <div className="bg-bg-card border-border-subtle group flex cursor-pointer items-center justify-between rounded-xl border p-3.5 shadow-sm transition-colors hover:border-[#4f46e5]/50 hover:bg-[#4f46e5]/5">
           <div>
             <h4 className="text-text-main text-sm font-bold">
-              {t("upgrade_pro")}
+              {tNav("upgrade_pro")}
             </h4>
             <p className="text-text-muted mt-0.5 text-xs tracking-tight">
-              {t("unlock_benefits")}
+              {tNav("unlock_benefits")}
             </p>
           </div>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2e2b5c]">
@@ -114,7 +115,7 @@ export const ProfileFooter = ({
                   className="hover:bg-hover-bg text-text-main flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors"
                 >
                   <UserIcon size={16} className="text-text-muted" />
-                  <span>Profile</span>
+                  <span>{tWidgets('profile')}</span>
                 </Link>
                 <Link
                   href="/settings"
@@ -122,7 +123,7 @@ export const ProfileFooter = ({
                   className="hover:bg-hover-bg text-text-main flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors"
                 >
                   <Settings size={16} className="text-text-muted" />
-                  <span>Settings</span>
+                  <span>{tWidgets('settings')}</span>
                 </Link>
                 <div
                   className="relative z-[110]"
@@ -132,14 +133,14 @@ export const ProfileFooter = ({
                   <button className="hover:bg-hover-bg text-text-main flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-sm transition-colors">
                     <div className="flex items-center gap-2.5">
                       <Palette size={16} className="text-text-muted" />
-                      <span>Appearance</span>
+                      <span>{tWidgets('appearance')}</span>
                     </div>
                     <ChevronRight size={14} className="text-text-muted" />
                   </button>
                   {isThemeMenuOpen && (
                     <div className="bg-bg-card border-border-subtle absolute bottom-0 left-[calc(100%-8px)] z-[120] min-w-[180px] space-y-0.5 rounded-xl border p-1.5 shadow-xl">
                       <div className="text-text-muted/70 mb-1 px-2 py-1 text-xs font-semibold uppercase">
-                        Theme
+                        {tWidgets('theme')}
                       </div>
                       {["light", "dark"].map((tOption) => (
                         <button
@@ -155,7 +156,7 @@ export const ProfileFooter = ({
                           }}
                           className={`hover:bg-hover-bg flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-sm capitalize ${theme === tOption ? "text-primary bg-primary/5 font-medium" : "text-text-main"}`}
                         >
-                          <span>{tOption}</span>
+                          <span>{tWidgets(tOption)}</span>
                           {theme === tOption && (
                             <Check size={14} className="text-primary" />
                           )}
@@ -173,7 +174,7 @@ export const ProfileFooter = ({
                   className="hover:bg-hover-bg text-text-main flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors"
                 >
                   <Home size={16} className="text-text-muted" />
-                  <span>Home page</span>
+                  <span>{tWidgets('homePage')}</span>
                 </button>
               </div>
               {/* Footer */}
@@ -186,7 +187,7 @@ export const ProfileFooter = ({
                     size={16}
                     className="text-text-muted group-hover:text-red-500"
                   />
-                  <span>Logout</span>
+                  <span>{tWidgets('logout')}</span>
                 </button>
               </div>
             </div>

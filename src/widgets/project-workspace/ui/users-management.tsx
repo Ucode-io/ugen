@@ -4,9 +4,9 @@ import { useState, useEffect, useMemo } from "react"
 import { UserPlus, Trash2 } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 
-import { ReusableTabs } from "@/shared/ui/tabs"
-import { DataTable } from "@/shared/ui/data-table"
-import { Button } from "@/shared/ui/ui/button"
+import { ReusableTabs } from "@/shared/ui"
+import { DataTable } from "@/shared/ui"
+import { Button } from "@/shared/ui"
 import { useAuthStore } from "@/entities/session"
 import { InviteUserModal } from "./invite-user-modal"
 import { useClientTypes, useRoles, useUsers, useDeleteUser } from "../api/users"
@@ -18,7 +18,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/shared/ui/ui/dialog"
+} from "@/shared/ui"
 
 interface User {
   id: string

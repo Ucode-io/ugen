@@ -4,11 +4,12 @@ import { RefreshCw } from "lucide-react";
 import { PeriodSelector } from "@/entities/analytics/ui/period-selector";
 import { MetricsGrid } from "./metrics-grid";
 import { ServiceHealthList } from "./service-health";
-import { useAnalyticsStore } from "@/entities/analytics";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/shared/ui/button";
+import { Button } from "@/shared/ui";
+import { useTranslations } from "next-intl";
 
 export const OverviewTab = () => {
+  const t = useTranslations('widgets.analytics');
   const queryClient = useQueryClient();
   
   const handleRefresh = () => {
@@ -18,7 +19,7 @@ export const OverviewTab = () => {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-text-main">Database Overview</h2>
+        <h2 className="text-lg font-semibold text-text-main">{t("databaseOverview")}</h2>
         <div className="flex items-center gap-3">
           <PeriodSelector />
           <Button
@@ -37,7 +38,7 @@ export const OverviewTab = () => {
       </section>
 
       <section className="space-y-4">
-        <h3 className="text-md font-medium text-text-main">Service Health</h3>
+        <h3 className="text-md font-medium text-text-main">{t("serviceHealth")}</h3>
         <ServiceHealthList />
       </section>
     </div>

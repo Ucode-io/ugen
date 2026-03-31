@@ -6,13 +6,15 @@ import { format } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 
 import { cn } from '@/shared/lib/utils/cn'
-import { Button } from '@/shared/ui/ui/button'
-import { Calendar } from '@/shared/ui/ui/calendar'
+import { Button } from '@/shared/ui'
+import { Calendar } from '@/shared/ui'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/shared/ui/ui/popover'
+} from '@/shared/ui'
+
+import { useTranslations } from 'next-intl'
 
 interface DatePickerWithRangeProps {
   className?: string
@@ -25,6 +27,7 @@ export function DatePickerWithRange({
   date,
   setDate,
 }: DatePickerWithRangeProps) {
+  const t = useTranslations('shared.dateRangePicker')
   return (
     <div className={cn('grid gap-2', className)}>
       <Popover>
@@ -48,7 +51,7 @@ export function DatePickerWithRange({
                   format(date.from, 'LLL dd, y')
                 )
               ) : (
-                <span>Pick a date range</span>
+                <span>{t('placeholder')}</span>
               )}
             </span>
           </Button>

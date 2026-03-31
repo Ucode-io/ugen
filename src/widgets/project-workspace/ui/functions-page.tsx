@@ -14,15 +14,15 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { api } from '@/shared/api'
-import { Button } from '@/shared/ui/ui/button'
-import { Input } from '@/shared/ui/ui/input'
+import { Button } from '@/shared/ui'
+import { Input } from '@/shared/ui'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/ui/select'
+} from '@/shared/ui'
 import {
   Dialog,
   DialogContent,
@@ -30,10 +30,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/shared/ui/ui/dialog'
-import { DataTable } from '@/shared/ui/data-table'
-import { ReusableTabs } from '@/shared/ui/tabs'
-import { DataLoadingState } from '@/shared/ui/data-states'
+} from '@/shared/ui'
+import { DataTable } from '@/shared/ui'
+import { ReusableTabs } from '@/shared/ui'
+import { DataLoadingState } from '@/shared/ui'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { cn } from '@/shared/lib/utils/cn'
 

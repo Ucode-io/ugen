@@ -4,24 +4,8 @@ import { useEffect } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
-
-import { Button } from "@/shared/ui/ui/button"
-import { Input } from "@/shared/ui/ui/input"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/ui/select"
-import { Switch } from "@/shared/ui/ui/switch"
+import { useTranslations } from "next-intl"
+import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, FormControl } from "@/shared/ui"
 import { clientTypeSchema, ClientTypeFormValues } from "../model/schema"
 import { ClientType, useCreateClientType, useUpdateClientType } from "@/entities/client-type"
 import { useLoginTables } from "@/entities/collection"
@@ -39,6 +23,7 @@ export const ClientTypeModal = ({
   projectId,
   initialData,
 }: ClientTypeModalProps) => {
+  const t = useTranslations('features.clientTypeForm')
   const isEdit = !!initialData
   const createMutation = useCreateClientType(projectId)
   const updateMutation = useUpdateClientType(projectId)
@@ -121,10 +106,10 @@ export const ClientTypeModal = ({
       <DialogContent className="max-w-md p-0 flex flex-col max-h-[90vh] overflow-hidden">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="uppercase">
-            {isEdit ? "Edit Client Type" : "New Client Type"}
+            {isEdit ? t('titleEdit') : t('titleNew')}
           </DialogTitle>
           <DialogDescription>
-            Configure platform settings and user registration behavior.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -132,17 +117,17 @@ export const ClientTypeModal = ({
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="flex flex-col gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Display Name</label>
+                <label className="text-sm font-medium text-text-main">{t('displayName')}</label>
                 <Input
                   {...register("name")}
-                  placeholder="e.g. Admin, Customer"
+                  placeholder={t('displayNamePlaceholder')}
                   disabled={isLoading}
                 />
                 {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Table</label>
+                <label className="text-sm font-medium text-text-main">{t('table')}</label>
                 <Controller
                   name="table_slug"
                   control={control}
@@ -152,9 +137,11 @@ export const ClientTypeModal = ({
                       value={tableOptions.find((opt: any) => opt.value === field.value)?.value}
                       disabled={isLoading}
                     >
-                      <SelectTrigger className="bg-bg-sidebar">
-                        <SelectValue placeholder={isLoadingTables ? "Loading..." : "Select table"} />
-                      </SelectTrigger>
+                      <FormControl>
+                        <SelectTrigger className="bg-bg-sidebar">
+                          <SelectValue placeholder={isLoadingTables ? t('loading') : t('tablePlaceholder')} />
+                        </SelectTrigger>
+                      </FormControl>
                       <SelectContent>
                         {tableOptions.map((opt: any) => (
                           <SelectItem key={opt.value} value={opt.value}>
@@ -169,17 +156,17 @@ export const ClientTypeModal = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Default Page URL</label>
+                <label className="text-sm font-medium text-text-main">{t('defaultPageUrl')}</label>
                 <Input
                   {...register("default_page")}
-                  placeholder="https://app.social.com/dashboard"
+                  placeholder={t('defaultPageUrlPlaceholder')}
                   disabled={isLoading}
                 />
                 {errors.default_page && <p className="text-xs text-destructive">{errors.default_page.message}</p>}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Session Limit</label>
+                <label className="text-sm font-medium text-text-main">{t('sessionLimit')}</label>
                 <Input
                   {...register("session_limit", { valueAsNumber: true })}
                   type="number"
@@ -190,7 +177,7 @@ export const ClientTypeModal = ({
 
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border-subtle bg-bg-sidebar">
-                  <span className="text-sm font-medium text-text-main">Self Recover</span>
+                  <span className="text-sm font-medium text-text-main">{t('selfRecover')}</span>
                   <Controller
                     name="self_recover"
                     control={control}
@@ -201,7 +188,7 @@ export const ClientTypeModal = ({
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border-subtle bg-bg-sidebar">
-                  <span className="text-sm font-medium text-text-main">Self Register</span>
+                  <span className="text-sm font-medium text-text-main">{t('selfRegister')}</span>
                   <Controller
                     name="self_register"
                     control={control}
@@ -230,9 +217,9 @@ export const ClientTypeModal = ({
               {isLoading ? (
                 <Loader2 size={18} className="animate-spin" />
               ) : isEdit ? (
-                "Save Changes"
+                t('saveChanges')
               ) : (
-                "Create Type"
+                t('createType')
               )}
             </Button>
           </div>

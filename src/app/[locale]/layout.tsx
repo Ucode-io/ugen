@@ -6,7 +6,7 @@ import "@/app/globals.css";
 import { siteConfig } from "@/shared/config";
 import { routing } from "@/shared/lib/i18n";
 import { ThemeProvider, QueryProvider } from "@/shared/providers";
-import { ViewLayoutWrapper } from "@/shared/ui/view-layout-wrapper";
+import { ViewLayoutWrapper } from "@/shared/ui";
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],

@@ -28,7 +28,11 @@
     "analytics": "Analitika",
     "browse_all": "Barchasini ko\"rish",
     "recently_viewed": "Yaqinda ko\"rilganlar",
-    "my_projects": "Mening loyihalarim"
+    "my_projects": "Mening loyihalarim",
+    "move": "Ko'chirish",
+    "edit": "Tahrirlash",
+    "delete": "O'chirish",
+    "deleting": "O'chirilmoqda..."
   },
   "Templates": {
     "title": "Shablonlar",
@@ -67,6 +71,98 @@
       "createProject": "Loyihangizni yarating",
       "emptyProjectDesc": "Sizning ish maydoningiz hozirda bo`sh. Chatda nima qurmoqchi ekanligingizni tasvirlab bering va AI siz uchun materiallar va arxitekturani soniyalar ichida yaratib beradi.",
       "startChatting": "Suhbatni boshlash"
+    },
+    "auth": {
+      "login": {
+        "title": "Xush kelibsiz",
+        "subtitle": "Hisobingizga kiring",
+        "loginLabel": "Login",
+        "passwordLabel": "Parol",
+        "forgotPassword": "Unutdingizmi?",
+        "loginPlaceholder": "Loginingizni kiriting",
+        "passwordPlaceholder": "Parolingizni kiriting",
+        "submit": "Kirish"
+      },
+      "register": {
+        "title": "Hisob yaratish",
+        "subtitle": "Boshlash uchun Ugen-ga qo'shiling",
+        "companyName": "Kompaniya nomi",
+        "companyPlaceholder": "Kompaniya nomini kiriting",
+        "loginLabel": "Foydalanuvchi logini",
+        "loginPlaceholder": "Loginingizni kiriting",
+        "emailLabel": "Email",
+        "emailPlaceholder": "Emailingizni kiriting",
+        "passwordLabel": "Parol",
+        "passwordPlaceholder": "Parol yarating",
+        "submit": "Hisob yaratish"
+      },
+      "common": {
+        "authTitle": "Autentifikatsiya",
+        "authDescription": "Hisobingizga kiring yoki ro'yxatdan o'ting.",
+        "ariaClose": "Yopish",
+        "selectConnections": "Ulanishlarni tanlang",
+        "configureConnections": "Tizimga kirishdan oldin ulanishlarni sozlang."
+      }
+    },
+    "appVisibility": {
+      "title": "Ilova ko'rinishi",
+      "description": "Ilovangizga kirishni nazorat qiling",
+      "placeholder": "Ko'rinishni tanlang",
+      "requireLogin": "Kirish uchun login talab qilinadi",
+      "options": {
+        "public": "Ommaviy",
+        "private": "Maxfiy",
+        "teamOnly": "Faqat jamoa uchun"
+      }
+    },
+    "clientTypeForm": {
+      "titleEdit": "Mijoz turini tahrirlash",
+      "titleNew": "Yangi mijoz turi",
+      "description": "Platforma sozlamalarini va foydalanuvchilarni ro'yxatdan o'tkazish xatti-harakatlarini sozlang.",
+      "displayName": "Ko'rsatiladigan ism",
+      "displayNamePlaceholder": "masalan, Admin, Mijoz",
+      "table": "Jadval",
+      "tablePlaceholder": "Jadvalni tanlang",
+      "loading": "Yuklanmoqda...",
+      "defaultPageUrl": "Standart sahifa URL",
+      "defaultPageUrlPlaceholder": "https://app.social.com/dashboard",
+      "sessionLimit": "Seans limiti",
+      "selfRecover": "O'zini tiklash",
+      "selfRegister": "O'zini ro'yxatdan o'tkazish",
+      "saveChanges": "O'zgarishlarni saqlash",
+      "createType": "Tur yaratish"
+    },
+    "inviteUsers": {
+      "title": "Foydalanuvchilarni taklif qilish",
+      "description": "Boshqalarni taklif qilish orqali foydalanuvchilar bazasini kengaytiring",
+      "copyLink": "Ssilkani nusxalash",
+      "copied": "Nusxalandi!",
+      "sendInvites": "Taklifnomalar yuborish"
+    },
+    "platformBadge": {
+      "title": "Platforma nishoni",
+      "description": "«Edit with Ugen» nishoni hozirda ilovangizda {status} holatida",
+      "visible": "ko'rinadigan",
+      "hidden": "yashiringan",
+      "hideBadge": "Nishonni yashirish",
+      "showBadge": "Nishonni ko'rsatish"
+    },
+    "search": {
+      "title": "Qidiruv",
+      "description": "Loyiha va jildlarni qidirish",
+      "placeholder": "Loyiha va jildlarni qidirish",
+      "searchResults": "Qidiruv natijalari",
+      "recentProjects": "Yaqinda foydalanilgan loyihalar",
+      "noProjects": "Loyihalar topilmadi.",
+      "untitledProject": "Nomsiz loyiha",
+      "unknownAuthor": "Noma'lum muallif",
+      "recently": "Yaqinda"
+    },
+    "langSwitcher": {
+      "placeholder": "Til"
+    },
+    "themeSwitcher": {
+      "ariaLabel": "Mavzuni o'zgartirish"
     }
   },
   "databaseStudio": {
@@ -138,6 +234,672 @@
       "securityComingSoon": "Xavfsizlik auditi tez orada kutilmoqda",
       "advancedComingSoon": "Kengaytirilgan sozlamalar tez orada kutilmoqda",
       "noLogs": "Loglar topilmadi"
+    }
+  },
+  "entities": {
+    "aiModel": {
+      "modelSelector": {
+        "placeholder": "Model"
+      }
+    },
+    "analytics": {
+      "periodSelector": {
+        "placeholder": "Davrni tanlang",
+        "last24h": "Oxirgi 24 soat",
+        "last7d": "Oxirgi 7 kun",
+        "last30d": "Oxirgi 30 kun",
+        "last90d": "Oxirgi 90 kun"
+      }
+    }
+  },
+  "shared": {
+    "dataStates": {
+      "loading": "Ma'lumotlar yuklanmoqda...",
+      "errorTitle": "Ma'lumotlarni yuklab bo'lmadi",
+      "errorDescription": "Serverdan ro'yxatni ololmadik. Iltimos, qaytadan urinib ko'ring.",
+      "retry": "Qayta urinish"
+    },
+    "dataTable": {
+      "emptyMessage": "Natijalar topilmadi.",
+      "rowsPerPage": "Sahifadagi qatorlar",
+      "showingEntries": "{total} ta yozuvdan {start} dan {end} gacha ko'rsatilmoqda"
+    },
+    "pagination": {
+      "previous": "Oldingi",
+      "next": "Keyingi",
+      "morePages": "Ko'proq sahifalar",
+      "paginationAria": "paginatsiya",
+      "previousAria": "Oldingi sahifaga o'tish",
+      "nextAria": "Keyingi sahifaga o'tish"
+    },
+    "audioRecorder": {
+      "start": "Yozishni boshlash",
+      "stop": "Yozishni to'xtatish",
+      "cancel": "Bekor qilish",
+      "confirm": "Tasdiqlash",
+      "voiceMessage": "Golosli xabar",
+      "delete": "O'chirish",
+      "upload": "Yuklash",
+      "uploading": "Yuklanmoqda...",
+      "processing": "Ishlov berilmoqda...",
+      "error": "Audioga yozishda xatolik"
+    },
+    "bpmnViewer": {
+      "loading": "BPMN yuklanmoqda...",
+      "error": "BPMNni yuklashda xatolik",
+      "noXml": "BPMN XML taqdim etilmagan",
+      "parseError": "BPMN XMLni tahlil qilib bo'lmadi",
+      "protocol": "BPMN Protokoli",
+      "title": "Jarayon oqimi",
+      "summary": "{lanes} rollar · {nodes} vazifalar · {crossFlows} qatorlararo bog'lanishlar",
+      "deselectHint": "Tanlovni bekor qilish uchun qayta bosing",
+      "step": "{index}-qadam",
+      "unnamedLane": "Nomsiz qator",
+      "nodeTypes": {
+        "start": "boshlanish",
+        "end": "tugash",
+        "gateway": "shlyuz",
+        "task": "vazifa"
+      },
+      "crossLaneTrigger": "qatorlararo tetik",
+      "triggeredBy": "{lane} tomonidan tetiklangan",
+      "otherLane": "boshqa qator",
+      "interactivity": "Qatorlararo o'zaro ta'sir"
+    },
+    "errorBoundary": {
+      "title": "Nimadir noto'g'ri ketdi",
+      "description": "Kutilmagan xatolik yuz berdi.",
+      "retry": "Qayta urinib ko'rish",
+      "goHome": "Bosh sahifaga qaytish"
+    },
+    "dateRangePicker": {
+      "placeholder": "Sana oralig'ini tanlang"
+    }
+  },
+  "widgets": {
+    "header": {
+      "databases": "Ma'lumotlar bazalari",
+      "edgeFunctions": "Edge funksiyalar",
+      "features": "Imkoniyatlar",
+      "pricing": "Narxlar",
+      "integrations": "Integratsiyalar",
+      "openUgen": "ugen'ni ochish"
+    },
+    "footer": {
+      "copyright": "© {year} Ucode UI. Barcha huquqlar himoyalangan."
+    },
+    "common": {
+      "save": "Saqlash",
+      "cancel": "Bekor qilish",
+      "delete": "O'chirish",
+      "edit": "Tahrirlash",
+      "add": "Qo'shish",
+      "confirm": "Tasdiqlash",
+      "upload": "Yuklash",
+      "deleting": "O'chirilmoqda...",
+      "title": "Nomi",
+      "description": "Tavsif",
+      "status": "Holat"
+    },
+    "sidebar": {
+      "profile": "Profil",
+      "settings": "Sozlamalar",
+      "appearance": "Tashqi ko'rinish",
+      "theme": "Mavzu",
+      "light": "Yorug'",
+      "dark": "To'q",
+      "homePage": "Bosh sahifa",
+      "logout": "Chiqish",
+      "upgradePro": "Pro'ga o'tish",
+      "unlockBenefits": "Imtiyozlarni ochish",
+      "myWorkspace": "Mening ish joyim",
+      "workspace": "Ish joyi",
+      "freePlan": "Bepul reja",
+      "allWorkspaces": "Barcha ish joylari",
+      "createWorkspace": "Ish joyini yaratish",
+      "dropHere": "Shu yerga tashlang",
+      "addChild": "Ichki element qo'shish",
+      "edit": "Tahrirlash",
+      "delete": "O'chirish",
+      "untitledProject": "Nomsiz loyiha",
+      "loading": "Yuklanmoqda...",
+      "noRecentProjects": "Yaqinda ochilgan loyihalar yo'q"
+    },
+    "landingPage": {
+      "aiBasedPlatform": "Sun'iy intellektga asoslangan platforma",
+      "heroTitle": "Tezkor yarating.\nOson kengaytiring.",
+      "heroSubtitle": "Raqamli biznesingiz uchun Backend as a Service. Har bir Ucode loyihasi frontend va backendni oson va tez yaratadigan sun'iy intellektga asoslangan low-code platformasida ishlaydi.",
+      "databases": {
+        "title": "Ma'lumotlar bazasi va tahlil",
+        "description": "Har bir Ucode loyihasi millionlab dasturchilar ishonadigan PostgreSQL yoki MongoDB ma'lumotlar bazasidir.",
+        "list": {
+          "manageData": "Ma'lumotlaringizni oson boshqaring",
+          "scalable": "PostgreSQL va MongoDB - dunyodagi eng kengaytiriladigan ma'lumotlar bazalari",
+          "lowcode": "Lowcode yechimimiz bilan ma'lumotlaringizni ulang va boshqaring"
+        },
+        "postgresql": "PostgreSQL",
+        "mongodb": "MongoDB",
+        "clickhouse": "ClickHouse",
+        "relational": "Relyatsion dvigatel",
+        "document": "Hujjatlar ombori",
+        "analytics": "Tahlil dvigateli",
+        "ready": "Tayyor"
+      },
+      "edgeFunctions": {
+        "title": "Edge funksiyalar",
+        "description": "Funksiyalarni sozlang va serverlarni yoki xostingni boshqarmasdan serverless funksiyalarni osongina yarating, joylashtiring va kuzatib boring. Shaxsiy kodni osongina yozing.",
+        "platforms": {
+          "mobile": "Mobil",
+          "web": "Veb",
+          "backend": "Backend",
+          "microfrontend": "Mikrofrontend"
+        }
+      },
+      "features": {
+        "title": "Sizga kerak bo'lgan hamma narsa",
+        "subtitle": "Loyihangizni oylar emas, balki bir necha kun ichida ishga tushirish uchun to'liq vositalar to'plami.",
+        "list": {
+          "storage": {
+            "title": "Ombor",
+            "description": "Katta fayllarni, videolardan tortib rasmlargacha saqlang, tartiblang va taqdim eting. (Minio, Amazon S3, R3)"
+          },
+          "dataApi": {
+            "title": "Data API'lari",
+            "description": "Muzokaralarsiz foydalanishga tayyor Restful API'lar. Mavjud xizmatlarni darhol ulang."
+          },
+          "auth": {
+            "title": "Autentifikatsiya",
+            "description": "O'rnatilgan kuchli ruxsatnomalar va kirishni boshqarish bilan foydalanuvchilaringizni taklif qiling va osongina boshqaring."
+          },
+          "role": {
+            "title": "Rollar va kirish",
+            "description": "Keng qamrovli rollarni boshqarish, kirishni boshqarish va foydalanuvchilarni boshqarish o'rnatilgan."
+          }
+        }
+      },
+      "integrations": {
+        "title": "Integratsiyalar",
+        "description": "Integratsiyani toping. Sevimli vositalaringiz bilan uzluksiz bog'laning.",
+        "viewAll": "Barcha integratsiyalarni ko'rish",
+        "categories": {
+          "databases": "Ma'lumotlar bazalari",
+          "storage": "Fayl ombori",
+          "apis": "API'lar",
+          "versionControl": "Versiyalarni boshqarish",
+          "maps": "Xaritalar",
+          "customFunctions": "Maxsus funksiyalar"
+        }
+      }
+    },
+    "appSettings": {
+      "accountProfile": "Akkaunt profili",
+      "saveChanges": "O'zgarishlarni saqlash",
+      "fullName": "To'liq ism",
+      "emailAddress": "Elektron pochta",
+      "phoneNumber": "Telefon raqami",
+      "loginUsername": "Login / Foydalanuvchi nomi",
+      "accountType": "Akkaunt turi",
+      "assignedRole": "Tayinlangan rol",
+      "namePlaceholder": "Ismingiz",
+      "loginSessions": "Kirish seanslari",
+      "sessionsDescription": "Faol seanslaringizni va ulangan qurilmalaringizni boshqaring.",
+      "verifyingSessions": "Faol seanslar tekshirilmoqda...",
+      "noSessions": "Faol seanslar topilmadi.",
+      "secure": "Xavfsiz",
+      "modified": "O'zgartirilgan",
+      "terminateSession": "Seansni tugatish",
+      "languageKeys": "Til kalitlari",
+      "langDescription": "Mavjud tarjimalar va lokalizatsiya kalitlarini o'rganing.",
+      "accessingLangDb": "Lokalizatsiya ma'lumotlar bazasiga kirish...",
+      "noLangKeys": "Lokalizatsiya kalitlari indekslanmagan",
+      "refreshSyncHint": "Tarjimalaringizni yangilab yoki sinxronlashtirib ko'ring.",
+      "environmentManagement": "Muhitni boshqarish",
+      "envDescription": "Loyiha muhitlarini sozlang va ular orasida almashing.",
+      "unknownDevice": "Noma'lum qurilma"
+    },
+    "projects": {
+      "title": "Loyihalar",
+      "edited": "Tahrirlandi: {date}",
+      "recentlyEdited": "Yaqinda tahrirlangan",
+      "unknown": "Noma'lum",
+      "unknownAuthor": "Noma'lum muallif",
+      "createFolder": "Yangi papka yaratish",
+      "folderName": "Papka nomi",
+      "folderPlaceholder": "masalan, Mening papkam",
+      "creating": "Yaratilmoqda...",
+      "create": "Yaratish",
+      "searchPlaceholder": "Loyihalarni qidirish...",
+      "toggleSelection": "Tanlash rejimini yoqish",
+      "gridView": "Setka",
+      "listView": "Ro'yxat",
+      "addProjects": "Loyihalarni qo'shish",
+      "moveFolder": "Papkani ko'chirish",
+      "deleteFolder": "Papkani o'chirish",
+      "deleteDescription": "{name} papkasini o'chirishni xohlaysizmi? Barcha biriktirilgan elementlar butunlay o'chirib tashlanadi.",
+      "renameFolder": "Papkani qayta nomlash",
+      "editProject": "Loyihani tahrirlash",
+      "deleteProject": "Loyihani o'chirish",
+      "deleteProjectDescription": "{name} loyihasini o'chirishni xohlaysizmi? Bu amalni bekor qilib bo'lmaydi.",
+      "name": "Nomi",
+      "folderNameInput": "Papka nomi",
+      "saveChanges": "O'zgarishlarni saqlash",
+      "saving": "Saqlanmoqda...",
+      "moveFolderTitle": "Papkani ko'chirish",
+      "selectNewParent": "Yangi yuqori papkani tanlang",
+      "rootDirectory": "Asosiy katalog",
+      "moving": "Ko'chirilmoqda...",
+      "addProjectsTitle": "Loyihalarni qo'shish",
+      "selectProjectsDescription": "Ushbu papkaga qo'shish uchun mavjud loyihalarni tanlang:",
+      "noProjectsFound": "Loyihalar topilmadi.",
+      "addToFolder": "Papkaga qo'shish",
+      "adding": "Qo'shilmoqda...",
+      "createNewProject": "Yangi loyiha yaratish",
+      "createdAt": "Yaratilgan sana",
+      "createdBy": "Muallif",
+      "moveToFolder": "Papkaga ko'chirish",
+      "removeFromFolder": "Papkadan olib tashlash",
+      "projectName": "Loyiha nomi",
+      "projectDescription": "Loyiha tavsifi",
+      "projectDescriptionPlaceholder": "Loyihangiz haqida qisqacha ma'lumot",
+      "moveProjectTitle": "Loyihani papkaga ko'chirish",
+      "selectFolder": "Papkani tanlang"
+    },
+    "analytics": {
+      "title": "Analitika",
+      "overview": "Umumiy ko'rinish",
+      "health": "Holati",
+      "queryPerformance": "So'rovlar unumdorligi",
+      "visitors": "Tashrif buyuruvchilar",
+      "noData": "Ma'lumotlar yo'q",
+      "loading": "Yuklanmoqda...",
+      "databaseOverview": "Ma'lumotlar bazasi sharhi",
+      "serviceHealth": "Xizmatlar holati",
+      "errorRate": "{rate}% Xatoliklar",
+      "metricTooltip": "{title} uchun analitika",
+      "deploymentSummary": "Joylashtirish xulosasi",
+      "functions": "Funksiyalar",
+      "concurrency": "Parallellik",
+      "insights": "Tushunchalar",
+      "environment": "Muhit",
+      "projectName": "Loyiha nomi",
+      "region": "Mintaqa",
+      "runtimeVersion": "Runtime versiyasi",
+      "updateAvailable": "YANGILANISH MAVJUD",
+      "lastDeploy": "Oxirgi joylashtirish",
+      "lastDeployBy": "{date}, muallif: {author}",
+      "backupStatus": "Zaxira holati",
+      "projectUrls": "Loyiha URL manzillari",
+      "httpActionsUrl": "HTTP amallari URL manzili",
+      "slowQueries": "Sekin so'rovlar",
+      "cacheHitRate": "Keshdan foydalanish",
+      "avgRowsPerCall": "O'rtacha qatorlar",
+      "searchPlaceholder": "So'rov bo'yicha qidirish",
+      "calls": "Chaqiruvlar",
+      "totalTime": "Umumiy vaqt",
+      "roles": "Rollari",
+      "export": "Eksport qilish",
+      "resetReport": "Hisobotni tozalash",
+      "resetDescription": "Barcha so'rovlar unumdorligi tarixini o'chirib tashlash va yangidan boshlash. Bu amalni bekor qilib bo'lmaydi.",
+      "resetStats": "Statistikani tozalash",
+      "howReportGenerated": "Ushbu hisobot qanday yaratiladi?",
+      "reportExplanation": "Ushbu hisobot ma'lumotlar bazasidan real vaqtdagi ma'lumotlarni yig'ish uchun pg_stat_statements kengaytmasidan foydalanadi.",
+      "learnMore": "pg_stat_statements haqida ko'proq ma'lumot",
+      "indexAdvisor": "Indeks maslahatchisi",
+      "indexAdvisorDescription": "Indeks maslahatchisi sizning sekin so'rovlaringizni tahlil qiladi va unumdorlikni oshirish uchun potensial indekslarni taklif qiladi.",
+      "seeRecommendations": "Barcha tavsiyalarni ko'rish",
+      "query": "So'rov",
+      "timeConsumed": "Sarf qilingan vaqt",
+      "maxTime": "Maksimal vaqt",
+      "meanTime": "O'rtacha vaqt",
+      "minTime": "Minimal vaqt",
+      "rowsProcessed": "Ishlov berilgan qatorlar",
+      "role": "Roli",
+      "postgresRole": "Postgres roli: {role}",
+      "fullQuery": "To'liq so'rov",
+      "visitorAnalytics": "Tashrif buyuruvchilar analitikasi",
+      "currentVisitors": "{count} nafar tashrif buyuruvchi",
+      "audienceBreakdown": "Auditoriya tahlili"
+    },
+    "dashboard": {
+      "untitledProject": "Nomsiz loyiha",
+      "editedAt": "Tahrirlangan: {date}",
+      "recentlyEdited": "Yaqinda tahrirlangan",
+      "unknownDate": "Noma'lum",
+      "unknownAuthor": "Noma'lum muallif",
+      "nothingToShow": "Bu yerda hali hech narsa yo'q.",
+      "newProject": "Yangi loyiha",
+      "promptPlaceholder": "Ugenga dashbord yaratishni buyuring...",
+      "addAttachment": "Fayl biriktirish",
+      "plan": "Reja"
+    },
+    "databaseStudio": {
+      "tabs": {
+        "tables": "Jadvallar",
+        "security": "Xavfsizlik",
+        "advanced": "Kengaytirilgan"
+      },
+      "placeholders": {
+        "securityComing_soon": "Xavfsizlikni boshqarish yaqinda faollashadi.",
+        "advancedComing_soon": "Kengaytirilgan sozlamalar yaqinda faollashadi."
+      },
+      "title": "Database Studio",
+      "sqlConsole": {
+        "header": "SQL Konsoli",
+        "activeHeader": "Konsol faol",
+        "explorer": "Explorer",
+        "scripts": "Skriptlar",
+        "tables": "Jadvallar",
+        "prettify": "Formatlash",
+        "run": "Ishga tushirish",
+        "results": "Natijalar",
+        "rowsReturned": "{count} qator qaytarildi",
+        "queryError": "So'rovda xato",
+        "noResultsYet": "Hozircha natija yo'q. Ma'lumotlarni ko'rish uchun so'rovni ishga tushiring."
+      },
+      "records": {
+        "count": "Yozuvlar: {count}",
+        "searchPlaceholder": "Yozuvlarni qidirish...",
+        "sqlQuery": "SQL So'rovi",
+        "filter": "Filtr",
+        "viewPolicies": "Ko'rish siyosatlari",
+        "filters": "Filtrlar",
+        "clearAll": "Barchasini tozalash",
+        "contains": "o'z ichiga oladi",
+        "valuePlaceholder": "Qiymat...",
+        "addCondition": "Shart qo'shish",
+        "noResults": "Yozuvlar topilmadi",
+        "addRow": "Qator qo'shish",
+        "addRecordTitle": "{table} jadvaliga yozuv qo'shish",
+        "fieldRequired": "Ushbu maydon to'ldirilishi shart",
+        "saveRecord": "Yozuvni saqlash"
+      },
+      "tables": {
+        "delete": "Jadvalni o'chirish",
+        "deleteConfirmTitle": "Jadvalni o'chirish",
+        "deleteConfirmDescription": "'{table}' jadvalini o'chirishga ishonchingiz komilmi? Bu amalni ortga qaytarib bo'lmaydi.",
+        "deleteSuccess": "Jadval muvaffaqiyatli o'chirildi",
+        "deleteError": "Jadvalni o'chirishda xatolik yuz berdi"
+      },
+      "logs": {
+        "activityTitle": "Faollik jurnallari",
+        "activityDescription": "Barcha global harakatlar va resurs o'zgarishlarini kuzatib boring.",
+        "functionTitle": "Funksiya jurnallari",
+        "functionDescription": "Alohida funksiyalarning bajarilishi, holati va samaradorligini kuzatib boring.",
+        "allActions": "Barcha harakatlar",
+        "searchCollection": "To'plamni qidirish...",
+        "searchByUser": "Foydalanuvchi bo'yicha qidirish...",
+        "allFunctions": "Barcha funksiyalar",
+        "allStatuses": "Barcha holatlar",
+        "activityDetailTitle": "Faollik jurnali tafsilotlari",
+        "functionDetailTitle": "Funksiya jurnali tafsilotlari",
+        "columns": {
+          "index": "№",
+          "action": "Harakat",
+          "collection": "To'plam",
+          "actionOn": "Harakat obyekti",
+          "actionBy": "Muallif",
+          "function": "Funksiya",
+          "time": "Vaqt",
+          "status": "Holat",
+          "duration": "Davomiyligi",
+          "tableSlug": "Jadval slagi"
+        },
+        "details": {
+          "user": "Foydalanuvchi",
+          "action": "Harakat",
+          "date": "Sana",
+          "collection": "To'plam",
+          "request": "So'rov",
+          "response": "Javob",
+          "generalInfo": "Umumiy ma'lumot",
+          "name": "Nomi",
+          "status": "Holati",
+          "requestMethod": "So'rov metodi",
+          "actionType": "Harakat turi",
+          "startedAt": "Boshlangan vaqti",
+          "completedAt": "Tugallangan vaqti",
+          "duration": "Davomiyligi",
+          "tableSlug": "Jadval slagi",
+          "resourceUsage": "Resurslardan foydalanish",
+          "returnSize": "Javob hajmi",
+          "compute": "Hisoblash",
+          "dbBandwidth": "MB trafigi",
+          "fileBandwidth": "Fayl trafigi",
+          "vectorBandwidth": "Vektorli trafik"
+        }
+      },
+      "common": {
+        "cancel": "Bekor qilish",
+        "delete": "O'chirish"
+      }
+    },
+    "workspaceChat": {
+      "mockMessage": "Salom! Men sizning ushbu ish joyidagi sun'iy intellekt yordamchingizman. Bugun loyihangizni qurishda sizga qanday yordam bera olaman? \n\nSiz mendan kod yozishni, xatolarni tuzatishni yoki arxitekturani rejalashtirishni so'rashingiz mumkin.",
+      "thinking": "O'ylayapman...",
+      "pendingAction": {
+        "confirm": "✓ Ha, tasdiqlash",
+        "create": "✓ Ha, yaratish",
+        "update": "✓ Ha, yangilash",
+        "delete": "✓ Ha, o'chirish",
+        "cancel": "✕ Bekor qilish",
+        "yes": "Ha",
+        "no": "Yo'q",
+        "bulkDelete": "{count} ta yozuv o'chiriladi",
+        "bulkUpdate": "{count} ta yozuv yangilanadi",
+        "bulkCreate": "{count} ta yozuv yaratiladi"
+      },
+      "questionnaire": {
+        "step": "Qadam {current} / {total}",
+        "ownAnswer": "O'z javobingiz",
+        "back": "← Orqaga",
+        "finish": "Tugatish",
+        "nextStep": "Keyingi qadam →"
+      },
+      "input": {
+        "placeholder": "Bugun sizga qanday yordam bera olaman?",
+        "attachFile": "Faylni biriktirish",
+        "visualEdits": "Vizual tahrirlash",
+        "plan": "Reja",
+        "send": "Yuborish (Enter)",
+        "element": "Element"
+      },
+      "codeBlock": {
+        "copy": "Nusxalash",
+        "copied": "Nusxalandi!"
+      },
+      "questions": {
+        "panelType": {
+          "title": "Qanday turdagi admin panelini xohlaysiz?",
+          "crm": "CRM tizimlari uchun admin paneli",
+          "tms": "TMS tizimlari uchun admin paneli",
+          "erp": "ERP tizimlari uchun admin paneli"
+        },
+        "framework": {
+          "title": "Freymvorkni tanlang",
+          "nextjs": "Next.js (Tavsiya etiladi)",
+          "vite": "Vite + React",
+          "remix": "Remix"
+        },
+        "features": {
+          "title": "Qo'shimcha funktsiyalar",
+          "auth": "Avtorizatsiya",
+          "i18n": "Internatsionalizatsiya",
+          "pwa": "PWA qo'llab-quvvatlash",
+          "analytics": "Analitika"
+        }
+      }
+    },
+    "mediaGallery": {
+      "failedToLoad": "Fayllarni yuklashda xatolik",
+      "errorDescription": "Ma'lumotlarni olishda xatolik yuz berdi. Iltimos, ulanishingizni tekshiring.",
+      "retry": "Qayta urinish",
+      "noAssets": "Hali aktivlar yo'q",
+      "emptyDescription": "Media galereyangiz bo'sh. Boshlash uchun birinchi rasm, video yoki hujjatni yuklang.",
+      "createItem": "Element yaratish",
+      "loadingMore": "Yuklanmoqda...",
+      "reachedEnd": "Siz oxiriga yetdingiz",
+      "select": "Tanlash",
+      "cancel": "Bekor qilish",
+      "selectAll": "Hammasini tanlash",
+      "deselectAll": "Tanlovni bekor qilish",
+      "gridTooltip": "Hozirgi: {count} ta ustun. Masshtabni o'zgartirish uchun bosing.",
+      "searchPlaceholder": "Aktivlarni qidirish...",
+      "deleting": "O'chirilmoqda...",
+      "deleteCount": "O'chirish ({count})"
+    },
+    "pricing": {
+      "plans": "Tarif rejalari",
+      "compareTitle": "Tariflarimizni solishtiring <br /> va o'zingiznikini toping",
+      "compareSubtitle": "Siz bilan birga o'sadigan oddiy va shaffof narxlar. <br /> Har qanday tarifni 30 kun davomida bepul sinab ko'ring. Kredit karta talab qilinmaydi.",
+      "getStarted": "Boshlash",
+      "chatSales": "Sotuv bo'limi bilan bog'lanish",
+      "popular": "Ommabop",
+      "compareFeatures": "Xususiyatlarni batafsil solishtirish",
+      "findPerfect": "Loyihangiz uchun xizmatlar va cheklovlarning mukammal kombinatsiyasini toping.",
+      "month": "/ oy",
+      "categories": {
+        "general": "Umumiy",
+        "servers": "Serverlar",
+        "support": "Yordam",
+        "security": "Xavfsizlik",
+        "connectivity": "Ulanish"
+      },
+      "cards": {
+        "os": {
+          "title": "Open source",
+          "price": "Bepul",
+          "description": "10 tagacha xodim uchun barcha zaruriy funksiyalar bilan."
+        },
+        "small": {
+          "title": "Small",
+          "price": "$300",
+          "description": "Rivojlanayotgan jamoalar va startaplar uchun kengaytirilgan funksiyalar."
+        },
+        "medium": {
+          "title": "Medium",
+          "price": "$600",
+          "description": "Kengaytirilgan funksiyalar va hisobotlar, yaxshilangan ish jarayonlari va avtomatlashtirish."
+        },
+        "enterprise": {
+          "title": "Enterprise",
+          "price": "Maxsus",
+          "description": "Yirik jamoalar uchun shaxsiylashtirilgan xizmat va korporativ xavfsizlik."
+        }
+      },
+      "features": {
+        "totalUsers": "Jami foydalanuvchilar va rollar",
+        "configuration": "Konfiguratsiya",
+        "apiRequestsMonth": "Oylik API so'rovlar",
+        "apiRequestsSecond": "Soniyalik API so'rovlar",
+        "functions": "Funksiyalar",
+        "microfrontend": "Mikrofrontendlarni",
+        "databaseSize": "Ma'lumotlar bazasi hajmi",
+        "assetSize": "Aktivlar hajmi",
+        "dbServer": "Ma'lumotlar bazasi serveri",
+        "fileServer": "Fayl serveri",
+        "functionServer": "Funksiyalar serveri",
+        "microfrontendServer": "Mikrofrontendlarni serveri",
+        "customDomain": "Shaxsiy domen",
+        "failover": "Zaxira nusxalari",
+        "communitySupport": "Hamjamiyat yordami",
+        "designatedSupport": "Maxsus yordam",
+        "dedicatedDeveloper": "Shaxsiy dasturchi",
+        "logRetention": "Loglarni saqlash",
+        "rbac": "Rollar asosida kirishni boshqarish",
+        "menuPermissions": "Menyu ruxsatlari",
+        "tablePermissions": "Jadval ruxsatlari",
+        "fieldPermissions": "Maydon ruxsatlari",
+        "restApi": "REST API",
+        "assetApi": "Rasm va aktivlar API",
+        "webHooks": "Veb-huklar",
+        "directDb": "Ma'lumotlar bazasiga to'g'ridan-to'g'ri kirish"
+      }
+    },
+    "clientTypeManagement": {
+      "loading": "Mijoz platformalari yuklanmoqda...",
+      "error": "Mijoz turlarini yuklashda xatolik",
+      "title": "Mijoz turlari",
+      "subtitle": "Loyihangizning autentifikatsiya platformalari va foydalanuvchi doiralarini boshqaring.",
+      "add": "Mijoz turini qo'shish",
+      "system": "Tizimli",
+      "sessions": "Sessiyalar",
+      "registration": "Ro'yxatdan o'tish",
+      "public": "Ochiq",
+      "private": "Yopiq",
+      "recovery": "Tiklash",
+      "enabled": "Yoqilgan",
+      "disabled": "O'chirilgan"
+    },
+    "permissionManage": {
+      "table": "Jadval ruxsati",
+      "global": "Global ruxsat",
+      "title": "Ruxsatlarni boshqarish",
+      "subtitle": "Ushbu mijoz turi uchun jadval yozuvlari va global ruxsatni boshqaring.",
+      "selectRole": "Rolni tanlang",
+      "selectRolePlaceholder": "Iltimos, ruxsatlarni boshqarish uchun rolni tanlang.",
+      "globalPermissions": {
+        "fetching": "Global ruxsatlar olinmoqda...",
+        "title": "Tizimga kirish nazorati",
+        "save": "O'zgarishlarni saqlash",
+        "nameHeader": "Global ruxsat nomi",
+        "checkHeader": "Kirishni tekshirish"
+      },
+      "tablePermissions": {
+        "fetching": "Batafsil ruxsatlar olinmoqda...",
+        "title": "Jadvalni batafsil nazorat qilish",
+        "save": "O'zgarishlarni saqlash",
+        "objectsHeader": "Ma'lumot obyektlari",
+        "recordLevelHeader": "Yozuv darajasidagi ruxsatlar",
+        "fieldHeader": "Maydon",
+        "actionHeader": "Harakat",
+        "relationHeader": "Bog'lanish",
+        "viewHeader": "Ko'rinish",
+        "customHeader": "Maxsus",
+        "read": "O'qish",
+        "write": "Yozish",
+        "update": "Yangilash",
+        "delete": "O'chirish",
+        "public": "Ommaviy",
+        "configTitle": "{type} sozlamalarini sozlash",
+        "modifyingFor": "{label} uchun batafsil nazoratni o'zgartirish",
+        "close": "Yopish",
+        "confirm": "Tasdiqlash",
+        "noActions": "Harakatlar mavjud emas.",
+        "noRelations": "Bog'lanishlar aniqlanmagan.",
+        "noViews": "Maxsus ko'rinishlar sozlanmagan.",
+        "noFilters": "Faol filtrlar yo'q. Yozuvlar to'liq ochiq bo'ladi.",
+        "connectTo": "Ulanish",
+        "selectConnection": "Ulanishni tanlang",
+        "tableRelation": "Jadval bog'lanishi",
+        "selectRelation": "Bog'lanishni tanlang",
+        "addNewFilter": "Yangi filtr shartini qo'shish"
+      }
+    },
+    "roleManage": {
+      "loading": "Rollarni yuklash...",
+      "error": "Rollarni yuklashda xatolik",
+      "title": "Rollarni boshqarish",
+      "subtitle": "Loyihangizning rollari va ruxsatlarini boshqaring.",
+      "add": "Rol qo'shish",
+      "noRoles": "Rollar topilmadi.",
+      "status": "Holat",
+      "active": "Faol",
+      "inactive": "Nofaol",
+      "editRole": "Rolni tahrirlash",
+      "createRole": "Rol yaratish",
+      "editDescription": "Rol tafsilotlarini va uning operatsion holatini yangilang.",
+      "createDescription": "Yangi ilova rolini aniqlash uchun quyidagi ma'lumotlarni to'ldiring.",
+      "roleName": "Rol nomi",
+      "roleNamePlaceholder": "Menedjer, Moderator va h.k.",
+      "clientType": "Mijoz turi",
+      "selectClientType": "Mijoz turini tanlang",
+      "statusDescription": {
+        "active": "Rol faol va foydalanishga tayyor",
+        "inactive": "Rol nofaol"
+      },
+      "saving": "Saqlanmoqda...",
+      "cancel": "Bekor qilish",
+      "save": "O'zgarishlarni saqlash"
     }
   }
 }

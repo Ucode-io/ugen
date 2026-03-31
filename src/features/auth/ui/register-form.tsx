@@ -11,7 +11,7 @@ interface RegisterFormProps {
 }
 
 export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
-  const t = useTranslations('Navigation')
+  const t = useTranslations('features.auth.register')
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema)
@@ -54,13 +54,13 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
         </div>
       )}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-text-main">Company Name</label>
+        <label className="text-sm font-medium text-text-main">{t('companyName')}</label>
         <div className="relative">
           <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
           <input
             {...register('name')}
             type="text"
-            placeholder="Enter company name"
+            placeholder={t('companyPlaceholder')}
             className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
           />
         </div>
@@ -68,13 +68,13 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-text-main">User Login</label>
+        <label className="text-sm font-medium text-text-main">{t('loginLabel')}</label>
         <div className="relative">
           <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
           <input
             {...register('user_info.login')}
             type="text"
-            placeholder="Enter your login"
+            placeholder={t('loginPlaceholder')}
             className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
           />
         </div>
@@ -82,13 +82,13 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-text-main">Email</label>
+        <label className="text-sm font-medium text-text-main">{t('emailLabel')}</label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
           <input
             {...register('user_info.email')}
             type="email"
-            placeholder="Enter your email"
+            placeholder={t('emailPlaceholder')}
             className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
           />
         </div>
@@ -96,13 +96,13 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-text-main">Password</label>
+        <label className="text-sm font-medium text-text-main">{t('passwordLabel')}</label>
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
           <input
             {...register('user_info.password')}
             type="password"
-            placeholder="Create a password"
+            placeholder={t('passwordPlaceholder')}
             className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
           />
         </div>
@@ -114,7 +114,7 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
         disabled={isSubmitting}
         className="w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 mt-2 disabled:opacity-50"
       >
-        {t('get_started')}
+        {t('submit')}
       </button>
     </form>
   )

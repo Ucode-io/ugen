@@ -1,4 +1,7 @@
+"use client"
+
 import React, { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 
 // ─── INTERFACES ──────────────────────────────────────────────────────────────
 interface BpmnNode {
@@ -32,7 +35,7 @@ interface BpmnViewerProps {
 }
 
 // ─── BPMN XML PARSER ──────────────────────────────────────────────────────────
-function parseBpmn(xmlString: string): BpmnParsedData {
+function parseBpmn(xmlString: string, t: any): BpmnParsedData {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, "application/xml");
 
@@ -48,7 +51,7 @@ function parseBpmn(xmlString: string): BpmnParsedData {
   // Parse lanes
   const lanes: BpmnLane[] = q(doc, "lane").map((lane) => ({
     id: lane.getAttribute("id") || "",
-    name: lane.getAttribute("name") ?? lane.getAttribute("id") ?? "Unnamed Lane",
+    name: lane.getAttribute("name") ?? lane.getAttribute("id") ?? t('unnamedLane'),
     nodeIds: q(lane, "flowNodeRef").map((r) => r.textContent?.trim() || ""),
   }));
 
@@ -65,7 +68,7 @@ function parseBpmn(xmlString: string): BpmnParsedData {
       const id = el.getAttribute("id") || "";
       nodeMap[id] = {
         id,
-        name: el.getAttribute("name") ?? el.getAttribute("id") ?? "Task",
+        name: el.getAttribute("name") ?? el.getAttribute("id") ?? t('nodeTypes.task'),
         type: "task",
       };
     });
@@ -89,7 +92,7 @@ function parseBpmn(xmlString: string): BpmnParsedData {
         const id = el.getAttribute("id") || "";
         nodeMap[id] = {
           id,
-          name: el.getAttribute("name") ?? "Gateway",
+          name: el.getAttribute("name") ?? t('nodeTypes.gateway'),
           type: "gateway",
         };
       });
@@ -173,31 +176,32 @@ const PALETTE = [
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
+  const t = useTranslations('shared.bpmnViewer');
   const [activeNode, setActiveNode] = useState<string | null>(null);
   const [hoveredLane, setHoveredLane] = useState<string | null>(null);
 
   const { lanes, crossFlows } = useMemo(() => {
     if (!bpmnXml) return { lanes: [], crossFlows: [] };
     try {
-      const parsed = parseBpmn(bpmnXml);
+      const parsed = parseBpmn(bpmnXml, t);
       return { lanes: parsed.lanes, crossFlows: parsed.crossFlows };
     } catch (e) {
       console.error("BPMN parse error", e);
       return { lanes: [], crossFlows: [] };
     }
-  }, [bpmnXml]);
+  }, [bpmnXml, t]);
 
   if (!bpmnXml) return (
     <div style={styles.empty}>
       <div style={styles.emptyIcon}>⬡</div>
-      <p style={{ color: "var(--muted)", margin: 0 }}>No BPMN XML provided</p>
+      <p style={{ color: "var(--muted)", margin: 0 }}>{t('noXml')}</p>
     </div>
   );
 
   if (!lanes.length) return (
     <div style={styles.empty}>
       <div style={styles.emptyIcon}>⚠</div>
-      <p style={{ color: "var(--muted)", margin: 0 }}>Could not parse BPMN XML</p>
+      <p style={{ color: "var(--muted)", margin: 0 }}>{t('parseError')}</p>
     </div>
   );
 
@@ -225,13 +229,17 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
       <div style={styles.header}>
         <span style={styles.badge}>
           <span style={styles.dot} />
-          BPMN Protocol
+          {t('protocol')}
         </span>
-        <h2 style={styles.title} className="text-gradient">Process Flow</h2>
+        <h2 style={styles.title} className="text-gradient">{t('title')}</h2>
         <p style={styles.subtitle}>
-          {lanes.length} roles · {lanes.reduce((s: number, l) => s + l.nodes.length, 0)} tasks ·{" "}
-          {crossFlows.length} cross-lane connection{crossFlows.length !== 1 ? "s" : ""}
-          {activeNode && " · Click again to deselect"}
+          {t('summary', {
+            lanes: lanes.length,
+            nodes: lanes.reduce((s: number, l: any) => s + l.nodes.length, 0),
+            crossFlows: crossFlows.length,
+            s: crossFlows.length !== 1 ? "s" : ""
+          })}
+          {activeNode && ` · ${t('deselectHint')}`}
         </p>
       </div>
 
@@ -247,12 +255,12 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
             >
               <div style={styles.colHead} />
               {Array.from({ length: maxSteps }, (_, i) => (
-                <div key={i} style={styles.colHead}>Step {i + 1}</div>
+                <div key={i} style={styles.colHead}>{t('step', { index: i + 1 })}</div>
               ))}
             </div>
 
             {/* Lanes */}
-            {lanes.map((lane, li) => {
+            {lanes.map((lane: any, li: number) => {
               const pal = PALETTE[li % PALETTE.length];
               const isHov = hoveredLane === lane.id;
 
@@ -320,10 +328,10 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
                         background: isActive ? "rgba(255,255,255,0.2)" : pal.color + "18",
                         color: isActive ? "#fff" : pal.color,
                       }}>
-                        {node.type === "start" ? "▶ start"
-                          : node.type === "end" ? "■ end"
-                            : node.type === "gateway" ? "◇ gate"
-                              : "⬡ task"}
+                        {node.type === "start" ? `▶ ${t('nodeTypes.start')}`
+                          : node.type === "end" ? `■ ${t('nodeTypes.end')}`
+                            : node.type === "gateway" ? `◇ ${t('nodeTypes.gateway')}`
+                              : `⬡ ${t('nodeTypes.task')}`}
                       </div>
 
                       <div style={{
@@ -336,16 +344,16 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
                       {/* Cross-lane indicators */}
                       {hasCrossOut && isActive && (
                         <div style={{ ...styles.crossBadge, background: "rgba(255,255,255,0.2)", color: "#fff" }}>
-                          ↓ cross-lane trigger
+                          ↓ {t('crossLaneTrigger')}
                         </div>
                       )}
                       {hasCrossIn && isCrossed && (
                         <div style={{ ...styles.crossBadge, background: (pal.bg as string) + "22", color: pal.color as string, border: `1px solid ${pal.color}44` }}>
-                          ← triggered by {
-                            crossFlows.find((f) => f.target === node.id)
-                              ? lanes.find((l) => l.nodes.some((n) => n.id === crossFlows.find((cf) => cf.target === node.id)?.source))?.name ?? "other lane"
-                              : "other lane"
-                          }
+                          ← {t('triggeredBy', {
+                            lane: crossFlows.find((f: any) => f.target === node.id)
+                              ? lanes.find((l: any) => l.nodes.some((n: any) => n.id === crossFlows.find((cf: any) => cf.target === node.id)?.source))?.name ?? t('otherLane')
+                              : t('otherLane')
+                          })}
                         </div>
                       )}
                     </div>
@@ -363,18 +371,18 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
       {crossFlows.length > 0 && (
         <div style={styles.crossSummary} className="ai-card">
           <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "monospace" }}>
-            Cross-lane Interactivity
+            {t('interactivity')}
           </span>
-          {crossFlows.map((f) => {
-            const srcIdx = lanes.findIndex((l) => l.nodes.some((n) => n.id === f.source));
-            const tgtIdx = lanes.findIndex((l) => l.nodes.some((n) => n.id === f.target));
+          {crossFlows.map((f: any) => {
+            const srcIdx = lanes.findIndex((l: any) => l.nodes.some((n: any) => n.id === f.source));
+            const tgtIdx = lanes.findIndex((l: any) => l.nodes.some((n: any) => n.id === f.target));
 
             if (srcIdx === -1 || tgtIdx === -1) return null;
 
             const srcLane = lanes[srcIdx];
             const tgtLane = lanes[tgtIdx];
-            const srcNode = srcLane.nodes.find((n) => n.id === f.source);
-            const tgtNode = tgtLane.nodes.find((n) => n.id === f.target);
+            const srcNode = srcLane.nodes.find((n: any) => n.id === f.source);
+            const tgtNode = tgtLane.nodes.find((n: any) => n.id === f.target);
             const srcPal = PALETTE[srcIdx % PALETTE.length];
             const tgtPal = PALETTE[tgtIdx % PALETTE.length];
             return (

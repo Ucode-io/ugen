@@ -28,7 +28,11 @@
     "analytics": "Analytics",
     "browse_all": "Browse all",
     "recently_viewed": "Recently viewed",
-    "my_projects": "My projects"
+    "my_projects": "My projects",
+    "move": "Move",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleting": "Deleting..."
   },
   "Templates": {
     "title": "Templates",
@@ -67,6 +71,98 @@
       "createProject": "Create your project",
       "emptyProjectDesc": "Your workspace is currently empty. Describe what you want to build in the chat, and the AI will generate the files and architecture for you in seconds.",
       "startChatting": "Start Chatting"
+    },
+    "auth": {
+      "login": {
+        "title": "Welcome Back",
+        "subtitle": "Sign in to your account",
+        "loginLabel": "Login",
+        "passwordLabel": "Password",
+        "forgotPassword": "Forgot?",
+        "loginPlaceholder": "Enter your login",
+        "passwordPlaceholder": "Enter your password",
+        "submit": "Login"
+      },
+      "register": {
+        "title": "Create an Account",
+        "subtitle": "Join Ugen to get started",
+        "companyName": "Company Name",
+        "companyPlaceholder": "Enter company name",
+        "loginLabel": "User Login",
+        "loginPlaceholder": "Enter your login",
+        "emailLabel": "Email",
+        "emailPlaceholder": "Enter your email",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "Create a password",
+        "submit": "Create Account"
+      },
+      "common": {
+        "authTitle": "Authentication",
+        "authDescription": "Login or register to your account.",
+        "ariaClose": "Close",
+        "selectConnections": "Select Connections",
+        "configureConnections": "Please configure your connections before logging in."
+      }
+    },
+    "appVisibility": {
+      "title": "App Visibility",
+      "description": "Control who can access your application",
+      "placeholder": "Select visibility",
+      "requireLogin": "Require login to access",
+      "options": {
+        "public": "Public",
+        "private": "Private",
+        "teamOnly": "Team only"
+      }
+    },
+    "clientTypeForm": {
+      "titleEdit": "Edit Client Type",
+      "titleNew": "New Client Type",
+      "description": "Configure platform settings and user registration behavior.",
+      "displayName": "Display Name",
+      "displayNamePlaceholder": "e.g. Admin, Customer",
+      "table": "Table",
+      "tablePlaceholder": "Select table",
+      "loading": "Loading...",
+      "defaultPageUrl": "Default Page URL",
+      "defaultPageUrlPlaceholder": "https://app.social.com/dashboard",
+      "sessionLimit": "Session Limit",
+      "selfRecover": "Self Recover",
+      "selfRegister": "Self Register",
+      "saveChanges": "Save Changes",
+      "createType": "Create Type"
+    },
+    "inviteUsers": {
+      "title": "Invite Users",
+      "description": "Grow your user base by inviting others",
+      "copyLink": "Copy Link",
+      "copied": "Copied!",
+      "sendInvites": "Send Invites"
+    },
+    "platformBadge": {
+      "title": "Platform Badge",
+      "description": "The \"Edit with Ugen\" badge is currently {status} on your application",
+      "visible": "visible",
+      "hidden": "hidden",
+      "hideBadge": "Hide Badge",
+      "showBadge": "Show Badge"
+    },
+    "search": {
+      "title": "Search",
+      "description": "Search projects and folders",
+      "placeholder": "Search projects and folders",
+      "searchResults": "Search Results",
+      "recentProjects": "Recent Projects",
+      "noProjects": "No projects found.",
+      "untitledProject": "Untitled Project",
+      "unknownAuthor": "Unknown Author",
+      "recently": "Recently"
+    },
+    "langSwitcher": {
+      "placeholder": "Lang"
+    },
+    "themeSwitcher": {
+      "ariaLabel": "Toggle theme"
     }
   },
   "databaseStudio": {
@@ -138,6 +234,672 @@
       "securityComingSoon": "Security audit coming soon",
       "advancedComingSoon": "Advanced settings coming soon",
       "noLogs": "No logs found"
+    }
+  },
+  "entities": {
+    "aiModel": {
+      "modelSelector": {
+        "placeholder": "Model"
+      }
+    },
+    "analytics": {
+      "periodSelector": {
+        "placeholder": "Select period",
+        "last24h": "Last 24 hours",
+        "last7d": "Last 7 days",
+        "last30d": "Last 30 days",
+        "last90d": "Last 90 days"
+      }
+    }
+  },
+  "shared": {
+    "dataStates": {
+      "loading": "Loading data...",
+      "errorTitle": "Failed to load data",
+      "errorDescription": "We couldn't retrieve the list from the server. Please try again.",
+      "retry": "Retry"
+    },
+    "dataTable": {
+      "emptyMessage": "No results found.",
+      "rowsPerPage": "Rows per page",
+      "showingEntries": "Showing {start} to {end} of {total} entries"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "morePages": "More pages",
+      "paginationAria": "pagination",
+      "previousAria": "Go to previous page",
+      "nextAria": "Go to next page"
+    },
+    "audioRecorder": {
+      "start": "Start recording",
+      "stop": "Stop recording",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "voiceMessage": "Voice message",
+      "delete": "Delete",
+      "upload": "Upload",
+      "uploading": "Uploading...",
+      "processing": "Processing...",
+      "error": "Error recording audio"
+    },
+    "bpmnViewer": {
+      "loading": "Loading BPMN...",
+      "error": "Error loading BPMN",
+      "noXml": "No BPMN XML provided",
+      "parseError": "Could not parse BPMN XML",
+      "protocol": "BPMN Protocol",
+      "title": "Process Flow",
+      "summary": "{lanes} roles · {nodes} tasks · {crossFlows} cross-lane connection{s}",
+      "deselectHint": "Click again to deselect",
+      "step": "Step {index}",
+      "unnamedLane": "Unnamed Lane",
+      "nodeTypes": {
+        "start": "start",
+        "end": "end",
+        "gateway": "gate",
+        "task": "task"
+      },
+      "crossLaneTrigger": "cross-lane trigger",
+      "triggeredBy": "triggered by {lane}",
+      "otherLane": "other lane",
+      "interactivity": "Cross-lane Interactivity"
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "description": "An unexpected error has occurred.",
+      "retry": "Try again",
+      "goHome": "Go back home"
+    },
+    "dateRangePicker": {
+      "placeholder": "Pick a date range"
+    }
+  },
+  "widgets": {
+    "header": {
+      "databases": "Databases",
+      "edgeFunctions": "Edge Functions",
+      "features": "Features",
+      "pricing": "Pricing",
+      "integrations": "Integrations",
+      "openUgen": "Open ugen"
+    },
+    "footer": {
+      "copyright": "© {year} Ucode UI. All rights reserved."
+    },
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "add": "Add",
+      "confirm": "Confirm",
+      "upload": "Upload",
+      "deleting": "Deleting...",
+      "title": "Title",
+      "description": "Description",
+      "status": "Status"
+    },
+    "sidebar": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "appearance": "Appearance",
+      "theme": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "homePage": "Home page",
+      "logout": "Logout",
+      "upgradePro": "Upgrade to Pro",
+      "unlockBenefits": "Unlock more benefits",
+      "myWorkspace": "My Workspace",
+      "workspace": "Workspace",
+      "freePlan": "Free plan",
+      "allWorkspaces": "All workspaces",
+      "createWorkspace": "Create workspace",
+      "dropHere": "Drop here",
+      "addChild": "Add child",
+      "edit": "Edit",
+      "delete": "Delete",
+      "untitledProject": "Untitled Project",
+      "loading": "Loading...",
+      "noRecentProjects": "No recent projects"
+    },
+    "landingPage": {
+      "aiBasedPlatform": "AI-Based Platform",
+      "heroTitle": "Build fast.\nScale Easy.",
+      "heroSubtitle": "Backend as a Service for your Digital Business. Every Ucode project is powered by an AI-based low-code platform that generates frontend and backend easily and quickly.",
+      "databases": {
+        "title": "Database and Analytics",
+        "description": "Every Ucode project is a dedicated PostgreSQL or MongoDB database, trusted by millions of developers.",
+        "list": {
+          "manageData": "Easy manage your Data",
+          "scalable": "PostgreSQL and MongoDB are the world's most scalable databases",
+          "lowcode": "Connect and manage your data with our Lowcode solution"
+        },
+        "postgresql": "PostgreSQL",
+        "mongodb": "MongoDB",
+        "clickhouse": "ClickHouse",
+        "relational": "Relational Engine",
+        "document": "Document Store",
+        "analytics": "Analytics Engine",
+        "ready": "Ready"
+      },
+      "edgeFunctions": {
+        "title": "Edge Functions",
+        "description": "Customize functions and easily author, deploy, and monitor serverless functions without managing servers or hosting. Easily write custom code.",
+        "platforms": {
+          "mobile": "Mobile",
+          "web": "Web",
+          "backend": "Backend",
+          "microfrontend": "Microfrontend"
+        }
+      },
+      "features": {
+        "title": "Everything you need",
+        "subtitle": "A complete suite of tools to ship your project in days, not months.",
+        "list": {
+          "storage": {
+            "title": "Storage",
+            "description": "Store, organize, and serve large files, from videos to images. (Minio, Amazon S3, R3)"
+          },
+          "dataApi": {
+            "title": "Data APIs",
+            "description": "Instant ready-to-use Restful APIs. Connect existing services instantly."
+          },
+          "auth": {
+            "title": "Authentication",
+            "description": "Invite and easily manage your users with Built-in powerful permission and access management."
+          },
+          "role": {
+            "title": "Role & Access",
+            "description": "Comprehensive Role Management, Access Management, and User Management built-in."
+          }
+        }
+      },
+      "integrations": {
+        "title": "Integrations",
+        "description": "Find an Integration. Connect with your favorite tools seamlessly.",
+        "viewAll": "View All Integrations",
+        "categories": {
+          "databases": "Databases",
+          "storage": "File Storage",
+          "apis": "API’s",
+          "versionControl": "Version control",
+          "maps": "Maps",
+          "customFunctions": "Custom functions"
+        }
+      }
+    },
+    "appSettings": {
+      "accountProfile": "Account Profile",
+      "saveChanges": "Save Changes",
+      "fullName": "Full Name",
+      "emailAddress": "Email Address",
+      "phoneNumber": "Phone Number",
+      "loginUsername": "Login / Username",
+      "accountType": "Account Type",
+      "assignedRole": "Assigned Role",
+      "namePlaceholder": "Your name",
+      "loginSessions": "Login Sessions",
+      "sessionsDescription": "Manage your active sessions and connected devices.",
+      "verifyingSessions": "Verifying active sessions...",
+      "noSessions": "No active sessions detected.",
+      "secure": "Secure",
+      "modified": "Modified",
+      "terminateSession": "Terminate session",
+      "languageKeys": "Language Keys",
+      "langDescription": "Explore available translations and localization keys.",
+      "accessingLangDb": "Accessing localization database...",
+      "noLangKeys": "No localization keys indexed",
+      "refreshSyncHint": "Try refreshing or syncing your translations.",
+      "environmentManagement": "Environment Management",
+      "envDescription": "Configure and switch between project environments.",
+      "unknownDevice": "Unknown Device"
+    },
+    "projects": {
+      "title": "Projects",
+      "edited": "Edited: {date}",
+      "recentlyEdited": "Recently edited",
+      "unknown": "Unknown",
+      "unknownAuthor": "Unknown Author",
+      "createFolder": "Create new folder",
+      "folderName": "Folder Name",
+      "folderPlaceholder": "e.g. My Folder",
+      "creating": "Creating...",
+      "create": "Create",
+      "searchPlaceholder": "Search projects...",
+      "toggleSelection": "Toggle Selection Mode",
+      "gridView": "Grid View",
+      "listView": "List View",
+      "addProjects": "Add projects",
+      "moveFolder": "Move folder",
+      "deleteFolder": "Delete Folder",
+      "deleteDescription": "Are you sure you want to delete {name}? All nested items will be deleted permanently.",
+      "renameFolder": "Rename Folder",
+      "editProject": "Edit Project",
+      "deleteProject": "Delete Project",
+      "deleteProjectDescription": "Are you sure you want to delete {name}? This action cannot be undone.",
+      "name": "Name",
+      "folderNameInput": "Folder name",
+      "saveChanges": "Save changes",
+      "saving": "Saving...",
+      "moveFolderTitle": "Move Folder",
+      "selectNewParent": "Select new parent",
+      "rootDirectory": "Root directory",
+      "moving": "Moving...",
+      "addProjectsTitle": "Add Projects",
+      "selectProjectsDescription": "Select existing projects to add to this folder:",
+      "noProjectsFound": "No projects found.",
+      "addToFolder": "Add to folder",
+      "adding": "Adding...",
+      "createNewProject": "Create new project",
+      "createdAt": "Created at",
+      "createdBy": "Created by",
+      "moveToFolder": "Move to folder",
+      "removeFromFolder": "Remove from folder",
+      "projectName": "Project name",
+      "projectDescription": "Project description",
+      "projectDescriptionPlaceholder": "Brief description of your project",
+      "moveProjectTitle": "Move Project to Folder",
+      "selectFolder": "Select folder"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "overview": "Overview",
+      "health": "Health",
+      "queryPerformance": "Query Performance",
+      "visitors": "Visitors",
+      "noData": "No data",
+      "loading": "Loading...",
+      "databaseOverview": "Database Overview",
+      "serviceHealth": "Service Health",
+      "errorRate": "{rate}% Errors",
+      "metricTooltip": "Analytics for {title}",
+      "deploymentSummary": "Deployment Summary",
+      "functions": "Functions",
+      "concurrency": "Concurrency",
+      "insights": "Insights",
+      "environment": "Environment",
+      "projectName": "Project Name",
+      "region": "Region",
+      "runtimeVersion": "Runtime Version",
+      "updateAvailable": "UPDATE AVAILABLE",
+      "lastDeploy": "Last Deploy",
+      "lastDeployBy": "{date} by {author}",
+      "backupStatus": "Backup Status",
+      "projectUrls": "Project URLs",
+      "httpActionsUrl": "HTTP Actions URL",
+      "slowQueries": "Slow Queries",
+      "cacheHitRate": "Cache Hit Rate",
+      "avgRowsPerCall": "Avg. Rows Per Call",
+      "searchPlaceholder": "Search by query",
+      "calls": "Calls",
+      "totalTime": "Total Time",
+      "roles": "Roles",
+      "export": "Export",
+      "resetReport": "Reset report",
+      "resetDescription": "Clear all historical query performance statistics and start fresh. This action cannot be undone.",
+      "resetStats": "Reset stats",
+      "howReportGenerated": "How is this report generated?",
+      "reportExplanation": "This report uses the pg_stat_statements extension to collect real-time data from your database.",
+      "learnMore": "Learn more about pg_stat_statements",
+      "indexAdvisor": "Index Advisor",
+      "indexAdvisorDescription": "The Index Advisor analyzes your slow queries and suggests potential indexes to improve performance.",
+      "seeRecommendations": "See all recommendations",
+      "query": "Query",
+      "timeConsumed": "Time consumed",
+      "maxTime": "Max time",
+      "meanTime": "Mean time",
+      "minTime": "Min time",
+      "rowsProcessed": "Rows processed",
+      "role": "Role",
+      "postgresRole": "Postgres Role: {role}",
+      "fullQuery": "Full Query",
+      "visitorAnalytics": "Visitor Analytics",
+      "currentVisitors": "{count} current visitors",
+      "audienceBreakdown": "Audience Breakdown"
+    },
+    "dashboard": {
+      "untitledProject": "Untitled Project",
+      "editedAt": "Edited: {date}",
+      "recentlyEdited": "Recently edited",
+      "unknownDate": "Unknown",
+      "unknownAuthor": "Unknown Author",
+      "nothingToShow": "Nothing to show here yet.",
+      "newProject": "New project",
+      "promptPlaceholder": "Ask Ugen to create a dashboard to...",
+      "addAttachment": "Add attachment",
+      "plan": "Plan"
+    },
+    "databaseStudio": {
+      "tabs": {
+        "tables": "Tables",
+        "security": "Security",
+        "advanced": "Advanced"
+      },
+      "placeholders": {
+        "securityComingSoon": "Security management is coming soon.",
+        "advancedComingSoon": "Advanced settings are coming soon."
+      },
+      "title": "Database Studio",
+      "sqlConsole": {
+        "header": "SQL Console",
+        "activeHeader": "Console Active",
+        "explorer": "Explorer",
+        "scripts": "Scripts",
+        "tables": "Tables",
+        "prettify": "Prettify",
+        "run": "Run",
+        "results": "Results",
+        "rowsReturned": "{count} rows returned",
+        "queryError": "Query Error",
+        "noResultsYet": "No results yet. Run a query to see data."
+      },
+      "records": {
+        "count": "{count} records",
+        "searchPlaceholder": "Search records...",
+        "sqlQuery": "SQL Query",
+        "filter": "Filter",
+        "viewPolicies": "View Policies",
+        "filters": "Filters",
+        "clearAll": "Clear all",
+        "contains": "contains",
+        "valuePlaceholder": "Value...",
+        "addCondition": "Add condition",
+        "noResults": "No records found",
+        "addRow": "Add row",
+        "addRecordTitle": "Add Record to {table}",
+        "fieldRequired": "This field is required",
+        "saveRecord": "Save Record"
+      },
+      "tables": {
+        "delete": "Delete table",
+        "deleteConfirmTitle": "Delete Table",
+        "deleteConfirmDescription": "Are you sure you want to delete the table '{table}'? This action cannot be undone.",
+        "deleteSuccess": "Table deleted successfully",
+        "deleteError": "Failed to delete table"
+      },
+      "logs": {
+        "activityTitle": "Activity Logs",
+        "activityDescription": "Track and monitor all global activities and resource changes.",
+        "functionTitle": "Function Logs",
+        "functionDescription": "Monitor the execution, status, and performance of individual functions.",
+        "allActions": "All actions",
+        "searchCollection": "Search collection...",
+        "searchByUser": "Search by user...",
+        "allFunctions": "All functions",
+        "allStatuses": "All statuses",
+        "activityDetailTitle": "Activity Log Details",
+        "functionDetailTitle": "Function Log Details",
+        "columns": {
+          "index": "№",
+          "action": "Action",
+          "collection": "Collection",
+          "actionOn": "Action On",
+          "actionBy": "Action By",
+          "function": "Function",
+          "time": "Time",
+          "status": "Status",
+          "duration": "Duration",
+          "tableSlug": "Table Slug"
+        },
+        "details": {
+          "user": "User",
+          "action": "Action",
+          "date": "Date",
+          "collection": "Collection",
+          "request": "Request",
+          "response": "Response",
+          "generalInfo": "General Info",
+          "name": "Name",
+          "status": "Status",
+          "requestMethod": "Request Method",
+          "actionType": "Action Type",
+          "startedAt": "Started At",
+          "completedAt": "Completed At",
+          "duration": "Duration",
+          "tableSlug": "Table Slug",
+          "resourceUsage": "Resource Usage",
+          "returnSize": "Return Size",
+          "compute": "Compute",
+          "dbBandwidth": "DB Bandwidth",
+          "fileBandwidth": "File Bandwidth",
+          "vectorBandwidth": "Vector Bandwidth"
+        }
+      },
+      "common": {
+        "cancel": "Cancel",
+        "delete": "Delete"
+      }
+    },
+    "workspaceChat": {
+      "mockMessage": "Hi there! I am your AI assistant for this workspace. How can I help you build your project today? \n\nYou can ask me to write code, debug issues, or plan architecture.",
+      "thinking": "Thinking...",
+      "pendingAction": {
+        "confirm": "✓ Yes, confirm",
+        "create": "✓ Yes, create",
+        "update": "✓ Yes, update",
+        "delete": "✓ Yes, delete",
+        "cancel": "✕ Cancel",
+        "yes": "Yes",
+        "no": "No",
+        "bulkDelete": "{count} records will be deleted",
+        "bulkUpdate": "{count} records will be updated",
+        "bulkCreate": "{count} records will be created"
+      },
+      "questionnaire": {
+        "step": "Step {current} / {total}",
+        "ownAnswer": "Your own answer",
+        "back": "← Back",
+        "finish": "Finish",
+        "nextStep": "Next Step →"
+      },
+      "input": {
+        "placeholder": "How can I help you today?",
+        "attachFile": "Attach file",
+        "visualEdits": "Visual edits",
+        "plan": "Plan",
+        "send": "Send (Enter)",
+        "element": "Element"
+      },
+      "codeBlock": {
+        "copy": "Copy",
+        "copied": "Copied!"
+      },
+      "questions": {
+        "panelType": {
+          "title": "What type of admin panel do you want?",
+          "crm": "Admin panel for CRM systems",
+          "tms": "Admin panel for TMS systems",
+          "erp": "Admin panel for ERP systems"
+        },
+        "framework": {
+          "title": "Select framework",
+          "nextjs": "Next.js (Recommended)",
+          "vite": "Vite + React",
+          "remix": "Remix"
+        },
+        "features": {
+          "title": "Additional features",
+          "auth": "Authentication",
+          "i18n": "Internationalization",
+          "pwa": "PWA Support",
+          "analytics": "Analytics"
+        }
+      }
+    },
+    "mediaGallery": {
+      "failedToLoad": "Failed to load files",
+      "errorDescription": "Something went wrong while fetching the data. Please check your connection.",
+      "retry": "Retry",
+      "noAssets": "No Assets Yet",
+      "emptyDescription": "Your media gallery is empty. Upload your first image, video, or document to get started.",
+      "createItem": "Create item",
+      "loadingMore": "Loading more...",
+      "reachedEnd": "You've reached the end",
+      "select": "Select",
+      "cancel": "Cancel",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "gridTooltip": "Current: {count} columns. Click to scale.",
+      "searchPlaceholder": "Search assets...",
+      "deleting": "Deleting...",
+      "deleteCount": "Delete ({count})"
+    },
+    "pricing": {
+      "plans": "Pricing Plans",
+      "compareTitle": "Compare our plans <br /> and find yours",
+      "compareSubtitle": "Simple, transparent pricing that grows with you. <br /> Try any plan free for 30 days. No credit card required.",
+      "getStarted": "Get started",
+      "chatSales": "Chat to sales",
+      "popular": "Popular",
+      "compareFeatures": "Compare features in detail",
+      "findPerfect": "Find the perfect combination of services and limits for your project.",
+      "month": "/ mth",
+      "categories": {
+        "general": "General",
+        "servers": "Servers",
+        "support": "Support",
+        "security": "Compliance & Security",
+        "connectivity": "Connectivity"
+      },
+      "cards": {
+        "os": {
+          "title": "Open source",
+          "price": "Free",
+          "description": "Basic features for up to 10 employees with everything you need."
+        },
+        "small": {
+          "title": "Small",
+          "price": "$300",
+          "description": "Advanced features for growing teams and startups."
+        },
+        "medium": {
+          "title": "Medium",
+          "price": "$600",
+          "description": "Advanced features and reporting, better workflows and automation."
+        },
+        "enterprise": {
+          "title": "Enterprise",
+          "price": "Custom",
+          "description": "Personalised service and enterprise security for large teams."
+        }
+      },
+      "features": {
+        "totalUsers": "Total Users & Roles",
+        "configuration": "Configuration",
+        "apiRequestsMonth": "API Requests / Month",
+        "apiRequestsSecond": "API Requests / Second",
+        "functions": "Functions",
+        "microfrontend": "Microfrontend",
+        "databaseSize": "Database Size",
+        "assetSize": "Asset Size info",
+        "dbServer": "Database Server",
+        "fileServer": "File Server",
+        "functionServer": "Function Server",
+        "microfrontendServer": "Microfrontend Server",
+        "customDomain": "Custom Domain",
+        "failover": "Failover Instance(s)",
+        "communitySupport": "Community Support",
+        "designatedSupport": "Designated Support",
+        "dedicatedDeveloper": "Dedicated Developer",
+        "logRetention": "Log retention",
+        "rbac": "Role Based Acces Control",
+        "menuPermissions": "Menu Permissions",
+        "tablePermissions": "Table Permissions",
+        "fieldPermissions": "Field Permissions",
+        "restApi": "REST API",
+        "assetApi": "Image & Asset API",
+        "webHooks": "Web Hooks",
+        "directDb": "Direct Database Access"
+      }
+    },
+    "clientTypeManagement": {
+      "loading": "Loading client platforms...",
+      "error": "Failed to load Client Types",
+      "title": "Client Types",
+      "subtitle": "Manage your project's authentication platforms and user scopes.",
+      "add": "Add Client Type",
+      "system": "System",
+      "sessions": "Sessions",
+      "registration": "Registration",
+      "public": "Public",
+      "private": "Private",
+      "recovery": "Recovery",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "permissionManage": {
+      "table": "Table permission",
+      "global": "Global permission",
+      "title": "Permission Management",
+      "subtitle": "Manage table records and global accessibility for this client type.",
+      "selectRole": "Select Role",
+      "selectRolePlaceholder": "Please select a role to manage permissions.",
+      "globalPermissions": {
+        "fetching": "Fetching global permissions...",
+        "title": "System Access Controls",
+        "save": "Save Changes",
+        "nameHeader": "Global Permission Name",
+        "checkHeader": "Access Check"
+      },
+      "tablePermissions": {
+        "fetching": "Fetching granular permissions...",
+        "title": "Granular Table Controls",
+        "save": "Save Changes",
+        "objectsHeader": "Data Objects",
+        "recordLevelHeader": "Record Level Permissions",
+        "fieldHeader": "Field",
+        "actionHeader": "Action",
+        "relationHeader": "Relation",
+        "viewHeader": "View",
+        "customHeader": "Custom",
+        "read": "Read",
+        "write": "Write",
+        "update": "Update",
+        "delete": "Delete",
+        "public": "Public",
+        "configTitle": "Configure {type} Settings",
+        "modifyingFor": "Modifying granular controls for {label}",
+        "close": "Close",
+        "confirm": "Confirm",
+        "noActions": "No actions available.",
+        "noRelations": "No relations defined.",
+        "noViews": "No specific views configured.",
+        "noFilters": "No active filters. Records will be fully accessible.",
+        "connectTo": "Connect To",
+        "selectConnection": "Select connection",
+        "tableRelation": "Table Relation",
+        "selectRelation": "Select relation",
+        "addNewFilter": "Add New Filter Condition"
+      }
+    },
+    "roleManage": {
+      "loading": "Loading roles...",
+      "error": "Failed to load Roles",
+      "title": "Roles Management",
+      "subtitle": "Manage your project's roles and permissions.",
+      "add": "Add Role",
+      "noRoles": "No roles found.",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "editRole": "Edit Role",
+      "createRole": "Create Role",
+      "editDescription": "Update role details and its operational status.",
+      "createDescription": "Fill in the details below to define a new application role.",
+      "roleName": "Role Name",
+      "roleNamePlaceholder": "Manager, Moderator, etc.",
+      "clientType": "Client Type",
+      "selectClientType": "Select client type",
+      "statusDescription": {
+        "active": "Role is active and usable",
+        "inactive": "Role is inactive"
+      },
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "save": "Save Changes"
     }
   }
 }

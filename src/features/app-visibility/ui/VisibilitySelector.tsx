@@ -1,9 +1,10 @@
 "use client";
 
 import { Globe } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import { Checkbox } from "@/shared/ui/checkbox";
+import { useTranslations } from "next-intl";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui";
+import { Checkbox } from "@/shared/ui";
 import { AppVisibility } from "@/entities/app/model/types";
 
 interface VisibilitySelectorProps {
@@ -19,29 +20,31 @@ export const VisibilitySelector = ({
   requireLogin,
   onRequireLoginChange,
 }: VisibilitySelectorProps) => {
+  const t = useTranslations('features.appVisibility')
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">App Visibility</CardTitle>
-        <CardDescription>Control who can access your application</CardDescription>
+        <CardTitle className="text-xl">{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
           <Select value={value} onValueChange={(v) => onChange(v as AppVisibility)}>
             <SelectTrigger leftIcon={Globe}>
-              <SelectValue placeholder="Select visibility" />
+              <SelectValue placeholder={t('placeholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Public">Public</SelectItem>
-              <SelectItem value="Private">Private</SelectItem>
-              <SelectItem value="Team only">Team only</SelectItem>
+              <SelectItem value="Public">{t('options.public')}</SelectItem>
+              <SelectItem value="Private">{t('options.private')}</SelectItem>
+              <SelectItem value="Team only">{t('options.teamOnly')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="pt-2">
           <Checkbox
-            label="Require login to access"
+            label={t('requireLogin')}
             checked={requireLogin}
             onCheckedChange={(checked) => onRequireLoginChange(!!checked)}
           />

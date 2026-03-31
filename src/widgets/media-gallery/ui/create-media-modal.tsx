@@ -17,8 +17,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter
-} from '@/shared/ui/ui/dialog'
-import { Button } from '@/shared/ui/ui/button'
+} from '@/shared/ui'
+import { Button } from '@/shared/ui'
 
 interface CreateMediaModalProps {
   isOpen: boolean;

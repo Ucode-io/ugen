@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ReusableTabs } from '@/shared/ui/tabs'
+import { useTranslations } from 'next-intl'
+import { ReusableTabs } from '@/shared/ui'
 import { GlobalPermissions } from './global-permissions'
 import { ShieldAlert, Shield } from 'lucide-react'
 import { TablePermissions } from './table-permissions'
@@ -14,7 +15,7 @@ interface Props {
 }
 
 export const PermissionManage = ({ clientTypeId, projectId }: Props) => {
-
+  const t = useTranslations('widgets.permissionManage')
   const [activeTab, setActiveTab] = useState('table')
   const [selectedRoleId, setSelectedRoleId] = useState('')
 
@@ -35,8 +36,8 @@ export const PermissionManage = ({ clientTypeId, projectId }: Props) => {
   }, [rolesData])
 
   const tabs = [
-    { id: 'table', label: 'Table permission' },
-    { id: 'global', label: 'Global permission' }
+    { id: 'table', label: t('table') },
+    { id: 'global', label: t('global') }
   ]
 
   return (
@@ -45,17 +46,17 @@ export const PermissionManage = ({ clientTypeId, projectId }: Props) => {
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-text-main to-text-muted bg-clip-text text-transparent flex items-center gap-2">
             <ShieldAlert className="w-6 h-6 text-primary" />
-            Permission Management
+            {t('title')}
           </h1>
           <p className="text-text-muted text-sm mt-1">
-            Manage table records and global accessibility for this client type.
+            {t('subtitle')}
           </p>
         </div>
         <ReusableTabs options={tabs} activeId={activeTab} onTabChange={setActiveTab} size="md" />
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest ml-1">Select Role</p>
+        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest ml-1">{t('selectRole')}</p>
         <div className="flex items-center gap-2 flex-wrap pb-1">
           {rolesData?.map((role: any) => (
             <button
@@ -96,10 +97,11 @@ export const PermissionManage = ({ clientTypeId, projectId }: Props) => {
         ) : (
           <div className="flex flex-col items-center justify-center p-20 text-text-muted">
             <Shield className="w-12 h-12 mb-4 opacity-20" />
-            <p>Please select a role to manage permissions.</p>
+            <p>{t('selectRolePlaceholder')}</p>
           </div>
         )}
       </div>
     </div>
   )
 }
+

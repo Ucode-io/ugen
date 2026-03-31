@@ -2,7 +2,7 @@
 
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useAnalyticsStore } from "@/entities/analytics";
-import { Button } from "@/shared/ui/button";
+import { Button } from "@/shared/ui";
 
 export const InsightsPanel = () => {
   const { activePeriod } = useAnalyticsStore();

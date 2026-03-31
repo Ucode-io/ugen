@@ -4,17 +4,19 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, authApi } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
-import { Button } from '@/shared/ui/ui/button'
-import { Input } from '@/shared/ui/ui/input'
+import { Button } from '@/shared/ui'
+import { Input } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import {
   Camera, ChevronDown, ChevronUp, Trash2, Loader2,
   Monitor, Smartphone, Globe, Shield, Save, User, Layers
 } from 'lucide-react'
 import { EnvironmentPage } from '@/widgets/project-workspace'
+import { useTranslations } from 'next-intl'
 
-// Profile Section Component
 export const AppSettingsPage = () => {
+  const tCommon = useTranslations('widgets.common')
+  const tWidgets = useTranslations('widgets.appSettings')
   const user = useAuthStore(s => s.user)
   const project = useAuthStore(s => s.project)
   const projectId = project?.project_id ?? ''
@@ -139,14 +141,14 @@ export const AppSettingsPage = () => {
       {/* 1. Profile Block */}
       <div className="bg-bg-card border border-border-subtle rounded-3xl p-8 space-y-8 shadow-sm">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-text-main">Account Profile</h2>
+          <h2 className="text-xl font-bold text-text-main">{tWidgets('accountProfile')}</h2>
           <Button
             onClick={() => saveMutation()}
             disabled={isSaving}
             className="rounded-xl px-6 h-10 shadow-sm"
           >
             {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-            Save Changes
+            {tWidgets('saveChanges')}
           </Button>
         </div>
 
@@ -171,7 +173,7 @@ export const AppSettingsPage = () => {
               className="absolute inset-0 rounded-3xl bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center backdrop-blur-[2px]"
             >
               <Camera size={24} className="text-white mb-1" />
-              <span className="text-[10px] font-bold text-white uppercase tracking-tight">Upload</span>
+              <span className="text-[10px] font-bold text-white uppercase tracking-tight">{tCommon('upload')}</span>
             </button>
             <input
               ref={fileInputRef}
@@ -190,16 +192,16 @@ export const AppSettingsPage = () => {
           {/* Form Fields Area */}
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 w-full">
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Full Name</label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('fullName')}</label>
               <Input
-                placeholder="Your name"
+                placeholder={tWidgets('namePlaceholder')}
                 value={form.name}
                 onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
                 className="bg-bg-sidebar border-border-subtle h-12 rounded-xl focus:ring-1 focus:ring-primary/20"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Email Address</label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('emailAddress')}</label>
               <Input
                 type="email"
                 placeholder="email@example.com"
@@ -209,7 +211,7 @@ export const AppSettingsPage = () => {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Phone Number</label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('phoneNumber')}</label>
               <Input
                 type="tel"
                 placeholder="+1 234 567 89 00"
@@ -219,7 +221,7 @@ export const AppSettingsPage = () => {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Login / Username</label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('loginUsername')}</label>
               <Input
                 placeholder="username"
                 value={form.login}
@@ -228,13 +230,13 @@ export const AppSettingsPage = () => {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Account Type</label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('accountType')}</label>
               <div className="bg-bg-sidebar rounded-xl px-4 py-3 text-sm border border-border-subtle text-text-muted cursor-not-allowed">
                 {typeof user?.role === 'string' ? user.role : 'User'}
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Assigned Role</label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('assignedRole')}</label>
               <div className="bg-bg-sidebar rounded-xl px-4 py-3 text-sm border border-border-subtle text-text-muted cursor-not-allowed">
                 {typeof user?.role === 'string' ? user.role : 'Member'}
               </div>
@@ -254,8 +256,8 @@ export const AppSettingsPage = () => {
               <Shield size={20} className="text-primary" />
             </div>
             <div className="text-left">
-              <p className="font-bold text-text-main">Login Sessions</p>
-              <p className="text-xs text-text-muted mt-0.5">Manage your active sessions and connected devices.</p>
+              <p className="font-bold text-text-main">{tWidgets('loginSessions')}</p>
+              <p className="text-xs text-text-muted mt-0.5">{tWidgets('sessionsDescription')}</p>
             </div>
             {sessions.length > 0 && (
               <span className="bg-primary/10 text-primary text-[11px] font-bold px-2 py-0.5 rounded-full ml-2">
@@ -271,12 +273,12 @@ export const AppSettingsPage = () => {
             {sessionsLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 size={24} className="animate-spin text-primary/40" />
-                <p className="text-sm text-text-muted font-medium">Verifying active sessions...</p>
+                <p className="text-sm text-text-muted font-medium">{tWidgets('verifyingSessions')}</p>
               </div>
             ) : sessions.length === 0 ? (
               <div className="text-center py-12">
                 <Shield size={32} className="text-text-muted/20 mx-auto mb-3" />
-                <p className="text-text-muted text-sm">No active sessions detected.</p>
+                <p className="text-text-muted text-sm">{tWidgets('noSessions')}</p>
               </div>
             ) : (
               sessions.map((session: any) => (
@@ -287,7 +289,7 @@ export const AppSettingsPage = () => {
                       : <Monitor size={16} className="text-text-muted" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-text-main font-medium truncate">{session.data || 'Unknown Device'}</p>
+                    <p className="text-[13px] text-text-main font-medium truncate">{session.data || tWidgets('unknownDevice')}</p>
                     <div className="flex items-center gap-3 mt-1 text-[11px] text-text-muted">
                       <span className="flex items-center gap-1">
                         <Globe size={10} /> {session.ip}
@@ -300,7 +302,7 @@ export const AppSettingsPage = () => {
                           ? "bg-amber-500/10 text-amber-600"
                           : "bg-green-500/10 text-green-600"
                       )}>
-                        {session.is_changed ? 'Modified' : 'Secure'}
+                        {session.is_changed ? tWidgets('modified') : tWidgets('secure')}
                       </span>
                     </div>
                   </div>
@@ -316,7 +318,7 @@ export const AppSettingsPage = () => {
                       }
                     }}
                     className="h-9 w-9 flex items-center justify-center rounded-xl text-destructive hover:bg-destructive/10 transition-all group"
-                    title="Terminate session"
+                    title={tWidgets('terminateSession')}
                   >
                     {deletingSessionId === session.id
                       ? <Loader2 size={16} className="animate-spin" />
@@ -340,8 +342,8 @@ export const AppSettingsPage = () => {
               <Globe size={20} className="text-primary" />
             </div>
             <div className="text-left">
-              <p className="font-bold text-text-main">Language Keys</p>
-              <p className="text-xs text-text-muted mt-0.5">Explore available translations and localization keys.</p>
+              <p className="font-bold text-text-main">{tWidgets('languageKeys')}</p>
+              <p className="text-xs text-text-muted mt-0.5">{tWidgets('langDescription')}</p>
             </div>
           </div>
           {languagesOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
@@ -352,13 +354,13 @@ export const AppSettingsPage = () => {
             {langLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 size={24} className="animate-spin text-primary/40" />
-                <p className="text-sm text-text-muted">Accessing localization database...</p>
+                <p className="text-sm text-text-muted">{tWidgets('accessingLangDb')}</p>
               </div>
             ) : langFields.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Globe size={32} className="text-text-muted/20 mb-3" />
-                <p className="text-text-muted text-sm font-medium">No localization keys indexed</p>
-                <p className="text-xs text-text-muted mt-1 opacity-60">Try refreshing or syncing your translations.</p>
+                <p className="text-text-muted text-sm font-medium">{tWidgets('noLangKeys')}</p>
+                <p className="text-xs text-text-muted mt-1 opacity-60">{tWidgets('refreshSyncHint')}</p>
               </div>
             ) : (
               <div className="divide-y divide-border-subtle/50 max-h-[500px] overflow-y-auto custom-scrollbar">
@@ -403,8 +405,8 @@ export const AppSettingsPage = () => {
               <Layers size={20} className="text-primary" />
             </div>
             <div className="text-left">
-              <p className="font-bold text-text-main">Environment Management</p>
-              <p className="text-xs text-text-muted mt-0.5">Configure and switch between project environments.</p>
+              <p className="font-bold text-text-main">{tWidgets('environmentManagement')}</p>
+              <p className="text-xs text-text-muted mt-0.5">{tWidgets('envDescription')}</p>
             </div>
           </div>
           {environmentOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}

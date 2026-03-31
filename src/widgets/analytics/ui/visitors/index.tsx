@@ -4,8 +4,11 @@ import { VisitorsToolbar } from "./toolbar";
 import { VisitorMetricTabs } from "./metric-tabs";
 import { VisitorsMainChart } from "./main-chart";
 import { VisitorsBreakdownGrid } from "./breakdown-grid";
+import { useTranslations } from "next-intl";
 
 export const VisitorsTab = () => {
+  const t = useTranslations('widgets.analytics');
+
   return (
     <div className="space-y-8">
       <VisitorsToolbar />
@@ -14,7 +17,7 @@ export const VisitorsTab = () => {
         <VisitorsMainChart />
       </div>
       <section className="space-y-6">
-        <h3 className="text-md font-medium text-text-main">Audience Breakdown</h3>
+        <h3 className="text-md font-medium text-text-main">{t("audienceBreakdown")}</h3>
         <VisitorsBreakdownGrid />
       </section>
     </div>

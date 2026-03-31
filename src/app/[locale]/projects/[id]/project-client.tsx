@@ -14,7 +14,7 @@ import { useFilesStore, IFile } from "@/entities/project/model/files-store"
 import { ProjectHeader } from "@/widgets/project-workspace/ui/project-header"
 import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard"
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view"
-import { ErrorBoundary } from "@/shared/ui/error-boundary"
+import { ErrorBoundary } from "@/shared/ui"
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();

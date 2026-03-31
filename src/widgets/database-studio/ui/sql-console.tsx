@@ -23,14 +23,14 @@ import {
   useTables,
   useExecuteQuery
 } from '@/entities/database'
-import { DataTable } from '@/shared/ui/data-table'
+import { DataTable } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
 import { useTranslations } from 'next-intl'
-import { Skeleton } from '@/shared/ui/skeleton'
+import { Skeleton } from '@/shared/ui'
 
 export const SqlConsole = () => {
-  const t = useTranslations('databaseStudio')
+  const t = useTranslations('widgets.databaseStudio')
   const { theme } = useUIStore()
   const {
     sqlScripts,

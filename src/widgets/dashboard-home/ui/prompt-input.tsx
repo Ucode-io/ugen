@@ -6,11 +6,13 @@ import { useRef, useEffect, useState, ClipboardEvent, DragEvent } from 'react'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { api } from '@/shared/api'
 import { useChatStore } from '@/entities/chat'
-import { AudioRecorder } from '@/shared/ui/audio-recorder'
+import { AudioRecorder } from '@/shared/ui'
 import { useFileUpload } from '@/shared/hooks/useFileUpload'
 import { ModelSelector, DEFAULT_MODEL_ID } from '@/entities/ai-model'
+import { useTranslations } from 'next-intl'
 
 export const PromptInput = () => {
+  const t = useTranslations('widgets.dashboard')
   const searchParams = useSearchParams()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -57,8 +59,8 @@ export const PromptInput = () => {
 
       // 1. Create chat
       const { data: createData } = await api.post('/v1/ai-chat', {
-        title: prompt.slice(0, 30) || "New project",
-        project_name: prompt.slice(0, 20) || "New project",
+        title: prompt.slice(0, 30) || t("newProject"),
+        project_name: prompt.slice(0, 20) || t("newProject"),
         description: "",
         model: selectedModel
       })
@@ -175,7 +177,7 @@ export const PromptInput = () => {
           disabled={isProcessing}
           rows={1}
           className="w-full bg-transparent px-4 pb-8 pt-3 text-[15px] font-medium text-text-main placeholder:text-text-muted outline-none disabled:opacity-50 min-h-[44px] max-h-[200px] resize-none"
-          placeholder="Ask Ugen to create a dashboard to..."
+          placeholder={t("promptPlaceholder")}
         />
 
         {/* Bottom Actions */}
@@ -193,7 +195,7 @@ export const PromptInput = () => {
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
               className="flex h-8 w-8 items-center justify-center rounded-full text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors disabled:opacity-50"
-              title="Add attachment"
+              title={t("addAttachment")}
             >
               {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={20} />}
             </button>
@@ -213,7 +215,7 @@ export const PromptInput = () => {
               }
               onClick={handleTogglePlan}
             >
-              Plan
+              {t("plan")}
             </button>
             <AudioRecorder
               onTranscription={(text) => setPrompt(prev => prev + (prev ? " " : "") + text)}
