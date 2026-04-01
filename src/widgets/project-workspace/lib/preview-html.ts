@@ -138,8 +138,34 @@ export const INSPECTOR_SCRIPT = `
   });
 `
 
-export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record<string, string> = {}) {
+export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record<string, string> = {}, files: Array<{ path: string; content: string }> = []) {
   const REACT_VERSION = "18.3.1";
+
+  const tailwindConfigFile = files.find(f => f.path === "tailwind.config.js");
+
+  let tailwindConfigJson = "{}";
+  if (tailwindConfigFile) {
+    try {
+      // Убираем export default и require() — выполняем как выражение
+      const configStr = tailwindConfigFile.content
+        .replace(/\/\*[\s\S]*?\*\//g, "")           // убираем JSDoc комментарии
+        .replace(/export\s+default\s+/, "")          // убираем export default
+        .replace(/require\([^)]+\)/g, "{}")          // убираем require()
+        .trim()
+        .replace(/;$/, "");                          // убираем точку с запятой в конце
+
+      // Выполняем как выражение и получаем объект
+      const configObj = new Function(`return ${configStr}`)();
+
+      // Убираем plugins — они не работают в браузере
+      delete configObj.plugins;
+      delete configObj.content; // CDN сам сканирует DOM
+
+      tailwindConfigJson = JSON.stringify(configObj);
+    } catch (e) {
+      console.warn("Failed to parse tailwind.config.js:", e);
+    }
+  }
 
   const depsParam = `?deps=react@${REACT_VERSION},react-dom@${REACT_VERSION}`;
 
@@ -204,7 +230,11 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <!-- Конфиг ПОСЛЕ загрузки CDN через tailwind.config -->
       <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+        tailwind.config = ${tailwindConfigJson};
+      </script>
       
       <script>
         window.process = { env: { NODE_ENV: 'production' } };

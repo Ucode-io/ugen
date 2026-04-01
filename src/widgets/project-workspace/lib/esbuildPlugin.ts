@@ -118,7 +118,8 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
                 // Strip PostCSS/Tailwind directives the browser can't process
                 const cleanedCss = fs[fullPath]
                   .replace(/@tailwind\s+\S+;/g, "")
-                  .replace(/@layer\s+base\s*\{[\s\S]*?\}/g, "")
+                  .replace(/@layer\s+base\s*\{([\s\S]*?)\}/g, "$1")
+                  .replace(/@layer\s+(?:components|utilities)\s*\{[\s\S]*?\}/g, "")
                   .trim();
 
                 const js = `

@@ -68,8 +68,8 @@ export const TablesView = () => {
           <div
             key={table.id}
             onClick={() => {
-              // setSelectedTable(table.slug)
-              // setCurrentView('records')
+              setSelectedTable(table.slug)
+              setCurrentView('records')
             }}
             className="flex flex-col p-4 rounded-ai border border-border-subtle bg-bg-card hover:border-primary/50 text-left transition-all hover:shadow-md group cursor-pointer relative"
           >

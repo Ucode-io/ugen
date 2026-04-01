@@ -40,7 +40,7 @@ export const ProjectPreviewViewer = () => {
       );
       console.log("[Preview] Build successful, code length:", code.length);
       console.log("[Preview] Dependencies:", Object.keys(dependencies));
-      const html = generatePreviewHtml(code, dependencies);
+      const html = generatePreviewHtml(code, dependencies, files);
       console.log("[Preview] HTML generated, length:", html.length);
 
       setSrcDoc(html);
