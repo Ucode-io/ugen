@@ -44,7 +44,7 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
   const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
   const { selectedTable, setCurrentView, resetToTables, setFilters } = useDatabaseStore()
-  const { data: records, isLoading: isRecordsLoading, refetch } = useTableRecords(selectedTable)
+  const { data: records, isLoading: isRecordsLoading, refetch } = useTableRecords(selectedTable, ucodeProjectId || projectId)
   const { data: tableDetail, isLoading: isDetailLoading } = useTableDetail(selectedTable, ucodeProjectId || "")
   const [filterQuery, setFilterQuery] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -53,18 +53,72 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
   const isSchemaLoading = isDetailLoading
 
   const columns = useMemo(() => {
-    if (!schema) return []
+    // Dynamically build columns based on the returned records to support dynamic keys
+    if (records && records.length > 0) {
+      const firstRecord = records[0]
+      return Object.keys(firstRecord).map((key) => {
+        const schemaField = schema?.find((s) => s.slug === key)
+        const label = schemaField?.label || key
+        return {
+          accessorKey: key,
+          header: () => <div className="min-w-[200px] font-medium text-text-muted">{label}</div>,
+          cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
+            const val = row.getValue(key)
+            let content = <span>{String(val ?? '')}</span>
+
+            if (typeof val === 'boolean') {
+              content = (
+                <span className={cn(
+                  "px-2 py-0.5 rounded-md text-[11px] font-medium uppercase tracking-wider",
+                  val
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-text-muted/10 text-text-muted border border-text-muted/20"
+                )}>
+                  {val ? 'TRUE' : 'FALSE'}
+                </span>
+              )
+            } else if (val === null) {
+              content = <span className="text-text-muted italic opacity-70">null</span>
+            } else if (typeof val === 'object') {
+              content = <span className="text-text-main font-mono text-xs">{JSON.stringify(val)}</span>
+            }
+
+            return <div className="min-w-[200px] max-w-[300px] truncate text-sm">{content}</div>
+          }
+        }
+      })
+    }
+
+    // Fallback to schema if records are empty but schema is available
+    if (!schema || schema.length === 0) return []
     return schema.map((col) => ({
       accessorKey: col.slug,
-      header: col.label,
+      header: () => <div className="min-w-[200px] font-medium text-text-muted">{col.label}</div>,
       cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
         const val = row.getValue(col.slug)
-        if (typeof val === 'boolean') return val ? 'true' : 'false'
-        if (val === null) return <span className="text-text-muted">null</span>
-        return <span>{String(val ?? '')}</span>
+        let content = <span>{String(val ?? '')}</span>
+
+        if (typeof val === 'boolean') {
+          content = (
+            <span className={cn(
+              "px-2 py-0.5 rounded-md text-[11px] font-medium uppercase tracking-wider",
+              val
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "bg-text-muted/10 text-text-muted border border-text-muted/20"
+            )}>
+              {val ? 'TRUE' : 'FALSE'}
+            </span>
+          )
+        } else if (val === null) {
+          content = <span className="text-text-muted italic opacity-70">null</span>
+        } else if (typeof val === 'object') {
+          content = <span className="text-text-main font-mono text-xs">{JSON.stringify(val)}</span>
+        }
+
+        return <div className="min-w-[200px] max-w-[300px] truncate text-sm">{content}</div>
       }
     }))
-  }, [schema])
+  }, [schema, records])
 
   React.useEffect(() => {
     if (!selectedTable) {
@@ -77,7 +131,7 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-card rounded-ai border border-border-subtle shadow-sm overflow-hidden min-h-[500px]">
+    <div className="flex flex-col h-full bg-bg-card rounded-ai border border-border-subtle shadow-sm overflow-hidden min-h-[500px] max-w-[100%]">
       <div className="flex flex-col sm:flex-row items-center justify-between p-4 gap-4 border-b border-border-subtle">
         <div className="flex items-center gap-2">
           <button
@@ -193,7 +247,8 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
           data={records || []}
           isLoading={isRecordsLoading}
           emptyMessage={t('records.noResults')}
-          containerClassName="border-none shadow-none"
+          containerClassName="border-none shadow-none max-w-[958px]"
+          className="min-w-max rounded-none border-none"
         />
       )}
     </div>

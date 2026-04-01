@@ -42,9 +42,28 @@ export const databaseApi = {
     return data?.data?.tables || [];
   },
 
-  fetchTableRecords: async (tableName: string, filters?: any, pagination?: any): Promise<TableRecord[]> => {
-    await new Promise(r => setTimeout(r, 800));
-    return MOCK_RECORDS[tableName] || [];
+  fetchTableRecords: async (tableSlug: string, projectId: string, clientTypeId?: string, limit: number = 20, offset: number = 0): Promise<TableRecord[]> => {
+    const params: any = {
+      "project-id": projectId,
+      limit,
+      offset
+    };
+
+    if (clientTypeId) {
+      params["client-type-id"] = clientTypeId;
+    }
+
+    try {
+      const { data } = await api.get(`/v2/items/${tableSlug}`, {
+        params
+      });
+      // Handle various response wrappers typical in this API
+      const items = data?.data?.data?.response || data?.data?.response || data?.response || data?.data || [];
+      return Array.isArray(items) ? items : [];
+    } catch (error) {
+      console.error(`Error fetching records for table ${tableSlug}:`, error);
+      return [];
+    }
   },
 
   fetchTableSchema: async (tableName: string): Promise<Column[]> => {
@@ -98,11 +117,11 @@ export const useTables = (search?: string, limit?: number, offset?: number) =>
     queryFn: () => databaseApi.fetchTables(search, limit, offset)
   });
 
-export const useTableRecords = (tableName: string | null) =>
+export const useTableRecords = (tableSlug: string | null, projectId: string, clientTypeId?: string) =>
   useQuery({
-    queryKey: ['db-records', tableName],
-    queryFn: () => databaseApi.fetchTableRecords(tableName!),
-    enabled: !!tableName
+    queryKey: ['db-records', tableSlug, projectId, clientTypeId],
+    queryFn: () => databaseApi.fetchTableRecords(tableSlug!, projectId, clientTypeId),
+    enabled: !!tableSlug && !!projectId
   });
 
 export const useTableSchema = (tableName: string | null) =>
@@ -145,7 +164,7 @@ export const useTableDetail = (tableSlug: string | null, projectId: string) =>
 export const useDeleteTable = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ tableId, projectId }: { tableId: string; projectId: string }) => 
+    mutationFn: ({ tableId, projectId }: { tableId: string; projectId: string }) =>
       databaseApi.deleteTable(tableId, projectId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['db-tables'] });
