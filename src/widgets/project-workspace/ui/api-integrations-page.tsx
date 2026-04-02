@@ -270,7 +270,7 @@ func DeleteRecord(id string) ([]byte, error) {
       </div> */}
 
       {/* Editor Area */}
-      <div className="bg-bg-card border border-border-subtle rounded-3xl shadow-sm flex-1 flex flex-col min-h-[500px] overflow-hidden">
+      <div className="bg-bg-card border border-border-subtle rounded-3xl shadow-sm flex-1 flex flex-col min-h-[600px] overflow-hidden">
         {/* Tabs & Actions */}
         <div className="flex items-center justify-between px-6 py-3 border-b border-border-subtle bg-bg-sidebar/30 flex-wrap gap-4">
           <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
