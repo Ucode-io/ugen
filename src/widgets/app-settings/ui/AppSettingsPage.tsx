@@ -1,18 +1,61 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, authApi } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
-import { Button } from '@/shared/ui'
-import { Input } from '@/shared/ui'
+import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Popover, PopoverContent, PopoverTrigger, Checkbox } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import {
   Camera, ChevronDown, ChevronUp, Trash2, Loader2,
-  Monitor, Smartphone, Globe, Shield, Save, User, Layers
+  Monitor, Smartphone, Globe, Shield, Save, User, Layers, Settings
 } from 'lucide-react'
 import { EnvironmentPage } from '@/widgets/project-workspace'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
+
+const LanguageRow = ({ item, languageKeys, projectId, updateMutation, languages, setLanguages }: any) => {
+  const [translations, setTranslations] = useState(item.translations || {})
+
+  useEffect(() => {
+    setTranslations(item.translations || {})
+  }, [item.translations])
+
+  const handleBlur = (code: string, value: string) => {
+    if (item.translations?.[code] === value) return // No change
+
+    const newTranslations = { ...translations, [code]: value }
+    const updatedItem = { ...item, translations: newTranslations }
+
+    // Update global store optimistically
+    const nextLanguages = languages.map((l: any) => l.id === item.id ? updatedItem : l)
+    setLanguages(nextLanguages)
+
+    // Fire API request
+    updateMutation.mutate(updatedItem)
+  }
+
+  return (
+    <div className="flex items-center gap-6 py-3 border-b border-border-subtle/50 last:border-0 hover:bg-bg-sidebar/20 rounded-xl px-2 transition-colors">
+      <div className="w-[180px] shrink-0">
+        <span className="text-sm font-medium text-text-main">{item.key}:</span>
+      </div>
+      <div className="flex flex-1 gap-4 overflow-x-auto no-scrollbar">
+        {languageKeys.map((code: string) => (
+          <Input
+            key={code}
+            value={translations[code] || ''}
+            onChange={(e) => setTranslations({ ...translations, [code]: e.target.value })}
+            onBlur={(e) => handleBlur(code, e.target.value)}
+            className="flex-1 min-w-[150px] bg-bg-main border-border-subtle h-10 rounded-xl"
+            placeholder={code.toUpperCase()}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 
 export const AppSettingsPage = () => {
   const tCommon = useTranslations('widgets.common')
@@ -23,6 +66,9 @@ export const AppSettingsPage = () => {
   const companyId = user?.company_id ?? ''
   const userId = user?.id ?? ''
   const environmentId = user?.environment_id ?? ''
+
+  const languages = useAuthStore(s => s.languages) ?? []
+  const setLanguages = useAuthStore(s => s.setLanguages)
 
   const queryClient = useQueryClient()
   const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? ''
@@ -47,10 +93,16 @@ export const AppSettingsPage = () => {
 
   // Languages States
   const [languagesOpen, setLanguagesOpen] = useState(false)
-  const [langFields, setLangFields] = useState<any[]>([])
-  const [langLoading, setLangLoading] = useState(false)
+  const [languagesLoading, setLanguagesLoading] = useState(false)
+
   // Environment States
   const [environmentOpen, setEnvironmentOpen] = useState(false)
+
+  // Project Settings States
+  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false)
+  const [projectLanguage, setProjectLanguage] = useState<any[]>([])
+  const [projectTimezone, setProjectTimezone] = useState('')
+  const [projectIconCat, setProjectIconCat] = useState<string[]>([])
 
   // API Functions
   const uploadPhoto = async (file: File, projectId: string): Promise<string> => {
@@ -92,6 +144,127 @@ export const AppSettingsPage = () => {
     enabled: sessionsOpen && !!userId && !!projectId,
   })
 
+  // Project Settings Queries
+  const { data: projectLanguages = [], isLoading: isLoadingProjLangs } = useQuery({
+    queryKey: ['project-settings-language', projectId],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/project/setting', {
+        params: { 'project-id': projectId, type: 'LANGUAGE', limit: 200 }
+      })
+      return data?.data?.data?.language || []
+    },
+    enabled: projectSettingsOpen && !!projectId
+  })
+
+  const { data: projectTimezones = [], isLoading: isLoadingProjTime } = useQuery({
+    queryKey: ['project-settings-timezone', projectId],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/project/setting', {
+        params: { 'project-id': projectId, type: 'TIMEZONE', limit: 200 }
+      })
+      return data?.data?.data?.timezone || []
+    },
+    enabled: projectSettingsOpen && !!projectId
+  })
+
+  const { data: iconCollections = [], isLoading: isLoadingIcons } = useQuery({
+    queryKey: ['icon-collections'],
+    queryFn: async () => {
+      const res = await fetch('https://api.iconify.design/collections')
+      const data = await res.json()
+      return Object.entries(data).map(([k, v]: any) => ({
+        id: k,
+        name: v.name,
+        total: v.total
+      }))
+    },
+    enabled: projectSettingsOpen
+  })
+
+  // Full Project Details Query
+  const { data: fullProjectSettings, isLoading: isLoadingFullProject } = useQuery({
+    queryKey: ['company-project', projectId],
+    queryFn: async () => {
+      const { data } = await api.get(`/v1/company-project/${projectId}`, {
+        params: { 'project-id': projectId }
+      })
+      return data?.data || {}
+    },
+    enabled: projectSettingsOpen && !!projectId
+  })
+
+  useEffect(() => {
+    if (fullProjectSettings) {
+      if (Array.isArray(fullProjectSettings.language)) {
+        setProjectLanguage(fullProjectSettings.language)
+      }
+      if (fullProjectSettings.timezone_id) {
+        setProjectTimezone(fullProjectSettings.timezone_id)
+      }
+      if (Array.isArray(fullProjectSettings.icon_categories)) {
+        setProjectIconCat(fullProjectSettings.icon_categories)
+      }
+    }
+  }, [fullProjectSettings])
+
+  const updateProjectSettingsMutation = useMutation({
+    mutationFn: async (updatedFields: any) => {
+      if (!fullProjectSettings) return
+      const payload = {
+        ...fullProjectSettings,
+        // Ensure required API fields from the response are passed
+        project_id: projectId,
+        company_id: companyId,
+        ...updatedFields
+      }
+
+      const { data } = await api.put(`/v1/company-project/${projectId}`, payload, {
+        params: { 'project-id': projectId }
+      })
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-project', projectId] })
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.description || 'Failed to update project settings')
+    }
+  })
+
+  // Multiselect toggles
+  const toggleLanguage = (lang: any, checked: boolean) => {
+    const current = [...projectLanguage];
+    if (checked) {
+      const updated = [...current, { id: lang.id, label: lang.name }];
+      setProjectLanguage(updated);
+      updateProjectSettingsMutation.mutate({ language: updated });
+    } else {
+      const updated = current.filter(l => l.id !== lang.id);
+      setProjectLanguage(updated);
+      updateProjectSettingsMutation.mutate({ language: updated });
+    }
+  }
+
+  const toggleIconCat = (colId: string, colName: string, checked: boolean) => {
+    const val = `${colId}#${colName}`;
+    const current = [...projectIconCat];
+    if (checked) {
+      if (!current.includes(val)) {
+        const updated = [...current, val];
+        setProjectIconCat(updated);
+        updateProjectSettingsMutation.mutate({ icon_categories: updated });
+      }
+    } else {
+      if (current.length <= 1) {
+        toast.error('At least one icon category is required')
+        return
+      }
+      const updated = current.filter(v => v !== val);
+      setProjectIconCat(updated);
+      updateProjectSettingsMutation.mutate({ icon_categories: updated });
+    }
+  }
+
   const { mutate: saveMutation, isPending: isSaving } = useMutation({
     mutationFn: async () => {
       let filename = avatarFilename
@@ -121,23 +294,60 @@ export const AppSettingsPage = () => {
   })
 
   // Language Keys logic
+  const groupedLanguages = useMemo(() => {
+    return languages.reduce((acc: any, cur) => {
+      const cat = cur.category || 'Other'
+      if (!acc[cat]) acc[cat] = []
+      acc[cat].push(cur)
+      return acc
+    }, {})
+  }, [languages])
+
+  const languageKeys = useMemo(() => {
+    const keys = new Set<string>()
+    languages.forEach(l => {
+      if (l.translations) {
+        Object.keys(l.translations).forEach(k => keys.add(k))
+      }
+    })
+    return Array.from(keys).sort((a, b) => {
+      const order = ['en', 'ru', 'uz', 'cyr']
+      const indexA = order.indexOf(a)
+      const indexB = order.indexOf(b)
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b)
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
+  }, [languages])
+
+  const updateLanguageMutation = useMutation({
+    mutationFn: async (updatedItem: any) => {
+      const { data } = await api.put('/v1/language', updatedItem, {
+        params: { 'project-id': projectId }
+      })
+      return data
+    }
+  })
+
   useEffect(() => {
     if (!languagesOpen) return
-    setLangLoading(true)
-    try {
-      import('@/shared/lib/i18n').then(() => {
-        // Assuming there might be a DB utility elsewhere if it's not at the requested path
-        // For now, using a stub as per request if the module is missing
-        setLangLoading(false)
-      }).catch(() => setLangLoading(false))
-    } catch {
-      setLangLoading(false)
-    }
-  }, [languagesOpen])
+    if (languages.length > 0) return
+
+    setLanguagesLoading(true)
+    api.get('/v1/language?search=Admin')
+      .then(res => {
+        if (res.data?.data?.languages) {
+          setLanguages(res.data.data.languages)
+        }
+      })
+      .catch(err => console.error("Failed to load languages:", err))
+      .finally(() => setLanguagesLoading(false))
+  }, [languagesOpen, languages.length, setLanguages])
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-3xl">
-      
+
       {/* 1. Profile Block */}
       <div className="bg-bg-card border border-border-subtle rounded-3xl p-8 space-y-8 shadow-sm">
         <div className="flex items-center justify-between">
@@ -245,7 +455,118 @@ export const AppSettingsPage = () => {
         </div>
       </div>
 
-      {/* 2. Sessions Accordion */}
+      {/* 2. Project Settings Accordion */}
+      <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
+        <button
+          onClick={() => setProjectSettingsOpen(p => !p)}
+          className="w-full flex items-center justify-between px-8 py-6 hover:bg-bg-sidebar/50 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+              <Settings size={20} className="text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-text-main">Project Settings</p>
+              <p className="text-xs text-text-muted mt-0.5">Configure language, timezone, and global defaults</p>
+            </div>
+          </div>
+          {projectSettingsOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
+        </button>
+
+        {projectSettingsOpen && (
+          <div className="border-t border-border-subtle p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            {/* Language Multi-Select */}
+            <div className="space-y-1.5 flex flex-col">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Languages</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full h-12 justify-between bg-bg-sidebar border-border-subtle rounded-xl text-sm px-4 whitespace-nowrap overflow-hidden hover:bg-bg-sidebar">
+                    <span className="truncate text-text-main font-normal">
+                      {projectLanguage.length > 0 ? `${projectLanguage.length} selected` : (isLoadingProjLangs || isLoadingFullProject ? 'Loading...' : 'Select languages')}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <div className="max-h-[300px] overflow-y-auto p-2">
+                    {projectLanguages.map((lang: any) => {
+                      const isChecked = projectLanguage.some(l => l.id === lang.id)
+                      return (
+                        <label key={lang.id} className="flex items-center gap-3 space-x-0 py-2.5 px-2 hover:bg-bg-sidebar rounded-md cursor-pointer transition-colors">
+                          <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={(c) => toggleLanguage(lang, !!c)}
+                          />
+                          <span className="text-sm cursor-pointer">{lang.name} ({lang.short_name})</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Timezone Dropdown */}
+            <div className="space-y-1.5 flex flex-col">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Timezone</label>
+              <Select
+                value={projectTimezone}
+                onValueChange={(val) => {
+                  setProjectTimezone(val)
+                  updateProjectSettingsMutation.mutate({ timezone_id: val })
+                }}
+              >
+                <SelectTrigger className="bg-bg-sidebar border-border-subtle h-12 rounded-xl text-sm">
+                  <SelectValue placeholder={isLoadingProjTime || isLoadingFullProject ? 'Loading...' : 'Select timezone'} />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {projectTimezones.map((tz: any) => (
+                    <SelectItem key={tz.id} value={tz.id}>
+                      {tz.text}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Icon Category Multi-Select */}
+            <div className="space-y-1.5 flex flex-col">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Icon Categories</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full h-12 justify-between bg-bg-sidebar border-border-subtle rounded-xl text-sm px-4 whitespace-nowrap overflow-hidden hover:bg-bg-sidebar">
+                    <span className="truncate text-text-main font-normal">
+                      {projectIconCat.length > 0 ? `${projectIconCat.length} selected` : (isLoadingIcons || isLoadingFullProject ? 'Loading...' : 'Select icon collections')}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <div className="max-h-[300px] overflow-y-auto p-2">
+                    {iconCollections.map((col: any) => {
+                      const val = `${col.id}#${col.name}`
+                      const isChecked = projectIconCat.includes(val)
+                      return (
+                        <label key={col.id} className="flex items-center gap-3 space-x-0 py-2.5 px-2 hover:bg-bg-sidebar rounded-md cursor-pointer transition-colors">
+                          <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={(c) => toggleIconCat(col.id, col.name, !!c)}
+                          />
+                          <span className="text-sm cursor-pointer">{col.name} ({col.total} icons)</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+          </div>
+        )}
+      </div>
+
+      {/* 3. Sessions Accordion */}
       <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
         <button
           onClick={() => setSessionsOpen(p => !p)}
@@ -331,7 +652,7 @@ export const AppSettingsPage = () => {
         )}
       </div>
 
-      {/* 3. Languages Accordion */}
+      {/* 4. Languages Accordion */}
       <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
         <button
           onClick={() => setLanguagesOpen(p => !p)}
@@ -350,40 +671,47 @@ export const AppSettingsPage = () => {
         </button>
 
         {languagesOpen && (
-          <div className="border-t border-border-subtle p-6">
-            {langLoading ? (
+          <div className="border-t border-border-subtle p-6 overflow-x-auto">
+            {languagesLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 size={24} className="animate-spin text-primary/40" />
                 <p className="text-sm text-text-muted">{tWidgets('accessingLangDb')}</p>
               </div>
-            ) : langFields.length === 0 ? (
+            ) : languages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Globe size={32} className="text-text-muted/20 mb-3" />
                 <p className="text-text-muted text-sm font-medium">{tWidgets('noLangKeys')}</p>
                 <p className="text-xs text-text-muted mt-1 opacity-60">{tWidgets('refreshSyncHint')}</p>
               </div>
             ) : (
-              <div className="divide-y divide-border-subtle/50 max-h-[500px] overflow-y-auto custom-scrollbar">
-                {langFields.map((category: any, catIdx: number) => (
-                  <div key={catIdx} className="py-4">
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-3 px-2">
-                      {category.key}
-                    </p>
-                    <div className="space-y-2">
-                      {category.values?.map((item: any, idx: number) => (
-                        <div key={idx} className="flex bg-bg-sidebar/30 border border-border-subtle/40 rounded-xl p-3 items-center gap-4 text-sm group hover:border-primary/20 transition-colors">
-                          <code className="text-text-muted font-mono text-[11px] w-48 shrink-0 truncate bg-bg-sidebar px-2 py-0.5 rounded-md border border-border-subtle/50">
-                            {item.key}
-                          </code>
-                          <div className="flex flex-1 gap-4 overflow-x-auto no-scrollbar">
-                            {item.translations && Object.entries(item.translations).map(([lang, val]: [string, any]) => (
-                              <div key={lang} className="flex flex-col gap-0.5 min-w-[140px]">
-                                <span className="text-[9px] font-bold text-text-muted/60 uppercase tracking-tighter">{lang}</span>
-                                <span className="text-text-main text-xs font-medium truncate">{val}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+              <div className="min-w-max space-y-8">
+                {/* Headers */}
+                <div className="flex items-center gap-6 px-2 mb-2">
+                  <div className="w-[180px] shrink-0"></div>
+                  <div className="flex flex-1 gap-4">
+                    {languageKeys.map((code: string) => (
+                      <div key={code} className="flex-1 min-w-[150px] text-center text-[13px] font-bold text-text-muted uppercase tracking-widest">
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grouped Lists */}
+                {Object.entries(groupedLanguages).map(([category, items]: [string, any]) => (
+                  <div key={category} className="space-y-4">
+                    <p className="text-lg font-bold text-text-main px-2">{category}</p>
+                    <div className="space-y-1">
+                      {items.map((item: any) => (
+                        <LanguageRow
+                          key={item.id}
+                          item={item}
+                          languageKeys={languageKeys}
+                          projectId={projectId}
+                          updateMutation={updateLanguageMutation}
+                          languages={languages}
+                          setLanguages={setLanguages}
+                        />
                       ))}
                     </div>
                   </div>
@@ -394,7 +722,7 @@ export const AppSettingsPage = () => {
         )}
       </div>
 
-      {/* 4. Environment Accordion */}
+      {/* 5. Environment Accordion */}
       <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
         <button
           onClick={() => setEnvironmentOpen(p => !p)}

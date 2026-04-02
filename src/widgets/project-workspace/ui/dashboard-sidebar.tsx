@@ -141,7 +141,7 @@ export const DashboardSidebar = ({
               key={item.id}
               onClick={() => onSelectSection(item.id)}
               className={cn(
-                "flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-300 group relative overflow-hidden",
+                "flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-300 group relative overflow-hidden shrink-0",
                 isActive
                   ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(var(--primary-rgb),0.1)]"
                   : "text-text-muted hover:text-text-main hover:bg-white/[0.03] active:scale-[0.98]"

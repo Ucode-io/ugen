@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl'
 import { z } from 'zod'
 import { useAuthStore } from '@/entities/session'
 import { loginSchema, type LoginFormValues } from '../model/validation'
-import { authApi } from '@/shared/api'
+import { authApi, api } from '@/shared/api'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { Button } from '@/shared/ui'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui'
@@ -106,7 +106,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
     }
   })
 
-  const handleLoginResponse = (responseData: any) => {
+  const handleLoginResponse = async (responseData: any) => {
     // NOTE: response shape expected from /v3/ugen/login:
     // { response: { user, permissions, role, app_permissions, global_permission, environment_id, token }, project_data }
     const { project_data } = responseData
@@ -132,6 +132,15 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
       token?.refresh_token
     )
 
+    try {
+      const langRes = await api.get('/v1/language?search=Admin')
+      if (langRes.data?.data?.languages) {
+        useAuthStore.getState().setLanguages(langRes.data.data.languages)
+      }
+    } catch (err) {
+      console.error("Failed to fetch languages", err)
+    }
+
     onSuccess()
     router.push('/')
   }
@@ -147,7 +156,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
       const responseData = res.data?.data
       if (!responseData) throw new Error("Invalid response")
 
-      handleLoginResponse(responseData)
+      await handleLoginResponse(responseData)
       // ────────────────────────────────────────────────────────────────
 
       // ─── OLD LOGIN LOGIC (commented out) ────────────────────────────

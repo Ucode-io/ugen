@@ -32,6 +32,7 @@ import { useClientTypes } from '@/entities/client-type'
 import { AppSettingsPage } from '@/widgets/app-settings'
 import { ResourcesPage } from './resources-page'
 import { ApiKeysPage } from './api-keys-page'
+import { ApiIntegrationsPage } from './api-integrations-page'
 import { AnalyticsDashboard } from "@/widgets/analytics"
 
 type DashboardSection = string
@@ -116,7 +117,8 @@ export const ProjectDashboard = ({
       label: 'Api',
       isGroup: true,
       items: [
-        { id: 'api_keys', label: 'API keys' },
+        // { id: 'api_keys', label: 'API keys' },
+        { id: 'api_integrations', label: 'API' },
         { id: 'secrets', label: 'Secrets' },
       ]
     },
@@ -131,16 +133,7 @@ export const ProjectDashboard = ({
       ]
     },
     { id: 'database_studio', icon: Database, label: 'Database' },
-    {
-      id: 'activity_group',
-      icon: History,
-      label: 'Logs',
-      isGroup: true,
-      items: [
-        { id: 'activity_logs', label: 'Activity Logs' },
-        { id: 'function_logs', label: 'Function Logs' },
-      ]
-    },
+    { id: 'logs', icon: History, label: 'Logs' },
     { id: 'analytics', icon: BarChart2, label: 'Analytics' },
   ], [fileMenus, clientTypes])
 
@@ -189,12 +182,8 @@ export const ProjectDashboard = ({
       return <DatabaseStudio projectId={projectId ?? ''} />;
     }
 
-    if (activeSection === "activity_logs") {
-      return <LogsView activeTab="activity" />;
-    }
-
-    if (activeSection === "function_logs") {
-      return <LogsView activeTab="function" />;
+    if (activeSection === "logs") {
+      return <LogsView />;
     }
 
     if (activeSection === 'resources') {
@@ -218,6 +207,10 @@ export const ProjectDashboard = ({
 
     if (activeSection === 'secrets') {
       return <ApiKeysPage projectId={projectId ?? ''} activeTab="secrets" />
+    }
+
+    if (activeSection === 'api_integrations') {
+      return <ApiIntegrationsPage projectId={projectId ?? ''} />
     }
 
     if (activeSection === "functions") {

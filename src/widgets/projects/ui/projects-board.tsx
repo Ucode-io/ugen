@@ -51,6 +51,7 @@ export const ProjectsBoard = () => {
     const params: any = {}
     if (debouncedSearchQuery) params.title = debouncedSearchQuery
     if (folderId) params.ids = projectIdsInFolder || []
+    params.limit = 1000
     return params
   }, [debouncedSearchQuery, folderId, projectIdsInFolder])
 

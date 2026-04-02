@@ -41,19 +41,17 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
   const companyId = useAuthStore(s => s.user?.company_id ?? '')
   const refreshToken = useAuthStore(s => s.refreshToken ?? '')
 
-  // const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
-
   // API Functions
   const fetchEnvironments = async (projectId: string) => {
     const { data } = await api.get('/v1/environment', {
-      params: { project_id: projectId, 'project-id': projectId }
+      params: { project_id: projectId, 'project-id': projectId, with_client_type: false }
     })
     return (data.data.environments || []) as Environment[]
   }
 
   const fetchEnvironmentById = async (id: string, projectId: string) => {
     const { data } = await api.get(`/v1/environment/${id}`, {
-      params: { 'project-id': projectId }
+      params: { 'project-id': projectId, with_client_type: false }
     })
     return data.data as Environment
   }
@@ -73,14 +71,18 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (payload: { name: string; display_color: string; description: string }) =>
-      api.post('/v1/environment', {
+    mutationFn: (payload: { name: string; display_color: string; description: string }) => {
+      const state = useAuthStore.getState();
+      const token = state.accessToken || '';
+      return api.post('/v1/environment', {
         ...payload,
         project_id: projectId,
         company_id: companyId,
       }, {
-        params: { 'project-id': projectId }
-      }),
+        params: { 'project-id': projectId, is_uagen: true },
+        headers: { 'system-token': token }
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['environments', projectId] })
       setView('list')

@@ -7,6 +7,14 @@ export interface Permission {
   resource: string;
 }
 
+export interface Language {
+  id: string;
+  key: string;
+  translations: Record<string, string>;
+  category: string;
+  platform: string;
+}
+
 export interface UserData {
   id: string
   login: string
@@ -37,9 +45,11 @@ export interface AuthState {
   apiKey: string | null;
   ucodeProjectId: string | null;
   activeProjectTab: 'dashboard' | 'code' | 'preview' | null;
+  languages: Language[];
   setApiKey: (key: string | null) => void;
   setUcodeProjectId: (key: string | null) => void;
   setActiveProjectTab: (tab: 'dashboard' | 'code' | 'preview' | null) => void;
+  setLanguages: (languages: Language[]) => void;
   setAuth: (
     user: UserData,
     project: ProjectData,
@@ -68,9 +78,11 @@ export const useAuthStore = create<AuthState>()(
       apiKey: null,
       ucodeProjectId: null,
       activeProjectTab: null,
+      languages: [],
       setApiKey: (key) => set({ apiKey: key }),
       setUcodeProjectId: (key) => set({ ucodeProjectId: key }),
       setActiveProjectTab: (tab) => set({ activeProjectTab: tab }),
+      setLanguages: (languages: Language[]) => set({ languages }),
       setAuth: (user, project, permissions, appPermissions, globalPermission, accessToken, refreshToken) =>
         set({
           user,
@@ -96,6 +108,7 @@ export const useAuthStore = create<AuthState>()(
           activeView: 'home',
           apiKey: null,
           activeProjectTab: null,
+          languages: [],
         }),
       setActiveView: (view) => set({ activeView: view }),
     }),

@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Zap,
   Info,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  History
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { DateRange } from 'react-day-picker'
@@ -418,35 +419,30 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="mb-2">
-        {activeTab === 'activity' ? (
-          <div>
-            <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('logs.activityTitle')}</h1>
-            <p className="text-text-muted text-sm mt-1">{t('logs.activityDescription')}</p>
-          </div>
-        ) : (
-          <div>
-            <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('logs.functionTitle')}</h1>
-            <p className="text-text-muted text-sm mt-1">{t('logs.functionDescription')}</p>
-          </div>
-        )}
+    <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-700 h-full max-h-screen">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-text-main tracking-tight flex items-center gap-3">
+            <History className="text-primary" size={24} />
+            Logs
+          </h1>
+          <p className="text-text-muted text-sm mt-1">
+            Monitoring system activities and serverless function executions.
+          </p>
+        </div>
+
+        <ReusableTabs
+          activeId={activeTab}
+          onTabChange={(id) => setActiveTab(id)}
+          className="w-full md:w-auto"
+          options={[
+            { id: 'activity', label: 'Activity Logs', icon: <Activity size={14} /> },
+            { id: 'function', label: 'Function Logs', icon: <FileText size={14} /> },
+          ]}
+        />
       </div>
 
-      {!externalActiveTab && (
-        <div className="flex items-center justify-between">
-          <ReusableTabs
-            activeId={activeTab}
-            onTabChange={(id) => setActiveTab(id)}
-            options={[
-              { id: 'activity', label: t('logs.activityTitle'), icon: <Activity size={14} /> },
-              { id: 'function', label: t('logs.functionTitle'), icon: <FileText size={14} /> },
-            ]}
-          />
-        </div>
-      )}
-
-      <div className="bg-bg-card border border-border-subtle rounded-ai shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <div className="ai-card overflow-hidden flex flex-col min-h-[500px]">
         {activeTab === 'activity' ? (
           <>
             <div className="flex flex-wrap gap-4 p-4 border-b border-border-subtle bg-bg-main/10 items-center">
@@ -486,7 +482,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                     setCollection(e.target.value)
                     setActivityPage(1)
                   }}
-                  className="bg-bg-sidebar border border-border-subtle rounded-lg pl-9 pr-3 py-1.5 text-sm text-text-main outline-none focus:border-primary/50 w-[200px]"
+                  className="ai-input pl-9 pr-3 py-1.5 text-sm w-[200px]"
                 />
               </div>
 
@@ -499,7 +495,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                     setUserInfo(e.target.value)
                     setActivityPage(1)
                   }}
-                  className="bg-bg-sidebar border border-border-subtle rounded-lg pl-9 pr-3 py-1.5 text-sm text-text-main outline-none focus:border-primary/50 w-[200px]"
+                  className="ai-input pl-9 pr-3 py-1.5 text-sm w-[200px]"
                 />
               </div>
             </div>
@@ -507,7 +503,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
             <DataTable
               columns={activityColumns}
               data={activityLogsData?.histories || []}
-              totalCount={activityLogsData?.histories?.length ? (activityLogsData.total || activityLogsData.histories.length * 2) : 0} // Fallback if no total
+              totalCount={activityLogsData?.histories?.length ? (activityLogsData.total || activityLogsData.histories.length * 2) : 0}
               page={activityPage}
               limit={activityLimit}
               onPageChange={setActivityPage}
@@ -576,7 +572,6 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
         )}
       </div>
 
-      {/* Activity Detail Modal */}
       <Dialog open={!!selectedActivity} onOpenChange={(open) => !open && setSelectedActivity(null)}>
         <DialogContent className="max-w-2xl bg-bg-card p-0 overflow-hidden">
           <DialogHeader className="p-6 border-b border-border-subtle bg-bg-main/5">
@@ -591,7 +586,6 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
         </DialogContent>
       </Dialog>
 
-      {/* Function Log Detail Modal */}
       <Dialog open={!!selectedFunctionLog} onOpenChange={(open) => !open && setSelectedFunctionLog(null)}>
         <DialogContent className="max-w-lg bg-bg-card p-0 overflow-hidden">
           <DialogHeader className="p-6 border-b border-border-subtle bg-bg-main/5">
