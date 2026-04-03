@@ -63,7 +63,7 @@ export const SqlConsole = () => {
 
   const handleTableClick = (tableName: string) => {
     const currentContent = activeScript?.content || ''
-    updateActiveScript(`${currentContent}\nSELECT * FROM ${tableName} LIMIT 10;`.trim())
+    updateActiveScript(`SELECT * FROM ${tableName} LIMIT 10;`.trim())
   }
 
   const columns = React.useMemo(() => {
@@ -73,7 +73,8 @@ export const SqlConsole = () => {
       header: key,
       cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
         const val = row.getValue(key)
-        return <span>{String(val ?? '')}</span>
+        const displayVal = typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val ?? '')
+        return <span title={displayVal} className="truncate block max-w-[200px]">{displayVal}</span>
       }
     }))
   }, [results])
@@ -81,7 +82,7 @@ export const SqlConsole = () => {
   console.log({ isSidebarOpen })
 
   return (
-    <div className="flex bg-bg-card rounded-ai border border-border-subtle shadow-sm flex-1 flex-col sm:flex-row overflow-hidden min-h-[600px] h-[calc(100vh-280px)]">
+    <div className="flex bg-bg-card rounded-ai border border-border-subtle shadow-sm flex-1 flex-col sm:flex-row overflow-hidden max-w-[960px] min-h-[600px] h-[calc(100vh-280px)]">
       {/* Sidebar Panel */}
       <div
         className={cn(
@@ -141,12 +142,12 @@ export const SqlConsole = () => {
             ) : (
               tables?.map(table => (
                 <button
-                  key={table.name}
-                  onClick={() => handleTableClick(table.name)}
+                  key={table.slug}
+                  onClick={() => handleTableClick(table.slug)}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-all group active:scale-[0.98]"
                 >
                   <ChevronRight size={12} className="text-text-muted/40 transition-transform group-hover:translate-x-0.5" />
-                  <span className="truncate">{table.name}</span>
+                  <span className="truncate">{table?.label || table.slug}</span>
                 </button>
               ))
             )}
@@ -229,6 +230,7 @@ export const SqlConsole = () => {
                 columns={columns}
                 data={results}
                 containerClassName="border-none shadow-none"
+                className="border-none shadow-none"
               />
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[150px] text-text-muted space-y-3 grayscale opacity-70">

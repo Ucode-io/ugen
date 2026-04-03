@@ -10,20 +10,20 @@ export const useDatabaseStore = create<DatabaseState>((set) => ({
   ],
   activeScriptId: 'playground',
   filters: {},
-  breadcrumbs: [{ label: 'breadcrumbs.tables', view: 'tables' }],
+  breadcrumbs: [{ label: 'tabs.tables', view: 'tables' }],
 
   setSelectedTable: (tableName) => set((state) => ({ 
     selectedTable: tableName,
     breadcrumbs: tableName 
-      ? [{ label: 'breadcrumbs.tables', view: 'tables' }, { label: tableName, view: 'records', tableName }] 
-      : [{ label: 'breadcrumbs.tables', view: 'tables' }]
+      ? [{ label: 'tabs.tables', view: 'tables' }, { label: tableName, view: 'records', tableName }] 
+      : [{ label: 'tabs.tables', view: 'tables' }]
   })),
 
   setCurrentView: (view) => set((state) => {
     const tablePart = state.selectedTable ? [{ label: state.selectedTable, view: 'records' as DatabaseView, tableName: state.selectedTable }] : [];
     const queryPart = view === 'query' ? [{ label: 'breadcrumbs.query', view: 'query' as DatabaseView, tableName: state.selectedTable || undefined }] : [];
 
-    let newBreadcrumbs = [{ label: 'breadcrumbs.tables', view: 'tables' as DatabaseView }];
+    let newBreadcrumbs = [{ label: 'tabs.tables', view: 'tables' as DatabaseView }];
     if (view === 'records' || view === 'query') {
       newBreadcrumbs = [...newBreadcrumbs, ...tablePart, ...queryPart];
     } else if (view === 'sql-console') {
@@ -64,7 +64,7 @@ export const useDatabaseStore = create<DatabaseState>((set) => ({
     return {
       selectedTable: null,
       currentView: 'tables',
-      breadcrumbs: [{ label: 'breadcrumbs.tables', view: 'tables' }]
+      breadcrumbs: [{ label: 'tabs.tables', view: 'tables' }]
     }
   }),
 }));

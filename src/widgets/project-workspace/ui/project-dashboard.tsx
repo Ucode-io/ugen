@@ -8,14 +8,15 @@ import {
   ShieldAlert,
   Contact2,
   Files,
-  Database,
-  BarChart2,
-  Box,
   Globe,
   KeyRound,
   Layers2,
   History,
-  Code
+  Code,
+  Lock,
+  Database,
+  BarChart2,
+  Box
 } from "lucide-react"
 import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
@@ -32,8 +33,10 @@ import { useClientTypes } from '@/entities/client-type'
 import { AppSettingsPage } from '@/widgets/app-settings'
 import { ResourcesPage } from './resources-page'
 import { ApiKeysPage } from './api-keys-page'
+import { SecretsPage } from './secrets-page'
 import { ApiIntegrationsPage } from './api-integrations-page'
 import { AnalyticsDashboard } from "@/widgets/analytics"
+import { CustomEndpointsPage } from './custom-endpoints-page'
 
 type DashboardSection = string
 
@@ -110,16 +113,16 @@ export const ProjectDashboard = ({
         label: ct.name,
       })) || []
     },
-    { id: 'resources', icon: Box, label: 'Resources' },
+    { id: 'secrets', icon: Lock, label: 'API Secrets' },
     {
       id: 'api_group',
       icon: KeyRound,
-      label: 'Api',
+      label: 'API',
       isGroup: true,
       items: [
-        // { id: 'api_keys', label: 'API keys' },
-        { id: 'api_integrations', label: 'API' },
-        { id: 'secrets', label: 'Secrets' },
+        { id: 'api_custom_endpoints', label: 'Custom Endpoints' },
+        { id: 'api_integrations', label: 'SDK Generation' },
+        { id: 'api_keys', label: 'API Keys' },
       ]
     },
     {
@@ -202,15 +205,19 @@ export const ProjectDashboard = ({
 
 
     if (activeSection === 'api_keys') {
-      return <ApiKeysPage projectId={projectId ?? ''} activeTab="api_keys" />
+      return <ApiKeysPage projectId={projectId ?? ''} />
     }
 
     if (activeSection === 'secrets') {
-      return <ApiKeysPage projectId={projectId ?? ''} activeTab="secrets" />
+      return <SecretsPage projectId={projectId ?? ''} />
     }
 
     if (activeSection === 'api_integrations') {
       return <ApiIntegrationsPage projectId={projectId ?? ''} />
+    }
+
+    if (activeSection === 'api_custom_endpoints') {
+      return <CustomEndpointsPage projectId={projectId ?? ''} />
     }
 
     if (activeSection === "functions") {

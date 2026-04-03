@@ -168,13 +168,13 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
             <RefreshCw size={14} className={cn(isRecordsLoading && "animate-spin")} />
           </button>
 
-          <button
+          {/* <button
             onClick={() => setCurrentView('query')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <Terminal size={14} />
             {t('records.sqlQuery')}
-          </button>
+          </button> */}
         </div>
       </div>
 

@@ -80,9 +80,9 @@ export const databaseApi = {
   },
 
   executeQuery: async (sql: string): Promise<any[]> => {
-    await new Promise(r => setTimeout(r, 1000));
-    console.log('Execute SQL:', sql);
-    return MOCK_RECORDS.users; // Generic mock response
+    const { data } = await api.post('/v1/custom-endpoints/exec-query', { sql });
+    const items = data?.data?.rows || data?.data?.response || data?.response || data?.data || data || [];
+    return Array.isArray(items) ? items : (typeof items === 'object' && items !== null ? [items] : []);
   },
 
   addRecord: async (tableName: string, data: any): Promise<any> => {

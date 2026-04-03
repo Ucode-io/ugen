@@ -9,20 +9,28 @@ import { useUIStore } from '@/shared/model/theme/use-ui-store'
 
 import { useTranslations } from 'next-intl'
 
-export const QueryView = () => {
+interface QueryViewProps {
+  defaultQuery?: string;
+  hideBackButton?: boolean;
+}
+
+export const QueryView = ({ defaultQuery, hideBackButton = false }: QueryViewProps = {}) => {
   const t = useTranslations('widgets.databaseStudio')
+  const tGlobal = useTranslations('databaseStudio')
   const { theme } = useUIStore()
   const { selectedTable, setCurrentView } = useDatabaseStore()
   const executeMutation = useExecuteQuery()
 
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(defaultQuery || '')
   const [results, setResults] = useState<any[]>([])
 
   useEffect(() => {
-    if (selectedTable) {
+    if (defaultQuery) {
+      setQuery(defaultQuery)
+    } else if (selectedTable) {
       setQuery(`SELECT * FROM public."${selectedTable}" LIMIT 100;`)
     }
-  }, [selectedTable])
+  }, [selectedTable, defaultQuery])
 
   const handleRun = async () => {
     if (!query) return
@@ -46,21 +54,23 @@ export const QueryView = () => {
     }))
   }, [results])
 
-  if (!selectedTable) return null
+  if (!selectedTable && !defaultQuery) return null
 
   return (
     <div className="flex flex-col h-full bg-bg-card rounded-ai border border-border-subtle shadow-sm overflow-hidden min-h-[500px] h-[calc(100vh-280px)]">
       <div className="flex items-center justify-between p-4 border-b border-border-subtle h-[57px] bg-bg-main/30">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCurrentView('records')}
-            className="p-1 rounded hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors"
-          >
-            <ChevronLeft size={18} />
-          </button>
+          {!hideBackButton && (
+            <button
+              onClick={() => setCurrentView('records')}
+              className="p-1 rounded hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
           <h3 className="text-sm font-semibold text-text-main flex items-center gap-2">
             <Terminal size={14} className="text-primary" />
-            {t('query.title', { table: selectedTable })}
+            {defaultQuery ? 'Code View' : tGlobal('query.title', { table: selectedTable || '' })}
           </h3>
         </div>
 
@@ -75,7 +85,7 @@ export const QueryView = () => {
             className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
           >
             {executeMutation.isPending ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-            {t('query.runQuery')}
+            {tGlobal('query.runQuery')}
           </button>
         </div>
       </div>
@@ -128,7 +138,7 @@ export const QueryView = () => {
           ) : (
             <div className="flex flex-col items-center justify-center min-h-[150px] text-text-muted space-y-3 grayscale opacity-70">
               <Terminal size={32} />
-              <p className="text-xs font-medium tracking-wide italic">{t('query.resultsPlaceholder')}</p>
+              <p className="text-xs font-medium tracking-wide italic">{tGlobal('query.resultsPlaceholder')}</p>
             </div>
           )}
         </div>

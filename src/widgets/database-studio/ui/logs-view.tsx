@@ -182,6 +182,8 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     enabled: !!projectId && activeTab === 'function'
   })
 
+  console.log({ functionLogsData })
+
   const activityColumns = useMemo(() => [
     {
       id: 'index',
@@ -234,7 +236,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
       cell: ({ row }: any) => (functionPage - 1) * functionLimit + row.index + 1
     },
     {
-      accessorKey: 'name',
+      accessorKey: 'function_name',
       header: t('logs.columns.function'),
       cell: ({ getValue }: any) => (
         <span className="text-sm text-text-main font-bold">
@@ -558,8 +560,8 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
 
             <DataTable
               columns={functionColumns}
-              data={functionLogsData?.logs || []}
-              totalCount={functionLogsData?.logs?.length ? (functionLogsData.total || functionLogsData.logs.length * 2) : 0}
+              data={functionLogsData?.function_logs || []}
+              totalCount={functionLogsData?.function_logs?.length ? (functionLogsData.total_count || functionLogsData.function_logs.length * 2) : 0}
               page={functionPage}
               limit={functionLimit}
               onPageChange={setFunctionPage}

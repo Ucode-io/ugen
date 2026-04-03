@@ -36,6 +36,7 @@ import { ReusableTabs } from '@/shared/ui'
 import { DataLoadingState } from '@/shared/ui'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { cn } from '@/shared/lib/utils/cn'
+import { GitlabCodeEditor } from './gitlab-code-view'
 
 interface FunctionItem {
   id: string
@@ -45,7 +46,12 @@ interface FunctionItem {
   max_scale: number     // replica count
   status?: string
   path?: string
+  branch?: string
   resource_id?: string
+  project_id?: string
+  environment_id?: string
+  url?: string
+  is_public?: boolean
 }
 
 interface FunctionPageProps {
@@ -425,7 +431,7 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
 
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => setView('list')} className="h-8 w-8 rounded-lg">
               <ChevronLeft size={16} />
@@ -437,17 +443,17 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
               </span>
             </div>
           </div>
+          <ReusableTabs
+            options={[
+              { id: 'details', label: 'Details' },
+              { id: 'logs', label: 'Logs' },
+              { id: 'code', label: 'Code' },
+            ]}
+            activeId={detailTab}
+            onTabChange={(id) => setDetailTab(id as any)}
+            className="max-w-fit"
+          />
         </div>
-
-        <ReusableTabs
-          options={[
-            { id: 'details', label: 'Details' },
-            { id: 'logs', label: 'Logs' },
-          ]}
-          activeId={detailTab}
-          onTabChange={(id) => setDetailTab(id as any)}
-          className="max-w-fit"
-        />
 
         {detailTab === 'details' ? (
           <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 max-w-lg shadow-sm">
@@ -471,7 +477,7 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
               ))}
             </div>
           </div>
-        ) : (
+        ) : detailTab === 'logs' ? (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-3">
               <div className="bg-bg-sidebar border border-border-subtle rounded-xl px-3 py-2 text-sm text-text-muted font-mono whitespace-nowrap">
@@ -557,6 +563,47 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* <div className="bg-bg-sidebar border border-border-subtle rounded-xl px-3 py-2 text-sm text-text-muted font-mono whitespace-nowrap">
+                namespace
+              </div>
+              <div className="bg-bg-sidebar border border-border-subtle rounded-xl px-3 py-2 text-sm text-text-muted font-mono whitespace-nowrap">
+                {selectedFn.type?.toLowerCase() ?? 'function'}
+              </div>
+              <div className="bg-bg-sidebar border border-border-subtle rounded-xl px-3 py-2 text-sm text-text-muted font-mono whitespace-nowrap">
+                app
+              </div>
+              <div className="bg-bg-sidebar border border-border-subtle rounded-xl px-3 py-2 text-sm text-text-muted font-mono truncate max-w-[200px]">
+                {selectedFn.path ?? selectedFn.name}
+              </div>
+
+
+
+              <Button
+                onClick={handleShowLogs}
+                disabled={fetchLogsMutation.isPending}
+                className="bg-primary hover:bg-primary/90 text-white rounded-xl px-5 shadow-sm"
+              >
+                {fetchLogsMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : <RefreshCw size={16} className="mr-2" />}
+                Show Logs
+              </Button> */}
+            </div>
+
+            <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-4 bg-bg-sidebar/50 border-b border-border-subtle flex items-center gap-2">
+                <ScrollText size={14} className="text-text-muted" />
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Code</span>
+              </div>
+              <GitlabCodeEditor
+                path={selectedFn.path!}
+                branch={selectedFn.branch || "master"}
+                name={selectedFn.name}
+                type={selectedFn.type}
+              />
             </div>
           </div>
         )}

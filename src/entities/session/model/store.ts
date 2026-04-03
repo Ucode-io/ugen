@@ -21,7 +21,11 @@ export interface UserData {
   email: string
   company_id: string
   environment_id: string
-  role: string
+  role: {
+    id?: string
+    client_type_id?: string
+    name?: string
+  }
 }
 
 export interface ProjectData {

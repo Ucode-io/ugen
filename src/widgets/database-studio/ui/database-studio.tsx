@@ -15,7 +15,6 @@ import {
   Lock,
   Settings2
 } from 'lucide-react'
-import { ReusableTabs } from '@/shared/ui'
 import { useDatabaseStore, DatabaseView } from '@/entities/database'
 import {
   TablesView,
@@ -32,52 +31,16 @@ import { useTranslations } from 'next-intl'
 export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
   const t = useTranslations('widgets.databaseStudio')
   const { currentView, setCurrentView, breadcrumbs, resetToTables } = useDatabaseStore()
-  const [activeTab, setActiveTab] = useState('tables')
 
-  const TABS = [
-    { id: 'tables', label: t('tabs.tables'), icon: <TableIcon size={16} /> },
-    // { id: 'security', label: t('tabs.security'), icon: <ShieldCheck size={16} /> },
-    // { id: 'advanced', label: t('tabs.advanced'), icon: <Settings2 size={16} /> },
-  ]
-
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId)
-    if (tabId === 'tables') {
-      resetToTables()
-    } else {
-      // For other tabs we might just stay in a generic state
-    }
-  }
+  console.log({ currentView })
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'tables':
-        switch (currentView) {
-          case 'tables': return <TablesView />
-          case 'records': return <RecordsView projectId={projectId} />
-          case 'query': return <QueryView />
-          case 'sql-console': return <SqlConsole />
-          default: return <TablesView />
-        }
-
-      case 'security':
-        return (
-          <PlaceholderView
-            title={t('tabs.security')}
-            description={t('placeholders.securityComingSoon')}
-            icon={ShieldCheck}
-          />
-        )
-      case 'advanced':
-        return (
-          <PlaceholderView
-            title={t('tabs.advanced')}
-            description={t('placeholders.advancedComingSoon')}
-            icon={Settings2}
-          />
-        )
-      default:
-        return <TablesView />
+    switch (currentView) {
+      case 'tables': return <TablesView />
+      case 'records': return <RecordsView projectId={projectId} />
+      case 'query': return <QueryView />
+      case 'sql-console': return <SqlConsole />
+      default: return <TablesView />
     }
   }
 
@@ -108,33 +71,26 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <button
             onClick={() => {
-              setActiveTab('tables')
               setCurrentView('sql-console')
             }}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm"
           >
             <Terminal size={14} />
-            {activeTab === 'tables' && currentView === 'sql-console'
+            {currentView === 'sql-console'
               ? t('sqlConsole.activeHeader')
               : t('sqlConsole.header')}
           </button>
-        </div>
+        </div> */}
       </motion.div>
 
-      <div className="flex flex-col gap-6 flex-1">
-        <ReusableTabs
-          options={TABS}
-          activeId={activeTab}
-          onTabChange={handleTabChange}
-        />
-
+      <div className="flex flex-col gap-6 flex-1 pt-2">
         <div className="min-h-0 flex-1 relative overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
-              key={`${activeTab}-${currentView}`}
+              key={currentView}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}

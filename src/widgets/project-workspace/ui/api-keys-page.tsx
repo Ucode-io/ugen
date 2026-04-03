@@ -11,24 +11,30 @@ import {
   EyeOff,
   ScrollText,
   Search,
-  Lock as LockIcon
+  Trash2
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { api, authApi } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
-import { Button } from '@/shared/ui'
-import { Input } from '@/shared/ui'
 import {
+  Button,
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  DataTable,
+  ReusableTabs,
+  DataLoadingState,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription
 } from '@/shared/ui'
-import { DataTable } from '@/shared/ui'
-import { ReusableTabs } from '@/shared/ui'
-import { DataLoadingState } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 
 interface ClientPlatform {
@@ -72,17 +78,14 @@ interface TokenItem {
 
 interface ApiKeysPageProps {
   projectId: string
-  activeTab?: 'api_keys' | 'secrets'
 }
 
 type View = 'list' | 'create' | 'detail'
 
-export const ApiKeysPage = ({ projectId, activeTab: externalActiveTab }: ApiKeysPageProps) => {
+
+
+export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
   const [view, setView] = useState<View>('list')
-  const [internalActiveTab, setInternalActiveTab] = useState('api_keys')
-  
-  const activeTab = externalActiveTab || internalActiveTab
-  const setActiveTab = externalActiveTab ? () => {} : setInternalActiveTab
 
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null)
   const [detailTab, setDetailTab] = useState<'api_key' | 'log' | 'tokens'>('api_key')
@@ -138,13 +141,13 @@ export const ApiKeysPage = ({ projectId, activeTab: externalActiveTab }: ApiKeys
   }
 
   // Queries
-  const { data: apiKeys = [], isLoading: isListLoading } = useQuery({
+  const { data: apiKeys = [], isLoading: isListLoading, refetch: refetchApiKeys } = useQuery({
     queryKey: ['api-keys', projectId, environmentId],
     queryFn: () => fetchApiKeys(projectId, environmentId),
-    enabled: !!projectId && !!environmentId && activeTab === 'api_keys'
+    enabled: !!projectId
   })
 
-  const { data: apiKeyDetail, isLoading: isDetailLoading } = useQuery({
+  const { data: apiKeyDetail } = useQuery({
     queryKey: ['api-key-detail', selectedKey?.id],
     queryFn: () => fetchApiKeyDetail(projectId, selectedKey!.id),
     enabled: view === 'detail' && detailTab === 'api_key' && !!selectedKey?.id
@@ -181,7 +184,7 @@ export const ApiKeysPage = ({ projectId, activeTab: externalActiveTab }: ApiKeys
       params: { 'project-id': projectId }
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api-keys', projectId] })
+      refetchApiKeys()
       setView('list')
     }
   })
@@ -202,15 +205,18 @@ export const ApiKeysPage = ({ projectId, activeTab: externalActiveTab }: ApiKeys
     platformId: ''
   })
 
+  const userData = useAuthStore(state => state.user)
+  const projectData = useAuthStore(state => state)
+
   const handleCreate = () => {
     const firstKey = apiKeys[0]
     createMutation.mutate({
       name: createForm.name,
       client_platform_id: createForm.platformId,
-      environment_id: environmentId,
+      environment_id: environmentId || "ba42a575-9e1d-4554-b7ca-133f231560eb",
       project_id: projectId,
-      client_type_id: firstKey?.client_type_id || '',
-      role_id: firstKey?.role_id || ''
+      client_type_id: userData?.role?.client_type_id || '',
+      role_id: userData?.role?.id || ''
     })
   }
 
@@ -273,68 +279,43 @@ export const ApiKeysPage = ({ projectId, activeTab: externalActiveTab }: ApiKeys
   if (view === 'list') {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
-        {!externalActiveTab && (
-          <div className="flex items-center justify-between">
-            <ReusableTabs
-              activeId={activeTab}
-              onTabChange={setActiveTab}
-              options={[
-                { id: 'api_keys', label: 'API keys', icon: <KeyRound size={14} /> },
-                { id: 'secrets', label: 'Secrets', icon: <LockIcon size={14} /> },
-              ]}
-            />
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-text-main tracking-tight">API Keys</h1>
+            <p className="text-text-muted text-sm mt-1">Manage API keys and authentication for your applications.</p>
           </div>
-        )}
+          <div className="flex items-center gap-3">
+            {/* <Button
+              variant="outline"
+              onClick={handleDownloadDocs}
+              className="rounded-xl h-10 px-4 text-xs font-semibold"
+            >
+              <Download size={16} className="mr-2" />
+              Download API Documentation
+            </Button> */}
+            <Button
+              onClick={() => setView('create')}
+              className="bg-primary hover:bg-primary/90 text-white rounded-xl h-10 px-5 shadow-sm"
+            >
+              <PlusCircle size={18} className="mr-2" />
+              Add API Key
+            </Button>
+          </div>
+        </div>
 
-        {activeTab === 'api_keys' ? (
-          <>
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-text-main tracking-tight">API Keys</h1>
-                <p className="text-text-muted text-sm mt-1">Manage API keys and authentication for your applications.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadDocs}
-                  className="rounded-xl h-10 px-4 text-xs font-semibold"
-                >
-                  <Download size={16} className="mr-2" />
-                  Download API Documentation
-                </Button>
-                <Button
-                  onClick={() => setView('create')}
-                  className="bg-primary hover:bg-primary/90 text-white rounded-xl h-10 px-5 shadow-sm"
-                >
-                  <PlusCircle size={18} className="mr-2" />
-                  Add API Key
-                </Button>
-              </div>
-            </div>
-
-            {isListLoading ? (
-              <DataLoadingState message="Loading API keys..." />
-            ) : (
-              <DataTable
-                columns={columns}
-                data={apiKeys}
-                onRowClick={(row) => {
-                  setSelectedKey(row)
-                  setDetailTab('api_key')
-                  setView('detail')
-                }}
-                emptyMessage="No API keys found. Create one to get started."
-              />
-            )}
-          </>
+        {isListLoading ? (
+          <DataLoadingState message="Loading API keys..." />
         ) : (
-          <div className="flex flex-col items-center justify-center min-h-[400px] bg-bg-card border border-dashed border-border-subtle rounded-2xl p-8 text-center animate-in fade-in zoom-in-95 duration-500">
-            <div className="bg-primary/5 p-4 rounded-full mb-4">
-              <LockIcon size={32} className="text-primary/40" />
-            </div>
-            <h3 className="text-lg font-medium text-text-main">No secrets yet</h3>
-            <p className="text-text-muted text-sm max-w-xs mt-1">Manage your environment variables and sensitive information securely.</p>
-          </div>
+          <DataTable
+            columns={columns}
+            data={apiKeys}
+            onRowClick={(row) => {
+              setSelectedKey(row)
+              setDetailTab('api_key')
+              setView('detail')
+            }}
+            emptyMessage="No API keys found. Create one to get started."
+          />
         )}
       </div>
     )
