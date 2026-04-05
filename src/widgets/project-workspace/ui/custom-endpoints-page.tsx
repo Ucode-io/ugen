@@ -441,7 +441,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
       --header 'Content-Type: application/json' \\
       --data '${JSON.stringify({ params: executionParams }, null, 2)}'`;
 
-    const resultsColumns = executionResults.length > 0
+    const resultsColumns = executionResults && executionResults.length > 0
       ? Object.keys(executionResults[0]).map(key => ({
         accessorKey: key,
         header: key,
@@ -582,7 +582,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
               <span className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
                 <Database size={14} className="text-primary" /> Results
               </span>
-              {executionResults.length > 0 && (
+              {executionResults?.length > 0 && (
                 <span className="text-[10px] font-bold text-primary px-2 py-0.5 bg-primary/10 rounded-full">
                   {executionResults.length} ROWS
                 </span>
@@ -604,7 +604,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
                     </div>
                   </div>
                 </div>
-              ) : executionResults.length > 0 ? (
+              ) : executionResults?.length > 0 ? (
                 <DataTable
                   columns={resultsColumns}
                   data={executionResults}
@@ -614,7 +614,9 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center space-y-4 text-text-muted/40 py-20">
                   <Database size={48} />
-                  <p className="text-xs font-medium italic">Run the endpoint to see results</p>
+                  {
+                    !executionResults ? <p className="text-xs font-medium italic">Data is empty</p> : <p className="text-xs font-medium italic">Run the endpoint to see results</p>
+                  }
                 </div>
               )}
             </div>
