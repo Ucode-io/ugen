@@ -42,10 +42,10 @@ export const useRoles = ({ id, projectId }: { id: string, projectId: string }) =
   })
 }
 
-export const useUsers = ({ clientTypeId, projectId, limit, offset }: { clientTypeId: string, projectId: string, limit: number, offset: number }) => {
+export const useUsers = ({ clientTypeId, projectId, limit, offset, search }: { clientTypeId: string, projectId: string, limit: number, offset: number, search: string }) => {
   return useQuery({
-    queryKey: ['users-workspace', clientTypeId, projectId, limit, offset],
-    queryFn: () => userApi.getUsers({ clientTypeId, projectId, limit, offset }),
+    queryKey: ['users-workspace', clientTypeId, projectId, limit, offset, search],
+    queryFn: () => userApi.getUsers({ clientTypeId, projectId, limit, offset, search }),
     enabled: !!projectId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })

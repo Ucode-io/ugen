@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronLeft, Loader2, Trash2, RefreshCw, Box } from 'lucide-react'
+import { ChevronLeft, Loader2, Trash2, RefreshCw, Box, Search, Plug } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi, api } from '@/shared/api'
 import { Button } from '@/shared/ui'
@@ -219,6 +219,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const [editingResourceType, setEditingResourceType] = useState<number | null>(null)
   const [formData, setFormData] = useState({ name: '', type: '', environment: '' })
   const [extraFields, setExtraFields] = useState<Record<string, any>>({})
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('All Categories')
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
@@ -760,70 +762,122 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     )
   }
 
+  const filteredConnectedResources = resourcesList.filter((resource: any) => {
+    const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === resource.resource_type)
+    const categoryId = resourceCategories.find(c => c.items.includes(categoryItem as any))?.id
+    const matchesSearch = resource.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = categoryFilter === 'All Categories' || categoryId === categoryFilter
+    return matchesSearch && matchesCategory
+  })
+
+  const availableResources = resourceCategories.flatMap(c => c.items.map(i => ({...i, categoryId: c.id, categoryLabel: c.label})))
+  const filteredAvailableResources = availableResources.filter(item => {
+    const matchesSearch = item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = categoryFilter === 'All Categories' || item.categoryId === categoryFilter
+    return matchesSearch && matchesCategory
+  })
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-main tracking-tight">Resources</h1>
-          <p className="text-text-muted text-sm mt-1">Configure and manage your infrastructure integrations.</p>
-        </div>
+    <div className="space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
+      <div>
+        <h1 className="text-2xl font-bold text-text-main tracking-tight">Integrations</h1>
+        <p className="text-text-muted text-sm mt-1">Connect third-party services and extend your application</p>
       </div>
 
-      <div className="space-y-10">
+      <div className="flex items-center gap-4 py-3 border-b border-border-subtle bg-bg-main sticky top-0 z-10">
+        <div className="flex items-center bg-bg-sidebar border border-border-subtle rounded-xl px-3 py-2 w-full max-w-sm">
+          <Search className="w-4 h-4 text-text-muted mr-2" />
+          <input 
+            className="bg-transparent border-none outline-none text-sm w-full placeholder:text-text-muted text-text-main"
+            placeholder="Search integrations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex-1" />
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[180px] bg-bg-sidebar border-border-subtle rounded-xl h-10">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All Categories">All Categories</SelectItem>
+            {resourceCategories.map(cat => (
+              <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
         {/* Connected Resources Section */}
-        {resourcesList.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-[11px] font-bold text-text-muted uppercase tracking-[0.2em] flex items-center gap-2">
-              <Box size={14} className="text-primary/60" />
-              Connected Resources
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {resourcesList.map((resource: any) => {
+        {filteredConnectedResources.length > 0 && (
+          <div className="mb-8">
+            <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em] mb-3">
+              Connected
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredConnectedResources.map((resource: any) => {
                 const typeInfo = resourceTypes.find(t => t.value === resource.resource_type)
                 const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === resource.resource_type)
                 return (
-                  <button
+                  <div
                     key={resource.id}
                     onClick={() => handleEditResource(resource)}
-                    className="flex items-center gap-4 px-5 py-4 bg-bg-card border border-border-subtle rounded-2xl hover:border-primary/40 hover:bg-hover-bg hover:shadow-md transition-all duration-300 group"
+                    className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 group relative overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-all"
+                    style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
                   >
-                    <ResourceIcon type={categoryItem?.icon ?? 'mongodb'} />
-                    <div className="text-left flex-1 min-w-0">
-                      <p className="text-sm font-bold text-text-main truncate group-hover:text-primary transition-colors">{resource.name}</p>
-                      <p className="text-[11px] text-text-muted font-medium">{typeInfo?.label}</p>
+                    <div className="flex items-center gap-3">
+                      <ResourceIcon type={categoryItem?.icon ?? 'mongodb'} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm text-text-main truncate group-hover:text-primary transition-colors">{resource.name}</div>
+                        <div className="text-[11px] text-text-muted font-medium">{typeInfo?.label}</div>
+                      </div>
+                      <span className="bg-green-500/10 text-green-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border border-green-500/20">
+                        {resource.is_configured ? 'Connected' : 'Pending'}
+                      </span>
                     </div>
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      resource.is_configured ? 'bg-green-500' : 'bg-text-muted/30 shadow-inner'
-                    )} />
-                  </button>
+                    <div className="text-xs text-text-muted leading-relaxed">
+                      Integration for {typeInfo?.label} - {resource.name}
+                    </div>
+                  </div>
                 )
               })}
             </div>
           </div>
         )}
 
-        {/* Categories Grid */}
-        <div className="space-y-10">
-          {resourceCategories.map(category => (
-            <div key={category.id} className="space-y-4">
-              <h2 className="text-[11px] font-bold text-text-muted uppercase tracking-[0.2em]">
-                {category.label}
-              </h2>
-              <div className="flex flex-wrap gap-3">
-                {category.items.map(item => (
-                  <button
-                    key={item.typeValue}
-                    onClick={() => handleSelectResource(item)}
-                    className="flex items-center gap-4 px-5 py-4 bg-bg-card border border-border-subtle rounded-2xl hover:border-primary/40 hover:bg-hover-bg hover:shadow-md transition-all duration-300 min-w-[170px]"
-                  >
-                    <ResourceIcon type={item.icon} />
-                    <span className="text-sm font-semibold text-text-main">{item.label}</span>
-                  </button>
-                ))}
+        {/* Available Resources Grid */}
+        <div>
+          <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em] mb-3">
+            Available
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredAvailableResources.map(item => (
+              <div
+                key={item.typeValue}
+                className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 hover:border-primary/40 hover:shadow-md transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <ResourceIcon type={item.icon} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-text-main truncate">{item.label}</div>
+                    <div className="text-[11px] text-text-muted">{item.categoryLabel}</div>
+                  </div>
+                </div>
+                <div className="text-xs text-text-muted leading-relaxed mb-1 flex-1">
+                  Connect {item.label} to configure your infrastructure integration.
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main" 
+                  onClick={() => handleSelectResource(item)}
+                >
+                  <Plug size={14} /> Connect
+                </Button>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

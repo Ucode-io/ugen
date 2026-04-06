@@ -318,8 +318,8 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
         </Button>
       </div>
 
-      <div className="px-6 py-4">
-        <div className="rounded-2xl border border-border-subtle/60 bg-bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04),0_4px_20px_rgb(0,0,0,0.02)] overflow-hidden max-w-[1000px]">
+      <div className="px-6 py-4 max-w-[1154px]">
+        <div className="rounded-2xl border border-border-subtle/60 bg-bg-card overflow-hidden max-w-[100%]">
           <div onScroll={handleScroll} className="overflow-auto max-h-[calc(100vh-320px)] custom-scrollbar">
             <Table className="border-collapse w-full min-w-[1100px]">
               <TableHeader>

@@ -1,4 +1,6 @@
-'use client'
+const fs = require('fs');
+
+const code = `'use client'
 
 import React, { useState } from 'react'
 import {
@@ -345,7 +347,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
   const { data: activityLogsData, isLoading: isActivityLoading } = useQuery({
     queryKey: ['activity-logs', environmentId, activityPage, activityLimit, actionType, debouncedCollection, debouncedUserInfo, formattedFrom, formattedTo],
     queryFn: async () => {
-      const { data } = await api.get(`/v2/version/history/${environmentId}`, {
+      const { data } = await api.get(\`/v2/version/history/\${environmentId}\`, {
         params: {
           type: 'GLOBAL',
           limit: activityLimit,
@@ -493,7 +495,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                   <WorkspaceTableBody>
                     {isActivityLoading ? (
                        Array.from({ length: Math.min(activityLimit, 10) }).map((_, i) => (
-                        <WorkspaceTableRow key={`sk-${i}`}>
+                        <WorkspaceTableRow key={\`sk-\${i}\`}>
                           <WorkspaceTableCell><div className="h-4 w-6 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
                           <WorkspaceTableCell><div className="h-4 w-24 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
                           <WorkspaceTableCell><div className="h-4 w-20 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
@@ -638,7 +640,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                   <WorkspaceTableBody>
                     {isFunctionLoading ? (
                        Array.from({ length: Math.min(functionLimit, 10) }).map((_, i) => (
-                        <WorkspaceTableRow key={`sk-${i}`}>
+                        <WorkspaceTableRow key={\`sk-\${i}\`}>
                           <WorkspaceTableCell><div className="h-4 w-6 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
                           <WorkspaceTableCell><div className="h-4 w-24 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
                           <WorkspaceTableCell><div className="h-4 w-32 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
@@ -712,3 +714,6 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     </div>
   )
 }
+`
+
+fs.writeFileSync('/Users/nurmuhammad/Documents/workspace/IT/udevs/ucode/ugen/src/widgets/database-studio/ui/logs-view.tsx', code, 'utf8')

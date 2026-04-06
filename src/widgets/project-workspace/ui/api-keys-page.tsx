@@ -79,13 +79,14 @@ interface TokenItem {
 
 interface ApiKeysPageProps {
   projectId: string
+  hideHeader?: boolean
 }
 
 type View = 'list' | 'create' | 'detail'
 
 
 
-export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
+export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
   const [view, setView] = useState<View>('list')
 
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null)
@@ -281,11 +282,13 @@ export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-text-main tracking-tight">API Keys</h1>
-            <p className="text-text-muted text-sm mt-1">Manage API keys and authentication for your applications.</p>
-          </div>
-          <div className="flex items-center gap-3">
+          {!hideHeader && (
+            <div>
+              <h1 className="text-2xl font-bold text-text-main tracking-tight">API Keys</h1>
+              <p className="text-text-muted text-sm mt-1">Manage API keys and authentication for your applications.</p>
+            </div>
+          )}
+          <div className="flex items-center gap-3 ml-auto">
             {/* <Button
               variant="outline"
               onClick={handleDownloadDocs}
@@ -296,9 +299,9 @@ export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
             </Button> */}
             <Button
               onClick={() => setView('create')}
-              className="bg-primary hover:bg-primary/90 text-white rounded-xl h-10 px-5 shadow-sm"
+              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-8 px-3 text-[13px] font-medium"
             >
-              <PlusCircle size={18} className="mr-2" />
+              <PlusCircle size={14} className="mr-1.5" />
               Add API Key
             </Button>
           </div>
@@ -307,16 +310,18 @@ export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
         {isListLoading ? (
           <DataLoadingState message="Loading API keys..." />
         ) : (
-          <WorkspaceDataTable
-            columns={columns}
-            data={apiKeys}
-            onRowClick={(row: any) => {
-              setSelectedKey(row)
-              setDetailTab('api_key')
-              setView('detail')
-            }}
-            emptyMessage="No API keys found. Create one to get started."
-          />
+          <div className="overflow-auto flex-1 min-h-0" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+            <WorkspaceDataTable
+              columns={columns}
+              data={apiKeys}
+              onRowClick={(row: any) => {
+                setSelectedKey(row)
+                setDetailTab('api_key')
+                setView('detail')
+              }}
+              emptyMessage="No API keys found. Create one to get started."
+            />
+          </div>
         )}
       </div>
     )

@@ -148,7 +148,7 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-main tracking-tight">Vault Secrets</h1>
+          <h1 className="text-2xl font-bold text-text-main tracking-tight">Secrets</h1>
           <p className="text-text-muted text-sm mt-1">Manage your environment variables and sensitive information securely.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -166,9 +166,9 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
               setSecretForm({ key: '', value: '' })
               setSecretDialogOpen(true)
             }}
-            className="bg-primary hover:bg-primary/90 text-white rounded-xl h-10 px-5 shadow-sm font-bold"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-8 px-3 text-[13px] font-medium"
           >
-            <PlusCircle size={18} className="mr-2" />
+            <PlusCircle size={14} className="mr-1.5" />
             Add Secret
           </Button>
         </div>

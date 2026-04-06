@@ -67,7 +67,7 @@ export const TablesView = () => {
           className="w-full px-2 py-1.5 text-[11px] bg-bg-main border border-border-subtle rounded-md focus:border-[#004eea] outline-none"
         />
       </div>
-      
+
       <div className="flex flex-col gap-0.5">
         {tables?.map((table: Table) => {
           const isActive = useDatabaseStore.getState().selectedTable === table.slug;
@@ -79,15 +79,15 @@ export const TablesView = () => {
                 // We no longer change setCurrentView because both are displayed together
               }}
               className={cn(
-                "flex items-center px-3 py-2 text-[13px] rounded-lg mx-2 cursor-pointer transition-colors group",
-                isActive 
-                  ? "bg-[#004eea]/10 text-[#004eea] font-medium" 
+                "flex items-center px-3 py-1 text-[13px] rounded-lg mx-2 cursor-pointer transition-colors group",
+                isActive
+                  ? "bg-[#004eea]/10 text-[#004eea] font-medium"
                   : "text-text-muted hover:bg-bg-sidebar hover:text-text-main"
               )}
             >
               <TableIcon size={12} className={cn("mr-2", isActive ? "text-[#004eea]" : "text-text-muted/70 group-hover:text-text-main/70")} />
               <span className="truncate">{table.label}</span>
-              
+
               <button
                 onClick={(e) => {
                   e.stopPropagation()

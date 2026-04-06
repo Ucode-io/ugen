@@ -2,18 +2,8 @@
 
 import React, { useState } from 'react'
 import {
-  Database,
   Table as TableIcon,
-  ShieldCheck,
   Terminal,
-  Plus,
-  RefreshCw,
-  Filter,
-  Play,
-  ChevronRight,
-  Search,
-  Lock,
-  Settings2
 } from 'lucide-react'
 import { useDatabaseStore, DatabaseView } from '@/entities/database'
 import {
@@ -45,7 +35,7 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-card rounded-xl overflow-hidden border border-border-subtle shadow-sm flex-1">
+    <div className="flex flex-col h-full overflow-hidden flex-1">
       <div className="flex items-center border-b border-border-subtle bg-bg-main px-5 gap-1 shrink-0 h-10">
         <button
           onClick={() => setCurrentView('tables')} // Using 'tables' as the default split view
@@ -78,7 +68,7 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
           </div>
         ) : (
           <>
-            <div className="w-[220px] min-w-[220px] border-r border-border-subtle bg-bg-card flex flex-col overflow-y-auto pt-2">
+            <div className="w-[220px] min-w-[220px] border-r border-border-subtle bg-bg-card flex flex-col overflow-y-auto pt-2 min-h-[540px]">
               <TablesView />
             </div>
             <div className="flex-1 flex flex-col overflow-hidden bg-bg-main">

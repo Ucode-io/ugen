@@ -1,11 +1,19 @@
 import { useState, useMemo } from 'react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select'
 import { Button } from '@/shared/ui/button'
+import { Label } from '@/shared/ui/label'
 import { useTables } from '@/entities/database/api/database-api'
-import { Copy, Check, Terminal, Loader2 } from 'lucide-react'
+import { Copy, Check, Loader2 } from 'lucide-react'
 import Editor from '@monaco-editor/react'
 import { toast } from 'sonner'
-import { cn } from '@/shared/lib/utils/cn'
 import { useAuthStore } from '@/entities/session'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
 
@@ -16,7 +24,7 @@ interface ApiIntegrationsPageProps {
 const LANGUAGES = [
   { id: 'javascript', label: 'JavaScript' },
   { id: 'python', label: 'Python' },
-  { id: 'go', label: 'Go' }
+  { id: 'go', label: 'Go' },
 ]
 
 export const ApiIntegrationsPage = ({ projectId }: ApiIntegrationsPageProps) => {
@@ -31,7 +39,6 @@ export const ApiIntegrationsPage = ({ projectId }: ApiIntegrationsPageProps) => 
   // Auto-select first table if none selected
   useMemo(() => {
     if (tables.length > 0 && !selectedTable) {
-      // Find 'users' or 'orders' or just take the first one
       const defaultTable = tables.find(t => t.slug === 'users') || tables[0]
       if (defaultTable) {
         setSelectedTable(defaultTable.slug)
@@ -146,91 +153,91 @@ def delete_record(record_id: str):
   const goCode = `package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
+\t"bytes"
+\t"encoding/json"
+\t"fmt"
+\t"io"
+\t"net/http"
 )
 
-const APIKey = '${API_KEY}'
+const APIKey = "${API_KEY}"
 const BaseURL = "https://admin-api.ucode.run/v2/items/${currentSlug}"
 
 func setHeaders(req *http.Request) {
-	req.Header.Set("authorization", "API-KEY")
-	req.Header.Set("x-api-key", APIKey)
-	req.Header.Set("Content-Type", "application/json")
+\treq.Header.Set("authorization", "API-KEY")
+\treq.Header.Set("x-api-key", APIKey)
+\treq.Header.Set("Content-Type", "application/json")
 }
 
 // 1. Get all records
 func GetRecords() ([]byte, error) {
-	req, _ := http.NewRequest(http.MethodGet, BaseURL, nil)
-	setHeaders(req)
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
+\treq, _ := http.NewRequest(http.MethodGet, BaseURL, nil)
+\tsetHeaders(req)
+\tresp, err := (&http.Client{}).Do(req)
+\tif err != nil {
+\t\treturn nil, err
+\t}
+\tdefer resp.Body.Close()
+\treturn io.ReadAll(resp.Body)
 }
 
 // 2. Get a single record by ID
 func GetRecord(id string) ([]byte, error) {
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", BaseURL, id), nil)
-	setHeaders(req)
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
+\treq, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", BaseURL, id), nil)
+\tsetHeaders(req)
+\tresp, err := (&http.Client{}).Do(req)
+\tif err != nil {
+\t\treturn nil, err
+\t}
+\tdefer resp.Body.Close()
+\treturn io.ReadAll(resp.Body)
 }
 
 // 3. Create a new record
 func CreateRecord(data map[string]any) ([]byte, error) {
-	payload, _ := json.Marshal(map[string]any{"data": data})
-	req, _ := http.NewRequest(http.MethodPost, BaseURL, bytes.NewBuffer(payload))
-	setHeaders(req)
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
+\tpayload, _ := json.Marshal(map[string]any{"data": data})
+\treq, _ := http.NewRequest(http.MethodPost, BaseURL, bytes.NewBuffer(payload))
+\tsetHeaders(req)
+\tresp, err := (&http.Client{}).Do(req)
+\tif err != nil {
+\t\treturn nil, err
+\t}
+\tdefer resp.Body.Close()
+\treturn io.ReadAll(resp.Body)
 }
 
 // 4. Update an existing record
 func UpdateRecord(id string, data map[string]any) ([]byte, error) {
-	data["guid"] = id
-	payload, _ := json.Marshal(map[string]any{"data": data})
-	req, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", BaseURL, id), bytes.NewBuffer(payload))
-	setHeaders(req)
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
+\tdata["guid"] = id
+\tpayload, _ := json.Marshal(map[string]any{"data": data})
+\treq, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/%s", BaseURL, id), bytes.NewBuffer(payload))
+\tsetHeaders(req)
+\tresp, err := (&http.Client{}).Do(req)
+\tif err != nil {
+\t\treturn nil, err
+\t}
+\tdefer resp.Body.Close()
+\treturn io.ReadAll(resp.Body)
 }
 
 // 5. Delete a record
 func DeleteRecord(id string) ([]byte, error) {
-	payload, _ := json.Marshal(map[string]any{"data": map[string]any{}})
-	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/%s", BaseURL, id), bytes.NewBuffer(payload))
-	setHeaders(req)
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
+\tpayload, _ := json.Marshal(map[string]any{"data": map[string]any{}})
+\treq, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/%s", BaseURL, id), bytes.NewBuffer(payload))
+\tsetHeaders(req)
+\tresp, err := (&http.Client{}).Do(req)
+\tif err != nil {
+\t\treturn nil, err
+\t}
+\tdefer resp.Body.Close()
+\treturn io.ReadAll(resp.Body)
 }
 `
 
   const codeMap: Record<string, string> = {
     javascript: jsCode,
     python: pythonCode,
-    go: goCode
+    go: goCode,
   }
 
   const activeCode = codeMap[activeTab]
@@ -252,104 +259,98 @@ func DeleteRecord(id string) ([]byte, error) {
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-700 h-full max-h-screen">
+    <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
-      {/* Header Area */}
-      {/* <div className="bg-bg-card border border-border-subtle rounded-3xl p-8 shadow-sm flex flex-col md:flex-row gap-6 justify-between md:items-center">
-        <div>
-          <h2 className="text-xl font-bold text-text-main flex items-center gap-3">
-            <Terminal className="text-primary" size={24} />
-            API Integrations
-          </h2>
-          <p className="text-text-muted text-sm mt-1 max-w-2xl">
-            A quick-start guide to using our REST API. Select your table to automatically generate the appropriate integration codebase in your preferred language.
-          </p>
+      {/* ── Two dropdowns above the editor ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+            Select Table
+          </Label>
+          <Select value={selectedTable} onValueChange={setSelectedTable}>
+            <SelectTrigger className="h-10 bg-bg-card border-border-subtle rounded-xl text-sm">
+              <SelectValue placeholder={isLoadingTables ? 'Loading…' : 'Choose a table…'} />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px] rounded-xl border-border-subtle shadow-xl">
+              <SelectGroup>
+                <SelectLabel>Tables</SelectLabel>
+                {isLoadingTables ? (
+                  <SelectItem value="__loading__" disabled>Loading...</SelectItem>
+                ) : tables.length === 0 ? (
+                  <SelectItem value="__empty__" disabled>No tables found</SelectItem>
+                ) : (
+                  tables.map((t: any) => (
+                    <SelectItem key={t.slug} value={t.slug}>
+                      {t.title || t.name || t.slug}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
 
-
-      </div> */}
-
-      {/* Editor Area */}
-      <div className="bg-bg-card border border-border-subtle rounded-3xl shadow-sm flex-1 flex flex-col min-h-[600px] overflow-hidden">
-        {/* Tabs & Actions */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-border-subtle bg-bg-sidebar/30 flex-wrap gap-4">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
-            <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+            Programming Language
+          </Label>
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="h-10 bg-bg-card border-border-subtle rounded-xl text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-border-subtle shadow-xl">
               {LANGUAGES.map(lang => (
-                <button
-                  key={lang.id}
-                  onClick={() => setActiveTab(lang.id)}
-                  className={cn(
-                    "px-4 py-2 text-sm font-medium rounded-xl transition-all",
-                    activeTab === lang.id
-                      ? "bg-bg-main text-text-main shadow-sm border border-border-subtle"
-                      : "text-text-muted hover:text-text-main hover:bg-bg-main/50 border border-transparent"
-                  )}
-                >
+                <SelectItem key={lang.id} value={lang.id}>
                   {lang.label}
-                </button>
+                </SelectItem>
               ))}
-            </div>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-            <div className="h-6 w-px bg-border-subtle hidden md:block"></div>
-
-            <div className="w-full md:w-56">
-              <Select value={selectedTable} onValueChange={setSelectedTable}>
-                <SelectTrigger className="bg-bg-main border-border-subtle h-9 rounded-xl text-sm w-full">
-                  <SelectValue placeholder={isLoadingTables ? 'Loading tables...' : 'Choose a table...'} />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {isLoadingTables ? (
-                    <div className="p-4 text-center text-sm text-text-muted">Loading...</div>
-                  ) : tables.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-text-muted">No tables found</div>
-                  ) : (
-                    tables.map(t => (
-                      <SelectItem key={t.slug} value={t.slug}>
-                        {(t as any).title || (t as any).name || t.slug}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
+      {/* ── Code card ── */}
+      <div className="border border-border-subtle rounded-2xl overflow-hidden bg-bg-card shadow-sm">
+        {/* Card header */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-subtle bg-bg-sidebar/40">
+          <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+            Generated SDK Code
+          </span>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="h-8 gap-2 text-xs rounded-lg hover:bg-primary/10 hover:text-primary"
             onClick={handleCopy}
-            className="rounded-xl h-9 px-4 border-border-subtle gap-2 bg-bg-main"
           >
-            {isCopied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-            {isCopied ? 'Copied' : 'Copy Code'}
+            {isCopied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+            {isCopied ? 'Copied' : 'Copy'}
           </Button>
         </div>
 
-        {/* Monaco Editor */}
-        <div className="flex-1 bg-bg-main relative p-1 pb-0">
+        {/* Monaco Editor – fixed height to prevent 5px collapse */}
+        <div className="relative" style={{ height: 500 }}>
           {isLoadingTables && (
-            <div className="absolute inset-0 z-10 bg-bg-main flex flex-col items-center justify-center gap-3">
-              <Loader2 className="animate-spin text-primary" size={24} />
-              <span className="text-text-muted text-sm">Preparing editor...</span>
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-bg-card/60 backdrop-blur-sm">
+              <Loader2 className="animate-spin text-primary" size={22} />
             </div>
           )}
           <Editor
-            height="100%"
+            height={500}
             language={getMonacoLanguage()}
             theme={theme === 'dark' ? 'vs-dark' : 'vs-light'}
             value={activeCode}
             options={{
               minimap: { enabled: false },
-              fontSize: 14,
+              fontSize: 13.5,
               fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
               scrollBeyondLastLine: false,
               wordWrap: 'on',
               smoothScrolling: true,
               padding: { top: 16, bottom: 16 },
-              lineHeight: 1.6,
+              lineHeight: 1.65,
               renderLineHighlight: 'all',
-              readOnly: true
+              readOnly: true,
+              domReadOnly: true,
             }}
           />
         </div>

@@ -16,7 +16,8 @@ import {
   Lock,
   Database,
   BarChart2,
-  Box
+  Box,
+  Braces
 } from "lucide-react"
 import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
@@ -37,6 +38,7 @@ import { SecretsPage } from './secrets-page'
 import { ApiIntegrationsPage } from './api-integrations-page'
 import { AnalyticsDashboard } from "@/widgets/analytics"
 import { CustomEndpointsPage } from './custom-endpoints-page'
+import { cn } from '@/shared/lib/utils/cn'
 
 type DashboardSection = string
 
@@ -80,64 +82,20 @@ export const ProjectDashboard = ({
   const { data: clientTypes = [] } = useClientTypes(projectId)
 
   const navigationItems: NavigationItem[] = useMemo(() => [
-    { id: 'overview', icon: LayoutDashboard, label: 'Overview', category: 'General' },
-    { id: 'database_studio', icon: Database, label: 'Database', category: 'General' },
-    {
-      id: 'users_group',
-      category: 'Access Management',
-      icon: Users,
-      label: 'Users Management',
-      isGroup: true,
-      items: [
-        { id: 'users', icon: UserCircle, label: 'Users' },
-        { id: 'roles', icon: ShieldAlert, label: 'Roles' },
-        { id: 'client_types', icon: Contact2, label: 'Client Types' },
-      ]
-    },
-    {
-      id: 'permissions_group',
-      category: 'Access Management',
-      icon: ShieldCheck,
-      label: 'Permissions',
-      isGroup: true,
-      items: clientTypes?.map((ct: any) => ({
-        id: `perm_${ct.guid}`,
-        label: ct.name,
-      })) || []
-    },
-    { id: 'secrets', icon: Lock, label: 'API Secrets', category: 'Development' },
-    {
-      id: 'api_group',
-      category: 'Development',
-      icon: KeyRound,
-      label: 'API',
-      isGroup: true,
-      items: [
-        { id: 'api_custom_endpoints', label: 'Custom Endpoints' },
-        { id: 'api_integrations', label: 'SDK Generation' },
-        { id: 'api_keys', label: 'API Keys' },
-      ]
-    },
-    {
-      id: 'code_group',
-      category: 'Development',
-      icon: Code,
-      label: 'Code',
-      isGroup: true,
-      items: [
-        { id: 'functions', label: 'Functions' },
-        { id: 'microfrontend', label: 'Microfrontend' },
-      ]
-    },
-    {
-      id: 'files',
-      category: 'General',
-      icon: Files,
-      label: 'Files'
-    },
+    { id: 'overview', icon: LayoutDashboard, label: 'Project Settings', category: 'General' },
+    { id: 'users', icon: Users, label: 'Users', category: 'General' },
+    { id: 'permissions', icon: ShieldCheck, label: 'Permissions', category: 'General' },
+    { id: 'files', icon: Files, label: 'Files', category: 'General' },
+    { id: 'secrets', icon: Lock, label: 'Secrets', category: 'General' },
+    { id: 'resources', icon: Layers2, label: 'Integrations', category: 'General' },
+    // { id: 'api_integrations', icon: Layers2, label: 'Integrations', category: 'General' },
+    { id: 'api_custom_endpoints', icon: KeyRound, label: 'API', category: 'Development' },
+    { id: 'functions', icon: Braces, label: 'Code', category: 'Development' },
+    // { id: 'microfrontend', icon: Code, label: 'Microfrontend', category: 'Development' },
+    { id: 'database_studio', icon: Database, label: 'Database', category: 'Development' },
     { id: 'logs', icon: History, label: 'Logs', category: 'Monitoring' },
     { id: 'analytics', icon: BarChart2, label: 'Analytics', category: 'Monitoring' },
-  ], [fileMenus, clientTypes])
+  ], [fileMenus])
 
   const findActiveItem = (items: any[], activeId: string): any => {
     for (const item of items) {
@@ -196,9 +154,8 @@ export const ProjectDashboard = ({
       return <AnalyticsDashboard />;
     }
 
-    if (activeSection.startsWith("perm_")) {
-      const clientId = activeSection.split("perm_")[1];
-      return <PermissionManage projectId={projectId ?? ''} clientTypeId={clientId} />;
+    if (activeSection === "permissions") {
+      return <PermissionManage projectId={projectId ?? ''} />;
     }
 
 
@@ -220,7 +177,7 @@ export const ProjectDashboard = ({
     }
 
     if (activeSection === "functions") {
-      return <CodeView projectId={projectId ?? ""} activeTab="functions" />;
+      return <CodeView projectId={projectId ?? ""} />;
     }
 
     if (activeSection === "microfrontend") {
@@ -256,8 +213,8 @@ export const ProjectDashboard = ({
 
       {/* Main Content */}
       <main className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-5xl p-8">
-          <div className="grid gap-6">{renderActiveSection()}</div>
+        <div className={cn("mx-auto w-full", !['database_studio', 'api_integrations'].includes(activeSection) ? "p-8" : "h-full")}>
+          <div className={cn("grid gap-6", !['database_studio', 'api_integrations'].includes(activeSection) ? '' : 'h-full')}>{renderActiveSection()}</div>
         </div>
       </main>
     </div>

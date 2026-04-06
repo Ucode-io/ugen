@@ -119,7 +119,7 @@ export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPer
         </Button>
       </div>
 
-      <div className="rounded-2xl border border-border-subtle/60 bg-bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04),0_4px_20px_rgb(0,0,0,0.02)] isolation-isolate overflow-hidden">
+      <div className="rounded-2xl border border-border-subtle/60 bg-bg-card isolation-isolate overflow-hidden">
         <Table wrapperClassName="max-h-[600px] custom-scrollbar rounded-2xl" className="border-collapse w-full">
           <TableHeader>
             <TableRow className="border-b-border-subtle/60 bg-bg-sidebar hover:bg-bg-sidebar transition-none">
@@ -142,6 +142,7 @@ export const GlobalPermissions = ({ projectId, roleId, clientTypeId }: GlobalPer
                     render={({ field }) => (
                       <div className="flex justify-center">
                         <Switch
+                          size="sm"
                           checked={field.value as boolean}
                           onCheckedChange={field.onChange}
                           className="data-[state=checked]:bg-primary"
