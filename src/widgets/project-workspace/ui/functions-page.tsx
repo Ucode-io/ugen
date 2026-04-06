@@ -265,14 +265,14 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
                 placeholder="Search functions..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-[280px] h-9 pl-9 pr-4 rounded-xl bg-bg-sidebar border border-border-subtle text-sm text-text-main placeholder:text-text-muted outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+                className="w-[280px] h-8 pl-9 pr-4 rounded-lg bg-bg-sidebar border border-border-subtle text-sm text-text-main placeholder:text-text-muted outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
               />
             </div>
             <Button
               onClick={() => setView('create')}
-              className="bg-primary hover:bg-primary/90 text-white rounded-xl px-5 h-10 shadow-sm"
+              className="bg-primary hover:bg-primary/90 text-white rounded-lg px-3 h-8 text-[13px] font-medium"
             >
-              <PlusCircle size={18} className="mr-2" />
+              <PlusCircle size={14} className="mr-1.5" />
               Add Function
             </Button>
           </div>

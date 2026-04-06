@@ -13,13 +13,14 @@ export interface UserPayload {
 }
 
 export const userApi = {
-  getUsers: async (params: { clientTypeId: string, projectId: string, limit: number, offset: number }) => {
+  getUsers: async (params: { clientTypeId: string, projectId: string, limit: number, offset: number, search?: string }) => {
     const { data } = await api.get('/v2/items/user', {
       params: {
         "client-type-id": params.clientTypeId,
         "project-id": params.projectId,
         limit: params.limit,
-        offset: params.offset
+        offset: params.offset,
+        search: params.search
       }
     });
     return data?.data || [];

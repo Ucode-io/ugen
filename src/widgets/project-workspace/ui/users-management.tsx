@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from "react"
 import { UserPlus, Trash2 } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 
-import { ReusableTabs } from "@/shared/ui"
+import { ReusableTabs, UsageIndicator, Input } from "@/shared/ui"
 import { WorkspaceDataTable } from "./workspace-data-table"
 import { Button } from "@/shared/ui"
+import { Search } from "lucide-react"
 import { useAuthStore } from "@/entities/session"
 import { InviteUserModal } from "./invite-user-modal"
 import { useClientTypes, useRoles, useUsers, useDeleteUser } from "../api/users"
@@ -47,6 +48,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const { data: clientTypeOptions = [] } = useClientTypes()
   const queryClient = useQueryClient()
@@ -79,6 +81,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
     limit: pageSize,
     offset: currentPage,
     projectId,
+    search: searchTerm,
   })
 
   console.log({
@@ -110,6 +113,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
 
   const columns = useMemo<ColumnDef<User>[]>(() => [
     { accessorKey: 'name', header: 'Name' },
+    { accessorKey: 'user_type', header: 'User Type' },
     {
       accessorKey: 'role_id',
       header: 'Role',
@@ -150,20 +154,48 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        {mappedTabsOptions.length > 0 && (
-          <ReusableTabs
-            options={mappedTabsOptions}
-            activeId={activeClientType}
-            onTabChange={(id) => {
-              setActiveClientType(id)
-              setCurrentPage(0)
-            }}
-            className="bg-bg-card"
+        <div>
+          <h1 className="text-[22px] font-bold text-text-main mb-1">Users</h1>
+          <p className="text-[13px] text-text-muted">Manage application users</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <UsageIndicator 
+            label="Users" 
+            value={data?.data?.count || 0} 
+            total={10} 
+            percentage={((data?.data?.count || 0) / 10) * 100}
           />
-        )}
-        <Button className="px-8 gap-2" onClick={() => setIsInviteModalOpen(true)}>
+          <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90 text-white rounded-lg h-9 px-4 text-[13px] font-semibold">
+            Upgrade Plan
+          </Button>
+        </div>
+      </div>
+
+      {mappedTabsOptions.length > 0 && (
+        <ReusableTabs
+          options={mappedTabsOptions}
+          activeId={activeClientType}
+          onTabChange={(id) => {
+            setActiveClientType(id)
+            setCurrentPage(0)
+          }}
+          className="bg-bg-card w-fit"
+        />
+      )}
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative group max-w-[320px] flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
+          <Input 
+            placeholder="Search users..." 
+            className="pl-10 h-9 bg-bg-card border-border-subtle focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Button className="px-8 gap-2 h-9 bg-primary hover:bg-primary/90 text-white font-semibold" onClick={() => setIsInviteModalOpen(true)}>
           <UserPlus size={16} />
-          Invite
+          Add User
         </Button>
       </div>
 

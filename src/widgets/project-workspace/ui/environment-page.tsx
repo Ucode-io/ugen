@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ChevronLeft, Loader2, PenLine, ArrowLeftRight, Globe, Plus } from 'lucide-react'
+import { ChevronLeft, Loader2, PenLine, ArrowLeftRight, Globe, Plus, SquarePen } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, authApi } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
@@ -40,6 +40,8 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
   const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null)
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+  const [filterId, setFilterId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const queryClient = useQueryClient()
   const companyId = useAuthStore(s => s.user?.company_id ?? '')
@@ -75,7 +77,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
       header: 'Actions',
       cell: ({ row }) => (
         <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-text-main" onClick={(e) => { e.stopPropagation(); handleEdit(row.original); }}>
-          <PenLine size={14} />
+          <SquarePen size={14} />
         </Button>
       )
     }
@@ -173,7 +175,21 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
     }
   })
 
-  // Form handling
+  // Filtered Data
+  const displayedEnvironments = useMemo(() => {
+    let filtered = environments;
+    if (filterId) {
+      filtered = filtered.filter(env => env.id === filterId);
+    }
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(env =>
+        env.name.toLowerCase().includes(query) ||
+        env.description?.toLowerCase().includes(query)
+      );
+    }
+    return filtered;
+  }, [environments, filterId, searchQuery]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -211,49 +227,85 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
   return (
     <>
       <div className="space-y-6 animate-in fade-in duration-500">
-        <div>
-          <h1 className="text-[22px] font-bold text-text-main mb-1">Environments</h1>
-          <p className="text-text-muted text-[13px]">Manage different environments for your project.</p>
-        </div>
+        {/* <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-wrap gap-3">
+            <div
+              onClick={() => setFilterId(null)}
+              className={cn(
+                "bg-bg-sidebar border border-border-subtle rounded-xl px-4 py-2 min-w-[120px] cursor-pointer transition-all hover:border-primary relative overflow-hidden group shadow-sm flex items-center justify-center",
+                !filterId && "border-primary bg-primary/10",
+              )}
+            >
+              <div className={cn("font-[600] text-[13px]", !filterId ? "text-primary" : "text-text-muted")}>All Labs</div>
+            </div>
 
-        <div className="flex flex-wrap gap-3 mb-4">
-          {environments.map((env) => {
-            const isActive = activeEnvId === env.id;
-            const isSwitching = switchingId === env.id;
-            return (
-              <div
-                key={env.id}
-                onClick={() => !isActive && !isSwitching && switchMutation.mutate(env.id)}
-                className={cn(
-                  "bg-bg-sidebar border border-border-subtle rounded-xl px-4 py-3 min-w-[180px] cursor-pointer transition-all hover:border-[#004eea] relative overflow-hidden",
-                  isActive && "border-[#004eea] bg-[#004eea]/10",
-                  isSwitching && "opacity-70 pointer-events-none"
-                )}
-              >
-                {isSwitching && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-bg-card/50 backdrop-blur-[1px]">
-                     <Loader2 size={16} className="animate-spin text-[#004eea]" />
+            {environments.map((env) => {
+              const isFiltered = filterId === env.id;
+              const isActive = activeEnvId === env.id;
+              const isSwitching = switchingId === env.id;
+              return (
+                <div
+                  key={env.id}
+                  onClick={() => setFilterId(isFiltered ? null : env.id)}
+                  className={cn(
+                    "bg-bg-sidebar border border-border-subtle rounded-xl px-4 py-2 min-w-[180px] cursor-pointer transition-all hover:border-primary relative overflow-hidden group shadow-sm",
+                    isFiltered && "border-primary bg-primary/10",
+                    isSwitching && "opacity-70 pointer-events-none"
+                  )}
+                >
+                  {isSwitching && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-bg-card/50 backdrop-blur-[1px] z-10">
+                      <Loader2 size={16} className="animate-spin text-primary" />
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div className={cn("font-[600] text-[13px]", isFiltered ? "text-primary" : "text-text-main")}>{env.name}</div>
+                    {isActive && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" title="Active Environment" />
+                    )}
                   </div>
-                )}
-                <div className="font-[600] text-[13px]">{env.name}</div>
-                <div className="text-[11px] text-text-muted mt-0.5">{env.description || 'Environment'}</div>
-              </div>
-            )
-          })}
-        </div>
+                  <div className="text-[11px] text-text-muted mt-0.5 truncate">{env.description || 'Environment'}</div>
 
-        <div className="flex items-center gap-2 mb-4">
-          <span className="flex-1" />
+                  {!isActive && (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); switchMutation.mutate(env.id); }}
+                      className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-primary/20 hover:bg-primary/30 p-1 rounded-md cursor-pointer"
+                      title="Switch to this environment"
+                    >
+                      <ArrowLeftRight size={10} className="text-primary" />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div> */}
+
+        <div className="flex items-center justify-end gap-4 mb-4">
           <Button
             onClick={handleCreateOpen}
-            className="bg-primary hover:bg-primary/90 text-white fill-white rounded-lg px-4 h-8 text-[12px] font-medium"
+            className="bg-primary hover:bg-primary/90 text-white fill-white rounded-lg px-4 h-9 text-[13px] font-medium shadow-sm transition-all"
           >
-            <Plus size={14} className="mr-1.5" />
+            <Plus size={16} className="mr-1.5" />
             Add Environment
           </Button>
         </div>
 
-        {environments.length === 0 ? (
+        {environments.length > 0 && displayedEnvironments.length > 0 && (
+          <WorkspaceDataTable
+            columns={envColumns}
+            data={displayedEnvironments}
+          />
+        )}
+
+        {displayedEnvironments.length === 0 && environments.length > 0 && (
+          <div className="w-full py-12 text-center bg-bg-sidebar/30 rounded-xl border border-dashed border-border-subtle">
+            <p className="text-text-muted text-[13px]">No environments matching the current filters.</p>
+            <Button variant="ghost" className="mt-2 text-xs text-primary" onClick={() => { setFilterId(null); setSearchQuery(''); }}>Reset all filters</Button>
+          </div>
+        )}
+
+        {environments.length === 0 && (
           <div className="flex flex-col items-center justify-center min-h-[300px] bg-bg-card border border-dashed border-border-subtle rounded-2xl p-8 text-center">
             <div className="bg-primary/5 p-4 rounded-full mb-4">
               <Globe size={32} className="text-primary/40" />
@@ -261,11 +313,6 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
             <h3 className="text-lg font-medium text-text-main">No environments yet</h3>
             <p className="text-text-muted text-sm max-w-xs mt-1">Create your first environment to start managing your project deployments.</p>
           </div>
-        ) : (
-          <WorkspaceDataTable
-            columns={envColumns}
-            data={environments}
-          />
         )}
       </div>
 

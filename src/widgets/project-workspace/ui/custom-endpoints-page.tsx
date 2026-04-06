@@ -21,8 +21,10 @@ import {
   LayoutGrid,
   ChevronRight
 } from 'lucide-react'
-import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, Skeleton } from '@/shared/ui'
+import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, Skeleton, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, SubTabs } from '@/shared/ui'
 import { WorkspaceDataTable } from './workspace-data-table'
+import { ApiIntegrationsPage } from './api-integrations-page'
+import { ApiKeysPage } from './api-keys-page'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { useTables } from '@/entities/database'
@@ -47,12 +49,13 @@ interface CustomEndpoint {
   created_at: string
 }
 
-export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
+const EndpointsView = ({ projectId }: { projectId: string }) => {
   const { theme } = useUIStore()
   const queryClient = useQueryClient()
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail'>('list')
   const [search, setSearch] = useState('')
   const [selectedEndpoint, setSelectedEndpoint] = useState<CustomEndpoint | null>(null)
+  const [endpointToDelete, setEndpointToDelete] = useState<CustomEndpoint | null>(null)
 
   const apiKey = useAuthStore((state) => state.apiKey)
 
@@ -101,6 +104,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
     mutationFn: (id: string) => api.delete(`/v1/custom-endpoints/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-endpoints'] })
+      setEndpointToDelete(null)
     }
   })
 
@@ -159,7 +163,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
             size="icon"
             onClick={(e) => {
               e.stopPropagation()
-              if (confirm('Are you sure?')) deleteMutation.mutate(row.original.id)
+              setEndpointToDelete(row.original)
             }}
             className="text-destructive hover:bg-destructive/10 rounded-lg h-8 w-8"
           >
@@ -650,11 +654,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-main tracking-tight">Custom SQL Endpoints</h1>
-          <p className="text-text-muted text-sm mt-1">Design and execute custom SQL API endpoints with dynamic parameters.</p>
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4" />
@@ -662,7 +662,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
               placeholder="Search endpoints..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-[280px] h-9 pl-9 pr-4 rounded-xl bg-bg-sidebar border border-border-subtle text-sm text-text-main placeholder:text-text-muted outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+              className="w-[280px] h-8 pl-9 pr-4 rounded-lg bg-bg-sidebar border border-border-subtle text-sm text-text-main placeholder:text-text-muted outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
             />
           </div>
           <Button
@@ -677,7 +677,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
               })
               setView('create')
             }}
-            className="bg-primary hover:bg-primary/90 text-white rounded-xl px-5 h-10 shadow-sm font-bold"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg px-5 h-8 shadow-sm font-bold text-[13px] font-medium"
           >
             <PlusCircle size={18} className="mr-2" />
             New Endpoint
@@ -703,6 +703,73 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
           emptyMessage="No endpoints found. Create your first SQL API endpoint."
         />
       )}
+
+      <Dialog open={!!endpointToDelete} onOpenChange={(open) => !open && setEndpointToDelete(null)}>
+        <DialogContent className="max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete endpoint <span className="font-semibold text-text-main">{endpointToDelete?.name}</span>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setEndpointToDelete(null)}
+              disabled={deleteMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (endpointToDelete) {
+                  deleteMutation.mutate(endpointToDelete.id)
+                }
+              }}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : "Delete Endpoint"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
+  const [activeTab, setActiveTab] = useState('sdk')
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-[22px] font-bold text-text-main mb-1">API</h1>
+          <p className="text-text-muted text-[13px]">Manage endpoints, SDK, and API keys</p>
+        </div>
+
+        <SubTabs
+          activeId={activeTab}
+          onTabChange={setActiveTab}
+          options={[
+            // { id: 'endpoints', label: 'Custom Endpoints' },
+            { id: 'sdk', label: 'SDK' },
+            { id: 'keys', label: 'API Keys' },
+          ]}
+        />
+      </div>
+
+      <div className="pt-2">
+        {activeTab === 'endpoints' && <EndpointsView projectId={projectId} />}
+        {activeTab === 'sdk' && <ApiIntegrationsPage projectId={projectId} />}
+        {activeTab === 'keys' && <ApiKeysPage projectId={projectId} hideHeader />}
+      </div>
     </div>
   )
 }
