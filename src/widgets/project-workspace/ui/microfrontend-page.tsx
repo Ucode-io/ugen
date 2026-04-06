@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   ChevronLeft,
   Loader2,
@@ -11,6 +11,8 @@ import {
   RefreshCw,
   ScrollText,
   ExternalLink,
+  Activity,
+  Layers,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
@@ -38,6 +40,7 @@ import { DataLoadingState } from '@/shared/ui'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { cn } from '@/shared/lib/utils/cn'
 import { MicrofrontendEditor } from './gitlab-code-view'
+import { PipelineStatus } from './pipeline-status'
 
 interface Microfrontend {
   id: string
@@ -85,11 +88,22 @@ const timeData = [
 
 export const MicrofrontendPage = ({ projectId }: MicrofrontendPageProps) => {
   const [view, setView] = useState<View>('list')
-  const [selected, setSelected] = useState<Microfrontend | null>(null)
+  const [selected, setSelected] = useState<Microfrontend | null>({
+                "id": "5d32280e-165c-4a52-8800-91d177e94994",
+                "path": "my-fidani_warehouse",
+                "name": "warehouse",
+                "project_id": "42c518b0-98a7-46fb-8f73-6c3c384c968d",
+                "environment_id": "231e90ea-d2f8-41af-a5a7-9db7aa73cd6f",
+                "url": "1f1bf5cb-41a6-466d-8a74-7592e0aac929-test-page.u-code.io",
+                "type": "MICRO_FRONTEND",
+                "branch": "master",
+                "max_scale": 3
+            })
   const [detailTab, setDetailTab] = useState<'details' | 'logs'>('details')
   const [search, setSearch] = useState('')
   const [toDelete, setToDelete] = useState<Microfrontend | null>(null)
   const [timeFrame, setTimeFrame] = useState(3600000)
+  const [lastPublish, setLastPublish] = useState(0)
 
   const debouncedSearch = useDebounce(search, 400)
   const queryClient = useQueryClient()
@@ -714,13 +728,24 @@ export const MicrofrontendPage = ({ projectId }: MicrofrontendPageProps) => {
                 Show Logs
               </Button> */}
               </div>
-
               <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm min-h-[400px]">
-                <div className="p-4 bg-bg-sidebar/50 border-b border-border-subtle flex items-center gap-2">
-                  <ScrollText size={14} className="text-text-muted" />
-                  <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Code</span>
+                <div className="p-4 bg-bg-sidebar/50 border-b border-border-subtle flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ScrollText size={14} className="text-text-muted" />
+                    <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Code</span>
+                  </div>
+                  <PipelineStatus repoId={selected.project_id} branch={selected.branch || "master"} lastPublish={lastPublish} />
                 </div>
-                <MicrofrontendEditor path={selected.path} branch={selected.branch || "master"} name={selected.name} />
+                <MicrofrontendEditor 
+                  path={selected.path} 
+                  branch={selected.branch || "master"} 
+                  name={selected.name} 
+                  repoId={selected.project_id} 
+                  onPublish={() => {
+                    setLastPublish(Date.now())
+                    queryClient.invalidateQueries({ queryKey: ['gitlab-pipeline'] })
+                  }}
+                />
               </div>
             </div>
           )

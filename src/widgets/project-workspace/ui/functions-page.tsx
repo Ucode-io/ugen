@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import {
   ChevronLeft,
   Loader2,
@@ -37,6 +37,7 @@ import { DataLoadingState } from '@/shared/ui'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { cn } from '@/shared/lib/utils/cn'
 import { GitlabCodeEditor } from './gitlab-code-view'
+import { PipelineStatus } from './pipeline-status'
 
 interface FunctionItem {
   id: string
@@ -52,6 +53,7 @@ interface FunctionItem {
   environment_id?: string
   url?: string
   is_public?: boolean
+  repo_id?: string
 }
 
 interface FunctionPageProps {
@@ -78,7 +80,8 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
   const [pageSize] = useState(10)
   const [fnToDelete, setFnToDelete] = useState<FunctionItem | null>(null)
   const [timeFrame, setTimeFrame] = useState(3600000)
-
+  const [lastPublish, setLastPublish] = useState(0)
+  
   const debouncedSearch = useDebounce(search, 400)
   const queryClient = useQueryClient()
 
@@ -130,6 +133,8 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
     queryFn: () => fetchGitResources(projectId),
     enabled: view === 'create'
   })
+
+  console.log('fnDetailfnDetail', fnDetail)
 
   // Mutations
   const createMutation = useMutation({
@@ -594,15 +599,23 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
             </div>
 
             <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
-              <div className="p-4 bg-bg-sidebar/50 border-b border-border-subtle flex items-center gap-2">
-                <ScrollText size={14} className="text-text-muted" />
-                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Code</span>
+              <div className="p-4 bg-bg-sidebar/50 border-b border-border-subtle flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ScrollText size={14} className="text-text-muted" />
+                  <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Code</span>
+                </div>
+                <PipelineStatus repoId={selectedFn.repo_id} branch={selectedFn.branch || "master"} lastPublish={lastPublish} />
               </div>
               <GitlabCodeEditor
                 path={selectedFn.path!}
                 branch={selectedFn.branch || "master"}
                 name={selectedFn.name}
                 type={selectedFn.type}
+                repoId={selectedFn.repo_id}
+                onPublish={() => {
+                  setLastPublish(Date.now())
+                  queryClient.invalidateQueries({ queryKey: ['gitlab-pipeline'] })
+                }}
               />
             </div>
           </div>

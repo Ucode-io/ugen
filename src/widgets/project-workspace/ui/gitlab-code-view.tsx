@@ -1,7 +1,9 @@
 "use client"
 import { useEffect, useState, useMemo } from "react";
 import Editor from "@monaco-editor/react";
-import { getFileTree, getFileContent } from "../lib/gitlab";
+import { getFileTree, getFileContent, publishChanges } from "../lib/gitlab";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/shared/ui";
 import {
   CodeSidebar,
   CodeEditorTabs,
@@ -16,6 +18,8 @@ interface GitlabEditorProps {
   branch: string; // "master"
   name: string;   // "warehouse"
   type?: string;  // "MICRO_FRONTEND", "KNATIVE", etc.
+  repoId?: string; // e.g. "5996"
+  onPublish?: () => void;
 }
 
 interface FileNode {
@@ -25,7 +29,7 @@ interface FileNode {
   type: "blob" | "tree";
 }
 
-export function GitlabCodeEditor({ path, branch, name, type }: GitlabEditorProps) {
+export function GitlabCodeEditor({ path, branch, name, type, repoId, onPublish }: GitlabEditorProps) {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [openedFiles, setOpenedFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -34,9 +38,45 @@ export function GitlabCodeEditor({ path, branch, name, type }: GitlabEditorProps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
+  const [editedFiles, setEditedFiles] = useState<Record<string, string>>({});
+  const [isPublishing, setIsPublishing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { theme } = useUIStore();
+
+  const handleEditorChange = (value: string | undefined) => {
+    if (selectedFile && value !== undefined) {
+      if (fileContentsCache[selectedFile] !== value) {
+        setEditedFiles((prev) => ({ ...prev, [selectedFile]: value }));
+      } else {
+        const next = { ...editedFiles };
+        delete next[selectedFile];
+        setEditedFiles(next);
+      }
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!repoId) return;
+    setIsPublishing(true);
+    try {
+      const payloadFiles = Object.entries(editedFiles).map(([filePath, content]) => ({
+        file_path: filePath,
+        content,
+      }));
+      await publishChanges(repoId, branch, payloadFiles);
+      if (selectedFile && editedFiles[selectedFile] !== undefined) {
+        setContent(editedFiles[selectedFile]);
+      }
+      setFileContentsCache((prev) => ({ ...prev, ...editedFiles }));
+      setEditedFiles({});
+      if (onPublish) onPublish();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   useEffect(() => {
     // Escape key to exit fullscreen
@@ -55,12 +95,12 @@ export function GitlabCodeEditor({ path, branch, name, type }: GitlabEditorProps
     setFileContentsCache({});
     setError(null);
 
-    getFileTree(path, branch, type)
+    getFileTree(path, branch, type, repoId)
       .then(data => {
         setFiles(data);
       })
       .catch((e) => setError(e.message));
-  }, [path, branch]);
+  }, [path, branch, repoId]);
 
   const fileTree = useMemo(() => {
     const blobs = files.filter((f) => f.type === "blob");
@@ -87,7 +127,7 @@ export function GitlabCodeEditor({ path, branch, name, type }: GitlabEditorProps
 
     setLoading(true);
     try {
-      const text = await getFileContent(path, filePath, branch, type);
+      const text = await getFileContent(path, filePath, branch, type, repoId);
       setContent(text);
       setFileContentsCache((prev) => ({ ...prev, [filePath]: text }));
     } catch (e: any) {
@@ -113,11 +153,24 @@ export function GitlabCodeEditor({ path, branch, name, type }: GitlabEditorProps
   };
 
   const getLanguage = (filePath: string) => {
-    if (filePath.endsWith(".tsx") || filePath.endsWith(".ts")) return "typescript";
-    if (filePath.endsWith(".css") || filePath.endsWith(".scss")) return "css";
-    if (filePath.endsWith(".json")) return "json";
-    if (filePath.endsWith(".html")) return "html";
-    return "javascript";
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'ts':
+      case 'tsx': return 'typescript';
+      case 'js':
+      case 'jsx': return 'javascript';
+      case 'css': return 'css';
+      case 'scss': return 'scss';
+      case 'json': return 'json';
+      case 'html': return 'html';
+      case 'go': return 'go';
+      case 'py': return 'python';
+      case 'md': return 'markdown';
+      case 'yaml':
+      case 'yml': return 'yaml';
+      case 'sh': return 'shell';
+      default: return 'plaintext';
+    }
   };
 
   return (
@@ -156,11 +209,19 @@ export function GitlabCodeEditor({ path, branch, name, type }: GitlabEditorProps
           toggleFullscreen={() => setIsFullscreen(!isFullscreen)}
           isFullscreen={isFullscreen}
           rightAction={
-            loading && (
-              <span className="text-text-muted animate-pulse text-xs">
-                Loading...
-              </span>
-            )
+            <div className="flex items-center gap-2">
+              {loading && <span className="text-text-muted animate-pulse text-xs">Loading...</span>}
+              {Object.keys(editedFiles).length > 0 && (
+                <Button 
+                   size="sm" 
+                   onClick={handlePublish}
+                   disabled={isPublishing}
+                   className="bg-primary text-white h-7 text-xs px-3 rounded-md shadow-sm"
+                >
+                  {isPublishing ? "Pushing..." : `Push Changes (${Object.keys(editedFiles).length})`}
+                </Button>
+              )}
+            </div>
           }
         />
 
@@ -170,10 +231,11 @@ export function GitlabCodeEditor({ path, branch, name, type }: GitlabEditorProps
             <Editor
               height="100%"
               language={getLanguage(selectedFile)}
-              value={content}
+              value={editedFiles[selectedFile] !== undefined ? editedFiles[selectedFile] : content}
+              onChange={handleEditorChange}
               theme={theme === "dark" ? "vs-dark" : "vs-light"}
               options={{
-                readOnly: true,
+                readOnly: false,
                 minimap: { enabled: false },
                 fontSize: 14,
                 fontFamily: "JetBrains Mono, Fira Code, monospace",
