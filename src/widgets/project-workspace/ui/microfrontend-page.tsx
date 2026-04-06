@@ -32,7 +32,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/shared/ui'
-import { DataTable } from '@/shared/ui'
+import { WorkspaceDataTable } from './workspace-data-table'
 import { ReusableTabs } from '@/shared/ui'
 import { DataLoadingState } from '@/shared/ui'
 import { useDebounce } from '@/shared/hooks/useDebounce'
@@ -348,7 +348,7 @@ export const MicrofrontendPage = ({ projectId }: MicrofrontendPageProps) => {
             <p className="text-text-muted text-sm mt-1">Configure your first micro-frontend to enable modular development.</p>
           </div>
         ) : (
-          <DataTable
+          <WorkspaceDataTable
             columns={columns}
             data={microfrontends}
             onRowClick={(row) => {

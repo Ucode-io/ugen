@@ -121,25 +121,22 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
   }, [schema, records])
 
   React.useEffect(() => {
-    if (!selectedTable) {
-      resetToTables()
-    }
-  }, [selectedTable, resetToTables])
+    // We no longer redirect to 'tables' when selectedTable is null since they are shown side by side
+  }, [selectedTable])
 
   if (!selectedTable) {
-    return null
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-text-muted">
+        <Database size={32} className="mb-4 opacity-50" />
+        <p className="text-sm">Select a table to view its records</p>
+      </div>
+    )
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-card rounded-ai border border-border-subtle shadow-sm overflow-hidden min-h-[500px] max-w-[100%]">
+    <div className="flex flex-col h-full overflow-hidden w-full">
       <div className="flex flex-col sm:flex-row items-center justify-between p-4 gap-4 border-b border-border-subtle">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCurrentView('tables')}
-            className="p-1 rounded hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors"
-          >
-            <ChevronLeft size={18} />
-          </button>
           <h3 className="text-lg font-semibold text-text-main">
             {tableDetail?.label || selectedTable}
           </h3>

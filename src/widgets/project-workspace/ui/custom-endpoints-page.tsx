@@ -21,7 +21,8 @@ import {
   LayoutGrid,
   ChevronRight
 } from 'lucide-react'
-import { Button, DataTable, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, Skeleton } from '@/shared/ui'
+import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, Skeleton } from '@/shared/ui'
+import { WorkspaceDataTable } from './workspace-data-table'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { useTables } from '@/entities/database'
@@ -605,7 +606,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
                   </div>
                 </div>
               ) : executionResults?.length > 0 ? (
-                <DataTable
+                <WorkspaceDataTable
                   columns={resultsColumns}
                   data={executionResults}
                   className="border-none shadow-none"
@@ -690,7 +691,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
           <span className="text-xs font-bold uppercase tracking-widest text-text-muted">Loading Endpoints...</span>
         </div>
       ) : (
-        <DataTable
+        <WorkspaceDataTable
           columns={columns}
           data={endpoints?.filter(e => e.name.toLowerCase().includes(search.toLowerCase()))}
           onRowClick={(row) => {

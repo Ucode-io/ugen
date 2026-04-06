@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, authApi } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Popover, PopoverContent, PopoverTrigger, Checkbox } from '@/shared/ui'
+import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Popover, PopoverContent, PopoverTrigger, Checkbox, MultiSelect } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import {
   Camera, ChevronDown, ChevronUp, Trash2, Loader2,
@@ -87,19 +87,10 @@ export const AppSettingsPage = () => {
   )
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Sessions States
-  const [sessionsOpen, setSessionsOpen] = useState(false)
+  // Tabs State
+  const [activeTab, setActiveTab] = useState('profile')
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
-
-  // Languages States
-  const [languagesOpen, setLanguagesOpen] = useState(false)
   const [languagesLoading, setLanguagesLoading] = useState(false)
-
-  // Environment States
-  const [environmentOpen, setEnvironmentOpen] = useState(false)
-
-  // Project Settings States
-  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false)
   const [projectLanguage, setProjectLanguage] = useState<any[]>([])
   const [projectTimezone, setProjectTimezone] = useState('')
   const [projectIconCat, setProjectIconCat] = useState<string[]>([])
@@ -141,7 +132,7 @@ export const AppSettingsPage = () => {
   const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions } = useQuery({
     queryKey: ['sessions', userId, projectId],
     queryFn: () => fetchSessions(userId, projectId),
-    enabled: sessionsOpen && !!userId && !!projectId,
+    enabled: activeTab === 'sessions' && !!userId && !!projectId,
   })
 
   // Project Settings Queries
@@ -153,7 +144,7 @@ export const AppSettingsPage = () => {
       })
       return data?.data?.data?.language || []
     },
-    enabled: projectSettingsOpen && !!projectId
+    enabled: activeTab === 'project' && !!projectId
   })
 
   const { data: projectTimezones = [], isLoading: isLoadingProjTime } = useQuery({
@@ -164,7 +155,7 @@ export const AppSettingsPage = () => {
       })
       return data?.data?.data?.timezone || []
     },
-    enabled: projectSettingsOpen && !!projectId
+    enabled: activeTab === 'project' && !!projectId
   })
 
   const { data: iconCollections = [], isLoading: isLoadingIcons } = useQuery({
@@ -178,7 +169,7 @@ export const AppSettingsPage = () => {
         total: v.total
       }))
     },
-    enabled: projectSettingsOpen
+    enabled: activeTab === 'project'
   })
 
   // Full Project Details Query
@@ -190,7 +181,7 @@ export const AppSettingsPage = () => {
       })
       return data?.data || {}
     },
-    enabled: projectSettingsOpen && !!projectId
+    enabled: activeTab === 'project' && !!projectId
   })
 
   useEffect(() => {
@@ -331,7 +322,7 @@ export const AppSettingsPage = () => {
   })
 
   useEffect(() => {
-    if (!languagesOpen) return
+    if (activeTab !== 'i18n') return
     if (languages.length > 0) return
 
     setLanguagesLoading(true)
@@ -343,410 +334,325 @@ export const AppSettingsPage = () => {
       })
       .catch(err => console.error("Failed to load languages:", err))
       .finally(() => setLanguagesLoading(false))
-  }, [languagesOpen, languages.length, setLanguages])
+  }, [activeTab, languages.length, setLanguages])
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-3xl">
+    <div className="flex flex-col w-full animate-in fade-in slide-in-from-bottom-4 duration-700 h-full overflow-hidden">
+      <div className="mb-6 px-8 pt-7 shrink-0">
+        <h1 className="text-[22px] font-[700] mb-1">Project Settings</h1>
+        <p className="text-text-muted text-[13px]">Configure your project details and preferences</p>
+      </div>
 
-      {/* 1. Profile Block */}
-      <div className="bg-bg-card border border-border-subtle rounded-3xl p-8 space-y-8 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-text-main">{tWidgets('accountProfile')}</h2>
-          <Button
-            onClick={() => saveMutation()}
-            disabled={isSaving}
-            className="rounded-xl px-6 h-10 shadow-sm"
+      <div className="flex gap-1 mb-5 border-b border-border-subtle pb-0 px-8 shrink-0">
+        {[
+          { id: 'profile', label: tWidgets('accountProfile'), icon: User },
+          { id: 'project', label: 'Project Settings', icon: Settings },
+          { id: 'sessions', label: tWidgets('loginSessions'), icon: Shield },
+          { id: 'envs', label: tWidgets('environmentManagement'), icon: Layers },
+          { id: 'i18n', label: tWidgets('languageKeys'), icon: Globe },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-4 py-2 border-none bg-transparent text-[13px] font-[500] cursor-pointer border-b-2 mb-[-1px] flex items-center gap-1.5 transition-colors",
+              activeTab === tab.id
+                ? "text-[#004eea] border-[#004eea]"
+                : "text-text-muted border-transparent hover:text-text-main"
+            )}
           >
-            {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-            {tWidgets('saveChanges')}
-          </Button>
-        </div>
+            <tab.icon size={14} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-          {/* Avatar Area */}
-          <div className="relative group shrink-0">
-            <div className="w-24 h-24 rounded-3xl overflow-hidden bg-bg-sidebar border-2 border-border-subtle ring-4 ring-bg-main">
-              {avatarPreview || avatarFilename ? (
-                <img
-                  src={avatarPreview ?? `${cdnBase}/${avatarFilename}`}
-                  alt="avatar"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-primary/5">
-                  <User size={36} className="text-primary/40" />
+      <div className="flex-1 overflow-y-auto px-8 pb-8 custom-scrollbar">
+        {/* Profile Tab */}
+        {activeTab === 'profile' && (
+          <div className="bg-bg-card border border-border-subtle rounded-xl p-5 mb-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3.5">
+              <h3 className="text-[14px] font-[600]">{tWidgets('accountProfile')}</h3>
+              <Button
+                onClick={() => saveMutation()}
+                disabled={isSaving}
+                className="rounded-lg px-4 py-1.5 h-8 text-[13px] font-[500] bg-[#004eea] hover:bg-[#393ce3] text-white border-none shadow-sm"
+              >
+                {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+                {tWidgets('saveChanges')}
+              </Button>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+              <div className="relative group shrink-0">
+                <div className="w-24 h-24 rounded-xl overflow-hidden bg-bg-sidebar border border-border-subtle">
+                  {avatarPreview || avatarFilename ? (
+                    <img
+                      src={avatarPreview ?? `${cdnBase}/${avatarFilename}`}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-primary/5">
+                      <User size={36} className="text-primary/40" />
+                    </div>
+                  )}
                 </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center backdrop-blur-[2px]"
+                >
+                  <Camera size={24} className="text-white mb-1" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-tight">{tCommon('upload')}</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setAvatarFile(file)
+                    setAvatarPreview(URL.createObjectURL(file))
+                  }}
+                />
+              </div>
+
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 w-full">
+                <div className="mb-4">
+                  <label className="block text-[12px] font-[500] text-text-muted mb-1.5">{tWidgets('fullName')}</label>
+                  <Input
+                    placeholder={tWidgets('namePlaceholder')}
+                    value={form.name}
+                    onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
+                    className="w-full bg-bg-sidebar border-border-subtle h-[38px] rounded-lg text-[13px] focus:border-[#004eea]"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-[12px] font-[500] text-text-muted mb-1.5">{tWidgets('emailAddress')}</label>
+                  <Input
+                    type="email"
+                    placeholder="email@example.com"
+                    value={form.email}
+                    onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
+                    className="w-full bg-bg-sidebar border-border-subtle h-[38px] rounded-lg text-[13px] focus:border-[#004eea]"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-[12px] font-[500] text-text-muted mb-1.5">{tWidgets('phoneNumber')}</label>
+                  <Input
+                    type="tel"
+                    placeholder="+1 234 567 89 00"
+                    value={form.phone}
+                    onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))}
+                    className="w-full bg-bg-sidebar border-border-subtle h-[38px] rounded-lg text-[13px] focus:border-[#004eea]"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-[12px] font-[500] text-text-muted mb-1.5">{tWidgets('loginUsername')}</label>
+                  <Input
+                    placeholder="username"
+                    value={form.login}
+                    onChange={(e) => setForm(p => ({ ...p, login: e.target.value }))}
+                    className="w-full bg-bg-sidebar border-border-subtle h-[38px] rounded-lg text-[13px] focus:border-[#004eea]"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-[12px] font-[500] text-text-muted mb-1.5">{tWidgets('accountType')}</label>
+                  <div className="w-full bg-bg-sidebar rounded-lg px-3 py-2 text-[13px] border border-border-subtle text-text-muted cursor-not-allowed">
+                    {typeof user?.role === 'string' ? user.role : 'User'}
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-[12px] font-[500] text-text-muted mb-1.5">{tWidgets('assignedRole')}</label>
+                  <div className="w-full bg-bg-sidebar rounded-lg px-3 py-2 text-[13px] border border-border-subtle text-text-muted cursor-not-allowed">
+                    {typeof user?.role === 'string' ? user.role : 'Member'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Project Settings Tab */}
+        {activeTab === 'project' && (
+          <div className="bg-bg-card border border-border-subtle rounded-xl p-5 mb-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3.5">
+              <h3 className="text-[14px] font-[600]">Global Defaults</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="mb-4 flex flex-col">
+                <label className="block text-[12px] font-[500] text-text-muted mb-1.5">Project Languages</label>
+                <MultiSelect
+                  options={projectLanguages.map((lang: any) => ({ label: `${lang.name} (${lang.short_name})`, value: lang.id }))}
+                  selected={projectLanguage.map(l => l.id)}
+                  onChange={(newSelected: string[]) => {
+                    const updated = newSelected.map((val: string) => {
+                      const lang = projectLanguages.find((l: any) => l.id === val);
+                      return { id: lang.id, label: lang.name };
+                    });
+                    setProjectLanguage(updated);
+                    updateProjectSettingsMutation.mutate({ language: updated });
+                  }}
+                  placeholder={isLoadingProjLangs || isLoadingFullProject ? 'Loading...' : 'Select languages'}
+                />
+              </div>
+
+              <div className="mb-4 flex flex-col">
+                <label className="block text-[12px] font-[500] text-text-muted mb-1.5">Timezone</label>
+                <Select value={projectTimezone} onValueChange={(val) => { setProjectTimezone(val); updateProjectSettingsMutation.mutate({ timezone_id: val }); }}>
+                  <SelectTrigger className="w-full bg-bg-sidebar border-border-subtle h-[38px] rounded-lg text-[13px] focus:border-[#004eea]">
+                    <SelectValue placeholder={isLoadingProjTime || isLoadingFullProject ? 'Loading...' : 'Select timezone'} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {projectTimezones.map((tz: any) => (
+                      <SelectItem key={tz.id} value={tz.id} className="text-[13px]">
+                        {tz.text}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="mb-4 flex flex-col">
+                <label className="block text-[12px] font-[500] text-text-muted mb-1.5">Icon Categories</label>
+                <MultiSelect
+                  options={iconCollections.map((col: any) => ({ label: `${col.name} (${col.total} icons)`, value: `${col.id}#${col.name}` }))}
+                  selected={projectIconCat}
+                  onChange={(newSelected: string[]) => {
+                    if (newSelected.length === 0) {
+                      toast.error('At least one icon category is required')
+                      return
+                    }
+                    setProjectIconCat(newSelected);
+                    updateProjectSettingsMutation.mutate({ icon_categories: newSelected });
+                  }}
+                  placeholder={isLoadingIcons || isLoadingFullProject ? 'Loading...' : 'Select icon collections'}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sessions Tab */}
+        {activeTab === 'sessions' && (
+          <div className="bg-bg-card border border-border-subtle rounded-xl p-5 mb-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-3.5">
+              <h3 className="text-[14px] font-[600]">{tWidgets('loginSessions')}</h3>
+              {sessions.length > 0 && <span className="bg-[#004eea]/10 text-[#004eea] text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-md">{sessions.length}</span>}
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              {sessionsLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <Loader2 size={24} className="animate-spin text-primary/40" />
+                  <p className="text-sm text-text-muted font-medium">{tWidgets('verifyingSessions')}</p>
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="text-center py-12">
+                  <Shield size={32} className="text-text-muted/20 mx-auto mb-3" />
+                  <p className="text-text-muted text-sm">{tWidgets('noSessions')}</p>
+                </div>
+              ) : (
+                sessions.map((session: any) => (
+                  <div key={session.id} className="flex items-center gap-4 px-4 py-3 bg-bg-sidebar/30 border border-border-subtle rounded-xl hover:border-[#004eea]/50 transition-colors">
+                    <div className="shrink-0 w-9 h-9 rounded-lg bg-bg-sidebar border border-border-subtle flex items-center justify-center">
+                      {session.data?.toLowerCase().includes('mobile')
+                        ? <Smartphone size={16} className="text-text-muted" />
+                        : <Monitor size={16} className="text-text-muted" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] text-text-main font-medium truncate">{session.data || tWidgets('unknownDevice')}</p>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-text-muted">
+                        <span className="flex items-center gap-1"><Globe size={10} /> {session.ip}</span>
+                        <span className="w-1 h-1 rounded-full bg-border-subtle shrink-0" />
+                        <span>{new Date(session.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <button
+                      disabled={deletingSessionId === session.id}
+                      onClick={async () => {
+                        setDeletingSessionId(session.id)
+                        try {
+                          await deleteSession(session.id, projectId)
+                          await refetchSessions()
+                        } finally {
+                          setDeletingSessionId(null)
+                        }
+                      }}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      {deletingSessionId === session.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                    </button>
+                  </div>
+                ))
               )}
             </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute inset-0 rounded-3xl bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center backdrop-blur-[2px]"
-            >
-              <Camera size={24} className="text-white mb-1" />
-              <span className="text-[10px] font-bold text-white uppercase tracking-tight">{tCommon('upload')}</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                setAvatarFile(file)
-                setAvatarPreview(URL.createObjectURL(file))
-              }}
-            />
-          </div>
-
-          {/* Form Fields Area */}
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 w-full">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('fullName')}</label>
-              <Input
-                placeholder={tWidgets('namePlaceholder')}
-                value={form.name}
-                onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
-                className="bg-bg-sidebar border-border-subtle h-12 rounded-xl focus:ring-1 focus:ring-primary/20"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('emailAddress')}</label>
-              <Input
-                type="email"
-                placeholder="email@example.com"
-                value={form.email}
-                onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
-                className="bg-bg-sidebar border-border-subtle h-12 rounded-xl"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('phoneNumber')}</label>
-              <Input
-                type="tel"
-                placeholder="+1 234 567 89 00"
-                value={form.phone}
-                onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))}
-                className="bg-bg-sidebar border-border-subtle h-12 rounded-xl"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('loginUsername')}</label>
-              <Input
-                placeholder="username"
-                value={form.login}
-                onChange={(e) => setForm(p => ({ ...p, login: e.target.value }))}
-                className="bg-bg-sidebar border-border-subtle h-12 rounded-xl"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('accountType')}</label>
-              <div className="bg-bg-sidebar rounded-xl px-4 py-3 text-sm border border-border-subtle text-text-muted cursor-not-allowed">
-                {typeof user?.role === 'string' ? user.role : 'User'}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{tWidgets('assignedRole')}</label>
-              <div className="bg-bg-sidebar rounded-xl px-4 py-3 text-sm border border-border-subtle text-text-muted cursor-not-allowed">
-                {typeof user?.role === 'string' ? user.role : 'Member'}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Project Settings Accordion */}
-      <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
-        <button
-          onClick={() => setProjectSettingsOpen(p => !p)}
-          className="w-full flex items-center justify-between px-8 py-6 hover:bg-bg-sidebar/50 transition-colors"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-              <Settings size={20} className="text-primary" />
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-text-main">Project Settings</p>
-              <p className="text-xs text-text-muted mt-0.5">Configure language, timezone, and global defaults</p>
-            </div>
-          </div>
-          {projectSettingsOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
-        </button>
-
-        {projectSettingsOpen && (
-          <div className="border-t border-border-subtle p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-            {/* Language Multi-Select */}
-            <div className="space-y-1.5 flex flex-col">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Languages</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full h-12 justify-between bg-bg-sidebar border-border-subtle rounded-xl text-sm px-4 whitespace-nowrap overflow-hidden hover:bg-bg-sidebar">
-                    <span className="truncate text-text-main font-normal">
-                      {projectLanguage.length > 0 ? `${projectLanguage.length} selected` : (isLoadingProjLangs || isLoadingFullProject ? 'Loading...' : 'Select languages')}
-                    </span>
-                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <div className="max-h-[300px] overflow-y-auto p-2">
-                    {projectLanguages.map((lang: any) => {
-                      const isChecked = projectLanguage.some(l => l.id === lang.id)
-                      return (
-                        <label key={lang.id} className="flex items-center gap-3 space-x-0 py-2.5 px-2 hover:bg-bg-sidebar rounded-md cursor-pointer transition-colors">
-                          <Checkbox
-                            checked={isChecked}
-                            onCheckedChange={(c) => toggleLanguage(lang, !!c)}
-                          />
-                          <span className="text-sm cursor-pointer">{lang.name} ({lang.short_name})</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Timezone Dropdown */}
-            <div className="space-y-1.5 flex flex-col">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Timezone</label>
-              <Select
-                value={projectTimezone}
-                onValueChange={(val) => {
-                  setProjectTimezone(val)
-                  updateProjectSettingsMutation.mutate({ timezone_id: val })
-                }}
-              >
-                <SelectTrigger className="bg-bg-sidebar border-border-subtle h-12 rounded-xl text-sm">
-                  <SelectValue placeholder={isLoadingProjTime || isLoadingFullProject ? 'Loading...' : 'Select timezone'} />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {projectTimezones.map((tz: any) => (
-                    <SelectItem key={tz.id} value={tz.id}>
-                      {tz.text}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Icon Category Multi-Select */}
-            <div className="space-y-1.5 flex flex-col">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Icon Categories</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full h-12 justify-between bg-bg-sidebar border-border-subtle rounded-xl text-sm px-4 whitespace-nowrap overflow-hidden hover:bg-bg-sidebar">
-                    <span className="truncate text-text-main font-normal">
-                      {projectIconCat.length > 0 ? `${projectIconCat.length} selected` : (isLoadingIcons || isLoadingFullProject ? 'Loading...' : 'Select icon collections')}
-                    </span>
-                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <div className="max-h-[300px] overflow-y-auto p-2">
-                    {iconCollections.map((col: any) => {
-                      const val = `${col.id}#${col.name}`
-                      const isChecked = projectIconCat.includes(val)
-                      return (
-                        <label key={col.id} className="flex items-center gap-3 space-x-0 py-2.5 px-2 hover:bg-bg-sidebar rounded-md cursor-pointer transition-colors">
-                          <Checkbox
-                            checked={isChecked}
-                            onCheckedChange={(c) => toggleIconCat(col.id, col.name, !!c)}
-                          />
-                          <span className="text-sm cursor-pointer">{col.name} ({col.total} icons)</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-
           </div>
         )}
-      </div>
 
-      {/* 3. Sessions Accordion */}
-      <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
-        <button
-          onClick={() => setSessionsOpen(p => !p)}
-          className="w-full flex items-center justify-between px-8 py-6 hover:bg-bg-sidebar/50 transition-colors"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-              <Shield size={20} className="text-primary" />
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-text-main">{tWidgets('loginSessions')}</p>
-              <p className="text-xs text-text-muted mt-0.5">{tWidgets('sessionsDescription')}</p>
-            </div>
-            {sessions.length > 0 && (
-              <span className="bg-primary/10 text-primary text-[11px] font-bold px-2 py-0.5 rounded-full ml-2">
-                {sessions.length}
-              </span>
-            )}
-          </div>
-          {sessionsOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
-        </button>
-
-        {sessionsOpen && (
-          <div className="border-t border-border-subtle divide-y divide-border-subtle/50 max-h-[400px] overflow-y-auto custom-scrollbar">
-            {sessionsLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <Loader2 size={24} className="animate-spin text-primary/40" />
-                <p className="text-sm text-text-muted font-medium">{tWidgets('verifyingSessions')}</p>
-              </div>
-            ) : sessions.length === 0 ? (
-              <div className="text-center py-12">
-                <Shield size={32} className="text-text-muted/20 mx-auto mb-3" />
-                <p className="text-text-muted text-sm">{tWidgets('noSessions')}</p>
-              </div>
-            ) : (
-              sessions.map((session: any) => (
-                <div key={session.id} className="flex items-center gap-4 px-8 py-4 hover:bg-bg-sidebar/30 transition-colors">
-                  <div className="shrink-0 w-10 h-10 rounded-xl bg-bg-sidebar border border-border-subtle flex items-center justify-center shadow-sm">
-                    {session.data?.toLowerCase().includes('mobile')
-                      ? <Smartphone size={16} className="text-text-muted" />
-                      : <Monitor size={16} className="text-text-muted" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-text-main font-medium truncate">{session.data || tWidgets('unknownDevice')}</p>
-                    <div className="flex items-center gap-3 mt-1 text-[11px] text-text-muted">
-                      <span className="flex items-center gap-1">
-                        <Globe size={10} /> {session.ip}
-                      </span>
-                      <span className="w-1 h-1 rounded-full bg-border-subtle shrink-0" />
-                      <span>{new Date(session.created_at).toLocaleDateString()}</span>
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tight",
-                        session.is_changed
-                          ? "bg-amber-500/10 text-amber-600"
-                          : "bg-green-500/10 text-green-600"
-                      )}>
-                        {session.is_changed ? tWidgets('modified') : tWidgets('secure')}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    disabled={deletingSessionId === session.id}
-                    onClick={async () => {
-                      setDeletingSessionId(session.id)
-                      try {
-                        await deleteSession(session.id, projectId)
-                        await refetchSessions()
-                      } finally {
-                        setDeletingSessionId(null)
-                      }
-                    }}
-                    className="h-9 w-9 flex items-center justify-center rounded-xl text-destructive hover:bg-destructive/10 transition-all group"
-                    title={tWidgets('terminateSession')}
-                  >
-                    {deletingSessionId === session.id
-                      ? <Loader2 size={16} className="animate-spin" />
-                      : <Trash2 size={16} className="transition-transform group-hover:scale-110" />}
-                  </button>
+        {/* I18N Tab */}
+        {activeTab === 'i18n' && (
+          <div className="bg-bg-card border border-border-subtle rounded-xl p-5 mb-4 shadow-sm">
+            <h3 className="text-[14px] font-[600] mb-3.5">{tWidgets('languageKeys')}</h3>
+            
+            <div className="overflow-x-auto">
+              {languagesLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <Loader2 size={24} className="animate-spin text-primary/40" />
+                  <p className="text-sm text-text-muted">{tWidgets('accessingLangDb')}</p>
                 </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 4. Languages Accordion */}
-      <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
-        <button
-          onClick={() => setLanguagesOpen(p => !p)}
-          className="w-full flex items-center justify-between px-8 py-6 hover:bg-bg-sidebar/50 transition-colors"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-              <Globe size={20} className="text-primary" />
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-text-main">{tWidgets('languageKeys')}</p>
-              <p className="text-xs text-text-muted mt-0.5">{tWidgets('langDescription')}</p>
-            </div>
-          </div>
-          {languagesOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
-        </button>
-
-        {languagesOpen && (
-          <div className="border-t border-border-subtle p-6 overflow-x-auto">
-            {languagesLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <Loader2 size={24} className="animate-spin text-primary/40" />
-                <p className="text-sm text-text-muted">{tWidgets('accessingLangDb')}</p>
-              </div>
-            ) : languages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Globe size={32} className="text-text-muted/20 mb-3" />
-                <p className="text-text-muted text-sm font-medium">{tWidgets('noLangKeys')}</p>
-                <p className="text-xs text-text-muted mt-1 opacity-60">{tWidgets('refreshSyncHint')}</p>
-              </div>
-            ) : (
-              <div className="min-w-max space-y-8">
-                {/* Headers */}
-                <div className="flex items-center gap-6 px-2 mb-2">
-                  <div className="w-[180px] shrink-0"></div>
-                  <div className="flex flex-1 gap-4">
-                    {languageKeys.map((code: string) => (
-                      <div key={code} className="flex-1 min-w-[150px] text-center text-[13px] font-bold text-text-muted uppercase tracking-widest">
-                        {code}
-                      </div>
-                    ))}
-                  </div>
+              ) : languages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Globe size={32} className="text-text-muted/20 mb-3" />
+                  <p className="text-text-muted text-sm font-medium">{tWidgets('noLangKeys')}</p>
                 </div>
-
-                {/* Grouped Lists */}
-                {Object.entries(groupedLanguages).map(([category, items]: [string, any]) => (
-                  <div key={category} className="space-y-4">
-                    <p className="text-lg font-bold text-text-main px-2">{category}</p>
-                    <div className="space-y-1">
-                      {items.map((item: any) => (
-                        <LanguageRow
-                          key={item.id}
-                          item={item}
-                          languageKeys={languageKeys}
-                          projectId={projectId}
-                          updateMutation={updateLanguageMutation}
-                          languages={languages}
-                          setLanguages={setLanguages}
-                        />
+              ) : (
+                <div className="min-w-max space-y-6">
+                  <div className="flex items-center gap-6 px-2 mb-2 border-b border-border-subtle pb-2">
+                    <div className="w-[180px] shrink-0"></div>
+                    <div className="flex flex-1 gap-4">
+                      {languageKeys.map((code: string) => (
+                        <div key={code} className="flex-1 min-w-[150px] text-center text-[12px] font-[500] text-text-muted uppercase tracking-widest">
+                          {code}
+                        </div>
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {Object.entries(groupedLanguages).map(([category, items]: [string, any]) => (
+                    <div key={category} className="space-y-2">
+                      <p className="text-[13px] font-[600] text-text-main px-2 mb-2">{category}</p>
+                      <div className="space-y-1">
+                        {items.map((item: any) => (
+                          <LanguageRow
+                            key={item.id}
+                            item={item}
+                            languageKeys={languageKeys}
+                            projectId={projectId}
+                            updateMutation={updateLanguageMutation}
+                            languages={languages}
+                            setLanguages={setLanguages}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
-      </div>
 
-      {/* 5. Environment Accordion */}
-      <div className="bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-sm transition-all duration-300">
-        <button
-          onClick={() => setEnvironmentOpen(p => !p)}
-          className="w-full flex items-center justify-between px-8 py-6 hover:bg-bg-sidebar/50 transition-colors"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-              <Layers size={20} className="text-primary" />
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-text-main">{tWidgets('environmentManagement')}</p>
-              <p className="text-xs text-text-muted mt-0.5">{tWidgets('envDescription')}</p>
-            </div>
-          </div>
-          {environmentOpen ? <ChevronUp size={20} className="text-text-muted" /> : <ChevronDown size={20} className="text-text-muted" />}
-        </button>
-
-        {environmentOpen && (
-          <div className="border-t border-border-subtle p-8">
+        {/* Environments Tab */}
+        {activeTab === 'envs' && (
+          <div className="bg-bg-card border border-border-subtle rounded-xl p-5 mb-4 shadow-sm">
+            <h3 className="text-[14px] font-[600] mb-3.5">{tWidgets('environmentManagement')}</h3>
             <EnvironmentPage projectId={projectId} />
           </div>
         )}
       </div>
-
     </div>
   )
 }

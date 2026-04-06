@@ -5,7 +5,7 @@ import { UserPlus, Trash2 } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 
 import { ReusableTabs } from "@/shared/ui"
-import { DataTable } from "@/shared/ui"
+import { WorkspaceDataTable } from "./workspace-data-table"
 import { Button } from "@/shared/ui"
 import { useAuthStore } from "@/entities/session"
 import { InviteUserModal } from "./invite-user-modal"
@@ -167,7 +167,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
         </Button>
       </div>
 
-      <DataTable
+      <WorkspaceDataTable
         data={data?.data?.response || []}
         columns={columns}
         totalCount={data?.data?.count || 0}

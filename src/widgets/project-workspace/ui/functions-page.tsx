@@ -31,7 +31,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/shared/ui'
-import { DataTable } from '@/shared/ui'
+import { WorkspaceDataTable } from './workspace-data-table'
 import { ReusableTabs } from '@/shared/ui'
 import { DataLoadingState } from '@/shared/ui'
 import { useDebounce } from '@/shared/hooks/useDebounce'
@@ -284,7 +284,7 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
             <p className="text-text-muted text-sm mt-1">Start by creating your first serverless function.</p>
           </div>
         ) : (
-          <DataTable
+          <WorkspaceDataTable
             columns={columns}
             data={functionsData?.functions ?? []}
             totalCount={functionsData?.total}

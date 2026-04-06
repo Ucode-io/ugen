@@ -45,62 +45,48 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-text-main">{t('title')}</h2>
-          <nav className="flex items-center text-sm text-text-muted">
-            {breadcrumbs.map((crumb, idx) => (
-              <React.Fragment key={idx}>
-                <button
-                  onClick={() => setCurrentView(crumb.view)}
-                  className={cn(
-                    "hover:text-text-main transition-colors",
-                    idx === breadcrumbs.length - 1 && "font-medium text-text-main pointer-events-none"
-                  )}
-                >
-                  {crumb.label.includes('.') ? t(crumb.label) : crumb.label}
-                </button>
-                {idx < breadcrumbs.length - 1 && <ChevronRight size={14} className="mx-1.5" />}
-              </React.Fragment>
-            ))}
-          </nav>
+    <div className="flex flex-col h-full bg-bg-card rounded-xl overflow-hidden border border-border-subtle shadow-sm flex-1">
+      <div className="flex items-center border-b border-border-subtle bg-bg-main px-5 gap-1 shrink-0 h-10">
+        <button
+          onClick={() => setCurrentView('tables')} // Using 'tables' as the default split view
+          className={cn(
+            "px-4 h-full border-none bg-transparent text-[13px] font-[500] cursor-pointer border-b-2 flex items-center gap-1.5 transition-colors",
+            currentView !== 'sql-console' ? "text-[#004eea] border-[#004eea]" : "text-text-muted border-transparent hover:text-text-main"
+          )}
+        >
+          <TableIcon size={14} /> Table Editor
+        </button>
+        <button
+          onClick={() => setCurrentView('sql-console')}
+          className={cn(
+            "px-4 h-full border-none bg-transparent text-[13px] font-[500] cursor-pointer border-b-2 flex items-center gap-1.5 transition-colors",
+            currentView === 'sql-console' ? "text-[#004eea] border-[#004eea]" : "text-text-muted border-transparent hover:text-text-main"
+          )}
+        >
+          <Terminal size={14} /> SQL Editor
+        </button>
+        <div className="flex-1"></div>
+        <div className="text-[11px] text-text-muted flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> Connected &middot; PostgreSQL
         </div>
+      </div>
 
-        {/* <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setCurrentView('sql-console')
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm"
-          >
-            <Terminal size={14} />
-            {currentView === 'sql-console'
-              ? t('sqlConsole.activeHeader')
-              : t('sqlConsole.header')}
-          </button>
-        </div> */}
-      </motion.div>
-
-      <div className="flex flex-col gap-6 flex-1 pt-2">
-        <div className="min-h-0 flex-1 relative overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentView}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="h-full"
-            >
-              {renderContent()}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      <div className="flex-1 flex overflow-hidden">
+        {currentView === 'sql-console' ? (
+          <div className="flex-1 flex overflow-hidden">
+            <SqlConsole />
+          </div>
+        ) : (
+          <>
+            <div className="w-[220px] min-w-[220px] border-r border-border-subtle bg-bg-card flex flex-col overflow-y-auto pt-2">
+              <TablesView />
+            </div>
+            <div className="flex-1 flex flex-col overflow-hidden bg-bg-main">
+              {/* Need to be careful here: RecordsView expects to just display records. However, if no table is selected, we should show a placeholder or something */}
+              <RecordsView projectId={projectId} />
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

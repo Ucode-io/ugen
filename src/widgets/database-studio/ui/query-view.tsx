@@ -75,10 +75,10 @@ export const QueryView = ({ defaultQuery, hideBackButton = false }: QueryViewPro
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle text-xs font-semibold text-text-muted hover:text-text-main hover:bg-hover-bg transition-all active:scale-[0.98]">
+          {/* <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle text-xs font-semibold text-text-muted hover:text-text-main hover:bg-hover-bg transition-all active:scale-[0.98]">
             <Sparkles size={14} className="text-primary/60" />
             {t('sqlConsole.prettify')}
-          </button>
+          </button> */}
           <button
             onClick={handleRun}
             disabled={executeMutation.isPending}

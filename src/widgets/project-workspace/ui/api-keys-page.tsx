@@ -25,7 +25,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  DataTable,
+
   ReusableTabs,
   DataLoadingState,
   Dialog,
@@ -35,6 +35,7 @@ import {
   DialogFooter,
   DialogDescription
 } from '@/shared/ui'
+import { WorkspaceDataTable } from './workspace-data-table'
 import { cn } from '@/shared/lib/utils/cn'
 
 interface ClientPlatform {
@@ -306,10 +307,10 @@ export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
         {isListLoading ? (
           <DataLoadingState message="Loading API keys..." />
         ) : (
-          <DataTable
+          <WorkspaceDataTable
             columns={columns}
             data={apiKeys}
-            onRowClick={(row) => {
+            onRowClick={(row: any) => {
               setSelectedKey(row)
               setDetailTab('api_key')
               setView('detail')
@@ -483,7 +484,7 @@ export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
                   <p className="text-text-muted text-sm">No logs available for this period</p>
                 </div>
               ) : (
-                <DataTable
+                <WorkspaceDataTable
                   columns={[
                     { accessorKey: 'action', header: 'Action' },
                     { accessorKey: 'collection', header: 'Collection' },
@@ -507,7 +508,7 @@ export const ApiKeysPage = ({ projectId }: ApiKeysPageProps) => {
                   <p className="text-text-muted text-sm">No active tokens found</p>
                 </div>
               ) : (
-                <DataTable
+                <WorkspaceDataTable
                   columns={[
                     { accessorKey: 'client_id', header: 'Client ID' },
                     { accessorKey: 'given_time', header: 'Given Time' },

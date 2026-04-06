@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react'
-import { Table as TableIcon, ChevronRight, Trash2 } from 'lucide-react'
+import { Table as TableIcon, ChevronRight, Trash2, Plus } from 'lucide-react'
+import { cn } from '@/shared/lib/utils/cn'
 import { useTables, useDatabaseStore, useDeleteTable } from '@/entities/database'
 import { useAuthStore } from '@/entities/session'
 import { Skeleton } from '@/shared/ui'
@@ -44,61 +45,65 @@ export const TablesView = () => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="flex flex-col gap-2 p-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex flex-col p-4 rounded-ai border border-border-subtle bg-bg-card space-y-3">
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-md" />
-              <Skeleton className="h-6 w-32" />
-            </div>
-            <div className="flex gap-2">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-          </div>
+          <Skeleton key={i} className="h-8 w-full rounded-md" />
         ))}
       </div>
     )
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tables?.map((table: Table) => (
-          <div
-            key={table.id}
-            onClick={() => {
-              setSelectedTable(table.slug)
-              setCurrentView('records')
-            }}
-            className="flex flex-col p-4 rounded-ai border border-border-subtle bg-bg-card hover:border-primary/50 text-left transition-all hover:shadow-md group cursor-pointer relative"
-          >
-            <div className="flex items-center justify-between w-full mb-2">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-md bg-primary/5 text-primary transition-colors">
-                  <TableIcon size={20} />
-                </div>
-                <span className="font-semibold text-text-main">{table.label}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setTableToDelete(table)
-                  }}
-                  className="p-1.5 rounded-md text-text-muted hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  title={t('tables.delete')}
-                >
-                  <Trash2 size={16} />
-                </button>
-                {/* <ChevronRight size={16} className="text-text-muted group-hover:text-primary transition-colors" /> */}
-              </div>
+    <div className="flex flex-col h-full">
+      <div className="px-3 py-2 flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-[0.6px] text-text-muted font-[600]">Tables</span>
+        <button className="h-6 w-6 rounded-md hover:bg-bg-sidebar text-text-muted flex items-center justify-center transition-colors">
+          <Plus size={10} />
+        </button>
+      </div>
+      <div className="px-2 mb-2">
+        <input
+          placeholder="Search tables..."
+          className="w-full px-2 py-1.5 text-[11px] bg-bg-main border border-border-subtle rounded-md focus:border-[#004eea] outline-none"
+        />
+      </div>
+      
+      <div className="flex flex-col gap-0.5">
+        {tables?.map((table: Table) => {
+          const isActive = useDatabaseStore.getState().selectedTable === table.slug;
+          return (
+            <div
+              key={table.id}
+              onClick={() => {
+                setSelectedTable(table.slug)
+                // We no longer change setCurrentView because both are displayed together
+              }}
+              className={cn(
+                "flex items-center px-3 py-2 text-[13px] rounded-lg mx-2 cursor-pointer transition-colors group",
+                isActive 
+                  ? "bg-[#004eea]/10 text-[#004eea] font-medium" 
+                  : "text-text-muted hover:bg-bg-sidebar hover:text-text-main"
+              )}
+            >
+              <TableIcon size={12} className={cn("mr-2", isActive ? "text-[#004eea]" : "text-text-muted/70 group-hover:text-text-main/70")} />
+              <span className="truncate">{table.label}</span>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setTableToDelete(table)
+                }}
+                className={cn(
+                  "ml-auto p-1 rounded-md transition-all",
+                  isActive ? "text-[#004eea]/60 hover:text-destructive" : "opacity-0 group-hover:opacity-100 text-text-muted/60 hover:text-destructive"
+                )}
+                title={t('tables.delete')}
+              >
+                <Trash2 size={12} />
+              </button>
             </div>
-            <div className="flex items-center gap-4 text-sm text-text-muted">
-              <span>{table.slug}</span>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <Dialog open={!!tableToDelete} onOpenChange={(open) => !open && setTableToDelete(null)}>
@@ -127,6 +132,6 @@ export const TablesView = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }

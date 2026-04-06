@@ -17,7 +17,7 @@ import { api } from '@/shared/api'
 import {
   Button,
   Input,
-  DataTable,
+
   DataLoadingState,
   Dialog,
   DialogContent,
@@ -26,6 +26,7 @@ import {
   DialogFooter,
   DialogDescription
 } from '@/shared/ui'
+import { WorkspaceDataTable } from './workspace-data-table'
 
 const SecretCell = ({ value }: { value: string }) => {
   const [show, setShow] = useState(false)
@@ -176,7 +177,7 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
       {isLoading ? (
         <DataLoadingState message="Loading secrets..." />
       ) : vaultSecrets.length > 0 ? (
-        <DataTable
+        <WorkspaceDataTable
           columns={secretColumns}
           data={filteredSecrets}
         />

@@ -1,0 +1,2476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UCode - SaaS Code Generator</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0c0e14;--bg2:#13161f;--bg3:#1b1e2a;--bg4:#222636;
+--border:#252a3a;--text:#e8eaf0;--text2:#8892bf;--text3:#5a6285;
+--accent:#004eea;--accent2:#393ce3;--accent-bg:rgba(0,78,234,.12);
+--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#8b5cf6;
+--radius:8px;--radius2:12px;
+}
+:root.light{
+--bg:#f0f2f7;--bg2:#ffffff;--bg3:#f5f6fa;--bg4:#e8eaf2;
+--border:#d8dce8;--text:#111827;--text2:#4b5563;--text3:#9ca3af;
+--accent:#004eea;--accent2:#393ce3;--accent-bg:rgba(0,78,234,.1);
+--green:#16a34a;--red:#dc2626;--blue:#2563eb;--purple:#7c3aed;
+}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;font-size:14px}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+button{cursor:pointer;font-family:inherit;font-size:inherit}
+input,select,textarea{font-family:inherit;font-size:inherit;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:8px 12px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;background:var(--bg3);color:var(--text2);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:hover td{background:var(--bg3)}
+
+/* Layout */
+#ai-chat{width:380px;min-width:380px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:relative}
+#main-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#toolbar{height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:4px}
+#content-area{flex:1;display:flex;overflow:hidden}
+#sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:8px 0}
+#page-content{flex:1;overflow:hidden;padding:0;background:var(--bg);display:flex;flex-direction:column}
+#page-content>.page{padding:28px 32px;overflow-y:auto;flex:1}
+#page-content>#page-database{padding:0;overflow:hidden}
+
+/* Chat */
+.chat-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.chat-header h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-msg{padding:10px 14px;border-radius:var(--radius2);max-width:90%;line-height:1.5;font-size:13px}
+.chat-msg.ai{background:var(--bg3);align-self:flex-start;border-bottom-left-radius:4px}
+.chat-msg.user{background:var(--accent-bg);border:1px solid rgba(0,78,234,.2);align-self:flex-end;border-bottom-right-radius:4px}
+.chat-footer{padding:12px;border-top:1px solid var(--border)}
+.chat-input-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.chat-input-wrap textarea{width:100%;background:transparent;border:none;resize:none;height:60px;color:var(--text);outline:none;font-size:13px}
+.chat-toolbar{display:flex;align-items:center;gap:6px}
+.chat-toolbar .spacer{flex:1}
+.chat-btn{width:32px;height:32px;border-radius:var(--radius);border:none;background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:.15s}
+.chat-btn:hover{background:var(--bg4);color:var(--text)}
+.chat-btn.primary{background:var(--accent);color:#fff;width:auto;padding:0 14px;font-weight:500;font-size:12px;gap:6px}
+.chat-btn.primary:hover{background:var(--accent2)}
+.model-select{background:var(--bg4);border:1px solid var(--border);color:var(--text2);padding:4px 8px;border-radius:var(--radius);font-size:11px;cursor:pointer}
+.plan-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+.plan-toggle input[type=checkbox]{appearance:none;width:32px;height:18px;background:var(--bg4);border-radius:9px;position:relative;cursor:pointer;transition:.2s}
+.plan-toggle input[type=checkbox]::after{content:'';position:absolute;width:14px;height:14px;background:var(--text3);border-radius:50%;top:2px;left:2px;transition:.2s}
+.plan-toggle input[type=checkbox]:checked{background:var(--accent)}
+.plan-toggle input[type=checkbox]:checked::after{left:16px;background:#fff}
+.visual-btn{background:var(--bg4);border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:var(--radius);font-size:11px;display:flex;align-items:center;gap:4px}
+.visual-btn:hover{border-color:var(--accent);color:var(--accent)}
+.chat-history-list{position:absolute;top:48px;left:0;right:0;bottom:80px;background:var(--bg2);z-index:10;overflow-y:auto;padding:12px;display:none}
+.chat-history-list.open{display:block}
+.chat-history-item{padding:10px 12px;border-radius:var(--radius);cursor:pointer;margin-bottom:4px;font-size:13px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.chat-history-item:hover{background:var(--bg3);color:var(--text)}
+.chat-history-item .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* Toolbar tabs */
+.toolbar-tab{padding:8px 16px;border-radius:var(--radius);border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:500;transition:.15s;display:flex;align-items:center;gap:6px}
+.toolbar-tab:hover{background:var(--bg3);color:var(--text)}
+.toolbar-tab.active{background:var(--accent-bg);color:var(--accent)}
+.toolbar-sep{width:1px;height:24px;background:var(--border);margin:0 8px}
+.toolbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.publish-btn{background:var(--accent);color:#fff;border:none;padding:6px 18px;border-radius:var(--radius);font-weight:600;font-size:13px}
+.publish-btn:hover{background:var(--accent2)}
+.toolbar-icon{width:34px;height:34px;border-radius:var(--radius);border:none;background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.toolbar-icon:hover{background:var(--bg3);color:var(--text)}
+
+/* Sidebar */
+.sidebar-section{padding:4px 8px;margin-bottom:4px}
+.sidebar-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);padding:8px 12px 4px;font-weight:600}
+.sidebar-item{padding:8px 12px;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;transition:.1s;margin:1px 8px}
+.sidebar-item:hover{background:var(--bg3);color:var(--text)}
+.sidebar-item.active{background:var(--accent-bg);color:var(--accent)}
+.sidebar-item i{width:18px;text-align:center;font-size:13px}
+.sidebar-item .badge{margin-left:auto;background:var(--bg4);color:var(--text3);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600}
+.sidebar-item .badge.new{background:var(--green);color:#fff}
+.sidebar-item .badge.beta{background:var(--purple);color:#fff}
+
+/* Page */
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.page-header p{color:var(--text2);font-size:13px}
+.page-section{margin-bottom:28px}
+.page-section h2{font-size:16px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.page-section h2 i{color:var(--accent);font-size:14px}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:20px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-header h3{font-size:14px;font-weight:600}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:18px}
+.stat-card .label{font-size:12px;color:var(--text2);margin-bottom:6px}
+.stat-card .value{font-size:28px;font-weight:700}
+.stat-card .sub{font-size:11px;color:var(--text3);margin-top:4px}
+
+/* Buttons */
+.btn{padding:7px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.btn:hover{border-color:var(--text3)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-danger{background:var(--red);border-color:var(--red);color:#fff}
+
+/* Form */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group input,.form-group select,.form-group textarea{width:100%}
+
+/* Tabs */
+.subtabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
+.subtab{padding:8px 16px;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.subtab:hover{color:var(--text)}
+.subtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Gallery */
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.gallery-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;cursor:pointer;transition:.15s}
+.gallery-item:hover{border-color:var(--accent)}
+.gallery-thumb{height:100px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:28px}
+.gallery-info{padding:10px}
+.gallery-info .name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gallery-info .meta{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* DB Grid */
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.db-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;cursor:pointer;transition:.15s}
+.db-card:hover{border-color:var(--accent)}
+.db-card .icon{width:36px;height:36px;border-radius:var(--radius);background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.db-card .name{font-weight:600;font-size:13px;margin-bottom:4px}
+.db-card .count{font-size:12px;color:var(--text2)}
+
+/* Code block */
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-family:'Fira Code',monospace;font-size:12px;line-height:1.7;overflow-x:auto;color:var(--text2);white-space:pre}
+
+/* Status badge */
+.status{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.status.active{background:rgba(34,197,94,.15);color:var(--green)}
+.status.inactive{background:rgba(239,68,68,.15);color:var(--red)}
+.status.pending{background:rgba(234,179,8,.15);color:#eab308}
+
+/* Permission matrix */
+.perm-table th:not(:first-child){text-align:center;min-width:80px}
+.perm-table td:not(:first-child){text-align:center}
+.perm-check{width:16px;height:16px;accent-color:var(--accent)}
+
+/* Multi-select */
+.multi-select{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);min-height:38px}
+.multi-tag{background:var(--bg4);padding:3px 8px;border-radius:4px;font-size:12px;display:flex;align-items:center;gap:4px}
+.multi-tag .remove{cursor:pointer;color:var(--text3)}
+.multi-tag .remove:hover{color:var(--red)}
+
+/* Logo upload */
+.logo-upload{width:80px;height:80px;border-radius:var(--radius2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);font-size:24px;transition:.15s}
+.logo-upload:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Preview iframe */
+.preview-frame{width:100%;height:100%;border:none;background:#fff;border-radius:0}
+
+/* Env cards */
+.env-cards{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.env-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;min-width:180px;cursor:pointer;transition:.15s}
+.env-card:hover{border-color:var(--accent)}
+.env-card.active{border-color:var(--accent);background:var(--accent-bg)}
+.env-card .env-name{font-weight:600;font-size:13px}
+.env-card .env-desc{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* Resizer */
+.chat-resizer{width:4px;cursor:col-resize;background:transparent;transition:.15s;flex-shrink:0}
+.chat-resizer:hover{background:var(--accent)}
+
+/* Responsive hidden */
+.page{display:none}
+.page.active{display:block}
+
+/* Toggle switch for preview toolbar */
+.preview-toolbar{height:40px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:8px}
+.preview-url{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;font-size:12px;color:var(--text2)}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:fadeIn .2s ease}
+
+.action-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.search-input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px 7px 34px;color:var(--text);width:260px;font-size:13px}
+.search-wrap{position:relative}
+.search-wrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px}
+
+/* Database table browser */
+.db-tbl-item{padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text2);font-size:12px;transition:.1s;margin:1px 4px;border-radius:4px}
+.db-tbl-item:hover{background:var(--bg3);color:var(--text)}
+.db-tbl-item.active{background:var(--accent-bg);color:var(--accent)}
+.db-view-btn{background:transparent;border:none;color:var(--text2);padding:5px 8px;cursor:pointer;font-size:12px;transition:.1s}
+.db-view-btn:hover{color:var(--text);background:var(--bg3)}
+.db-view-btn.active{color:var(--accent);background:var(--accent-bg)}
+.db-data-table{border-collapse:collapse;min-width:100%}
+.db-data-table thead{position:sticky;top:0;z-index:2}
+.db-data-table th{background:var(--bg2);padding:0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;font-weight:400}
+.db-data-table td{padding:0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;font-size:12px}
+.db-data-table tr:hover td{background:rgba(0,78,234,.03)}
+.db-col-header{padding:6px 12px !important;cursor:pointer;user-select:none}
+.db-col-name{font-weight:600;color:var(--text);font-size:12px;margin-right:4px}
+.db-col-type{color:var(--text3);font-size:10px;font-family:'Fira Code',monospace}
+.db-row-check{width:36px;text-align:center;padding:6px !important}
+.db-row-check input{accent-color:var(--accent)}
+.db-cell{padding:6px 12px !important;max-width:240px;overflow:hidden;text-overflow:ellipsis;cursor:text}
+.db-cell:hover{background:rgba(255,255,255,.03)}
+.db-cell-id{padding:6px 12px !important;color:var(--text3);font-family:'Fira Code',monospace;font-size:12px;background:var(--bg2)}
+.db-val-str{color:var(--text)}
+.db-val-num{color:#60a5fa;font-family:'Fira Code',monospace}
+.db-val-date{color:var(--text3);font-family:'Fira Code',monospace;font-size:11px}
+.db-val-null{color:var(--text3);font-style:italic;font-size:11px}
+.db-val-fk{color:var(--blue);font-family:'Fira Code',monospace;cursor:pointer;text-decoration:underline;text-decoration-style:dotted}
+.db-val-fk:hover{color:var(--accent)}
+.db-val-badge{padding:1px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.db-val-badge.green{background:rgba(34,197,94,.12);color:var(--green)}
+.db-val-badge.yellow{background:rgba(234,179,8,.12);color:#eab308}
+.db-val-badge.red{background:rgba(239,68,68,.12);color:var(--red)}
+#page-database.active{display:flex !important;flex-direction:column !important}
+.role-btn{padding:6px 16px;border:none;background:transparent;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;transition:.15s;border-right:1px solid var(--border)}
+.role-btn:last-child{border-right:none}
+.role-btn:hover{background:var(--bg3);color:var(--text)}
+.role-btn.active{background:var(--accent-bg);color:var(--accent)}
+
+/* Log accordion */
+.log-row{border-bottom:1px solid var(--border);cursor:pointer}
+.log-row:last-child{border-bottom:none}
+.log-row-header{display:flex;align-items:center;gap:12px;padding:10px 16px;transition:.1s}
+.log-row-header:hover{background:var(--bg3)}
+.log-row.open .log-row-header{background:var(--bg3)}
+.log-method{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;font-family:'Fira Code',monospace;min-width:52px;text-align:center}
+.log-method.get{background:rgba(34,197,94,.12);color:var(--green)}
+.log-method.post{background:rgba(59,130,246,.12);color:var(--blue)}
+.log-method.put{background:rgba(234,179,8,.12);color:#eab308}
+.log-method.delete{background:rgba(239,68,68,.12);color:var(--red)}
+.log-endpoint{font-family:'Fira Code',monospace;font-size:13px;color:var(--text);flex:1}
+.log-time{font-size:12px;color:var(--text3);white-space:nowrap}
+.log-status-badge{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+.log-status-badge.ok{background:rgba(34,197,94,.12);color:var(--green)}
+.log-status-badge.err{background:rgba(239,68,68,.12);color:var(--red)}
+.log-chevron{font-size:11px;color:var(--text3);transition:transform .2s;margin-left:4px}
+.log-row.open .log-chevron{transform:rotate(180deg)}
+.log-detail{display:none;border-top:1px solid var(--border);background:var(--bg)}
+.log-row.open .log-detail{display:block}
+.log-detail-tabs{display:flex;gap:0;padding:0 16px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.log-tab{padding:8px 16px;border:none;background:transparent;color:var(--text3);font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.1s}
+.log-tab:hover{color:var(--text)}
+.log-tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500}
+.log-tab-pane{padding:16px 20px}
+.log-detail-label{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
+.log-detail-val{font-size:13px;color:var(--text2);margin-bottom:12px}
+.log-detail-grid{display:flex;flex-direction:column;gap:0}
+.log-detail-row{display:grid;grid-template-columns:1fr 1fr;gap:0}
+</style>
+</head>
+<body>
+
+<!-- AI Chat Panel -->
+<div id="ai-chat">
+  <div class="chat-header">
+    <h3><img src="https://framerusercontent.com/images/9MLTegE636WKUnzvydIhLLHhMM.svg" style="height:20px;vertical-align:middle;margin-right:6px"> UCode AI</h3>
+    <div style="display:flex;gap:4px">
+      <button class="chat-btn" onclick="toggleChatHistory()" title="Chat History"><i class="fas fa-clock-rotate-left"></i></button>
+      <button class="chat-btn" title="New Chat"><i class="fas fa-plus"></i></button>
+    </div>
+  </div>
+
+  <div class="chat-history-list" id="chatHistory">
+    <div style="font-size:12px;color:var(--text3);padding:4px 4px 12px;font-weight:600">RECENT CHATS</div>
+    <div class="chat-history-item"><span class="dot"></span>Build a CRM dashboard</div>
+    <div class="chat-history-item"><span class="dot"></span>Add user authentication</div>
+    <div class="chat-history-item"><span class="dot"></span>Create REST API endpoints</div>
+    <div class="chat-history-item"><span class="dot"></span>Design database schema</div>
+    <div class="chat-history-item"><span class="dot"></span>Setup payment integration</div>
+    <div class="chat-history-item"><span class="dot"></span>Build analytics dashboard</div>
+  </div>
+
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-msg ai">
+      <div style="font-weight:600;margin-bottom:4px;color:var(--accent);font-size:12px">UCode AI</div>
+      Welcome! I'm your AI coding assistant. Describe the app you want to build, and I'll generate the code for you. You can also ask me to modify existing pages or create new features.
+    </div>
+    <div class="chat-msg user">Create a real estate CRM with property listings, client management, and financial tracking</div>
+    <div class="chat-msg ai">
+      <div style="font-weight:600;margin-bottom:4px;color:var(--accent);font-size:12px">UCode AI</div>
+      I've set up your project <strong>"Propel"</strong> with the following modules:
+      <br><br>
+      <strong>1. Properties</strong> - Listing management with photos, pricing, and status tracking<br>
+      <strong>2. Clients</strong> - Contact management with interaction history<br>
+      <strong>3. Transactions</strong> - Financial tracking and reporting<br>
+      <strong>4. Dashboard</strong> - Analytics overview<br>
+      <br>
+      <span style="color:var(--green)"><i class="fas fa-check-circle"></i> All pages generated successfully</span>
+    </div>
+    <div class="chat-msg user">Add a calendar view for property showings</div>
+    <div class="chat-msg ai">
+      <div style="font-weight:600;margin-bottom:4px;color:var(--accent);font-size:12px">UCode AI</div>
+      Done! I've added a <strong>Showings Calendar</strong> page with:
+      <br>- Monthly/weekly/daily views
+      <br>- Drag &amp; drop scheduling
+      <br>- Client &amp; property linking
+      <br><br>
+      <span style="color:var(--green)"><i class="fas fa-check-circle"></i> Page published</span>
+    </div>
+  </div>
+
+  <div class="chat-footer">
+    <div class="chat-input-wrap">
+      <textarea placeholder="Describe what you want to build..."></textarea>
+      <div class="chat-toolbar">
+        <button class="chat-btn" title="Upload file"><i class="fas fa-paperclip"></i></button>
+        <select class="model-select">
+          <option>Gemini 2.5</option>
+          <option selected>Claude 4</option>
+        </select>
+        <button class="visual-btn"><i class="fas fa-eye"></i> Visual</button>
+        <label class="plan-toggle"><input type="checkbox"> Plan</label>
+        <span class="spacer"></span>
+        <button class="chat-btn" title="Voice"><i class="fas fa-microphone"></i></button>
+        <button class="chat-btn primary"><i class="fas fa-paper-plane"></i> Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="chat-resizer" id="chatResizer"></div>
+
+<!-- Main Area -->
+<div id="main-area">
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <button class="toolbar-tab active" onclick="switchToolbar('dashboard')"><i class="fas fa-th-large"></i> Dashboard</button>
+    <button class="toolbar-tab" onclick="switchToolbar('preview')"><i class="fas fa-eye"></i> Preview</button>
+    <button class="toolbar-tab" onclick="switchToolbar('code-editor')"><i class="fas fa-code"></i> Code</button>
+    <div class="toolbar-sep"></div>
+    <div class="toolbar-right">
+      <button class="toolbar-icon" title="Undo"><i class="fas fa-undo"></i></button>
+      <button class="toolbar-icon" title="Redo"><i class="fas fa-redo"></i></button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle Light/Dark Mode"><i class="fas fa-sun"></i></button>
+      <button class="toolbar-icon" title="Settings"><i class="fas fa-cog"></i></button>
+      <button class="toolbar-icon" title="Notifications"><i class="fas fa-bell"></i></button>
+      <button class="publish-btn"><i class="fas fa-rocket"></i> Publish</button>
+    </div>
+  </div>
+
+  <!-- Content Area (Dashboard mode) -->
+  <div id="content-area">
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div class="sidebar-label">General</div>
+      <div class="sidebar-item active" onclick="showPage('settings')"><i class="fas fa-cog"></i> Project Settings</div>
+      <div class="sidebar-item" onclick="showPage('users')"><i class="fas fa-users"></i> Users</div>
+      <div class="sidebar-item" onclick="showPage('permissions')"><i class="fas fa-shield-alt"></i> Permissions</div>
+      <div class="sidebar-item" onclick="showPage('files')"><i class="fas fa-folder-open"></i> Files</div>
+      <div class="sidebar-item" onclick="showPage('secrets')"><i class="fas fa-key"></i> Secrets</div>
+      <div class="sidebar-item" onclick="showPage('integrations')"><i class="fas fa-puzzle-piece"></i> Integrations</div>
+
+      <div class="sidebar-label">Development</div>
+      <div class="sidebar-item" onclick="showPage('api')"><i class="fas fa-plug"></i> API</div>
+      <div class="sidebar-item" onclick="showPage('code')"><i class="fas fa-code"></i> Code</div>
+      <div class="sidebar-item" onclick="showPage('database')"><i class="fas fa-database"></i> Database</div>
+
+      <div class="sidebar-label">Monitoring</div>
+      <div class="sidebar-item" onclick="showPage('logs')"><i class="fas fa-list-alt"></i> Logs</div>
+      <div class="sidebar-item" onclick="showPage('analytics')"><i class="fas fa-chart-bar"></i> Analytics <span class="badge beta">Beta</span></div>
+    </div>
+
+    <!-- Page Content -->
+    <div id="page-content">
+
+      <!-- ===== PROJECT SETTINGS ===== -->
+      <div class="page active" id="page-settings">
+        <div class="page-header">
+          <h1>Project Settings</h1>
+          <p>Configure your project details and preferences</p>
+        </div>
+
+        <div class="subtabs">
+          <button class="subtab active" onclick="switchSubtab(this,'settings-sub','settings-general')"><i class="fas fa-cog" style="margin-right:4px"></i> Project Settings</button>
+          <button class="subtab" onclick="switchSubtab(this,'settings-sub','settings-environments')"><i class="fas fa-server" style="margin-right:4px"></i> Environments</button>
+          <button class="subtab" onclick="switchSubtab(this,'settings-sub','settings-i18n')"><i class="fas fa-globe" style="margin-right:4px"></i> Languages (I18N)</button>
+        </div>
+
+        <!-- Tab: Project Settings -->
+        <div id="settings-general" class="settings-sub">
+          <div class="card">
+            <div class="form-row" style="align-items:start">
+              <div>
+                <div class="form-group">
+                  <label>Project Logo</label>
+                  <div class="logo-upload" title="Click to upload">
+                    <i class="fas fa-camera"></i>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="form-group">
+                  <label>Project Name</label>
+                  <input type="text" value="Propel" placeholder="Enter project name">
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Project Languages</label>
+                <div class="multi-select">
+                  <span class="multi-tag">Russian (RU) <span class="remove">&times;</span></span>
+                  <span class="multi-tag">Uzbek (UZ) <span class="remove">&times;</span></span>
+                  <span class="multi-tag">English (EN) <span class="remove">&times;</span></span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Time Zone</label>
+                <select>
+                  <option>UTC+5 (Tashkent)</option>
+                  <option>UTC+3 (Moscow)</option>
+                  <option>UTC+0 (London)</option>
+                  <option>UTC-5 (New York)</option>
+                  <option>UTC-8 (Los Angeles)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Icon Categories</label>
+              <div class="multi-select">
+                <span class="multi-tag">Emoji <span class="remove">&times;</span></span>
+                <span class="multi-tag">FontAwesome <span class="remove">&times;</span></span>
+                <span class="multi-tag">Material Icons <span class="remove">&times;</span></span>
+                <span class="multi-tag">Lucide <span class="remove">&times;</span></span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+            <button class="btn">Cancel</button>
+            <button class="btn btn-primary"><i class="fas fa-save"></i> Save Settings</button>
+          </div>
+        </div>
+
+        <!-- Tab: Environments -->
+        <div id="settings-environments" class="settings-sub" style="display:none">
+          <div class="env-cards">
+            <div class="env-card active"><div class="env-name">Development</div><div class="env-desc">Local development</div></div>
+            <div class="env-card"><div class="env-name">Staging</div><div class="env-desc">Pre-production testing</div></div>
+            <div class="env-card"><div class="env-name">Production</div><div class="env-desc">Live environment</div></div>
+          </div>
+          <div class="action-bar">
+            <span style="flex:1"></span>
+            <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add Environment</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table>
+              <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td><code style="color:var(--accent)">env_001</code></td><td>Development</td><td>Local dev server with hot reload</td><td><span class="status active"><i class="fas fa-circle" style="font-size:6px"></i> Active</span></td><td><button class="btn btn-sm"><i class="fas fa-edit"></i></button></td></tr>
+                <tr><td><code style="color:var(--accent)">env_002</code></td><td>Staging</td><td>Mirror of production for QA</td><td><span class="status active"><i class="fas fa-circle" style="font-size:6px"></i> Active</span></td><td><button class="btn btn-sm"><i class="fas fa-edit"></i></button></td></tr>
+                <tr><td><code style="color:var(--accent)">env_003</code></td><td>Production</td><td>Live deployment on CDN</td><td><span class="status active"><i class="fas fa-circle" style="font-size:6px"></i> Active</span></td><td><button class="btn btn-sm"><i class="fas fa-edit"></i></button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Languages (I18N) -->
+        <div id="settings-i18n" class="settings-sub" style="display:none">
+          <div class="action-bar">
+            <div class="search-wrap"><i class="fas fa-search"></i><input class="search-input" placeholder="Search translations..."></div>
+            <span class="spacer" style="flex:1"></span>
+            <button class="btn btn-sm"><i class="fas fa-plus"></i> Add Language</button>
+            <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add Key</button>
+            <button class="btn btn-sm"><i class="fas fa-download"></i> Export</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table>
+              <thead><tr><th>Language Key</th><th>RU</th><th>UZ</th><th>EN</th></tr></thead>
+              <tbody>
+                <tr><td><code>app.title</code></td><td>Главная</td><td>Bosh sahifa</td><td>Dashboard</td></tr>
+                <tr><td><code>nav.properties</code></td><td>Недвижимость</td><td>Ko'chmas mulk</td><td>Properties</td></tr>
+                <tr><td><code>nav.clients</code></td><td>Клиенты</td><td>Mijozlar</td><td>Clients</td></tr>
+                <tr><td><code>btn.save</code></td><td>Сохранить</td><td>Saqlash</td><td>Save</td></tr>
+                <tr><td><code>btn.cancel</code></td><td>Отмена</td><td>Bekor qilish</td><td>Cancel</td></tr>
+                <tr><td><code>msg.success</code></td><td>Успешно</td><td>Muvaffaqiyatli</td><td>Success</td></tr>
+                <tr><td><code>msg.error</code></td><td>Ошибка</td><td>Xatolik</td><td>Error</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===== USERS ===== -->
+      <div class="page" id="page-users">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+          <div style="flex:1">
+            <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">Users</h1>
+            <p style="color:var(--text2);font-size:13px">Manage application users</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px">
+            <span style="font-size:12px;color:var(--text2)">Users</span>
+            <span style="font-size:16px;font-weight:700;color:var(--accent)">4</span>
+            <span style="font-size:12px;color:var(--text3)">/ 10</span>
+            <div style="width:60px;height:4px;background:var(--bg4);border-radius:2px;margin-left:4px;overflow:hidden">
+              <div style="width:40%;height:100%;background:var(--accent);border-radius:2px"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm"><i class="fas fa-arrow-up"></i> Upgrade Plan</button>
+        </div>
+
+        <div class="action-bar">
+          <div class="search-wrap"><i class="fas fa-search"></i><input class="search-input" placeholder="Search users..."></div>
+          <span style="flex:1"></span>
+          <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add User</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr><th>Name</th><th>User Type</th><th>Role</th><th>Login</th><th>Email</th><th>Phone</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Abdullo Xidoyatov</strong></td><td>Admin</td><td><span class="status active">Super Admin</span></td><td>abdullo</td><td>abdullo@example.com</td><td>+998 90 123 4567</td></tr>
+              <tr><td><strong>John Smith</strong></td><td>Agent</td><td><span class="status pending">Agent</span></td><td>jsmith</td><td>john@realty.com</td><td>+1 555 234 5678</td></tr>
+              <tr><td><strong>Maria Garcia</strong></td><td>Agent</td><td><span class="status pending">Agent</span></td><td>mgarcia</td><td>maria@realty.com</td><td>+1 555 345 6789</td></tr>
+              <tr><td><strong>Alex Kim</strong></td><td>Client</td><td><span class="status" style="background:rgba(59,130,246,.15);color:var(--blue)">Viewer</span></td><td>akim</td><td>alex@email.com</td><td>+1 555 456 7890</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== PERMISSIONS ===== -->
+      <div class="page" id="page-permissions">
+        <div class="page-header">
+          <h1>Permissions</h1>
+          <p>Configure user type permissions by menu pages and tables</p>
+        </div>
+
+        <!-- User type dropdown -->
+        <div class="form-group" style="max-width:240px;margin-bottom:16px">
+          <label>User Type</label>
+          <select>
+            <option selected>Admin</option>
+            <option>Client</option>
+            <option>Manager</option>
+          </select>
+        </div>
+
+        <!-- Roles button group -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+          <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <button class="role-btn active" onclick="switchRole(this)">Super Admin</button>
+            <button class="role-btn" onclick="switchRole(this)">Agent</button>
+            <button class="role-btn" onclick="switchRole(this)">Manager</button>
+            <button class="role-btn" onclick="switchRole(this)">Viewer</button>
+          </div>
+          <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Create Role</button>
+        </div>
+
+        <!-- Tabs: Menu Permissions / Table Permissions -->
+        <div class="subtabs">
+          <button class="subtab active" onclick="switchSubtab(this,'perm-sub','perm-menu')"><i class="fas fa-bars" style="margin-right:4px"></i> Menu Permissions</button>
+          <button class="subtab" onclick="switchSubtab(this,'perm-sub','perm-table')"><i class="fas fa-table" style="margin-right:4px"></i> Table Permissions</button>
+        </div>
+
+        <!-- Tab: Menu Permissions -->
+        <div id="perm-menu" class="perm-sub">
+          <div class="card" style="padding:0;overflow:hidden">
+            <table class="perm-table">
+              <thead><tr><th>Menu Page</th><th>Visible</th><th>Accessible</th></tr></thead>
+              <tbody>
+                <tr><td><i class="fas fa-th-large" style="color:var(--text3);margin-right:8px"></i>Dashboard</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td></tr>
+                <tr><td><i class="fas fa-building" style="color:var(--text3);margin-right:8px"></i>Properties</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td></tr>
+                <tr><td><i class="fas fa-users" style="color:var(--text3);margin-right:8px"></i>Clients</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td></tr>
+                <tr><td><i class="fas fa-dollar-sign" style="color:var(--text3);margin-right:8px"></i>Transactions</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td></tr>
+                <tr><td><i class="fas fa-calendar" style="color:var(--text3);margin-right:8px"></i>Calendar</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td></tr>
+                <tr><td><i class="fas fa-chart-bar" style="color:var(--text3);margin-right:8px"></i>Analytics</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check"></td></tr>
+                <tr><td><i class="fas fa-cog" style="color:var(--text3);margin-right:8px"></i>Settings</td><td><input type="checkbox" class="perm-check"></td><td><input type="checkbox" class="perm-check"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Table Permissions -->
+        <div id="perm-table" class="perm-sub" style="display:none">
+          <div class="card" style="padding:0;overflow:hidden">
+            <table class="perm-table">
+              <thead><tr><th>Table</th><th>Read</th><th>Insert</th><th>Update</th><th>Delete</th><th>Export</th></tr></thead>
+              <tbody>
+                <tr><td>properties</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check"></td><td><input type="checkbox" class="perm-check" checked></td></tr>
+                <tr><td>clients</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check"></td><td><input type="checkbox" class="perm-check"></td></tr>
+                <tr><td>transactions</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check"></td><td><input type="checkbox" class="perm-check"></td><td><input type="checkbox" class="perm-check"></td><td><input type="checkbox" class="perm-check"></td></tr>
+                <tr><td>showings</td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check" checked></td><td><input type="checkbox" class="perm-check"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== FILES ===== -->
+      <div class="page" id="page-files">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+          <div style="flex:1">
+            <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">Files</h1>
+            <p style="color:var(--text2);font-size:13px">Manage uploaded files and media assets</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px">
+            <span style="font-size:12px;color:var(--text2)">Storage</span>
+            <span style="font-size:16px;font-weight:700;color:var(--accent)">2.4 GB</span>
+            <span style="font-size:12px;color:var(--text3)">/ 10 GB</span>
+            <div style="width:60px;height:4px;background:var(--bg4);border-radius:2px;margin-left:4px;overflow:hidden">
+              <div style="width:24%;height:100%;background:var(--accent);border-radius:2px"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm"><i class="fas fa-arrow-up"></i> Upgrade Plan</button>
+        </div>
+        <!-- Bucket select -->
+        <div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:20px">
+          <div class="form-group" style="min-width:260px;margin-bottom:0">
+            <label><i class="fab fa-aws" style="margin-right:4px;color:var(--accent)"></i> S3 Bucket</label>
+            <select>
+              <option selected>propel-media-prod</option>
+              <option>propel-media-staging</option>
+              <option>propel-backups</option>
+              <option>propel-exports</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <div class="search-wrap"><i class="fas fa-search"></i><input class="search-input" placeholder="Search files..."></div>
+          <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-left:8px">
+            <button class="db-view-btn active" onclick="switchFilesView(this,'grid')" title="Grid View"><i class="fas fa-th"></i></button>
+            <button class="db-view-btn" onclick="switchFilesView(this,'list')" title="List View"><i class="fas fa-th-list"></i></button>
+          </div>
+          <span style="flex:1"></span>
+          <button class="btn btn-sm"><i class="fas fa-folder-plus"></i> New Folder</button>
+          <button class="btn btn-primary btn-sm"><i class="fas fa-upload"></i> Upload Files</button>
+        </div>
+
+        <!-- Breadcrumb -->
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:16px;font-size:13px">
+          <span style="color:var(--accent);cursor:pointer"><i class="fas fa-home" style="font-size:11px"></i> Root</span>
+          <i class="fas fa-chevron-right" style="font-size:9px;color:var(--text3)"></i>
+          <span style="color:var(--text2)">All Files</span>
+        </div>
+
+        <!-- Grid View -->
+        <div id="files-grid-view">
+          <div class="gallery-grid">
+            <div class="gallery-item"><div class="gallery-thumb" style="background:var(--bg3)"><i class="fas fa-folder" style="color:var(--accent);font-size:32px"></i></div><div class="gallery-info"><div class="name">Properties</div><div class="meta">24 files &middot; 48 MB</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:var(--bg3)"><i class="fas fa-folder" style="color:var(--accent);font-size:32px"></i></div><div class="gallery-info"><div class="name">Contracts</div><div class="meta">12 files &middot; 8.4 MB</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:var(--bg3)"><i class="fas fa-folder" style="color:var(--accent);font-size:32px"></i></div><div class="gallery-info"><div class="name">Clients</div><div class="meta">6 files &middot; 2.1 MB</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:var(--bg3)"><i class="fas fa-folder" style="color:var(--accent);font-size:32px"></i></div><div class="gallery-info"><div class="name">Reports</div><div class="meta">18 files &middot; 15 MB</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:var(--bg3)"><i class="fas fa-folder" style="color:var(--accent);font-size:32px"></i></div><div class="gallery-info"><div class="name">Marketing</div><div class="meta">31 files &middot; 120 MB</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:linear-gradient(135deg,#667eea,#764ba2)"><i class="fas fa-image"></i></div><div class="gallery-info"><div class="name">property-hero.jpg</div><div class="meta">2.4 MB &middot; JPG</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:linear-gradient(135deg,#f093fb,#f5576c)"><i class="fas fa-image"></i></div><div class="gallery-info"><div class="name">floor-plan.png</div><div class="meta">1.8 MB &middot; PNG</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:linear-gradient(135deg,#4facfe,#00f2fe)"><i class="fas fa-file-pdf"></i></div><div class="gallery-info"><div class="name">contract-template.pdf</div><div class="meta">420 KB &middot; PDF</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:linear-gradient(135deg,#43e97b,#38f9d7)"><i class="fas fa-file-excel"></i></div><div class="gallery-info"><div class="name">listings-export.xlsx</div><div class="meta">156 KB &middot; XLSX</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:linear-gradient(135deg,#fa709a,#fee140)"><i class="fas fa-image"></i></div><div class="gallery-info"><div class="name">interior-1.jpg</div><div class="meta">3.1 MB &middot; JPG</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb)"><i class="fas fa-image"></i></div><div class="gallery-info"><div class="name">exterior-view.jpg</div><div class="meta">2.8 MB &middot; JPG</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:linear-gradient(135deg,#fccb90,#d57eeb)"><i class="fas fa-file-video"></i></div><div class="gallery-info"><div class="name">tour-video.mp4</div><div class="meta">48 MB &middot; MP4</div></div></div>
+            <div class="gallery-item"><div class="gallery-thumb" style="background:var(--bg4)"><i class="fas fa-plus" style="font-size:20px"></i></div><div class="gallery-info"><div class="name" style="color:var(--text3)">Upload new file</div><div class="meta">&nbsp;</div></div></div>
+          </div>
+        </div>
+
+        <!-- List View -->
+        <div id="files-list-view" style="display:none">
+          <div class="card" style="padding:0;overflow:hidden">
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Modified</th></tr></thead>
+              <tbody>
+                <tr><td><i class="fas fa-folder" style="color:var(--accent);margin-right:8px"></i><strong>Properties</strong></td><td>Folder</td><td>48 MB</td><td>2 hours ago</td></tr>
+                <tr><td><i class="fas fa-folder" style="color:var(--accent);margin-right:8px"></i><strong>Contracts</strong></td><td>Folder</td><td>8.4 MB</td><td>1 day ago</td></tr>
+                <tr><td><i class="fas fa-folder" style="color:var(--accent);margin-right:8px"></i><strong>Clients</strong></td><td>Folder</td><td>2.1 MB</td><td>3 days ago</td></tr>
+                <tr><td><i class="fas fa-folder" style="color:var(--accent);margin-right:8px"></i><strong>Reports</strong></td><td>Folder</td><td>15 MB</td><td>5 hours ago</td></tr>
+                <tr><td><i class="fas fa-folder" style="color:var(--accent);margin-right:8px"></i><strong>Marketing</strong></td><td>Folder</td><td>120 MB</td><td>1 day ago</td></tr>
+                <tr><td><i class="fas fa-image" style="color:#667eea;margin-right:8px"></i>property-hero.jpg</td><td>JPG</td><td>2.4 MB</td><td>2 hours ago</td></tr>
+                <tr><td><i class="fas fa-image" style="color:#f093fb;margin-right:8px"></i>floor-plan.png</td><td>PNG</td><td>1.8 MB</td><td>5 hours ago</td></tr>
+                <tr><td><i class="fas fa-file-pdf" style="color:#4facfe;margin-right:8px"></i>contract-template.pdf</td><td>PDF</td><td>420 KB</td><td>1 day ago</td></tr>
+                <tr><td><i class="fas fa-file-excel" style="color:#43e97b;margin-right:8px"></i>listings-export.xlsx</td><td>XLSX</td><td>156 KB</td><td>2 days ago</td></tr>
+                <tr><td><i class="fas fa-image" style="color:#fa709a;margin-right:8px"></i>interior-1.jpg</td><td>JPG</td><td>3.1 MB</td><td>3 hours ago</td></tr>
+                <tr><td><i class="fas fa-image" style="color:#a18cd1;margin-right:8px"></i>exterior-view.jpg</td><td>JPG</td><td>2.8 MB</td><td>4 hours ago</td></tr>
+                <tr><td><i class="fas fa-file-video" style="color:#fccb90;margin-right:8px"></i>tour-video.mp4</td><td>MP4</td><td>48 MB</td><td>1 day ago</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SECRETS ===== -->
+      <div class="page" id="page-secrets">
+        <div class="page-header">
+          <h1>Secrets</h1>
+          <p>Manage environment variables and secret keys</p>
+        </div>
+        <div class="action-bar">
+          <span style="flex:1"></span>
+          <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add Secret</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr><th>Key</th><th>Value</th><th>Environment</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><code style="color:var(--accent)">DATABASE_URL</code></td><td><code>postgres://****:****@db.host/propel</code></td><td><span class="status active">Production</span></td><td><button class="btn btn-sm"><i class="fas fa-eye"></i></button> <button class="btn btn-sm"><i class="fas fa-edit"></i></button></td></tr>
+              <tr><td><code style="color:var(--accent)">STRIPE_SECRET_KEY</code></td><td><code>sk_live_****************************</code></td><td><span class="status active">Production</span></td><td><button class="btn btn-sm"><i class="fas fa-eye"></i></button> <button class="btn btn-sm"><i class="fas fa-edit"></i></button></td></tr>
+              <tr><td><code style="color:var(--accent)">SMTP_PASSWORD</code></td><td><code>****************************</code></td><td><span class="status pending">All</span></td><td><button class="btn btn-sm"><i class="fas fa-eye"></i></button> <button class="btn btn-sm"><i class="fas fa-edit"></i></button></td></tr>
+              <tr><td><code style="color:var(--accent)">JWT_SECRET</code></td><td><code>****************************</code></td><td><span class="status pending">All</span></td><td><button class="btn btn-sm"><i class="fas fa-eye"></i></button> <button class="btn btn-sm"><i class="fas fa-edit"></i></button></td></tr>
+              <tr><td><code style="color:var(--accent)">AWS_ACCESS_KEY</code></td><td><code>AKIA****************************</code></td><td><span class="status active">Production</span></td><td><button class="btn btn-sm"><i class="fas fa-eye"></i></button> <button class="btn btn-sm"><i class="fas fa-edit"></i></button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== INTEGRATIONS ===== -->
+      <div class="page" id="page-integrations">
+        <div class="page-header">
+          <h1>Integrations</h1>
+          <p>Connect third-party services and extend your application</p>
+        </div>
+
+        <div class="action-bar">
+          <div class="search-wrap"><i class="fas fa-search"></i><input class="search-input" placeholder="Search integrations..."></div>
+          <span style="flex:1"></span>
+          <select style="padding:6px 10px;font-size:12px">
+            <option>All Categories</option>
+            <option>Payments</option>
+            <option>Communication</option>
+            <option>Storage</option>
+            <option>Analytics</option>
+            <option>Authentication</option>
+            <option>Maps & Location</option>
+          </select>
+        </div>
+
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Connected</div>
+        <div class="db-grid" style="margin-bottom:28px">
+          <div class="db-card" style="border-color:var(--green);border-left:3px solid var(--green)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(99,91,255,.1);color:#635bff"><i class="fab fa-stripe-s"></i></div>
+              <div><div class="name">Stripe</div><div class="count">Payments</div></div>
+              <span class="status active" style="margin-left:auto">Connected</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3)">Process payments, subscriptions, and invoices</div>
+          </div>
+          <div class="db-card" style="border-color:var(--green);border-left:3px solid var(--green)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(255,153,0,.1);color:#f90"><i class="fab fa-aws"></i></div>
+              <div><div class="name">AWS S3</div><div class="count">Storage</div></div>
+              <span class="status active" style="margin-left:auto">Connected</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3)">File storage, media uploads, and backups</div>
+          </div>
+          <div class="db-card" style="border-color:var(--green);border-left:3px solid var(--green)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(66,133,244,.1);color:#4285f4"><i class="fab fa-google"></i></div>
+              <div><div class="name">Google OAuth</div><div class="count">Authentication</div></div>
+              <span class="status active" style="margin-left:auto">Connected</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3)">Sign in with Google, user identity</div>
+          </div>
+          <div class="db-card" style="border-color:var(--green);border-left:3px solid var(--green)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(37,211,102,.1);color:#25d366"><i class="fab fa-whatsapp"></i></div>
+              <div><div class="name">WhatsApp</div><div class="count">Communication</div></div>
+              <span class="status active" style="margin-left:auto">Connected</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3)">Send messages, notifications, and alerts</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Available</div>
+        <div class="db-grid">
+          <div class="db-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(0,114,255,.1);color:#0072ff"><i class="fab fa-paypal"></i></div>
+              <div><div class="name">PayPal</div><div class="count">Payments</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Accept PayPal payments and transfers</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center"><i class="fas fa-plug"></i> Connect</button>
+          </div>
+          <div class="db-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(0,136,204,.1);color:#0088cc"><i class="fab fa-telegram-plane"></i></div>
+              <div><div class="name">Telegram Bot</div><div class="count">Communication</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Chatbot, notifications, and commands</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center"><i class="fas fa-plug"></i> Connect</button>
+          </div>
+          <div class="db-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(225,29,72,.1);color:#e11d48"><i class="fas fa-envelope"></i></div>
+              <div><div class="name">SendGrid</div><div class="count">Communication</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Transactional & marketing emails</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center"><i class="fas fa-plug"></i> Connect</button>
+          </div>
+          <div class="db-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(66,133,244,.1);color:#4285f4"><i class="fas fa-map-marker-alt"></i></div>
+              <div><div class="name">Google Maps</div><div class="count">Maps & Location</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Maps, geocoding, and directions</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center"><i class="fas fa-plug"></i> Connect</button>
+          </div>
+          <div class="db-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(79,70,229,.1);color:#4f46e5"><i class="fab fa-twilio"></i></div>
+              <div><div class="name">Twilio</div><div class="count">Communication</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">SMS, voice calls, and video</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center"><i class="fas fa-plug"></i> Connect</button>
+          </div>
+          <div class="db-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(255,69,0,.1);color:#ff4500"><i class="fab fa-firebase"></i></div>
+              <div><div class="name">Firebase</div><div class="count">Analytics</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Push notifications, analytics, crashlytics</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center"><i class="fas fa-plug"></i> Connect</button>
+          </div>
+          <div class="db-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(36,41,46,.1);color:#6e7681"><i class="fab fa-github"></i></div>
+              <div><div class="name">GitHub</div><div class="count">Development</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Version control, CI/CD, and issues</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center"><i class="fas fa-plug"></i> Connect</button>
+          </div>
+          <div class="db-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div class="icon" style="background:rgba(97,218,251,.1);color:#61dafb"><i class="fas fa-cloud"></i></div>
+              <div><div class="name">Cloudinary</div><div class="count">Storage</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Image & video optimization, CDN delivery</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center"><i class="fas fa-plug"></i> Connect</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== API ===== -->
+      <div class="page" id="page-api">
+        <div class="page-header">
+          <h1>API</h1>
+          <p>Manage endpoints, SDK, and API keys</p>
+        </div>
+
+        <div class="subtabs">
+          <button class="subtab active" onclick="switchSubtab(this,'api-sub','api-endpoints')">Custom Endpoints</button>
+          <button class="subtab" onclick="switchSubtab(this,'api-sub','api-sdk')">SDK</button>
+          <button class="subtab" onclick="switchSubtab(this,'api-sub','api-keys')">API Keys</button>
+        </div>
+
+        <div id="api-endpoints" class="api-sub">
+          <div class="action-bar">
+            <span style="flex:1"></span>
+            <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add Endpoint</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table>
+              <thead><tr><th>Name</th><th>From Endpoint</th><th>To Endpoint</th><th>Method</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Get Properties</strong></td><td><code>/api/v1/properties</code></td><td><code>/internal/properties/list</code></td><td><span class="status active">GET</span></td><td><span class="status active">Active</span></td></tr>
+                <tr><td><strong>Create Client</strong></td><td><code>/api/v1/clients</code></td><td><code>/internal/clients/create</code></td><td><span class="status" style="background:rgba(59,130,246,.15);color:var(--blue)">POST</span></td><td><span class="status active">Active</span></td></tr>
+                <tr><td><strong>Update Transaction</strong></td><td><code>/api/v1/transactions/:id</code></td><td><code>/internal/tx/update</code></td><td><span class="status pending">PUT</span></td><td><span class="status active">Active</span></td></tr>
+                <tr><td><strong>Upload Media</strong></td><td><code>/api/v1/media/upload</code></td><td><code>/internal/media/store</code></td><td><span class="status" style="background:rgba(59,130,246,.15);color:var(--blue)">POST</span></td><td><span class="status inactive">Disabled</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="api-sdk" class="api-sub" style="display:none">
+          <div class="form-row" style="margin-bottom:16px">
+            <div class="form-group">
+              <label>Select Source</label>
+              <select>
+                <optgroup label="Functions">
+                  <option>Create Invoice</option>
+                  <option>Send Notification</option>
+                  <option>Generate Report</option>
+                  <option>Sync Calendar</option>
+                </optgroup>
+                <optgroup label="Custom SQL Queries">
+                  <option>P&amp;L Pivot</option>
+                  <option>Revenue by Month</option>
+                  <option>Agent Performance</option>
+                  <option>Stale Properties</option>
+                </optgroup>
+                <optgroup label="Tables">
+                  <option selected>properties</option>
+                  <option>clients</option>
+                  <option>transactions</option>
+                  <option>showings</option>
+                  <option>users</option>
+                  <option>roles</option>
+                  <option>media</option>
+                  <option>notifications</option>
+                  <option>audit_logs</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Programming Language</label>
+              <select>
+                <option>JavaScript</option>
+                <option>Python</option>
+                <option>Go</option>
+                <option>cURL</option>
+              </select>
+            </div>
+          </div>
+          <div class="card" style="padding:0">
+            <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12px;color:var(--text2)">Generated SDK Code</span>
+              <button class="btn btn-sm"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+            <div class="code-block">import { UGenClient } from '@ugen/sdk';
+
+const client = new UGenClient({
+  apiKey: process.env.UGEN_API_KEY,
+  appId: 'app_propel_001'
+});
+
+// List all properties
+const properties = await client
+  .from('properties')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .limit(20);
+
+// Create a new property
+const newProperty = await client
+  .from('properties')
+  .insert({
+    title: 'Modern Apartment',
+    price: 250000,
+    bedrooms: 3,
+    status: 'available'
+  });
+
+// Update a property
+await client
+  .from('properties')
+  .update({ status: 'sold' })
+  .eq('id', 'prop_123');</div>
+          </div>
+        </div>
+
+        <div id="api-keys" class="api-sub" style="display:none">
+          <div class="action-bar">
+            <span style="flex:1"></span>
+            <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Generate Key</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table>
+              <thead><tr><th>Name</th><th>APP ID</th><th>Client ID</th><th>RPS Limit</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Production App</strong></td><td><code>app_propel_001</code></td><td><code>cli_7f8a9b2c</code></td><td>1000</td><td><span class="status active">Active</span></td></tr>
+                <tr><td><strong>Staging App</strong></td><td><code>app_propel_stg</code></td><td><code>cli_3d4e5f6a</code></td><td>100</td><td><span class="status active">Active</span></td></tr>
+                <tr><td><strong>Mobile App</strong></td><td><code>app_propel_mob</code></td><td><code>cli_1a2b3c4d</code></td><td>500</td><td><span class="status pending">Pending</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CODE ===== -->
+      <div class="page" id="page-code">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+          <div style="flex:1">
+            <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">Code</h1>
+            <p style="color:var(--text2);font-size:13px">Manage frontend pages and server functions</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px">
+            <span style="font-size:12px;color:var(--text2)">Pages</span>
+            <span style="font-size:16px;font-weight:700;color:var(--accent)">10</span>
+            <span style="font-size:12px;color:var(--text3)">/ 50</span>
+            <div style="width:60px;height:4px;background:var(--bg4);border-radius:2px;margin-left:4px;overflow:hidden">
+              <div style="width:20%;height:100%;background:var(--accent);border-radius:2px"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm"><i class="fas fa-arrow-up"></i> Upgrade Plan</button>
+        </div>
+
+        <div class="subtabs">
+          <button class="subtab active" onclick="switchSubtab(this,'code-sub','code-frontend')">Frontend</button>
+          <button class="subtab" onclick="switchSubtab(this,'code-sub','code-server')">Server Functions</button>
+        </div>
+
+        <div id="code-frontend" class="code-sub">
+          <div class="action-bar">
+            <div class="search-wrap"><i class="fas fa-search"></i><input class="search-input" placeholder="Search pages..."></div>
+            <span style="flex:1"></span>
+            <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Page</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table>
+              <thead><tr><th>Name</th><th>Route</th><th>Status</th><th>Last Modified</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td><i class="fas fa-file-code" style="color:var(--accent);margin-right:8px"></i><strong>Dashboard</strong></td><td><code>/</code></td><td><span class="status active">Published</span></td><td>2 hours ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+                <tr><td><i class="fas fa-file-code" style="color:var(--accent);margin-right:8px"></i><strong>Properties</strong></td><td><code>/properties</code></td><td><span class="status active">Published</span></td><td>5 hours ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+                <tr><td><i class="fas fa-file-code" style="color:var(--accent);margin-right:8px"></i><strong>Clients</strong></td><td><code>/clients</code></td><td><span class="status active">Published</span></td><td>1 day ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+                <tr><td><i class="fas fa-file-code" style="color:var(--accent);margin-right:8px"></i><strong>Transactions</strong></td><td><code>/transactions</code></td><td><span class="status active">Published</span></td><td>1 day ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+                <tr><td><i class="fas fa-file-code" style="color:var(--accent);margin-right:8px"></i><strong>Showings Calendar</strong></td><td><code>/showings</code></td><td><span class="status pending">Draft</span></td><td>30 min ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+                <tr><td><i class="fas fa-file-code" style="color:var(--accent);margin-right:8px"></i><strong>Login</strong></td><td><code>/login</code></td><td><span class="status active">Published</span></td><td>3 days ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="code-server" class="code-sub" style="display:none">
+          <div class="action-bar">
+            <div class="search-wrap"><i class="fas fa-search"></i><input class="search-input" placeholder="Search functions..."></div>
+            <span style="flex:1"></span>
+            <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Function</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table>
+              <thead><tr><th>Name</th><th>Trigger</th><th>Status</th><th>Last Run</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td><i class="fas fa-bolt" style="color:var(--purple);margin-right:8px"></i><strong>onPropertyCreate</strong></td><td><code>INSERT on properties</code></td><td><span class="status active">Active</span></td><td>12 min ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+                <tr><td><i class="fas fa-bolt" style="color:var(--purple);margin-right:8px"></i><strong>sendNotification</strong></td><td><code>HTTP POST</code></td><td><span class="status active">Active</span></td><td>1 hour ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+                <tr><td><i class="fas fa-bolt" style="color:var(--purple);margin-right:8px"></i><strong>generateReport</strong></td><td><code>CRON daily</code></td><td><span class="status active">Active</span></td><td>6 hours ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+                <tr><td><i class="fas fa-bolt" style="color:var(--purple);margin-right:8px"></i><strong>syncCalendar</strong></td><td><code>CRON hourly</code></td><td><span class="status inactive">Disabled</span></td><td>2 days ago</td><td><button class="btn btn-sm"><i class="fas fa-code"></i> Edit</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DATABASE ===== -->
+      <div class="page" id="page-database" style="padding:0;display:none;flex-direction:column;height:100%">
+        <!-- DB Top bar with tabs -->
+        <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--bg);padding:0 20px;gap:4px;flex-shrink:0">
+          <button class="subtab active" onclick="switchSubtab(this,'db-sub','db-table-view')" style="border-radius:0">
+            <i class="fas fa-table" style="margin-right:4px"></i> Table Editor
+          </button>
+          <button class="subtab" onclick="switchSubtab(this,'db-sub','db-sql-editor')" style="border-radius:0">
+            <i class="fas fa-terminal" style="margin-right:4px"></i> SQL Editor
+          </button>
+          <span style="flex:1"></span>
+          <span style="font-size:11px;color:var(--text3)"><i class="fas fa-circle" style="color:var(--green);font-size:6px;margin-right:4px"></i> Connected &middot; PostgreSQL 16</span>
+        </div>
+
+        <!-- DB Table Editor View -->
+        <div id="db-table-view" class="db-sub" style="flex:1;display:flex;overflow:hidden">
+          <!-- Table list sidebar -->
+          <div style="width:200px;min-width:200px;border-right:1px solid var(--border);background:var(--bg2);overflow-y:auto;padding:8px 0">
+            <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600">Tables</span>
+              <button class="chat-btn" style="width:22px;height:22px" title="New Table"><i class="fas fa-plus" style="font-size:10px"></i></button>
+            </div>
+            <input style="margin:0 8px 6px;width:calc(100% - 16px);padding:5px 8px;font-size:11px" placeholder="Search tables...">
+            <div class="db-tbl-item active" onclick="selectDbTable(this,'properties')"><i class="fas fa-table" style="color:var(--accent);font-size:10px;width:14px"></i> properties <span style="margin-left:auto;font-size:10px;color:var(--text3)">1,247</span></div>
+            <div class="db-tbl-item" onclick="selectDbTable(this,'clients')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> clients <span style="margin-left:auto;font-size:10px;color:var(--text3)">856</span></div>
+            <div class="db-tbl-item" onclick="selectDbTable(this,'transactions')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> transactions <span style="margin-left:auto;font-size:10px;color:var(--text3)">3,421</span></div>
+            <div class="db-tbl-item" onclick="selectDbTable(this,'showings')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> showings <span style="margin-left:auto;font-size:10px;color:var(--text3)">524</span></div>
+            <div class="db-tbl-item" onclick="selectDbTable(this,'users')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> users <span style="margin-left:auto;font-size:10px;color:var(--text3)">42</span></div>
+            <div class="db-tbl-item" onclick="selectDbTable(this,'roles')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> roles <span style="margin-left:auto;font-size:10px;color:var(--text3)">4</span></div>
+            <div class="db-tbl-item" onclick="selectDbTable(this,'media')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> media <span style="margin-left:auto;font-size:10px;color:var(--text3)">2,156</span></div>
+            <div class="db-tbl-item" onclick="selectDbTable(this,'notifications')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> notifications <span style="margin-left:auto;font-size:10px;color:var(--text3)">8,932</span></div>
+            <div class="db-tbl-item" onclick="selectDbTable(this,'audit_logs')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> audit_logs <span style="margin-left:auto;font-size:10px;color:var(--text3)">45,210</span></div>
+            <div style="padding:8px 12px;margin-top:8px;border-top:1px solid var(--border)">
+              <span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600">Views</span>
+            </div>
+            <div class="db-tbl-item"><i class="fas fa-eye" style="color:var(--text3);font-size:10px;width:14px"></i> active_listings</div>
+            <div class="db-tbl-item"><i class="fas fa-eye" style="color:var(--text3);font-size:10px;width:14px"></i> monthly_revenue</div>
+          </div>
+
+          <!-- Table detail area -->
+          <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+            <!-- Toolbar row 1: View modes + actions -->
+            <div style="display:flex;align-items:center;padding:8px 16px;gap:6px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+              <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+                <button class="db-view-btn active" title="Table View"><i class="fas fa-th-list"></i></button>
+                <button class="db-view-btn" title="Grid View"><i class="fas fa-th"></i></button>
+                <button class="db-view-btn" title="Card View"><i class="fas fa-layer-group"></i></button>
+              </div>
+              <div class="toolbar-sep" style="height:20px"></div>
+              <button class="btn btn-sm"><i class="fas fa-arrow-left"></i></button>
+              <button class="btn btn-sm"><i class="fas fa-arrow-right"></i></button>
+              <div class="toolbar-sep" style="height:20px"></div>
+              <button class="btn btn-sm db-filter-toggle" onclick="toggleDbFilter()"><i class="fas fa-filter"></i> Filters</button>
+              <button class="btn btn-sm"><i class="fas fa-columns"></i> Columns</button>
+              <button class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Add record</button>
+              <span style="flex:1"></span>
+              <span style="font-size:12px;color:var(--text3)" id="dbRowInfo">1,247 rows &middot; 42ms</span>
+              <div class="toolbar-sep" style="height:20px"></div>
+              <div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;font-size:12px;color:var(--text2)">
+                <button class="db-view-btn"><i class="fas fa-chevron-left"></i></button>
+                <input style="width:40px;text-align:center;border:none;border-radius:0;padding:4px;font-size:12px;border-left:1px solid var(--border);border-right:1px solid var(--border)" value="50">
+                <input style="width:36px;text-align:center;border:none;border-radius:0;padding:4px;font-size:12px;border-right:1px solid var(--border)" value="0">
+                <button class="db-view-btn"><i class="fas fa-chevron-right"></i></button>
+              </div>
+              <button class="btn btn-sm"><i class="fas fa-sync-alt"></i></button>
+            </div>
+
+            <!-- Filter row (toggleable) -->
+            <div id="dbFilterRow" style="display:flex;align-items:center;padding:8px 16px;gap:8px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+              <button class="btn btn-sm" style="padding:2px 6px;color:var(--text3)" title="Remove filter"><i class="fas fa-times"></i></button>
+              <span style="font-size:12px;color:var(--accent);font-weight:600;padding:3px 10px;background:var(--accent-bg);border-radius:4px">where</span>
+              <select style="padding:4px 8px;font-size:12px;min-width:100px">
+                <option>id</option>
+                <option>uuid</option>
+                <option selected>status</option>
+                <option>price</option>
+                <option>title</option>
+                <option>created_at</option>
+              </select>
+              <select style="padding:4px 8px;font-size:12px;min-width:100px">
+                <option selected>equals</option>
+                <option>not equals</option>
+                <option>contains</option>
+                <option>greater than</option>
+                <option>less than</option>
+                <option>is null</option>
+                <option>in</option>
+              </select>
+              <input style="padding:4px 8px;font-size:12px;width:160px" placeholder="Enter value..." value="available">
+              <button class="btn btn-sm"><i class="fas fa-plus"></i> Add filter</button>
+              <button class="btn btn-sm" style="color:var(--text3)">Clear filters</button>
+            </div>
+
+            <!-- Data grid -->
+            <div style="flex:1;overflow:auto">
+              <table class="db-data-table">
+                <thead>
+                  <tr>
+                    <th class="db-row-check"><input type="checkbox"></th>
+                    <th class="db-col-header"><span class="db-col-name">id</span> <span class="db-col-type">serial</span> <i class="fas fa-key" style="color:var(--accent);font-size:8px" title="Primary Key"></i> <i class="fas fa-sort" style="font-size:9px;color:var(--text3)"></i></th>
+                    <th class="db-col-header"><span class="db-col-name">uuid</span> <span class="db-col-type">varchar(20)</span> <i class="fas fa-sort" style="font-size:9px;color:var(--text3)"></i></th>
+                    <th class="db-col-header"><span class="db-col-name">title</span> <span class="db-col-type">varchar(256)</span> <i class="fas fa-sort" style="font-size:9px;color:var(--text3)"></i></th>
+                    <th class="db-col-header"><span class="db-col-name">price</span> <span class="db-col-type">numeric(2,0)</span> <i class="fas fa-sort" style="font-size:9px;color:var(--text3)"></i></th>
+                    <th class="db-col-header"><span class="db-col-name">currency</span> <span class="db-col-type">varchar(3)</span></th>
+                    <th class="db-col-header"><span class="db-col-name">bedrooms</span> <span class="db-col-type">int4</span></th>
+                    <th class="db-col-header"><span class="db-col-name">bathrooms</span> <span class="db-col-type">int4</span></th>
+                    <th class="db-col-header"><span class="db-col-name">area_sqft</span> <span class="db-col-type">numeric</span></th>
+                    <th class="db-col-header"><span class="db-col-name">status</span> <span class="db-col-type">varchar(20)</span></th>
+                    <th class="db-col-header"><span class="db-col-name">address</span> <span class="db-col-type">text</span></th>
+                    <th class="db-col-header"><span class="db-col-name">owner_id</span> <span class="db-col-type">int4</span> <i class="fas fa-link" style="color:var(--blue);font-size:8px" title="Foreign Key"></i></th>
+                    <th class="db-col-header"><span class="db-col-name">agent_id</span> <span class="db-col-type">int4</span> <i class="fas fa-link" style="color:var(--blue);font-size:8px" title="Foreign Key"></i></th>
+                    <th class="db-col-header"><span class="db-col-name">created_at</span> <span class="db-col-type">timestamptz</span></th>
+                    <th class="db-col-header"><span class="db-col-name">updated_at</span> <span class="db-col-type">timestamptz</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="db-row-check"><input type="checkbox"></td>
+                    <td class="db-cell-id">1</td>
+                    <td class="db-cell"><span class="db-val-str">prop_a1b2c3</span></td>
+                    <td class="db-cell"><span class="db-val-str">Modern Downtown Loft</span></td>
+                    <td class="db-cell"><span class="db-val-num">485000</span></td>
+                    <td class="db-cell"><span class="db-val-str">USD</span></td>
+                    <td class="db-cell"><span class="db-val-num">2</span></td>
+                    <td class="db-cell"><span class="db-val-num">2</span></td>
+                    <td class="db-cell"><span class="db-val-num">1200</span></td>
+                    <td class="db-cell"><span class="db-val-badge green">available</span></td>
+                    <td class="db-cell"><span class="db-val-str">123 Main St, New York</span></td>
+                    <td class="db-cell"><span class="db-val-fk">3</span></td>
+                    <td class="db-cell"><span class="db-val-fk">1</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-03-15 09:24:11+00</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-04-01 14:30:00+00</span></td>
+                  </tr>
+                  <tr>
+                    <td class="db-row-check"><input type="checkbox"></td>
+                    <td class="db-cell-id">2</td>
+                    <td class="db-cell"><span class="db-val-str">prop_d4e5f6</span></td>
+                    <td class="db-cell"><span class="db-val-str">Suburban Family Home</span></td>
+                    <td class="db-cell"><span class="db-val-num">725000</span></td>
+                    <td class="db-cell"><span class="db-val-str">USD</span></td>
+                    <td class="db-cell"><span class="db-val-num">4</span></td>
+                    <td class="db-cell"><span class="db-val-num">3</span></td>
+                    <td class="db-cell"><span class="db-val-num">2800</span></td>
+                    <td class="db-cell"><span class="db-val-badge green">available</span></td>
+                    <td class="db-cell"><span class="db-val-str">456 Oak Ave, Boston</span></td>
+                    <td class="db-cell"><span class="db-val-fk">7</span></td>
+                    <td class="db-cell"><span class="db-val-fk">2</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-03-18 11:05:33+00</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-03-29 08:12:00+00</span></td>
+                  </tr>
+                  <tr>
+                    <td class="db-row-check"><input type="checkbox"></td>
+                    <td class="db-cell-id">3</td>
+                    <td class="db-cell"><span class="db-val-str">prop_g7h8i9</span></td>
+                    <td class="db-cell"><span class="db-val-str">Luxury Penthouse Suite</span></td>
+                    <td class="db-cell"><span class="db-val-num">2150000</span></td>
+                    <td class="db-cell"><span class="db-val-str">USD</span></td>
+                    <td class="db-cell"><span class="db-val-num">3</span></td>
+                    <td class="db-cell"><span class="db-val-num">4</span></td>
+                    <td class="db-cell"><span class="db-val-num">4200</span></td>
+                    <td class="db-cell"><span class="db-val-badge yellow">pending</span></td>
+                    <td class="db-cell"><span class="db-val-str">789 Park Blvd, Miami</span></td>
+                    <td class="db-cell"><span class="db-val-fk">12</span></td>
+                    <td class="db-cell"><span class="db-val-fk">1</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-02-22 16:44:01+00</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-04-03 10:05:00+00</span></td>
+                  </tr>
+                  <tr>
+                    <td class="db-row-check"><input type="checkbox"></td>
+                    <td class="db-cell-id">4</td>
+                    <td class="db-cell"><span class="db-val-str">prop_j1k2l3</span></td>
+                    <td class="db-cell"><span class="db-val-str">Cozy Studio Apartment</span></td>
+                    <td class="db-cell"><span class="db-val-num">189000</span></td>
+                    <td class="db-cell"><span class="db-val-str">USD</span></td>
+                    <td class="db-cell"><span class="db-val-num">1</span></td>
+                    <td class="db-cell"><span class="db-val-num">1</span></td>
+                    <td class="db-cell"><span class="db-val-num">550</span></td>
+                    <td class="db-cell"><span class="db-val-badge red">sold</span></td>
+                    <td class="db-cell"><span class="db-val-str">321 Elm St, Chicago</span></td>
+                    <td class="db-cell"><span class="db-val-fk">5</span></td>
+                    <td class="db-cell"><span class="db-val-fk">3</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-01-10 08:30:55+00</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-03-20 17:22:00+00</span></td>
+                  </tr>
+                  <tr>
+                    <td class="db-row-check"><input type="checkbox"></td>
+                    <td class="db-cell-id">5</td>
+                    <td class="db-cell"><span class="db-val-str">prop_m4n5o6</span></td>
+                    <td class="db-cell"><span class="db-val-str">Beachfront Villa</span></td>
+                    <td class="db-cell"><span class="db-val-num">3800000</span></td>
+                    <td class="db-cell"><span class="db-val-str">USD</span></td>
+                    <td class="db-cell"><span class="db-val-num">5</span></td>
+                    <td class="db-cell"><span class="db-val-num">6</span></td>
+                    <td class="db-cell"><span class="db-val-num">6500</span></td>
+                    <td class="db-cell"><span class="db-val-badge green">available</span></td>
+                    <td class="db-cell"><span class="db-val-str">100 Ocean Dr, Malibu</span></td>
+                    <td class="db-cell"><span class="db-val-fk">2</span></td>
+                    <td class="db-cell"><span class="db-val-fk">1</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-03-28 13:15:42+00</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-04-04 09:00:00+00</span></td>
+                  </tr>
+                  <tr>
+                    <td class="db-row-check"><input type="checkbox"></td>
+                    <td class="db-cell-id">6</td>
+                    <td class="db-cell"><span class="db-val-str">prop_p7q8r9</span></td>
+                    <td class="db-cell"><span class="db-val-str">Mountain Cabin Retreat</span></td>
+                    <td class="db-cell"><span class="db-val-num">420000</span></td>
+                    <td class="db-cell"><span class="db-val-str">USD</span></td>
+                    <td class="db-cell"><span class="db-val-num">3</span></td>
+                    <td class="db-cell"><span class="db-val-num">2</span></td>
+                    <td class="db-cell"><span class="db-val-num">1800</span></td>
+                    <td class="db-cell"><span class="db-val-badge green">available</span></td>
+                    <td class="db-cell"><span class="db-val-str">55 Pine Trail, Aspen</span></td>
+                    <td class="db-cell"><span class="db-val-fk">9</span></td>
+                    <td class="db-cell"><span class="db-val-fk">2</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-04-01 07:20:18+00</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-04-05 11:45:00+00</span></td>
+                  </tr>
+                  <tr>
+                    <td class="db-row-check"><input type="checkbox"></td>
+                    <td class="db-cell-id">7</td>
+                    <td class="db-cell"><span class="db-val-str">prop_s1t2u3</span></td>
+                    <td class="db-cell"><span class="db-val-str">Historic Brownstone</span></td>
+                    <td class="db-cell"><span class="db-val-num">1350000</span></td>
+                    <td class="db-cell"><span class="db-val-str">USD</span></td>
+                    <td class="db-cell"><span class="db-val-num">4</span></td>
+                    <td class="db-cell"><span class="db-val-num">3</span></td>
+                    <td class="db-cell"><span class="db-val-num">3100</span></td>
+                    <td class="db-cell"><span class="db-val-badge yellow">pending</span></td>
+                    <td class="db-cell"><span class="db-val-str">88 Beacon Hill, Boston</span></td>
+                    <td class="db-cell"><span class="db-val-fk">4</span></td>
+                    <td class="db-cell"><span class="db-val-fk">3</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-02-14 10:10:10+00</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-04-02 15:33:00+00</span></td>
+                  </tr>
+                  <tr>
+                    <td class="db-row-check"><input type="checkbox"></td>
+                    <td class="db-cell-id">8</td>
+                    <td class="db-cell"><span class="db-val-str">prop_v4w5x6</span></td>
+                    <td class="db-cell"><span class="db-val-str">Industrial Warehouse Loft</span></td>
+                    <td class="db-cell"><span class="db-val-num">560000</span></td>
+                    <td class="db-cell"><span class="db-val-str">USD</span></td>
+                    <td class="db-cell"><span class="db-val-num">2</span></td>
+                    <td class="db-cell"><span class="db-val-num">2</span></td>
+                    <td class="db-cell"><span class="db-val-num">2200</span></td>
+                    <td class="db-cell"><span class="db-val-badge green">available</span></td>
+                    <td class="db-cell"><span class="db-val-str">42 Warehouse Rd, Portland</span></td>
+                    <td class="db-cell"><span class="db-val-fk">6</span></td>
+                    <td class="db-cell"><span class="db-val-fk">2</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-03-05 14:50:29+00</span></td>
+                    <td class="db-cell"><span class="db-val-date">2026-04-04 12:00:00+00</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Bottom status bar -->
+            <div style="height:28px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;font-size:11px;color:var(--text3);gap:16px;flex-shrink:0">
+              <span><i class="fas fa-table" style="margin-right:4px"></i> properties</span>
+              <span>14 columns</span>
+              <span>1,247 rows</span>
+              <span style="flex:1"></span>
+              <span>limit 50 offset 0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DB SQL Editor View -->
+        <div id="db-sql-editor" class="db-sub" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+          <div style="display:flex;flex:1;overflow:hidden">
+            <!-- Saved queries sidebar -->
+            <div style="width:220px;min-width:220px;border-right:1px solid var(--border);background:var(--bg2);overflow-y:auto;padding:8px 0">
+              <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600">Saved Queries</span>
+                <button class="chat-btn" style="width:22px;height:22px" title="New Query"><i class="fas fa-plus" style="font-size:10px"></i></button>
+              </div>
+              <div class="db-tbl-item active"><i class="fas fa-file-code" style="color:var(--accent);font-size:10px;width:14px"></i> Active listings</div>
+              <div class="db-tbl-item"><i class="fas fa-file-code" style="color:var(--text3);font-size:10px;width:14px"></i> Revenue by month</div>
+              <div class="db-tbl-item"><i class="fas fa-file-code" style="color:var(--text3);font-size:10px;width:14px"></i> Agent performance</div>
+              <div class="db-tbl-item"><i class="fas fa-file-code" style="color:var(--text3);font-size:10px;width:14px"></i> Client engagement</div>
+              <div class="db-tbl-item"><i class="fas fa-file-code" style="color:var(--text3);font-size:10px;width:14px"></i> Stale properties</div>
+              <div style="padding:8px 12px;margin-top:8px;border-top:1px solid var(--border)">
+                <span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600">Templates</span>
+              </div>
+              <div class="db-tbl-item"><i class="fas fa-magic" style="color:var(--purple);font-size:10px;width:14px"></i> SELECT basics</div>
+              <div class="db-tbl-item"><i class="fas fa-magic" style="color:var(--purple);font-size:10px;width:14px"></i> JOIN example</div>
+              <div class="db-tbl-item"><i class="fas fa-magic" style="color:var(--purple);font-size:10px;width:14px"></i> Aggregate stats</div>
+              <div class="db-tbl-item"><i class="fas fa-magic" style="color:var(--purple);font-size:10px;width:14px"></i> Subquery pattern</div>
+            </div>
+
+            <!-- Editor + Results -->
+            <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+              <!-- SQL Editor area -->
+              <div style="display:flex;flex-direction:column;height:220px;min-height:120px;border-bottom:1px solid var(--border)">
+                <div style="display:flex;align-items:center;padding:6px 16px;gap:6px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+                  <span style="font-size:12px;font-weight:600;color:var(--text)">Active listings</span>
+                  <span style="font-size:11px;color:var(--text3)">&middot; saved 2h ago</span>
+                  <span style="flex:1"></span>
+                  <button class="btn btn-sm"><i class="fas fa-magic"></i> Format</button>
+                  <button class="btn btn-sm"><i class="fas fa-save"></i> Save</button>
+                  <button class="btn btn-sm btn-primary"><i class="fas fa-play"></i> Run <span style="opacity:.6;font-size:10px;margin-left:4px">Ctrl+Enter</span></button>
+                </div>
+                <div style="flex:1;display:flex;overflow:auto;background:#0d0f14">
+                  <div style="padding:12px 10px 12px 14px;text-align:right;color:var(--text3);font-family:'Fira Code',Consolas,monospace;font-size:12px;line-height:1.8;user-select:none;min-width:36px">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12</div>
+                  <textarea spellcheck="false" style="flex:1;background:transparent;border:none;color:var(--text);font-family:'Fira Code',Consolas,monospace;font-size:12px;line-height:1.8;padding:12px 14px 12px 8px;resize:none;outline:none;white-space:pre;tab-size:2">SELECT
+  p.id,
+  p.title,
+  p.price,
+  p.bedrooms,
+  p.status,
+  p.address,
+  u.name AS agent_name,
+  p.created_at
+FROM properties p
+LEFT JOIN users u ON p.agent_id = u.id
+WHERE p.status = 'available'
+ORDER BY p.created_at DESC
+LIMIT 50;</textarea>
+                </div>
+              </div>
+
+              <!-- Results area -->
+              <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+                <div style="display:flex;align-items:center;padding:6px 16px;gap:8px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+                  <span style="font-size:12px;font-weight:600;color:var(--green)"><i class="fas fa-check-circle" style="margin-right:4px"></i> Success</span>
+                  <span style="font-size:11px;color:var(--text3)">5 rows returned &middot; 18ms</span>
+                  <span style="flex:1"></span>
+                  <button class="btn btn-sm"><i class="fas fa-download"></i> CSV</button>
+                  <button class="btn btn-sm"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div style="flex:1;overflow:auto">
+                  <table class="db-data-table">
+                    <thead>
+                      <tr>
+                        <th class="db-col-header"><span class="db-col-name">id</span> <span class="db-col-type">int4</span></th>
+                        <th class="db-col-header"><span class="db-col-name">title</span> <span class="db-col-type">varchar</span></th>
+                        <th class="db-col-header"><span class="db-col-name">price</span> <span class="db-col-type">numeric</span></th>
+                        <th class="db-col-header"><span class="db-col-name">bedrooms</span> <span class="db-col-type">int4</span></th>
+                        <th class="db-col-header"><span class="db-col-name">status</span> <span class="db-col-type">varchar</span></th>
+                        <th class="db-col-header"><span class="db-col-name">address</span> <span class="db-col-type">text</span></th>
+                        <th class="db-col-header"><span class="db-col-name">agent_name</span> <span class="db-col-type">varchar</span></th>
+                        <th class="db-col-header"><span class="db-col-name">created_at</span> <span class="db-col-type">timestamptz</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="db-cell-id">1</td><td class="db-cell"><span class="db-val-str">Modern Downtown Loft</span></td><td class="db-cell"><span class="db-val-num">485000</span></td><td class="db-cell"><span class="db-val-num">2</span></td><td class="db-cell"><span class="db-val-badge green">available</span></td><td class="db-cell"><span class="db-val-str">123 Main St, New York</span></td><td class="db-cell"><span class="db-val-str">John Smith</span></td><td class="db-cell"><span class="db-val-date">2026-03-15 09:24:11+00</span></td></tr>
+                      <tr><td class="db-cell-id">2</td><td class="db-cell"><span class="db-val-str">Suburban Family Home</span></td><td class="db-cell"><span class="db-val-num">725000</span></td><td class="db-cell"><span class="db-val-num">4</span></td><td class="db-cell"><span class="db-val-badge green">available</span></td><td class="db-cell"><span class="db-val-str">456 Oak Ave, Boston</span></td><td class="db-cell"><span class="db-val-str">Maria Garcia</span></td><td class="db-cell"><span class="db-val-date">2026-03-18 11:05:33+00</span></td></tr>
+                      <tr><td class="db-cell-id">5</td><td class="db-cell"><span class="db-val-str">Beachfront Villa</span></td><td class="db-cell"><span class="db-val-num">3800000</span></td><td class="db-cell"><span class="db-val-num">5</span></td><td class="db-cell"><span class="db-val-badge green">available</span></td><td class="db-cell"><span class="db-val-str">100 Ocean Dr, Malibu</span></td><td class="db-cell"><span class="db-val-str">John Smith</span></td><td class="db-cell"><span class="db-val-date">2026-03-28 13:15:42+00</span></td></tr>
+                      <tr><td class="db-cell-id">6</td><td class="db-cell"><span class="db-val-str">Mountain Cabin Retreat</span></td><td class="db-cell"><span class="db-val-num">420000</span></td><td class="db-cell"><span class="db-val-num">3</span></td><td class="db-cell"><span class="db-val-badge green">available</span></td><td class="db-cell"><span class="db-val-str">55 Pine Trail, Aspen</span></td><td class="db-cell"><span class="db-val-str">Maria Garcia</span></td><td class="db-cell"><span class="db-val-date">2026-04-01 07:20:18+00</span></td></tr>
+                      <tr><td class="db-cell-id">8</td><td class="db-cell"><span class="db-val-str">Industrial Warehouse Loft</span></td><td class="db-cell"><span class="db-val-num">560000</span></td><td class="db-cell"><span class="db-val-num">2</span></td><td class="db-cell"><span class="db-val-badge green">available</span></td><td class="db-cell"><span class="db-val-str">42 Warehouse Rd, Portland</span></td><td class="db-cell"><span class="db-val-str">Maria Garcia</span></td><td class="db-cell"><span class="db-val-date">2026-03-05 14:50:29+00</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===== LOGS ===== -->
+      <div class="page" id="page-logs">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+          <div style="flex:1">
+            <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">Logs</h1>
+            <p style="color:var(--text2);font-size:13px">Monitor application activity and API requests</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px">
+            <span style="font-size:12px;color:var(--text2)">Monthly RPS</span>
+            <span style="font-size:16px;font-weight:700;color:var(--accent)">12.8K</span>
+            <span style="font-size:12px;color:var(--text3)">/ 100K</span>
+            <div style="width:60px;height:4px;background:var(--bg4);border-radius:2px;margin-left:4px;overflow:hidden">
+              <div style="width:13%;height:100%;background:var(--accent);border-radius:2px"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm"><i class="fas fa-arrow-up"></i> Upgrade Plan</button>
+        </div>
+        <div class="action-bar">
+          <div class="search-wrap"><i class="fas fa-search"></i><input class="search-input" placeholder="Filter logs..."></div>
+          <select style="padding:6px 10px;font-size:12px">
+            <option>All Actions</option>
+            <option>API Calls</option>
+            <option>Auth</option>
+            <option>Database</option>
+          </select>
+          <select style="padding:6px 10px;font-size:12px">
+            <option>All Status</option>
+            <option>Success</option>
+            <option>Error</option>
+          </select>
+          <span style="flex:1"></span>
+          <button class="btn btn-sm"><i class="fas fa-download"></i> Export</button>
+        </div>
+        <!-- Summary bar -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:13px;color:var(--text2)">
+          <i class="fas fa-search" style="color:var(--text3)"></i>
+          <span><strong style="color:var(--text)">8</strong> requests</span>
+          <span><strong style="color:var(--text)">0</strong> logs</span>
+          <span style="flex:1"></span>
+          <button class="btn btn-sm"><i class="fas fa-trash"></i></button>
+        </div>
+
+        <!-- Accordion log list -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <!-- Log rows -->
+          <div class="log-row" onclick="toggleLog(this)">
+            <div class="log-row-header">
+              <span class="log-method get">get</span>
+              <span class="log-endpoint">/api/v1/properties</span>
+              <span class="log-time">a few seconds ago</span>
+              <span class="log-status-badge ok"><i class="fas fa-check-circle"></i> 200</span>
+              <i class="fas fa-chevron-down log-chevron"></i>
+            </div>
+            <div class="log-detail">
+              <div class="log-detail-tabs">
+                <button class="log-tab active" onclick="switchLogTab(event,this,'general')">General</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'request')">Request</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'response')">Response</button>
+              </div>
+              <div class="log-tab-pane active" data-tab="general">
+                <div class="log-detail-grid">
+                  <div><div class="log-detail-label">URL</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">https://propel.ugen.app/api/v1/properties</div></div>
+                  <div class="log-detail-row">
+                    <div><div class="log-detail-label">Method</div><div class="log-detail-val">get</div></div>
+                    <div><div class="log-detail-label">Status</div><div class="log-detail-val">200 <span style="color:var(--text3)">(42ms)</span></div></div>
+                  </div>
+                  <div><div class="log-detail-label">Time</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">Started: 2026-04-05 14:32:01<br>Completed: 2026-04-05 14:32:01</div></div>
+                  <div><div class="log-detail-label">Action By</div><div class="log-detail-val">jsmith</div></div>
+                </div>
+              </div>
+              <div class="log-tab-pane" data-tab="request" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Request Headers</div>
+                <div class="code-block" style="font-size:11px">Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+Content-Type: application/json
+Accept: application/json
+X-App-ID: app_propel_001</div>
+                <div class="log-detail-label" style="margin:12px 0 8px">Query Params</div>
+                <div class="code-block" style="font-size:11px">status=available&limit=50&offset=0</div>
+              </div>
+              <div class="log-tab-pane" data-tab="response" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Response Data</div>
+                <div class="code-block" style="font-size:11px;max-height:180px;overflow-y:auto">[
+  {
+    "id": 1,
+    "uuid": "prop_a1b2c3",
+    "title": "Modern Downtown Loft",
+    "price": 485000,
+    "status": "available",
+    "bedrooms": 2,
+    "created_at": "2026-03-15T09:24:11+00:00"
+  },
+  {
+    "id": 2,
+    "uuid": "prop_d4e5f6",
+    "title": "Suburban Family Home",
+    "price": 725000,
+    "status": "available",
+    "bedrooms": 4,
+    "created_at": "2026-03-18T11:05:33+00:00"
+  }
+]</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-row" onclick="toggleLog(this)">
+            <div class="log-row-header">
+              <span class="log-method post">post</span>
+              <span class="log-endpoint">/api/v1/clients</span>
+              <span class="log-time">a minute ago</span>
+              <span class="log-status-badge ok"><i class="fas fa-check-circle"></i> 201</span>
+              <i class="fas fa-chevron-down log-chevron"></i>
+            </div>
+            <div class="log-detail">
+              <div class="log-detail-tabs">
+                <button class="log-tab active" onclick="switchLogTab(event,this,'general')">General</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'request')">Request</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'response')">Response</button>
+              </div>
+              <div class="log-tab-pane active" data-tab="general">
+                <div class="log-detail-grid">
+                  <div><div class="log-detail-label">URL</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">https://propel.ugen.app/api/v1/clients</div></div>
+                  <div class="log-detail-row">
+                    <div><div class="log-detail-label">Method</div><div class="log-detail-val">post</div></div>
+                    <div><div class="log-detail-label">Status</div><div class="log-detail-val">201 <span style="color:var(--text3)">(88ms)</span></div></div>
+                  </div>
+                  <div><div class="log-detail-label">Time</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">Started: 2026-04-05 14:31:45<br>Completed: 2026-04-05 14:31:45</div></div>
+                  <div><div class="log-detail-label">Action By</div><div class="log-detail-val">mgarcia</div></div>
+                </div>
+              </div>
+              <div class="log-tab-pane" data-tab="request" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Request Body</div>
+                <div class="code-block" style="font-size:11px">{
+  "name": "Sarah Johnson",
+  "email": "sarah@example.com",
+  "phone": "+1 555 678 9012",
+  "type": "buyer"
+}</div>
+              </div>
+              <div class="log-tab-pane" data-tab="response" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Response Data</div>
+                <div class="code-block" style="font-size:11px">{
+  "id": 857,
+  "uuid": "cli_x9y8z7",
+  "name": "Sarah Johnson",
+  "email": "sarah@example.com",
+  "created_at": "2026-04-05T14:31:45+00:00"
+}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-row" onclick="toggleLog(this)">
+            <div class="log-row-header">
+              <span class="log-method put">put</span>
+              <span class="log-endpoint">/api/v1/properties/123</span>
+              <span class="log-time">2 minutes ago</span>
+              <span class="log-status-badge ok"><i class="fas fa-check-circle"></i> 200</span>
+              <i class="fas fa-chevron-down log-chevron"></i>
+            </div>
+            <div class="log-detail" style="display:none">
+              <div class="log-detail-tabs">
+                <button class="log-tab active" onclick="switchLogTab(event,this,'general')">General</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'request')">Request</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'response')">Response</button>
+              </div>
+              <div class="log-tab-pane active" data-tab="general">
+                <div class="log-detail-grid">
+                  <div><div class="log-detail-label">URL</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">https://propel.ugen.app/api/v1/properties/123</div></div>
+                  <div class="log-detail-row">
+                    <div><div class="log-detail-label">Method</div><div class="log-detail-val">put</div></div>
+                    <div><div class="log-detail-label">Status</div><div class="log-detail-val">200 <span style="color:var(--text3)">(61ms)</span></div></div>
+                  </div>
+                  <div><div class="log-detail-label">Time</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">Started: 2026-04-05 14:30:22<br>Completed: 2026-04-05 14:30:22</div></div>
+                  <div><div class="log-detail-label">Action By</div><div class="log-detail-val">abdullo</div></div>
+                </div>
+              </div>
+              <div class="log-tab-pane" data-tab="request" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Request Body</div>
+                <div class="code-block" style="font-size:11px">{ "status": "pending" }</div>
+              </div>
+              <div class="log-tab-pane" data-tab="response" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Response Data</div>
+                <div class="code-block" style="font-size:11px">{ "id": 123, "status": "pending", "updated_at": "2026-04-05T14:30:22+00:00" }</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-row" onclick="toggleLog(this)">
+            <div class="log-row-header">
+              <span class="log-method delete">delete</span>
+              <span class="log-endpoint">/api/v1/media/456</span>
+              <span class="log-time">3 minutes ago</span>
+              <span class="log-status-badge err"><i class="fas fa-times-circle"></i> 403</span>
+              <i class="fas fa-chevron-down log-chevron"></i>
+            </div>
+            <div class="log-detail" style="display:none">
+              <div class="log-detail-tabs">
+                <button class="log-tab active" onclick="switchLogTab(event,this,'general')">General</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'request')">Request</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'response')">Response</button>
+              </div>
+              <div class="log-tab-pane active" data-tab="general">
+                <div class="log-detail-grid">
+                  <div><div class="log-detail-label">URL</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">https://propel.ugen.app/api/v1/media/456</div></div>
+                  <div class="log-detail-row">
+                    <div><div class="log-detail-label">Method</div><div class="log-detail-val">delete</div></div>
+                    <div><div class="log-detail-label">Status</div><div class="log-detail-val" style="color:var(--red)">403 <span style="color:var(--text3)">(12ms)</span></div></div>
+                  </div>
+                  <div><div class="log-detail-label">Time</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">Started: 2026-04-05 14:29:58<br>Completed: 2026-04-05 14:29:58</div></div>
+                  <div><div class="log-detail-label">Action By</div><div class="log-detail-val">akim</div></div>
+                </div>
+              </div>
+              <div class="log-tab-pane" data-tab="request" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Request Headers</div>
+                <div class="code-block" style="font-size:11px">Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+X-App-ID: app_propel_mob</div>
+              </div>
+              <div class="log-tab-pane" data-tab="response" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Response Data</div>
+                <div class="code-block" style="font-size:11px">{ "error": "Forbidden", "message": "Insufficient permissions to delete media" }</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-row" onclick="toggleLog(this)">
+            <div class="log-row-header">
+              <span class="log-method post">post</span>
+              <span class="log-endpoint">/api/v1/auth/login</span>
+              <span class="log-time">an hour ago</span>
+              <span class="log-status-badge ok"><i class="fas fa-check-circle"></i> 200</span>
+              <i class="fas fa-chevron-down log-chevron"></i>
+            </div>
+            <div class="log-detail" style="display:none">
+              <div class="log-detail-tabs">
+                <button class="log-tab active" onclick="switchLogTab(event,this,'general')">General</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'request')">Request</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'response')">Response</button>
+              </div>
+              <div class="log-tab-pane active" data-tab="general">
+                <div class="log-detail-grid">
+                  <div><div class="log-detail-label">URL</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">https://propel.ugen.app/api/v1/auth/login</div></div>
+                  <div class="log-detail-row">
+                    <div><div class="log-detail-label">Method</div><div class="log-detail-val">post</div></div>
+                    <div><div class="log-detail-label">Status</div><div class="log-detail-val">200 <span style="color:var(--text3)">(134ms)</span></div></div>
+                  </div>
+                  <div><div class="log-detail-label">Time</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">Started: 2026-04-05 14:28:11<br>Completed: 2026-04-05 14:28:11</div></div>
+                  <div><div class="log-detail-label">Action By</div><div class="log-detail-val">jsmith</div></div>
+                </div>
+              </div>
+              <div class="log-tab-pane" data-tab="request" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Request Body</div>
+                <div class="code-block" style="font-size:11px">{ "email": "john@realty.com", "password": "••••••••" }</div>
+              </div>
+              <div class="log-tab-pane" data-tab="response" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Response Data</div>
+                <div class="code-block" style="font-size:11px">{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "user": { "id": 2, "name": "John Smith", "role": "agent" },
+  "expires_at": "2026-04-06T14:28:11+00:00"
+}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-row" onclick="toggleLog(this)">
+            <div class="log-row-header">
+              <span class="log-method get">get</span>
+              <span class="log-endpoint">/api/v1/transactions</span>
+              <span class="log-time">2 hours ago</span>
+              <span class="log-status-badge err"><i class="fas fa-times-circle"></i> 500</span>
+              <i class="fas fa-chevron-down log-chevron"></i>
+            </div>
+            <div class="log-detail" style="display:none">
+              <div class="log-detail-tabs">
+                <button class="log-tab active" onclick="switchLogTab(event,this,'general')">General</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'request')">Request</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'response')">Response</button>
+              </div>
+              <div class="log-tab-pane active" data-tab="general">
+                <div class="log-detail-grid">
+                  <div><div class="log-detail-label">URL</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">https://propel.ugen.app/api/v1/transactions</div></div>
+                  <div class="log-detail-row">
+                    <div><div class="log-detail-label">Method</div><div class="log-detail-val">get</div></div>
+                    <div><div class="log-detail-label">Status</div><div class="log-detail-val" style="color:var(--red)">500 <span style="color:var(--text3)">(2,341ms)</span></div></div>
+                  </div>
+                  <div><div class="log-detail-label">Time</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">Started: 2026-04-05 14:27:33<br>Completed: 2026-04-05 14:27:35</div></div>
+                  <div><div class="log-detail-label">Action By</div><div class="log-detail-val">system</div></div>
+                </div>
+              </div>
+              <div class="log-tab-pane" data-tab="request" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Request Headers</div>
+                <div class="code-block" style="font-size:11px">Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+X-App-ID: app_propel_001</div>
+              </div>
+              <div class="log-tab-pane" data-tab="response" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Response Data</div>
+                <div class="code-block" style="font-size:11px;color:var(--red)">{ "error": "Internal Server Error", "message": "Connection timeout to database replica" }</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-row" onclick="toggleLog(this)">
+            <div class="log-row-header">
+              <span class="log-method post">post</span>
+              <span class="log-endpoint">/api/v1/showings</span>
+              <span class="log-time">2 hours ago</span>
+              <span class="log-status-badge ok"><i class="fas fa-check-circle"></i> 201</span>
+              <i class="fas fa-chevron-down log-chevron"></i>
+            </div>
+            <div class="log-detail" style="display:none">
+              <div class="log-detail-tabs">
+                <button class="log-tab active" onclick="switchLogTab(event,this,'general')">General</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'request')">Request</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'response')">Response</button>
+              </div>
+              <div class="log-tab-pane active" data-tab="general">
+                <div class="log-detail-grid">
+                  <div><div class="log-detail-label">URL</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">https://propel.ugen.app/api/v1/showings</div></div>
+                  <div class="log-detail-row">
+                    <div><div class="log-detail-label">Method</div><div class="log-detail-val">post</div></div>
+                    <div><div class="log-detail-label">Status</div><div class="log-detail-val">201 <span style="color:var(--text3)">(77ms)</span></div></div>
+                  </div>
+                  <div><div class="log-detail-label">Time</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">Started: 2026-04-05 14:26:04<br>Completed: 2026-04-05 14:26:04</div></div>
+                  <div><div class="log-detail-label">Action By</div><div class="log-detail-val">mgarcia</div></div>
+                </div>
+              </div>
+              <div class="log-tab-pane" data-tab="request" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Request Body</div>
+                <div class="code-block" style="font-size:11px">{ "property_id": 5, "client_id": 12, "date": "2026-04-10T14:00:00", "agent_id": 2 }</div>
+              </div>
+              <div class="log-tab-pane" data-tab="response" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Response Data</div>
+                <div class="code-block" style="font-size:11px">{ "id": 525, "property_id": 5, "date": "2026-04-10T14:00:00", "status": "scheduled" }</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-row" onclick="toggleLog(this)">
+            <div class="log-row-header">
+              <span class="log-method get">get</span>
+              <span class="log-endpoint">/api/v1/analytics/summary</span>
+              <span class="log-time">2 hours ago</span>
+              <span class="log-status-badge ok"><i class="fas fa-check-circle"></i> 200</span>
+              <i class="fas fa-chevron-down log-chevron"></i>
+            </div>
+            <div class="log-detail" style="display:none">
+              <div class="log-detail-tabs">
+                <button class="log-tab active" onclick="switchLogTab(event,this,'general')">General</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'request')">Request</button>
+                <button class="log-tab" onclick="switchLogTab(event,this,'response')">Response</button>
+              </div>
+              <div class="log-tab-pane active" data-tab="general">
+                <div class="log-detail-grid">
+                  <div><div class="log-detail-label">URL</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">https://propel.ugen.app/api/v1/analytics/summary</div></div>
+                  <div class="log-detail-row">
+                    <div><div class="log-detail-label">Method</div><div class="log-detail-val">get</div></div>
+                    <div><div class="log-detail-label">Status</div><div class="log-detail-val">200 <span style="color:var(--text3)">(56ms)</span></div></div>
+                  </div>
+                  <div><div class="log-detail-label">Time</div><div class="log-detail-val" style="color:var(--text2);font-size:12px">Started: 2026-04-05 14:25:19<br>Completed: 2026-04-05 14:25:19</div></div>
+                  <div><div class="log-detail-label">Action By</div><div class="log-detail-val">abdullo</div></div>
+                </div>
+              </div>
+              <div class="log-tab-pane" data-tab="request" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Request Headers</div>
+                <div class="code-block" style="font-size:11px">Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+X-App-ID: app_propel_001</div>
+              </div>
+              <div class="log-tab-pane" data-tab="response" style="display:none">
+                <div class="log-detail-label" style="margin-bottom:8px">Response Data</div>
+                <div class="code-block" style="font-size:11px">{
+  "api_calls_today": 12847,
+  "active_users": 4,
+  "avg_response_ms": 142,
+  "error_rate": 0.3
+}</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===== ANALYTICS ===== -->
+      <div class="page" id="page-analytics">
+        <div class="page-header">
+          <h1>Analytics</h1>
+          <p>Platform usage statistics and performance metrics</p>
+        </div>
+
+        <div class="subtabs">
+          <button class="subtab active" onclick="switchSubtab(this,'analytics-sub','analytics-usage')"><i class="fas fa-tachometer-alt" style="margin-right:4px"></i> Usage Limits</button>
+          <button class="subtab" onclick="switchSubtab(this,'analytics-sub','analytics-stats')"><i class="fas fa-chart-bar" style="margin-right:4px"></i> Project Statistics</button>
+        </div>
+
+        <!-- Tab: Usage Limits -->
+        <div id="analytics-usage" class="analytics-sub">
+          <!-- Current plan banner -->
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--accent-bg);border:1px solid rgba(0,78,234,.3);border-radius:var(--radius2);padding:14px 20px;margin-bottom:20px">
+            <div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);font-weight:600;margin-bottom:2px">Current Plan</div>
+              <div style="font-size:18px;font-weight:700">Small <span style="font-size:13px;color:var(--text2);font-weight:400">— $300 / month</span></div>
+            </div>
+            <button class="btn btn-primary"><i class="fas fa-arrow-up"></i> Upgrade Plan</button>
+          </div>
+
+          <!-- Usage meters -->
+          <div class="stat-grid" style="margin-bottom:20px">
+            <div class="stat-card">
+              <div class="label">API Calls</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin:4px 0 8px">
+                <span style="font-size:22px;font-weight:700;color:var(--accent)">100</span>
+                <span style="font-size:12px;color:var(--text3)">/ 500</span>
+              </div>
+              <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+                <div style="width:20%;height:100%;background:var(--accent);border-radius:3px"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">400 remaining</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Storage</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin:4px 0 8px">
+                <span style="font-size:22px;font-weight:700;color:var(--blue)">2.4 GB</span>
+                <span style="font-size:12px;color:var(--text3)">/ 50 GB</span>
+              </div>
+              <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+                <div style="width:5%;height:100%;background:var(--blue);border-radius:3px"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">47.6 GB remaining</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">DB Records</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin:4px 0 8px">
+                <span style="font-size:22px;font-weight:700;color:var(--green)">62,432</span>
+                <span style="font-size:12px;color:var(--text3)">/ 1,000,000</span>
+              </div>
+              <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+                <div style="width:6%;height:100%;background:var(--green);border-radius:3px"></div>
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">937,568 remaining</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Log Retention</div>
+              <div style="font-size:22px;font-weight:700;color:var(--purple);margin:4px 0 8px">30 <span style="font-size:13px;font-weight:400;color:var(--text2)">days</span></div>
+              <div style="font-size:11px;color:var(--text3)">Upgrade for 90 days</div>
+            </div>
+          </div>
+
+          <!-- Plan comparison table -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:14px 20px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Plan Comparison</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th style="text-align:center">Free<br><span style="font-weight:400;color:var(--text3)">$0/mo</span></th>
+                  <th style="text-align:center;color:var(--accent)">Small ✓<br><span style="font-weight:400;color:var(--text3)">$300/mo</span></th>
+                  <th style="text-align:center">Medium<br><span style="font-weight:400;color:var(--text3)">$600/mo</span></th>
+                  <th style="text-align:center">Enterprise<br><span style="font-weight:400;color:var(--text3)">Custom</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>API Calls</td>
+                  <td style="text-align:center">100</td>
+                  <td style="text-align:center;background:var(--accent-bg);color:var(--accent);font-weight:600">500</td>
+                  <td style="text-align:center">Unlimited</td>
+                  <td style="text-align:center">Unlimited</td>
+                </tr>
+                <tr>
+                  <td>Storage</td>
+                  <td style="text-align:center">10 GB</td>
+                  <td style="text-align:center;background:var(--accent-bg);color:var(--accent);font-weight:600">50 GB</td>
+                  <td style="text-align:center">Unlimited</td>
+                  <td style="text-align:center">Custom</td>
+                </tr>
+                <tr>
+                  <td>Database Records</td>
+                  <td style="text-align:center">100,000</td>
+                  <td style="text-align:center;background:var(--accent-bg);color:var(--accent);font-weight:600">1,000,000</td>
+                  <td style="text-align:center">Unlimited</td>
+                  <td style="text-align:center">Unlimited</td>
+                </tr>
+                <tr>
+                  <td>Log Retention</td>
+                  <td style="text-align:center">1 day</td>
+                  <td style="text-align:center;background:var(--accent-bg);color:var(--accent);font-weight:600">30 days</td>
+                  <td style="text-align:center">30 days</td>
+                  <td style="text-align:center">90 days</td>
+                </tr>
+                <tr>
+                  <td>Infrastructure</td>
+                  <td style="text-align:center">Shared</td>
+                  <td style="text-align:center;background:var(--accent-bg);color:var(--accent);font-weight:600">Shared</td>
+                  <td style="text-align:center">Shared</td>
+                  <td style="text-align:center">Dedicated</td>
+                </tr>
+                <tr>
+                  <td>Role Based Access</td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                  <td style="text-align:center;background:var(--accent-bg)"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                </tr>
+                <tr>
+                  <td>REST API &amp; Webhooks</td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                  <td style="text-align:center;background:var(--accent-bg)"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                </tr>
+                <tr>
+                  <td>Advanced Reporting</td>
+                  <td style="text-align:center"><i class="fas fa-times" style="color:var(--text3)"></i></td>
+                  <td style="text-align:center;background:var(--accent-bg)"><i class="fas fa-times" style="color:var(--text3)"></i></td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                </tr>
+                <tr>
+                  <td>Dedicated Infrastructure</td>
+                  <td style="text-align:center"><i class="fas fa-times" style="color:var(--text3)"></i></td>
+                  <td style="text-align:center;background:var(--accent-bg)"><i class="fas fa-times" style="color:var(--text3)"></i></td>
+                  <td style="text-align:center"><i class="fas fa-times" style="color:var(--text3)"></i></td>
+                  <td style="text-align:center"><i class="fas fa-check" style="color:var(--green)"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Project Statistics -->
+        <div id="analytics-stats" class="analytics-sub" style="display:none">
+          <!-- Stat cards row 1 -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="label">Frontend Pages</div>
+              <div class="value" style="color:var(--accent)">6</div>
+              <div class="sub">+1 draft page</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Server Functions</div>
+              <div class="value" style="color:var(--purple)">4</div>
+              <div class="sub">3 active, 1 disabled</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Database Tables</div>
+              <div class="value" style="color:var(--green)">9</div>
+              <div class="sub">62,432 total rows</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">API Keys</div>
+              <div class="value" style="color:var(--blue)">3</div>
+              <div class="sub">1,600 RPS combined</div>
+            </div>
+          </div>
+
+          <!-- Stat cards row 2 -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="label">API Calls (24h)</div>
+              <div class="value">12,847</div>
+              <div class="sub" style="color:var(--green)"><i class="fas fa-arrow-up"></i> +18% from yesterday</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Active Users</div>
+              <div class="value">4</div>
+              <div class="sub">2 online now</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Avg Response Time</div>
+              <div class="value">142<span style="font-size:14px;color:var(--text2)">ms</span></div>
+              <div class="sub" style="color:var(--green)"><i class="fas fa-arrow-down"></i> -23ms from last week</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Error Rate</div>
+              <div class="value">0.3<span style="font-size:14px;color:var(--text2)">%</span></div>
+              <div class="sub">4 errors in last 24h</div>
+            </div>
+          </div>
+
+          <!-- Bar chart -->
+          <div class="page-section">
+            <h2><i class="fas fa-chart-line"></i> API Requests (Last 7 Days)</h2>
+            <div class="card" style="height:200px;display:flex;align-items:flex-end;gap:8px;padding:20px 20px 30px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:60%"></div><span style="font-size:10px;color:var(--text3)">Mon</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:75%"></div><span style="font-size:10px;color:var(--text3)">Tue</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:45%"></div><span style="font-size:10px;color:var(--text3)">Wed</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:90%"></div><span style="font-size:10px;color:var(--text3)">Thu</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;background:var(--accent);border-radius:4px 4px 0 0;height:82%"></div><span style="font-size:10px;color:var(--text3)">Fri</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;background:var(--accent);opacity:.5;border-radius:4px 4px 0 0;height:30%"></div><span style="font-size:10px;color:var(--text3)">Sat</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;background:var(--accent);opacity:.5;border-radius:4px 4px 0 0;height:25%"></div><span style="font-size:10px;color:var(--text3)">Sun</span></div>
+            </div>
+          </div>
+
+          <!-- Low-code stats table -->
+          <div class="page-section">
+            <h2><i class="fas fa-list"></i> Low-Code Statistics</h2>
+            <div class="card" style="padding:0;overflow:hidden">
+              <table>
+                <thead><tr><th>Metric</th><th>Value</th><th>Change</th></tr></thead>
+                <tbody>
+                  <tr><td><i class="fas fa-rocket" style="color:var(--accent);width:16px;margin-right:8px"></i>Total Deployments</td><td><strong>47</strong></td><td style="color:var(--green)"><i class="fas fa-arrow-up"></i> +12 this week</td></tr>
+                  <tr><td><i class="fas fa-robot" style="color:var(--purple);width:16px;margin-right:8px"></i>AI Code Generations</td><td><strong>234</strong></td><td style="color:var(--green)"><i class="fas fa-arrow-up"></i> +38 this week</td></tr>
+                  <tr><td><i class="fas fa-plug" style="color:var(--blue);width:16px;margin-right:8px"></i>Custom Endpoints</td><td><strong>4</strong></td><td style="color:var(--text3)">&mdash;</td></tr>
+                  <tr><td><i class="fas fa-puzzle-piece" style="color:var(--green);width:16px;margin-right:8px"></i>Active Integrations</td><td><strong>4</strong></td><td style="color:var(--text3)">&mdash;</td></tr>
+                  <tr><td><i class="fas fa-bell" style="color:#eab308;width:16px;margin-right:8px"></i>Webhook Events</td><td><strong>1,892</strong></td><td style="color:var(--green)"><i class="fas fa-arrow-up"></i> +241 this week</td></tr>
+                  <tr><td><i class="fas fa-folder" style="color:var(--accent);width:16px;margin-right:8px"></i>Files Stored</td><td><strong>2,156</strong></td><td style="color:var(--text3)">2.4 GB used</td></tr>
+                  <tr><td><i class="fas fa-key" style="color:var(--text2);width:16px;margin-right:8px"></i>Secrets</td><td><strong>5</strong></td><td style="color:var(--text3)">&mdash;</td></tr>
+                  <tr><td><i class="fas fa-database" style="color:var(--blue);width:16px;margin-right:8px"></i>Total DB Rows</td><td><strong>62,432</strong></td><td style="color:var(--green)"><i class="fas fa-arrow-up"></i> +1,204 this week</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Code Editor Mode -->
+  <div id="code-editor-area" style="display:none;flex:1;flex-direction:column">
+    <div style="height:44px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px">
+      <select id="codeTypeSelect" onchange="switchCodeType()" style="padding:5px 10px;font-size:12px;min-width:180px">
+        <optgroup label="Frontend Pages">
+          <option value="fe-dashboard">Dashboard</option>
+          <option value="fe-properties" selected>Properties</option>
+          <option value="fe-clients">Clients</option>
+          <option value="fe-transactions">Transactions</option>
+          <option value="fe-showings">Showings Calendar</option>
+          <option value="fe-login">Login</option>
+        </optgroup>
+        <optgroup label="Server Functions">
+          <option value="sf-onPropertyCreate">onPropertyCreate</option>
+          <option value="sf-sendNotification">sendNotification</option>
+          <option value="sf-generateReport">generateReport</option>
+          <option value="sf-syncCalendar">syncCalendar</option>
+        </optgroup>
+      </select>
+      <span class="status active" style="font-size:11px"><i class="fas fa-circle" style="font-size:5px"></i> Published</span>
+      <span style="flex:1"></span>
+      <button class="btn btn-sm"><i class="fas fa-search"></i> Find</button>
+      <button class="btn btn-sm"><i class="fas fa-undo"></i></button>
+      <button class="btn btn-sm"><i class="fas fa-redo"></i></button>
+      <button class="btn btn-sm"><i class="fas fa-copy"></i> Copy</button>
+      <button class="btn btn-sm btn-primary"><i class="fas fa-save"></i> Save</button>
+    </div>
+    <div style="flex:1;display:flex;overflow:hidden">
+      <!-- Line numbers + editor -->
+      <div style="flex:1;display:flex;overflow:auto;background:#0d0f14">
+        <div id="codeLineNums" style="padding:16px 12px 16px 16px;text-align:right;color:var(--text3);font-family:'Fira Code',Consolas,monospace;font-size:13px;line-height:1.7;user-select:none;min-width:48px"></div>
+        <textarea id="codeEditorArea" spellcheck="false" style="flex:1;background:transparent;border:none;color:var(--text);font-family:'Fira Code',Consolas,monospace;font-size:13px;line-height:1.7;padding:16px 16px 16px 8px;resize:none;outline:none;white-space:pre;overflow-wrap:normal;overflow-x:auto;tab-size:2"></textarea>
+      </div>
+      <!-- Minimap / info panel -->
+      <div style="width:220px;background:var(--bg2);border-left:1px solid var(--border);padding:16px;overflow-y:auto">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:10px;font-weight:600">File Info</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px"><i class="fas fa-file-code" style="width:16px;color:var(--accent)"></i> Properties.jsx</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px"><i class="fas fa-code-branch" style="width:16px;color:var(--green)"></i> main</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px"><i class="fas fa-clock" style="width:16px;color:var(--text3)"></i> Modified 5h ago</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:16px"><i class="fas fa-user" style="width:16px;color:var(--text3)"></i> abdullo</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:10px;font-weight:600;margin-top:16px">Outline</div>
+        <div style="font-size:12px;color:var(--text2);padding:4px 0;cursor:pointer"><i class="fas fa-cube" style="width:16px;color:var(--purple)"></i> PropertiesPage</div>
+        <div style="font-size:12px;color:var(--text2);padding:4px 0 4px 16px;cursor:pointer"><i class="fas fa-cube" style="width:16px;color:var(--blue)"></i> PropertyCard</div>
+        <div style="font-size:12px;color:var(--text2);padding:4px 0 4px 16px;cursor:pointer"><i class="fas fa-cube" style="width:16px;color:var(--blue)"></i> FilterBar</div>
+        <div style="font-size:12px;color:var(--text2);padding:4px 0 4px 16px;cursor:pointer"><i class="fas fa-cube" style="width:16px;color:var(--blue)"></i> PropertyModal</div>
+        <div style="font-size:12px;color:var(--text2);padding:4px 0;cursor:pointer"><i class="fas fa-bolt" style="width:16px;color:var(--accent)"></i> fetchProperties</div>
+        <div style="font-size:12px;color:var(--text2);padding:4px 0;cursor:pointer"><i class="fas fa-bolt" style="width:16px;color:var(--accent)"></i> createProperty</div>
+      </div>
+    </div>
+    <div style="height:28px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;font-size:11px;color:var(--text3);gap:16px">
+      <span>Ln 1, Col 1</span>
+      <span>Spaces: 2</span>
+      <span>UTF-8</span>
+      <span>JSX</span>
+      <span style="flex:1"></span>
+      <span>Prettier: On</span>
+    </div>
+  </div>
+
+  <!-- Preview Mode -->
+  <div id="preview-area" style="display:none;flex:1;flex-direction:column">
+    <div class="preview-toolbar">
+      <button class="btn btn-sm"><i class="fas fa-mobile-alt"></i></button>
+      <button class="btn btn-sm"><i class="fas fa-tablet-alt"></i></button>
+      <button class="btn btn-sm"><i class="fas fa-desktop"></i></button>
+      <div class="toolbar-sep" style="height:20px"></div>
+      <input class="preview-url" value="https://propel.ugen.app" readonly>
+      <button class="btn btn-sm"><i class="fas fa-external-link-alt"></i></button>
+      <button class="btn btn-sm"><i class="fas fa-sync-alt"></i></button>
+    </div>
+    <div style="flex:1;background:#fff;display:flex;align-items:center;justify-content:center;position:relative">
+      <div style="text-align:center;color:#999;font-size:16px">
+        <i class="fas fa-eye" style="font-size:48px;color:#ddd;display:block;margin-bottom:16px"></i>
+        Preview of your generated application<br>
+        <span style="font-size:13px;color:#bbb">Build something with the AI chat to see a live preview</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Page navigation
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+// Toolbar switch
+function switchToolbar(mode) {
+  document.querySelectorAll('#toolbar .toolbar-tab').forEach(t => t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('content-area').style.display = mode === 'dashboard' ? 'flex' : 'none';
+  document.getElementById('preview-area').style.display = mode === 'preview' ? 'flex' : 'none';
+  document.getElementById('code-editor-area').style.display = mode === 'code-editor' ? 'flex' : 'none';
+  if (mode === 'code-editor') switchCodeType();
+}
+
+// Code editor
+const codeSamples = {
+  'fe-dashboard': `import React from 'react';
+import { Card, Stat, Chart } from '@ugen/ui';
+import { useQuery } from '@ugen/data';
+
+export default function Dashboard() {
+  const { data: stats } = useQuery('dashboard_stats');
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <Stat label="Properties" value={stats?.properties || 0} />
+        <Stat label="Clients" value={stats?.clients || 0} />
+        <Stat label="Revenue" value={stats?.revenue || '$0'} />
+        <Stat label="Showings" value={stats?.showings || 0} />
+      </div>
+      <Card title="Revenue Chart">
+        <Chart type="line" data={stats?.revenueChart} />
+      </Card>
+    </div>
+  );
+}`,
+  'fe-properties': `import React, { useState } from 'react';
+import { Table, Button, Modal, Form } from '@ugen/ui';
+import { useQuery, useMutation } from '@ugen/data';
+
+export default function Properties() {
+  const [showModal, setShowModal] = useState(false);
+  const { data: properties, refetch } = useQuery('properties');
+  const { mutate: createProperty } = useMutation('properties');
+
+  const columns = [
+    { key: 'title', label: 'Title' },
+    { key: 'price', label: 'Price', render: (v) => \`$\${v.toLocaleString()}\` },
+    { key: 'bedrooms', label: 'Beds' },
+    { key: 'bathrooms', label: 'Baths' },
+    { key: 'status', label: 'Status', badge: true },
+    { key: 'created_at', label: 'Listed', date: true },
+  ];
+
+  const handleCreate = async (data) => {
+    await createProperty(data);
+    refetch();
+    setShowModal(false);
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Properties</h1>
+        <Button onClick={() => setShowModal(true)}>
+          + Add Property
+        </Button>
+      </div>
+
+      <Table columns={columns} data={properties} />
+
+      <Modal open={showModal} onClose={() => setShowModal(false)}>
+        <Form onSubmit={handleCreate} fields={[
+          { name: 'title', label: 'Title', required: true },
+          { name: 'price', label: 'Price', type: 'number' },
+          { name: 'bedrooms', label: 'Bedrooms', type: 'number' },
+          { name: 'status', label: 'Status', type: 'select',
+            options: ['available', 'pending', 'sold'] },
+        ]} />
+      </Modal>
+    </div>
+  );
+}`,
+  'fe-clients': `import React from 'react';
+import { Table, Button, Avatar } from '@ugen/ui';
+import { useQuery } from '@ugen/data';
+
+export default function Clients() {
+  const { data: clients } = useQuery('clients');
+
+  const columns = [
+    { key: 'name', label: 'Name', render: (v, row) => (
+      <div className="flex items-center gap-2">
+        <Avatar name={v} size="sm" />
+        <span>{v}</span>
+      </div>
+    )},
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'type', label: 'Type', badge: true },
+    { key: 'properties_count', label: 'Properties' },
+  ];
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Clients</h1>
+      <Table columns={columns} data={clients} />
+    </div>
+  );
+}`,
+  'fe-transactions': `import React from 'react';
+import { Table, Stat } from '@ugen/ui';
+import { useQuery } from '@ugen/data';
+
+export default function Transactions() {
+  const { data } = useQuery('transactions');
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Transactions</h1>
+      <Table data={data} />
+    </div>
+  );
+}`,
+  'fe-showings': `import React from 'react';
+import { Calendar } from '@ugen/ui';
+import { useQuery } from '@ugen/data';
+
+export default function ShowingsCalendar() {
+  const { data: showings } = useQuery('showings');
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Showings</h1>
+      <Calendar events={showings} />
+    </div>
+  );
+}`,
+  'fe-login': `import React from 'react';
+import { Form, Button } from '@ugen/ui';
+import { useAuth } from '@ugen/auth';
+
+export default function Login() {
+  const { login } = useAuth();
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Form onSubmit={login} fields={[
+        { name: 'email', type: 'email', required: true },
+        { name: 'password', type: 'password', required: true },
+      ]} />
+    </div>
+  );
+}`,
+  'sf-onPropertyCreate': `// Server Function: onPropertyCreate
+// Trigger: INSERT on properties table
+
+export default async function onPropertyCreate(record, ctx) {
+  const { title, price, owner_id } = record;
+
+  // Send notification to admin
+  await ctx.notify({
+    channel: 'admin',
+    title: 'New Property Listed',
+    body: \`"\${title}" listed at $\${price.toLocaleString()}\`,
+  });
+
+  // Auto-assign to available agent
+  const agent = await ctx.db
+    .from('users')
+    .select('id')
+    .eq('role', 'agent')
+    .order('active_listings', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (agent) {
+    await ctx.db
+      .from('properties')
+      .update({ assigned_agent: agent.id })
+      .eq('id', record.id);
+  }
+
+  // Log the action
+  await ctx.log('property_created', {
+    property_id: record.id,
+    owner_id,
+    assigned_agent: agent?.id,
+  });
+}`,
+  'sf-sendNotification': `// Server Function: sendNotification
+// Trigger: HTTP POST /api/notify
+
+export default async function sendNotification(req, ctx) {
+  const { user_id, type, message } = req.body;
+
+  const user = await ctx.db
+    .from('users')
+    .select('email, phone, notification_prefs')
+    .eq('id', user_id)
+    .single();
+
+  if (user.notification_prefs.email) {
+    await ctx.email.send({
+      to: user.email,
+      subject: \`Propel: \${type}\`,
+      body: message,
+    });
+  }
+
+  if (user.notification_prefs.sms) {
+    await ctx.sms.send({
+      to: user.phone,
+      body: message,
+    });
+  }
+
+  return { success: true };
+}`,
+  'sf-generateReport': `// Server Function: generateReport
+// Trigger: CRON daily at 08:00
+
+export default async function generateReport(ctx) {
+  const today = new Date().toISOString().split('T')[0];
+
+  const stats = await ctx.db.rpc('get_daily_stats', { date: today });
+
+  const pdf = await ctx.pdf.generate({
+    template: 'daily-report',
+    data: stats,
+  });
+
+  await ctx.email.send({
+    to: 'admin@propel.com',
+    subject: \`Daily Report - \${today}\`,
+    attachments: [{ name: 'report.pdf', content: pdf }],
+  });
+}`,
+  'sf-syncCalendar': `// Server Function: syncCalendar
+// Trigger: CRON hourly
+
+export default async function syncCalendar(ctx) {
+  const showings = await ctx.db
+    .from('showings')
+    .select('*')
+    .gte('date', new Date().toISOString());
+
+  for (const showing of showings) {
+    await ctx.calendar.upsert({
+      id: showing.id,
+      title: \`Showing: \${showing.property_title}\`,
+      start: showing.date,
+      duration: 60,
+      attendees: [showing.agent_email, showing.client_email],
+    });
+  }
+}`,
+};
+
+function switchCodeType() {
+  const sel = document.getElementById('codeTypeSelect');
+  const val = sel.value;
+  const editor = document.getElementById('codeEditorArea');
+  const code = codeSamples[val] || '// Select a file to edit';
+  editor.value = code;
+  updateLineNumbers();
+}
+
+function updateLineNumbers() {
+  const editor = document.getElementById('codeEditorArea');
+  const lines = editor.value.split('\n').length;
+  const nums = document.getElementById('codeLineNums');
+  nums.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const editor = document.getElementById('codeEditorArea');
+  editor.addEventListener('input', updateLineNumbers);
+  editor.addEventListener('scroll', () => {
+    document.getElementById('codeLineNums').style.transform = 'translateY(-' + editor.scrollTop + 'px)';
+  });
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = editor.selectionStart;
+      editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(editor.selectionEnd);
+      editor.selectionStart = editor.selectionEnd = start + 2;
+      updateLineNumbers();
+    }
+  });
+});
+
+// Subtabs
+function switchSubtab(btn, groupClass, showId) {
+  btn.parentElement.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.' + groupClass).forEach(s => s.style.display = 'none');
+  document.getElementById(showId).style.display = 'block';
+}
+
+// Chat history toggle
+function toggleChatHistory() {
+  document.getElementById('chatHistory').classList.toggle('open');
+}
+
+// Database helpers
+function selectDbTable(el, name) {
+  document.querySelectorAll('.db-tbl-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+function toggleLog(row) {
+  row.classList.toggle('open');
+}
+function switchLogTab(e, btn, tab) {
+  e.stopPropagation();
+  const detail = btn.closest('.log-detail');
+  detail.querySelectorAll('.log-tab').forEach(t => t.classList.remove('active'));
+  detail.querySelectorAll('.log-tab-pane').forEach(p => p.style.display = 'none');
+  btn.classList.add('active');
+  detail.querySelector(`.log-tab-pane[data-tab="${tab}"]`).style.display = 'block';
+}
+function switchFilesView(btn, mode) {
+  btn.parentElement.querySelectorAll('.db-view-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('files-grid-view').style.display = mode === 'grid' ? 'block' : 'none';
+  document.getElementById('files-list-view').style.display = mode === 'list' ? 'block' : 'none';
+}
+function switchRole(btn) {
+  btn.parentElement.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function toggleTheme() {
+  const root = document.documentElement;
+  const btn = document.getElementById('themeToggle');
+  const isLight = root.classList.toggle('light');
+  btn.innerHTML = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+  btn.title = isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode';
+}
+
+function toggleDbFilter() {
+  const row = document.getElementById('dbFilterRow');
+  row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+}
+
+// Chat resizer
+const resizer = document.getElementById('chatResizer');
+const chat = document.getElementById('ai-chat');
+let isResizing = false;
+resizer.addEventListener('mousedown', (e) => {
+  isResizing = true;
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+});
+document.addEventListener('mousemove', (e) => {
+  if (!isResizing) return;
+  const w = Math.max(300, Math.min(600, e.clientX));
+  chat.style.width = w + 'px';
+  chat.style.minWidth = w + 'px';
+});
+document.addEventListener('mouseup', () => {
+  isResizing = false;
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+</script>
+</body>
+</html>

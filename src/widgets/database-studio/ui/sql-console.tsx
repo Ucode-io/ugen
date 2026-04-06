@@ -82,7 +82,7 @@ export const SqlConsole = () => {
   console.log({ isSidebarOpen })
 
   return (
-    <div className="flex bg-bg-card rounded-ai border border-border-subtle shadow-sm flex-1 flex-col sm:flex-row overflow-hidden max-w-[960px] min-h-[600px] h-[calc(100vh-280px)]">
+    <div className="flex bg-bg-card flex-1 flex-col sm:flex-row overflow-hidden max-w-[960px] min-h-[600px] h-[calc(100vh-280px)]">
       {/* Sidebar Panel */}
       <div
         className={cn(
@@ -170,10 +170,10 @@ export const SqlConsole = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle text-xs font-semibold text-text-muted hover:text-text-main hover:bg-hover-bg transition-all active:scale-[0.98]">
+            {/* <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle text-xs font-semibold text-text-muted hover:text-text-main hover:bg-hover-bg transition-all active:scale-[0.98]">
               <Sparkles size={14} className="text-primary/60" />
               {t('sqlConsole.prettify')}
-            </button>
+            </button> */}
             <button
               onClick={handleRun}
               disabled={executeMutation.isPending}

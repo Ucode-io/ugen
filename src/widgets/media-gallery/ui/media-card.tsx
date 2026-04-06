@@ -46,15 +46,13 @@ export const MediaCard = ({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
       onClick={() => isSelectionMode ? onToggle(item.id) : onPreview(item)}
-      className={`group relative aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all duration-300 shadow-sm
+      className={`group relative bg-bg-card border rounded-xl overflow-hidden cursor-pointer transition-all duration-150 flex flex-col shadow-sm
         ${isSelectionMode
           ? isSelected
-            ? 'border-primary shadow-lg ring-1 ring-primary/40 bg-primary/5'
-            : 'border-transparent hover:border-primary/30 bg-bg-card'
-          : 'border-transparent hover:border-primary/40 hover:ring-2 hover:ring-primary/40 bg-bg-card'
+            ? 'border-primary ring-1 ring-primary/40'
+            : 'border-border-subtle hover:border-primary/30'
+          : 'border-border-subtle hover:border-[#004eea]'
         }`}
     >
       {/* Selection Overlay */}
@@ -64,52 +62,40 @@ export const MediaCard = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-10 bg-primary/10 pointer-events-none"
+            className="absolute inset-0 z-10 bg-primary/5 pointer-events-none"
           />
         )}
       </AnimatePresence>
 
       {/* Checkbox Icon */}
       {isSelectionMode && (
-        <div className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-full flex items-center justify-center border transition-all duration-300
+        <div className={`absolute top-2 right-2 z-20 w-5 h-5 rounded flex items-center justify-center border transition-all duration-150
           ${isSelected
             ? 'bg-primary border-primary'
-            : 'bg-white/50 border-white/80 group-hover:border-primary/50'
+            : 'bg-bg-main border-border-subtle group-hover:border-primary/50'
           }`}>
-          {isSelected && <Check className="w-4 h-4 text-white" />}
+          {isSelected && <Check className="w-3 h-3 text-white" />}
         </div>
       )}
 
-      {/* Content Rendering */}
-      <div className="w-full h-full flex items-center justify-center bg-bg-subtle relative transition-opacity group-hover:opacity-90">
+      {/* Thumbnail Area */}
+      <div className="w-full h-[120px] bg-bg-subtle relative flex items-center justify-center overflow-hidden">
         {(isImage && !hasError) ? (
           <img
             src={item.link}
             alt={item.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
             onError={() => setHasError(true)}
           />
         ) : isVideo ? (
-          <div className="relative w-full h-full flex items-center justify-center">
-            <video
-              src={item.link}
-              className="w-full h-full object-cover"
-              muted
-              playsInline
-            />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
-              <div className="w-10 h-10 rounded-full bg-white/40 flex items-center justify-center backdrop-blur-sm">
-                <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-              </div>
+          <div className="relative w-full h-full flex items-center justify-center bg-black/5">
+            <div className="w-10 h-10 rounded-full bg-white/40 flex items-center justify-center backdrop-blur-sm">
+              <Play className="w-5 h-5 text-white fill-white ml-0.5" />
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            {isImage ? (
-              <ImageIcon className="w-10 h-10 text-text-muted opacity-50" />
-            ) : (
-              <FileText className="w-10 h-10 text-text-muted" />
-            )}
+            <FileText className="w-8 h-8 text-text-muted opacity-80" />
             <span className="text-[10px] uppercase font-bold text-text-muted truncate max-w-full px-2">
               {item.file_name_disk?.split('.').pop()}
             </span>
@@ -117,10 +103,17 @@ export const MediaCard = ({
         )}
       </div>
 
-      {/* Info Hover Bar */}
-      <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/60 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
-        <p className="text-[11px] font-medium text-white truncate">{item.title}</p>
-        <p className="text-[9px] text-white/70">{(item.file_size / (1024 * 1024)).toFixed(2)} MB</p>
+      {/* Info Area */}
+      <div className="p-3 bg-bg-card flex flex-col justify-center border-t border-border-subtle flex-1">
+        <div className="text-[12px] font-medium text-text-main whitespace-nowrap overflow-hidden text-ellipsis">
+          {item.title || item.file_name_disk}
+        </div>
+        <div className="text-[11px] text-text-muted mt-0.5 flex justify-between items-center">
+          <span>{(item.file_size / (1024 * 1024)).toFixed(2)} MB</span>
+          <span className="uppercase text-[9px] font-semibold opacity-70">
+            {item.file_name_disk?.split('.').pop() || 'FILE'}
+          </span>
+        </div>
       </div>
     </motion.div>
   )

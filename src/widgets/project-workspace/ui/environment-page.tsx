@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ChevronLeft, Loader2, PenLine, ArrowLeftRight, Globe, Plus } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, authApi } from '@/shared/api'
@@ -9,6 +9,9 @@ import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
 import { DataLoadingState } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
+import { ColumnDef } from '@tanstack/react-table'
+import { WorkspaceDataTable } from './workspace-data-table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/shared/ui'
 
 interface Environment {
   id: string
@@ -30,16 +33,53 @@ interface EnvironmentPageProps {
   projectId: string
 }
 
-type View = 'list' | 'create' | 'edit'
+
 
 export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
-  const [view, setView] = useState<View>('list')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
   const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null)
   const [switchingId, setSwitchingId] = useState<string | null>(null)
 
   const queryClient = useQueryClient()
   const companyId = useAuthStore(s => s.user?.company_id ?? '')
   const refreshToken = useAuthStore(s => s.refreshToken ?? '')
+  const activeEnvId = useAuthStore(s => s.user?.environment_id)
+
+  const envColumns = useMemo<ColumnDef<Environment>[]>(() => [
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      cell: ({ row }) => <code className="text-[#004eea] bg-bg-main px-1.5 py-0.5 rounded text-[12px]">{row.original.id.slice(0, 8)}</code>
+    },
+    { accessorKey: 'name', header: 'Name' },
+    { accessorKey: 'description', header: 'Description' },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const isActive = activeEnvId === row.original.id;
+        return (
+          <span className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium",
+            isActive ? "bg-green-500/15 text-green-500" : "bg-bg-sidebar text-text-muted"
+          )}>
+            {isActive && <div className="w-[6px] h-[6px] rounded-full bg-green-500" />}
+            {isActive ? "Active" : "Inactive"}
+          </span>
+        )
+      }
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-text-main" onClick={(e) => { e.stopPropagation(); handleEdit(row.original); }}>
+          <PenLine size={14} />
+        </Button>
+      )
+    }
+  ], [activeEnvId])
 
   // API Functions
   const fetchEnvironments = async (projectId: string) => {
@@ -66,7 +106,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
   const { data: envDetail, isLoading: isDetailLoading } = useQuery({
     queryKey: ['environment-detail', selectedEnv?.id],
     queryFn: () => fetchEnvironmentById(selectedEnv!.id, projectId),
-    enabled: view === 'edit' && !!selectedEnv?.id
+    enabled: modalMode === 'edit' && isModalOpen && !!selectedEnv?.id
   })
 
   // Mutations
@@ -85,7 +125,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['environments', projectId] })
-      setView('list')
+      setIsModalOpen(false)
     }
   })
 
@@ -100,7 +140,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['environments', projectId] })
-      setView('list')
+      setIsModalOpen(false)
       setSelectedEnv(null)
     }
   })
@@ -149,7 +189,8 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
       display_color: env.display_color || '#3b82f6',
       access_type: env.access_type || 'PUBLIC'
     })
-    setView('edit')
+    setModalMode('edit')
+    setIsModalOpen(true)
   }
 
   const handleCreateOpen = () => {
@@ -159,26 +200,55 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
       display_color: '#3b82f6',
       access_type: 'PUBLIC'
     })
-    setView('create')
+    setModalMode('create')
+    setIsModalOpen(true)
   }
 
-  if (isListLoading && view === 'list') {
+  if (isListLoading) {
     return <DataLoadingState message="Loading environments..." />
   }
 
-  if (view === 'list') {
-    return (
+  return (
+    <>
       <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-text-main tracking-tight">Environments</h1>
-            <p className="text-text-muted text-sm mt-1">Manage different environments for your project.</p>
-          </div>
+        <div>
+          <h1 className="text-[22px] font-bold text-text-main mb-1">Environments</h1>
+          <p className="text-text-muted text-[13px]">Manage different environments for your project.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-3 mb-4">
+          {environments.map((env) => {
+            const isActive = activeEnvId === env.id;
+            const isSwitching = switchingId === env.id;
+            return (
+              <div
+                key={env.id}
+                onClick={() => !isActive && !isSwitching && switchMutation.mutate(env.id)}
+                className={cn(
+                  "bg-bg-sidebar border border-border-subtle rounded-xl px-4 py-3 min-w-[180px] cursor-pointer transition-all hover:border-[#004eea] relative overflow-hidden",
+                  isActive && "border-[#004eea] bg-[#004eea]/10",
+                  isSwitching && "opacity-70 pointer-events-none"
+                )}
+              >
+                {isSwitching && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-bg-card/50 backdrop-blur-[1px]">
+                     <Loader2 size={16} className="animate-spin text-[#004eea]" />
+                  </div>
+                )}
+                <div className="font-[600] text-[13px]">{env.name}</div>
+                <div className="text-[11px] text-text-muted mt-0.5">{env.description || 'Environment'}</div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex items-center gap-2 mb-4">
+          <span className="flex-1" />
           <Button
             onClick={handleCreateOpen}
-            className="bg-primary hover:bg-primary/90 text-white rounded-xl px-5 h-10 shadow-sm"
+            className="bg-primary hover:bg-primary/90 text-white fill-white rounded-lg px-4 h-8 text-[12px] font-medium"
           >
-            <Plus size={18} className="mr-2" />
+            <Plus size={14} className="mr-1.5" />
             Add Environment
           </Button>
         </div>
@@ -192,147 +262,97 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
             <p className="text-text-muted text-sm max-w-xs mt-1">Create your first environment to start managing your project deployments.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {environments.map((env) => (
-              <div
-                key={env.id}
-                className="bg-bg-card border border-border-subtle rounded-2xl px-5 py-4 flex items-center gap-4 hover:border-primary/20 transition-all shadow-sm"
-              >
-                <div
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: env.display_color }}
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-text-main truncate">{env.name}</h3>
-                  <p className="text-[11px] text-text-muted truncate mt-0.5">{env.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => switchMutation.mutate(env.id)}
-                    disabled={switchingId === env.id}
-                    className="h-8 rounded-lg px-3 text-xs font-medium"
-                  >
-                    {switchingId === env.id ? (
-                      <Loader2 size={12} className="mr-1.5 animate-spin" />
-                    ) : (
-                      <ArrowLeftRight size={12} className="mr-1.5" />
-                    )}
-                    Switch
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(env)}
-                    className="h-8 w-8 rounded-lg text-text-muted hover:text-primary hover:bg-primary/5"
-                  >
-                    <PenLine size={14} />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <WorkspaceDataTable
+            columns={envColumns}
+            data={environments}
+          />
         )}
       </div>
-    )
-  }
 
-  const isFormLoading = view === 'edit' && isDetailLoading
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {modalMode === 'create' ? 'New Environment' : 'Edit Environment'}
+            </DialogTitle>
+          </DialogHeader>
 
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setView('list')}
-          className="h-8 w-8 rounded-lg"
-        >
-          <ChevronLeft size={16} />
-        </Button>
-        <h1 className="text-xl font-bold text-text-main leading-tight">
-          {view === 'create' ? 'New Environment' : 'Edit Environment'}
-        </h1>
-      </div>
-
-      <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 max-w-lg shadow-sm">
-        {isFormLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 size={24} className="animate-spin text-primary/40" />
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Name</label>
-              <Input
-                placeholder="e.g. Production"
-                value={formData.name}
-                onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
-                className="bg-bg-sidebar border-border-subtle focus:ring-1 focus:ring-primary/20"
-              />
+          {modalMode === 'edit' && isDetailLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={24} className="animate-spin text-primary/40" />
             </div>
+          ) : (
+            <div className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-text-main">Name</label>
+                <Input
+                  placeholder="e.g. Production"
+                  value={formData.name}
+                  onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                  className="bg-bg-sidebar border-border-subtle focus:ring-1 focus:ring-primary/20"
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Description</label>
-              <Input
-                placeholder="Short description"
-                value={formData.description}
-                onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
-                className="bg-bg-sidebar border-border-subtle focus:ring-1 focus:ring-primary/20"
-              />
-            </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-text-main">Description</label>
+                <Input
+                  placeholder="Short description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
+                  className="bg-bg-sidebar border-border-subtle focus:ring-1 focus:ring-primary/20"
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Display Color</label>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-xl border border-border-subtle cursor-pointer overflow-hidden relative shrink-0"
-                  style={{ backgroundColor: formData.display_color }}
-                >
-                  <input
-                    type="color"
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-text-main">Display Color</label>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl border border-border-subtle cursor-pointer overflow-hidden relative shrink-0"
+                    style={{ backgroundColor: formData.display_color }}
+                  >
+                    <input
+                      type="color"
+                      value={formData.display_color}
+                      onChange={(e) => setFormData(p => ({ ...p, display_color: e.target.value }))}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </div>
+                  <Input
                     value={formData.display_color}
                     onChange={(e) => setFormData(p => ({ ...p, display_color: e.target.value }))}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    className="bg-bg-sidebar border-border-subtle h-10 font-mono text-xs uppercase"
                   />
                 </div>
-                <Input
-                  value={formData.display_color}
-                  onChange={(e) => setFormData(p => ({ ...p, display_color: e.target.value }))}
-                  className="bg-bg-sidebar border-border-subtle h-10 font-mono text-xs uppercase"
-                />
               </div>
             </div>
+          )}
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle/50">
-              <Button
-                variant="ghost"
-                onClick={() => setView('list')}
-                className="rounded-xl px-4"
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={!formData.name || createMutation.isPending || updateMutation.isPending}
-                onClick={() => {
-                  if (view === 'create') {
-                    createMutation.mutate(formData)
-                  } else {
-                    updateMutation.mutate({ ...formData, id: selectedEnv!.id })
-                  }
-                }}
-                className="bg-primary hover:bg-primary/90 text-white rounded-xl px-8 shadow-sm"
-              >
-                {(createMutation.isPending || updateMutation.isPending) && (
-                  <Loader2 size={16} className="animate-spin mr-2" />
-                )}
-                Save
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+          <DialogFooter className="mt-6 border-t border-border-subtle/50 pt-4 gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!formData.name || createMutation.isPending || updateMutation.isPending}
+              onClick={() => {
+                if (modalMode === 'create') {
+                  createMutation.mutate(formData)
+                } else {
+                  updateMutation.mutate({ ...formData, id: selectedEnv!.id })
+                }
+              }}
+              className="bg-primary hover:bg-primary/90 text-white fill-white shadow-sm"
+            >
+              {(createMutation.isPending || updateMutation.isPending) && (
+                <Loader2 size={16} className="animate-spin mr-2" />
+              )}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

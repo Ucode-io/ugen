@@ -80,9 +80,11 @@ export const ProjectDashboard = ({
   const { data: clientTypes = [] } = useClientTypes(projectId)
 
   const navigationItems: NavigationItem[] = useMemo(() => [
-    { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
+    { id: 'overview', icon: LayoutDashboard, label: 'Overview', category: 'General' },
+    { id: 'database_studio', icon: Database, label: 'Database', category: 'General' },
     {
       id: 'users_group',
+      category: 'Access Management',
       icon: Users,
       label: 'Users Management',
       isGroup: true,
@@ -93,18 +95,8 @@ export const ProjectDashboard = ({
       ]
     },
     {
-      id: 'files',
-      icon: Files,
-      label: 'Files',
-      isGroup: true,
-      items: fileMenus?.map((menu: MenuItem) => ({
-        id: menu.id,
-        label: menu.label,
-        path: menu.attributes.path
-      })) || [{ id: 'media', label: 'Media', path: 'media' }]
-    },
-    {
       id: 'permissions_group',
+      category: 'Access Management',
       icon: ShieldCheck,
       label: 'Permissions',
       isGroup: true,
@@ -113,9 +105,10 @@ export const ProjectDashboard = ({
         label: ct.name,
       })) || []
     },
-    { id: 'secrets', icon: Lock, label: 'API Secrets' },
+    { id: 'secrets', icon: Lock, label: 'API Secrets', category: 'Development' },
     {
       id: 'api_group',
+      category: 'Development',
       icon: KeyRound,
       label: 'API',
       isGroup: true,
@@ -127,6 +120,7 @@ export const ProjectDashboard = ({
     },
     {
       id: 'code_group',
+      category: 'Development',
       icon: Code,
       label: 'Code',
       isGroup: true,
@@ -135,9 +129,14 @@ export const ProjectDashboard = ({
         { id: 'microfrontend', label: 'Microfrontend' },
       ]
     },
-    { id: 'database_studio', icon: Database, label: 'Database' },
-    { id: 'logs', icon: History, label: 'Logs' },
-    { id: 'analytics', icon: BarChart2, label: 'Analytics' },
+    {
+      id: 'files',
+      category: 'General',
+      icon: Files,
+      label: 'Files'
+    },
+    { id: 'logs', icon: History, label: 'Logs', category: 'Monitoring' },
+    { id: 'analytics', icon: BarChart2, label: 'Analytics', category: 'Monitoring' },
   ], [fileMenus, clientTypes])
 
   const findActiveItem = (items: any[], activeId: string): any => {
@@ -228,17 +227,13 @@ export const ProjectDashboard = ({
       return <CodeView projectId={projectId ?? ""} activeTab="microfrontend" />;
     }
 
-    const filesGroup = navigationItems.find((n) => n.id === "files");
-    const activeFileItem = filesGroup?.items?.find(
-      (i: any) => i.id === activeSection,
-    );
-
-    if (activeFileItem) {
+    if (activeSection === "files") {
       return (
-        <div className="ai-card flex min-h-[400px] items-center justify-center p-6">
+        <div className="flex h-full w-full flex-col overflow-hidden">
           <MediaGallery
-            activeMenuId={activeSection}
-            folderPath={(activeFileItem as any).path || "media"}
+            activeMenuId="files"
+            folderPath="media"
+            folders={fileMenus}
           />
         </div>
       );

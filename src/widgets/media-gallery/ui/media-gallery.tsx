@@ -10,7 +10,8 @@ import {
   AlertCircle,
   FileQuestion,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Folder
 } from 'lucide-react'
 import { FileItem, useFilesInfinite, useDeleteFiles } from '@/entities/media-file'
 import { useMediaGallery } from '../lib/use-media-gallery'
@@ -29,13 +30,15 @@ interface MediaGalleryProps {
   isLoading?: boolean;
   activeMenuId?: string;
   folderPath?: string;
+  folders?: any[];
 }
 
 export const MediaGallery = ({
   initialFiles,
   isLoading: propIsLoading = false,
   activeMenuId = 'media',
-  folderPath = 'media'
+  folderPath = 'media',
+  folders = []
 }: MediaGalleryProps) => {
   const t = useTranslations('widgets.mediaGallery')
   const {
@@ -138,7 +141,39 @@ export const MediaGallery = ({
   }, [filteredFiles])
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex h-full w-full flex-col bg-bg-main overflow-y-auto pl-2 pr-6">
+      {/* Header and Storage */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 mt-4">
+        <div className="flex-1">
+          <h1 className="text-[22px] font-bold text-text-main mb-1">Media & Files</h1>
+          <p className="text-[13px] text-text-muted">Manage uploaded files and media assets</p>
+        </div>
+        <div className="flex items-center gap-2 bg-bg-card border border-border-subtle rounded-xl px-4 py-2 shadow-sm">
+          <span className="text-[12px] text-text-muted">Storage</span>
+          <span className="text-[15px] font-bold text-primary">2.4 GB</span>
+          <span className="text-[12px] text-text-muted">/ 10 GB</span>
+          <div className="w-[60px] h-1.5 bg-bg-subtle rounded-full ml-1 overflow-hidden">
+            <div className="w-[24%] h-full bg-primary rounded-full"></div>
+          </div>
+        </div>
+        <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90 text-white rounded-lg h-9">
+          Upgrade Plan
+        </Button>
+      </div>
+
+      {/* S3 Bucket select */}
+      <div className="flex items-center gap-4 mb-5">
+        <div className="flex flex-col">
+          <label className="text-[11px] font-medium text-text-muted mb-1 flex items-center">
+             S3 Bucket
+          </label>
+          <select className="h-9 px-3 text-[13px] rounded-lg border border-border-subtle bg-bg-card text-text-main focus:ring-2 focus:ring-primary/20 outline-none w-[260px]">
+            <option>propel-media-prod</option>
+            <option>propel-media-staging</option>
+          </select>
+        </div>
+      </div>
+
       {/* Media Header Controls */}
       <MediaActionBar
         selectedCount={selectedCount}
@@ -155,6 +190,15 @@ export const MediaGallery = ({
         onEnterSelectionMode={enterSelectionMode}
         onExitSelectionMode={exitSelectionMode}
       />
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1.5 mb-4 text-[13px]">
+        <span className="text-[#004eea] cursor-pointer hover:underline flex items-center gap-1.5">
+          Home
+        </span>
+        <span className="text-[10px] text-text-muted">/</span>
+        <span className="text-text-muted">All Files</span>
+      </div>
 
       {/* Grid Content */}
       <div className="relative flex-1">
@@ -203,7 +247,7 @@ export const MediaGallery = ({
                 {t('retry')}
               </Button>
             </motion.div>
-          ) : filteredFiles.length === 0 && !searchQuery ? (
+          ) : filteredFiles.length === 0 && folders.length === 0 && !searchQuery ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0, y: 10 }}
@@ -253,6 +297,31 @@ export const MediaGallery = ({
                   )}
                 >
                   <AnimatePresence>
+                    {folders.map(folder => (
+                      <motion.div
+                        key={folder.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="group relative bg-bg-card border border-border-subtle rounded-xl overflow-hidden cursor-pointer transition-all duration-150 flex flex-col shadow-sm hover:border-[#004eea]"
+                      >
+                         <div className="w-full h-[120px] bg-bg-subtle relative flex items-center justify-center overflow-hidden">
+                           <Folder className="w-12 h-12 text-[#004eea]" />
+                         </div>
+                         <div className="p-3 bg-bg-card flex flex-col justify-center border-t border-border-subtle flex-1">
+                           <div className="text-[12px] font-medium text-text-main whitespace-nowrap overflow-hidden text-ellipsis">
+                             {folder.label}
+                           </div>
+                           <div className="text-[11px] text-text-muted mt-0.5 flex justify-between items-center">
+                             <span>&nbsp;</span>
+                             <span className="uppercase text-[9px] font-semibold opacity-70">
+                               FOLDER
+                             </span>
+                           </div>
+                         </div>
+                      </motion.div>
+                    ))}
                     {filteredFiles.map((file) => (
                       <MediaCard
                         key={file.id}
