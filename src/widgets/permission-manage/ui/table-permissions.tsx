@@ -198,10 +198,10 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId, control, set
                   <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60">{t('recordLevelHeader')}</span>
                 </WorkspaceTableHead>
                 <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('fieldHeader')}</WorkspaceTableHead>
-                <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('actionHeader')}</WorkspaceTableHead>
+                {/* <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('actionHeader')}</WorkspaceTableHead>
                 <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('relationHeader')}</WorkspaceTableHead>
                 <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('viewHeader')}</WorkspaceTableHead>
-                <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card border-r-0">{t('customHeader')}</WorkspaceTableHead>
+                <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card border-r-0">{t('customHeader')}</WorkspaceTableHead> */}
               </WorkspaceTableRow>
               <WorkspaceTableRow className="transition-none hover:bg-transparent">
                 {[
@@ -213,7 +213,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId, control, set
                 ].map(({ label, field }) => (
                   <WorkspaceTableHead key={label} className={cn("w-[130px] text-center p-2 border border-border-subtle border-t-0 border-l-0 bg-bg-card")}>
                     <div className="flex flex-col items-center gap-1.5">
-                      <PermissionCheckbox 
+                      <PermissionCheckbox
                         checked={isAllSelected(field)}
                         onCheckedChange={(checked) => handleSelectAll(field, checked)}
                       />
@@ -277,7 +277,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId, control, set
                   <WorkspaceTableCell className="text-center align-middle px-2 py-1">
                     <ActionButton icon={TableIcon} label={t('fieldHeader')} onClick={() => openModal('field', index)} />
                   </WorkspaceTableCell>
-                  <WorkspaceTableCell className="text-center align-middle px-2 py-1">
+                  {/* <WorkspaceTableCell className="text-center align-middle px-2 py-1">
                     <ActionButton icon={Zap} label={t('actionHeader')} onClick={() => openModal('action', index)} />
                   </WorkspaceTableCell>
                   <WorkspaceTableCell className="text-center align-middle px-2 py-1">
@@ -288,7 +288,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId, control, set
                   </WorkspaceTableCell>
                   <WorkspaceTableCell className="text-center align-middle px-2 py-1">
                     <ActionButton icon={Settings2} label={t('customHeader')} onClick={() => openModal('custom', index)} />
-                  </WorkspaceTableCell>
+                  </WorkspaceTableCell> */}
                 </WorkspaceTableRow>
               ))}
             </WorkspaceTableBody>
@@ -379,7 +379,7 @@ const ModalContent = ({
               <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('fieldHeader')} Name</WorkspaceTableHead>
               <WorkspaceTableHead className="w-[120px] text-center border border-border-subtle bg-bg-card">
                 <div className="flex flex-col items-center gap-1">
-                  <PermissionCheckbox 
+                  <PermissionCheckbox
                     checked={isAllFieldSelected('view_permission')}
                     onCheckedChange={(checked) => handleToggleAll('view_permission', checked)}
                   />
@@ -388,7 +388,7 @@ const ModalContent = ({
               </WorkspaceTableHead>
               <WorkspaceTableHead className="w-[120px] text-center border border-border-subtle bg-bg-card">
                 <div className="flex flex-col items-center gap-1">
-                  <PermissionCheckbox 
+                  <PermissionCheckbox
                     checked={isAllFieldSelected('edit_permission')}
                     onCheckedChange={(checked) => handleToggleAll('edit_permission', checked)}
                   />
@@ -570,9 +570,9 @@ const ModalContent = ({
                     name={`tables.${tableIndex}.custom_permission.${k}`}
                     control={control}
                     render={({ field: f }) => (
-                      <PermissionCheckbox 
-                        checked={f.value === 'Yes'} 
-                        onCheckedChange={(checked) => f.onChange(checked ? 'Yes' : 'No')} 
+                      <PermissionCheckbox
+                        checked={f.value === 'Yes'}
+                        onCheckedChange={(checked) => f.onChange(checked ? 'Yes' : 'No')}
                       />
                     )}
                   />
@@ -617,11 +617,11 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
         <h4 className="text-sm font-bold text-text-main uppercase tracking-tight">{t('automaticFilters')}</h4>
         <Button
           size="sm"
-          onClick={() => append({ 
-            custom_field: 'user_id', 
-            object_field: '', 
+          onClick={() => append({
+            custom_field: 'user_id',
+            object_field: '',
             table_slug: tableSlug,
-            not_use_in_tab: false 
+            not_use_in_tab: false
           })}
           className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg h-8 px-3"
         >

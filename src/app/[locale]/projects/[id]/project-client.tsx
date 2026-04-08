@@ -61,6 +61,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   }
 
   const handleEditCode = (target: CodeEditorTarget) => {
+    console.log({ target })
     setCodeEditorTarget(target)
     setActiveTab('code')
   }

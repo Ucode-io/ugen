@@ -51,7 +51,7 @@ export const ProjectHeader = ({
       id: 'code',
       label: 'Code',
       icon: <CodeXml size={16} />,
-      disabled: hasNoFiles || isLoading
+      // disabled: hasNoFiles || isLoading
     }
   ]
 

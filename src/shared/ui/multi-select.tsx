@@ -21,6 +21,7 @@ export interface MultiSelectProps {
   className?: string;
   searchPlaceholder?: string;
   maxSelections?: number;
+  optionsContainerClassName?: string;
 }
 
 export const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -31,6 +32,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   className,
   searchPlaceholder = 'Search...',
   maxSelections,
+  optionsContainerClassName,
 }) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,7 +104,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <div className="flex flex-col">
-          <div className="max-h-[250px] overflow-y-auto p-1 py-1.5">
+          <div className={cn("max-h-[250px] overflow-y-auto p-1 py-1.5", optionsContainerClassName)}>
             {filteredOptions.length === 0 ? (
               <div className="px-2 py-3 text-center text-[12px] text-text-muted">
                 No items found.

@@ -454,14 +454,16 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
         const responseMsg = messageData?.data?.message;
         const pendingAction = messageData?.data?.pending_action;
         const questions = messageData?.data?.questions;
+        const bpmnXml = messageData?.data?.plan?.bpmn_xml;
 
-        if (responseMsg?.content || pendingAction) {
+        if (responseMsg?.content || pendingAction || bpmnXml) {
           addMessage({
             id: responseMsg?.id || messageData?.data?.id || (Date.now() + 1).toString(),
             role: "ai",
             content: responseMsg?.content || "",
-            pending_action: pendingAction,
+            pending_action: pendingAction || null,
             isFromResponse: true,
+            bpmnXml,
           });
           handleAutoScroll();
         }
@@ -551,6 +553,11 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                     content={msg.content}
                     isFromResponse={msg.isFromResponse}
                     onAutoScroll={handleAutoScroll}
+                  />
+                )}
+                {msg.bpmnXml && (
+                  <BpmnViewer
+                    bpmnXml={msg.bpmnXml}
                   />
                 )}
                 {isPendingActionConfirm(msg) && (

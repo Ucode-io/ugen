@@ -9,6 +9,7 @@ export type Message = {
   isFromResponse?: boolean
   images?: string[]
   pending_action?: any
+  bpmnXml?: string
 }
 
 interface ChatState {

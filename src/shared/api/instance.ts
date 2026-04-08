@@ -36,7 +36,7 @@ api.interceptors.request.use(
     if (apiKey && state.activeProjectTab === 'dashboard' && config.headers) {
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
-    } else if (token && config.headers) {
+    } else if (token && config.headers && !config.headers['Authorization']) {
       config.headers.Authorization = `Bearer ${token}`
     }
 

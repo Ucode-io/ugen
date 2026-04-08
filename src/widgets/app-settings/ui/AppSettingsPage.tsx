@@ -873,35 +873,45 @@ export const AppSettingsPage = () => {
             <Dialog open={isAddLanguageModalOpen} onOpenChange={setIsAddLanguageModalOpen}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Add New Language</DialogTitle>
+                  <DialogTitle>Manage Project Languages</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-2">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Language Code</label>
-                    <Input
-                      value={newLangData.code}
-                      onChange={(e) => setNewLangData(p => ({ ...p, code: e.target.value }))}
-                      placeholder="e.g. fr"
-                      className="bg-bg-sidebar border-border-subtle h-10 text-[13px] rounded-lg"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Language Name</label>
-                    <Input
-                      value={newLangData.name}
-                      onChange={(e) => setNewLangData(p => ({ ...p, name: e.target.value }))}
-                      placeholder="e.g. French"
-                      className="bg-bg-sidebar border-border-subtle h-10 text-[13px] rounded-lg"
+                  <div className="flex flex-col">
+                    <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">Project Languages</label>
+                    <MultiSelect
+                      optionsContainerClassName="max-w-[400px]"
+                      options={projectLanguages.map((lang: any) => ({ label: `${lang.name} (${lang.short_name})`, value: lang.id }))}
+                      selected={projectLanguage.map(l => l.id)}
+                      onChange={(newSelected: string[]) => {
+                        const updated = newSelected.map((val: string) => {
+                          const lang = projectLanguages.find((l: any) => l.id === val);
+                          return { id: lang.id, label: lang.name, short_name: lang.short_name };
+                        });
+                        setProjectLanguage(updated);
+                      }}
+                      placeholder={isLoadingProjLangs || isLoadingFullProject ? 'Loading...' : 'Select languages'}
                     />
                   </div>
                 </div>
                 <DialogFooter className="mt-6 gap-2">
                   <Button variant="outline" onClick={() => setIsAddLanguageModalOpen(false)}>Cancel</Button>
-                  <Button className="bg-primary hover:bg-primary/90 text-white" onClick={() => {
-                    // Here you would inform the store or fire a mutation
-                    toast.success(`Language ${newLangData.name} would be added here`);
-                    setIsAddLanguageModalOpen(false);
-                  }}>Add Language</Button>
+                  <Button
+                    className="bg-primary hover:bg-primary/90 text-white"
+                    onClick={() => {
+                      updateProjectSettingsMutation.mutate({
+                        title: projectName,
+                        language: projectLanguage,
+                        timezone_id: projectTimezone,
+                        icon_categories: projectIconCat,
+                        logo: projectLogoFilename
+                      });
+                      toast.success(`Languages updated successfully`);
+                      setIsAddLanguageModalOpen(false);
+                    }}
+                    disabled={updateProjectSettingsMutation.isPending}
+                  >
+                    Save Languages
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

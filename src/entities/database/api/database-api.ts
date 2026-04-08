@@ -43,10 +43,11 @@ export const databaseApi = {
   },
 
   fetchTableRecords: async (tableSlug: string, projectId: string, clientTypeId?: string, limit: number = 20, offset: number = 0, filters?: any[], columns?: string[]): Promise<TableRecord[]> => {
+    const page = Math.floor(offset / limit);
     const params: any = {
       "project-id": projectId,
       limit,
-      offset
+      offset: page
     };
 
     if (clientTypeId) {
@@ -58,11 +59,11 @@ export const databaseApi = {
 
       if (filters && filters.length > 0) {
         const payload = {
-          filters,
+          filters: filters || [],
           logic: 'AND',
           columns: columns || [],
           limit,
-          offset
+          offset: page
         };
         const response = await api.post(`/v2/items/${tableSlug}/filter`, payload, { params });
         data = response.data;
@@ -130,10 +131,10 @@ export const useTables = (search?: string, limit?: number, offset?: number) =>
     queryFn: () => databaseApi.fetchTables(search, limit, offset)
   });
 
-export const useTableRecords = (tableSlug: string | null, projectId: string, clientTypeId?: string, filters?: any[], columns?: string[]) =>
+export const useTableRecords = (tableSlug: string | null, projectId: string, clientTypeId?: string, limit: number = 50, offset: number = 0, filters?: any[], columns?: string[]) =>
   useQuery({
-    queryKey: ['db-records', tableSlug, projectId, clientTypeId, filters, columns],
-    queryFn: () => databaseApi.fetchTableRecords(tableSlug!, projectId, clientTypeId, 20, 0, filters, columns),
+    queryKey: ['db-records', tableSlug, projectId, clientTypeId, limit, offset, filters, columns],
+    queryFn: () => databaseApi.fetchTableRecords(tableSlug!, projectId, clientTypeId, limit, offset, filters, columns),
     enabled: !!tableSlug && !!projectId
   });
 

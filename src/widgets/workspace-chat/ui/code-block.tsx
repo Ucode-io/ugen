@@ -14,7 +14,7 @@ interface CodeBlockProps {
 }
 
 const CodeBlock = ({ language, value }: CodeBlockProps) => {
-  const t = useTranslations('workspaceChat');
+  const t = useTranslations('widgets.workspaceChat');
   const [isCopied, setIsCopied] = useState(false);
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);

@@ -39,6 +39,11 @@ function parseBpmn(xmlString: string, t: any): BpmnParsedData {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, "application/xml");
 
+  // 1. XML Validation
+  if (doc.getElementsByTagName("parsererror").length > 0) {
+    throw new Error("Invalid BPMN XML");
+  }
+
   const ns = {
     bpmn: "http://www.omg.org/spec/BPMN/20100524/MODEL",
     di: "http://www.omg.org/spec/BPMN/20100524/DI",
@@ -48,68 +53,133 @@ function parseBpmn(xmlString: string, t: any): BpmnParsedData {
   const q = (el: Element | Document, tag: string, nsUri = ns.bpmn): Element[] =>
     [...el.getElementsByTagNameNS(nsUri, tag)];
 
-  // Parse lanes
-  const lanes: BpmnLane[] = q(doc, "lane").map((lane) => ({
-    id: lane.getAttribute("id") || "",
-    name: lane.getAttribute("name") ?? lane.getAttribute("id") ?? t('unnamedLane'),
-    nodeIds: q(lane, "flowNodeRef").map((r) => r.textContent?.trim() || ""),
-  }));
-
   // Parse all flow nodes (tasks, start/end events, gateways)
   const nodeMap: Record<string, BpmnNode> = {};
+  const parentProcessMap: Record<string, string> = {};
+
   const taskTags = [
     "task", "serviceTask", "userTask", "sendTask",
     "receiveTask", "manualTask", "scriptTask",
     "businessRuleTask", "callActivity", "subProcess"
   ];
 
-  taskTags.forEach((tag) => {
+  const eventTags = ["startEvent", "endEvent", "intermediateThrowEvent", "intermediateCatchEvent", "boundaryEvent"];
+  const gatewayTags = ["exclusiveGateway", "inclusiveGateway", "parallelGateway", "eventBasedGateway", "complexGateway"];
+
+  const allNodeTags = [...taskTags, ...eventTags, ...gatewayTags];
+
+  allNodeTags.forEach((tag) => {
     q(doc, tag).forEach((el) => {
       const id = el.getAttribute("id") || "";
+      let type: any = "task";
+      
+      if (eventTags.includes(tag)) {
+        type = tag.toLowerCase().includes("start") ? "start" : tag.toLowerCase().includes("end") ? "end" : "event";
+      } else if (gatewayTags.includes(tag)) {
+        type = "gateway";
+      }
+
       nodeMap[id] = {
         id,
-        name: el.getAttribute("name") ?? el.getAttribute("id") ?? t('nodeTypes.task'),
-        type: "task",
+        name: el.getAttribute("name") ?? el.getAttribute("id") ?? (type === 'task' ? t('nodeTypes.task') : type === 'gateway' ? t('nodeTypes.gateway') : tag.replace("Event", "")),
+        type,
       };
+
+      // Record which process/subprocess this node belongs to
+      let parent = el.parentElement;
+      while (parent) {
+        if (parent.localName === "process" || parent.localName === "subProcess") {
+          parentProcessMap[id] = parent.getAttribute("id") || "";
+          break;
+        }
+        parent = parent.parentElement;
+      }
     });
   });
 
-  ["startEvent", "endEvent", "intermediateThrowEvent",
-    "intermediateCatchEvent", "boundaryEvent"].forEach((tag) => {
-      q(doc, tag).forEach((el) => {
-        const id = el.getAttribute("id") || "";
-        nodeMap[id] = {
-          id,
-          name: el.getAttribute("name") ?? tag.replace("Event", ""),
-          type: tag.toLowerCase().includes("start") ? "start" : tag.toLowerCase().includes("end") ? "end" : "event",
+  // Map processes to participants (Pools)
+  const processToParticipant: Record<string, string> = {};
+  q(doc, "participant").forEach(p => {
+    const pRef = p.getAttribute("processRef");
+    if (pRef) {
+      processToParticipant[pRef] = p.getAttribute("name") || p.getAttribute("id") || "Pool";
+    }
+  });
+
+  // Parse lanes (Standard lane-based or participant-based)
+  let lanes: BpmnLane[] = [];
+  const rawLanes = q(doc, "lane");
+  
+  if (rawLanes.length > 0) {
+    // 1. Lane-based BPMN (with Participant name support)
+    lanes = rawLanes.map((lane) => {
+      const laneId = lane.getAttribute("id") || "";
+      let laneName = lane.getAttribute("name") ?? laneId;
+      
+      // Try to find pool/participant name
+      let p = lane.parentElement;
+      while (p && p.localName !== "process") p = p.parentElement;
+      const procId = p?.getAttribute("id");
+      if (procId && processToParticipant[procId]) {
+        laneName = `${processToParticipant[procId]} / ${laneName}`;
+      }
+
+      return {
+        id: laneId,
+        name: laneName,
+        nodeIds: q(lane, "flowNodeRef").map((r) => r.textContent?.trim() || ""),
+      };
+    });
+  } else {
+    // 2. Participant-based or just Process-based BPMN
+    const participants = q(doc, "participant");
+    if (participants.length > 0) {
+      lanes = participants.map((p) => {
+        const processRef = p.getAttribute("processRef");
+        const nodeIds = Object.keys(nodeMap).filter((nid) => parentProcessMap[nid] === processRef);
+        return {
+          id: p.getAttribute("id") || "",
+          name: p.getAttribute("name") ?? p.getAttribute("id") ?? t('unnamedLane'),
+          nodeIds,
         };
       });
-    });
-
-  ["exclusiveGateway", "inclusiveGateway", "parallelGateway",
-    "eventBasedGateway", "complexGateway"].forEach((tag) => {
-      q(doc, tag).forEach((el) => {
-        const id = el.getAttribute("id") || "";
-        nodeMap[id] = {
-          id,
-          name: el.getAttribute("name") ?? t('nodeTypes.gateway'),
-          type: "gateway",
+    } else {
+      // Fallback: Group by process directly
+      const processIds = Array.from(new Set(Object.values(parentProcessMap)));
+      lanes = processIds.map((pid) => {
+        const procEl = q(doc, "process").find(e => e.getAttribute("id") === pid);
+        const name = procEl?.getAttribute("name") || pid || "Process";
+        const nodeIds = Object.keys(nodeMap).filter((nid) => parentProcessMap[nid] === pid);
+        return {
+          id: pid,
+          name,
+          nodeIds,
         };
       });
-    });
+    }
+  }
 
-  // Parse sequence flows (edges)
-  const flows: BpmnFlow[] = q(doc, "sequenceFlow").map((f) => ({
+  // Parse sequence flows (intra-lane/process edges)
+  const sequenceFlows: BpmnFlow[] = q(doc, "sequenceFlow").map((f) => ({
     id: f.getAttribute("id") || "",
     source: f.getAttribute("sourceRef") || "",
     target: f.getAttribute("targetRef") || "",
     name: f.getAttribute("name") ?? "",
   }));
 
-  // Build adjacency: which node comes after which
-  const nextMap: Record<string, string[]> = {};   // nodeId → [nodeId]
+  // Parse message flows (cross-participant edges)
+  const messageFlows: BpmnFlow[] = q(doc, "messageFlow").map((f) => ({
+    id: f.getAttribute("id") || "",
+    source: f.getAttribute("sourceRef") || "",
+    target: f.getAttribute("targetRef") || "",
+    name: f.getAttribute("name") ?? "",
+  }));
+
+  // Build adjacency for sequenceFlows ONLY (to order nodes inside lanes)
+  const nextMap: Record<string, string[]> = {};
   const prevMap: Record<string, string[]> = {};
-  flows.forEach(({ source, target }) => {
+  
+  sequenceFlows.forEach(({ source, target }) => {
     if (!nextMap[source]) nextMap[source] = [];
     if (!prevMap[target]) prevMap[target] = [];
     nextMap[source].push(target);
@@ -147,21 +217,39 @@ function parseBpmn(xmlString: string, t: any): BpmnParsedData {
     };
   });
 
-  // Identify cross-lane flows
+  // Identify cross-lane flows (Deduplicated)
   const laneOfNode: Record<string, string> = {};
   lanesWithNodes.forEach((lane) => {
     lane.nodes.forEach((n: BpmnNode) => { laneOfNode[n.id] = lane.id; });
   });
 
-  const crossFlows = flows.filter(
+  const crossFlowsSet = new Set<string>();
+  const crossFlows: BpmnFlow[] = [];
+
+  const addUniqueCrossFlow = (flow: BpmnFlow) => {
+    if (!flow.source || !flow.target) return;
+    const pairId = `${flow.source}_${flow.target}`;
+    if (!crossFlowsSet.has(pairId)) {
+      crossFlowsSet.add(pairId);
+      crossFlows.push(flow);
+    }
+  };
+
+  // Cross flows from sequenceFlows
+  sequenceFlows.filter(
     ({ source, target }) =>
       source && target &&
       laneOfNode[source] &&
       laneOfNode[target] &&
       laneOfNode[source] !== laneOfNode[target]
-  );
+  ).forEach(addUniqueCrossFlow);
+  
+  // Cross flows from messageFlows
+  messageFlows.filter(
+     ({ source, target }) => source && target && laneOfNode[source] && laneOfNode[target]
+  ).forEach(addUniqueCrossFlow);
 
-  return { lanes: lanesWithNodes, flows, crossFlows, nodeMap };
+  return { lanes: lanesWithNodes, flows: [...sequenceFlows, ...messageFlows], crossFlows, nodeMap };
 }
 
 // ─── COLOR PALETTE (cycles across lanes) ─────────────────────────────────────

@@ -19,8 +19,11 @@ interface ChatMessageProps {
 export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromResponse, onAutoScroll }: ChatMessageProps) => {
   const isAI = role === 'ai' || role === 'assistant';
   const replacedContent = content.replace(/\\n/g, '\n');
+  const hasMarkdownCodeBlock = replacedContent.includes('```');
 
-  const typedContent = useTypewriter(replacedContent, isAI && isFromResponse ? 15 : 0);
+  // Disable realtime typing effect if there are code blocks to prevent layout jumping
+  const typeSpeed = isAI && isFromResponse && !hasMarkdownCodeBlock ? 15 : 0;
+  const typedContent = useTypewriter(replacedContent, typeSpeed);
 
   useEffect(() => {
     if (isAI && isFromResponse) {

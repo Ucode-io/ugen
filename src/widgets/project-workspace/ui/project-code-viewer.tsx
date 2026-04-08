@@ -21,28 +21,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/entities/session";
 import type { CodeEditorTarget } from "@/entities/session";
 import { GitlabCodeEditor } from "./gitlab-code-view";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui";
-import { Layers2, Zap, Sparkles } from "lucide-react";
-
-
-
-// ── Types ──────────────────────────────────────────────────────────────────
-type DropdownOption = {
-  value: string;          // unique key used in the Select
-  label: string;
-  group: 'frontend' | 'microfrontend' | 'function';
-  target: CodeEditorTarget;
-};
-
-const FRONTEND_VALUE = '__generated_frontend__';
+import { EditorDropdown, FRONTEND_VALUE } from "./editor-dropdown";
+import type { DropdownOption } from "./editor-dropdown";
 
 // ── Component ───────────────────────────────────────────────────────────────
 export const ProjectCodeViewer = ({
@@ -70,13 +50,18 @@ export const ProjectCodeViewer = ({
   // Read pending target from store (set by </> Edit button) and auto-select it
   const codeEditorTarget = useAuthStore((state) => state.codeEditorTarget);
   const setCodeEditorTarget = useAuthStore((state) => state.setCodeEditorTarget);
+  const apiKey = useAuthStore((state) => state.apiKey);
 
   // ── API Queries for dropdown options ──────────────────────────────────────
   const { data: microfrontendsData = [] } = useQuery({
     queryKey: ['microfrontends-dropdown', projectId],
     queryFn: async () => {
       const { data } = await api.get('/v2/functions/micro-frontend', {
-        params: { offset: 0, limit: 50, 'project-id': projectId },
+        params: { search: '', offset: 0, limit: 50, 'project-id': projectId },
+        headers: {
+          'Authorization': `API-KEY`,
+          'x-api-key': apiKey
+        }
       });
       return (data.data?.functions ?? []) as Array<{
         id: string; name: string; path: string; branch?: string;
@@ -84,13 +69,18 @@ export const ProjectCodeViewer = ({
       }>;
     },
     enabled: !!projectId,
+    staleTime: 0,
   });
 
   const { data: functionsData = [] } = useQuery({
     queryKey: ['functions-dropdown', projectId],
     queryFn: async () => {
       const { data } = await api.get('/v1/function', {
-        params: { limit: 50, offset: 0, 'project-id': projectId },
+        params: { search: '', limit: 50, offset: 0, 'project-id': projectId },
+        headers: {
+          'Authorization': `API-KEY`,
+          'x-api-key': apiKey
+        }
       });
       return (data.data?.functions ?? []) as Array<{
         id: string; name: string; path?: string; branch?: string;
@@ -98,6 +88,7 @@ export const ProjectCodeViewer = ({
       }>;
     },
     enabled: !!projectId,
+    staleTime: 0,
   });
 
   // Build the full option list
@@ -137,6 +128,8 @@ export const ProjectCodeViewer = ({
       },
     })),
   ], [microfrontendsData, functionsData]);
+
+  console.log({ functionsData })
 
   // Auto-select when codeEditorTarget arrives from the store.
   // We also re-run whenever dropdownOptions changes (API data loads) so we can
@@ -499,63 +492,18 @@ export const ProjectCodeViewer = ({
 
   const activeFileObj = files.find((f) => f.path === activeFile);
 
-  // ── Dropdown UI helper ─────────────────────────────────────────────────────
-  const EditorDropdown = (
-    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle bg-bg-card shrink-0 z-10">
-      <Select value={selectedValue} onValueChange={setSelectedValue}>
-        <SelectTrigger className="h-7 w-[260px] text-xs border-border-subtle bg-bg-sidebar rounded-lg gap-1.5 px-2">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="text-xs">
-          <SelectItem value={FRONTEND_VALUE}>
-            <span className="flex items-center gap-1.5">
-              <Sparkles size={12} className="text-primary" />
-              Generated Frontend
-            </span>
-          </SelectItem>
-          {microfrontendsData.length > 0 && (
-            <SelectGroup>
-              <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
-                <span className="flex items-center gap-1">
-                  <Layers2 size={10} /> Microfrontends
-                </span>
-              </SelectLabel>
-              {dropdownOptions
-                .filter((o) => o.group === 'microfrontend')
-                .map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-            </SelectGroup>
-          )}
-          {functionsData.length > 0 && (
-            <SelectGroup>
-              <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
-                <span className="flex items-center gap-1">
-                  <Zap size={10} /> Functions
-                </span>
-              </SelectLabel>
-              {dropdownOptions
-                .filter((o) => o.group === 'function')
-                .map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-            </SelectGroup>
-          )}
-        </SelectContent>
-      </Select>
-      <span className="text-[11px] text-text-muted">
-        {isGitlabMode ? 'GitLab Repository' : 'AI Generated'}
-      </span>
-    </div>
-  );
+
 
   return (
     <div className="bg-bg-main flex h-full w-full flex-1 overflow-hidden flex-col text-[13px]">
-      {EditorDropdown}
+      <EditorDropdown
+        selectedValue={selectedValue}
+        setSelectedValue={setSelectedValue}
+        dropdownOptions={dropdownOptions}
+        hasMicrofrontends={microfrontendsData.length > 0}
+        hasFunctions={functionsData.length > 0}
+        isGitlabMode={isGitlabMode}
+      />
 
       {isGitlabMode ? (
         <div className="flex-1 overflow-hidden">

@@ -83,7 +83,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
   const [fnToDelete, setFnToDelete] = useState<FunctionItem | null>(null)
   const [timeFrame, setTimeFrame] = useState(3600000)
   const [lastPublish, setLastPublish] = useState(0)
-  
+
   const debouncedSearch = useDebounce(search, 400)
   const queryClient = useQueryClient()
 
@@ -123,6 +123,8 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
     queryFn: () => fetchFunctions(projectId, debouncedSearch, pageSize, page),
     enabled: !!projectId
   })
+
+  console.log({ functionsData })
 
   const { data: fnDetail, isLoading: isDetailLoading } = useQuery({
     queryKey: ['function-detail', selectedFn?.id],
