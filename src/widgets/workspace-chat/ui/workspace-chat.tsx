@@ -238,6 +238,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
         role: 'user',
         content: formattedAnswers.join('\n\n')
       });
+      handleSendMessage(formattedAnswers.join('\n\n'));
     }
 
     setShowQuestionnaire(false);
