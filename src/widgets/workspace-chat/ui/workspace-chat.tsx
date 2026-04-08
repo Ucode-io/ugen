@@ -193,6 +193,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [questionData, setQuestionData] = useState<Question[]>([]);
 
   const handleOptionToggle = (questionId: string, optionId: string, type: 'single' | 'multi') => {
     setAnswers(prev => {
@@ -217,7 +218,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
 
   const handleFinish = () => {
     const formattedAnswers: string[] = [];
-    QUESTION_DATA.forEach(q => {
+    questionData.forEach(q => {
       const selectedOptionLabels = q.options
         .filter(opt => (answers[q.id] || []).includes(opt.id))
         .map(opt => opt.label);
@@ -451,6 +452,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
 
         const responseMsg = messageData?.data?.message;
         const pendingAction = messageData?.data?.pending_action;
+        const questions = messageData?.data?.questions;
 
         if (responseMsg?.content || pendingAction) {
           addMessage({
@@ -461,6 +463,11 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
             isFromResponse: true,
           });
           handleAutoScroll();
+        }
+
+        if (questions) {
+          setShowQuestionnaire(true);
+          setQuestionData(questions);
         }
       } catch (err) {
         console.error(err);
@@ -485,7 +492,7 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
     });
   }
 
-  const isDisabled = displayMessages.some((msg: Message) => msg.pending_action && !msg.pending_action.approved) || (showQuestionnaire && QUESTION_DATA.length > 0);
+  const isDisabled = displayMessages.some((msg: Message) => msg.pending_action && !msg.pending_action.approved) || (showQuestionnaire && questionData.length > 0);
 
   const isPendingActionConfirm = (msg: Message) => {
     return msg.pending_action && !msg.pending_action.approved;
@@ -572,23 +579,23 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
               <div className="bg-bg-card border border-border-subtle border-b-0 rounded-t-[20px] p-4 flex flex-col gap-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center justify-between gap-4">
                   <h4 className="text-sm font-bold text-text-main line-clamp-1">
-                    {QUESTION_DATA[currentQuestionIndex].title}
+                    {questionData[currentQuestionIndex].title}
                   </h4>
                   <span className="text-[10px] font-bold text-text-muted bg-bg-sidebar px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                    {t('questionnaire.step', { current: currentQuestionIndex + 1, total: QUESTION_DATA.length })}
+                    {t('questionnaire.step', { current: currentQuestionIndex + 1, total: questionData.length })}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  {QUESTION_DATA[currentQuestionIndex].options.map((option) => {
-                    const isChecked = (answers[QUESTION_DATA[currentQuestionIndex].id] || []).includes(option.id);
+                  {questionData[currentQuestionIndex].options.map((option) => {
+                    const isChecked = (answers[questionData[currentQuestionIndex].id] || []).includes(option.id);
                     return (
                       <div
                         key={option.id}
                         onClick={() => handleOptionToggle(
-                          QUESTION_DATA[currentQuestionIndex].id,
+                          questionData[currentQuestionIndex].id,
                           option.id,
-                          QUESTION_DATA[currentQuestionIndex].type
+                          questionData[currentQuestionIndex].type
                         )}
                         className={`
                           flex items-center gap-3 p-2 rounded-xl border transition-all cursor-pointer select-none
@@ -614,25 +621,25 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                   <div
                     className={`
                       flex items-center gap-3 p-2 rounded-xl border transition-all cursor-pointer group
-                      ${customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim()
+                      ${customAnswers[questionData[currentQuestionIndex].id]?.trim()
                         ? 'border-primary/50 bg-primary/5 shadow-sm'
                         : 'border-border-subtle hover:border-border-subtle/80 hover:bg-hover-bg/50'}
                     `}
                   >
                     <Checkbox
-                      id={`${QUESTION_DATA[currentQuestionIndex].id}-custom`}
-                      checked={!!customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim()}
+                      id={`${questionData[currentQuestionIndex].id}-custom`}
+                      checked={!!customAnswers[questionData[currentQuestionIndex].id]?.trim()}
                       readOnly
                       className="pointer-events-none"
                     />
                     <input
                       type="text"
                       placeholder={t('questionnaire.ownAnswer')}
-                      value={customAnswers[QUESTION_DATA[currentQuestionIndex].id] || ''}
+                      value={customAnswers[questionData[currentQuestionIndex].id] || ''}
                       onChange={(e) => handleCustomAnswerChange(
-                        QUESTION_DATA[currentQuestionIndex].id,
+                        questionData[currentQuestionIndex].id,
                         e.target.value,
-                        QUESTION_DATA[currentQuestionIndex].type
+                        questionData[currentQuestionIndex].type
                       )}
                       className="flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-text-muted text-text-main disabled:cursor-pointer"
                     />
@@ -647,18 +654,18 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
                   >
                     {t('questionnaire.back')}
                   </button>
-                  {currentQuestionIndex === QUESTION_DATA.length - 1 ? (
+                  {currentQuestionIndex === questionData.length - 1 ? (
                     <button
                       onClick={handleFinish}
-                      disabled={!(answers[QUESTION_DATA[currentQuestionIndex].id]?.length || customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim())}
+                      disabled={!(answers[questionData[currentQuestionIndex].id]?.length || customAnswers[questionData[currentQuestionIndex].id]?.trim())}
                       className="text-xs font-bold bg-primary text-white px-6 py-1.5 rounded-lg hover:bg-primary/90 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
                     >
                       {t('questionnaire.finish')}
                     </button>
                   ) : (
                     <button
-                      onClick={() => setCurrentQuestionIndex(prev => Math.min(QUESTION_DATA.length - 1, prev + 1))}
-                      disabled={!(answers[QUESTION_DATA[currentQuestionIndex].id]?.length || customAnswers[QUESTION_DATA[currentQuestionIndex].id]?.trim())}
+                      onClick={() => setCurrentQuestionIndex(prev => Math.min(questionData.length - 1, prev + 1))}
+                      disabled={!(answers[questionData[currentQuestionIndex].id]?.length || customAnswers[questionData[currentQuestionIndex].id]?.trim())}
                       className="text-xs font-bold bg-primary text-white px-4 py-1.5 rounded-lg hover:bg-primary/90 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
                     >
                       {t('questionnaire.nextStep')}
