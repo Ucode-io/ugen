@@ -1,4 +1,4 @@
-import { api } from "@/shared/api/instance";
+import { api, authApi } from "@/shared/api/instance";
 
 export interface UserPayload {
   client_type_id: string;
@@ -10,6 +10,7 @@ export interface UserPayload {
   status: string;
   env_id: string;
   company_id?: string;
+  password?: string;
 }
 
 export const userApi = {
@@ -20,7 +21,8 @@ export const userApi = {
         "project-id": params.projectId,
         limit: params.limit,
         offset: params.offset,
-        search: params.search
+        search: params.search,
+        data: JSON.stringify({ with_relations: true })
       }
     });
     return data?.data || [];
@@ -34,6 +36,12 @@ export const userApi = {
         'environment-id': env_id,
         'resource-id': role_id
       }
+    });
+  },
+
+  inviteUser: async (data: UserPayload) => {
+    return authApi.post('/v2/user', data, {
+      params: { 'project-id': data.project_id }
     });
   },
 

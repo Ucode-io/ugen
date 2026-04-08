@@ -47,20 +47,23 @@ export const useUsers = ({ clientTypeId, projectId, limit, offset, search }: { c
     queryKey: ['users-workspace', clientTypeId, projectId, limit, offset, search],
     queryFn: () => userApi.getUsers({ clientTypeId, projectId, limit, offset, search }),
     enabled: !!projectId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // 5 minutes
   })
 }
 
 export const useInviteUser = () => {
-  return (data: any) => userApi.createUser(data)
+  return (data: any) => userApi.inviteUser(data?.data || data)
 }
 
 export const useCreateUser = () => {
-  return (data: any) => userApi.createUser(data)
+  return (data: any) => userApi.inviteUser(data?.data || data)
 }
 
 export const useUpdateUser = () => {
-  return (data: any) => userApi.updateUser(data.id, data)
+  return (payload: any) => {
+    const data = payload?.data || payload
+    return userApi.updateUser(data.id, data)
+  }
 }
 
 export const useDeleteUser = () => {

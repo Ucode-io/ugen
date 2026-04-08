@@ -84,10 +84,6 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
     search: searchTerm,
   })
 
-  console.log({
-    data
-  })
-
   const { mutate: deleteMutation, isPending: isDeleting } = useMutation({
     mutationFn: deleteUser,
     onSuccess: () => {
@@ -112,16 +108,9 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
   }
 
   const columns = useMemo<ColumnDef<User>[]>(() => [
-    { accessorKey: 'name', header: 'Name' },
-    { accessorKey: 'user_type', header: 'User Type' },
-    {
-      accessorKey: 'role_id',
-      header: 'Role',
-      cell: ({ row }) => {
-        const role_id = row.original.role_id
-        return <>{roles?.find(role => role.value === role_id)?.label || role_id}</>
-      }
-    },
+    { accessorKey: 'client_platform_id_data.name', header: 'Name' },
+    { accessorKey: 'client_type_id_data.name', header: 'User Type' },
+    { accessorKey: 'role_id_data.name', header: 'Role' },
     { accessorKey: 'login', header: 'Login' },
     { accessorKey: 'email', header: 'Email' },
     { accessorKey: 'phone', header: 'Phone' },
@@ -159,10 +148,10 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
           <p className="text-[13px] text-text-muted">Manage application users</p>
         </div>
         <div className="flex items-center gap-4">
-          <UsageIndicator 
-            label="Users" 
-            value={data?.data?.count || 0} 
-            total={10} 
+          <UsageIndicator
+            label="Users"
+            value={data?.data?.count || 0}
+            total={10}
             percentage={((data?.data?.count || 0) / 10) * 100}
           />
           <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90 text-white rounded-lg h-9 px-4 text-[13px] font-semibold">
@@ -186,8 +175,8 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
       <div className="flex items-center justify-between gap-3">
         <div className="relative group max-w-[320px] flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" size={16} />
-          <Input 
-            placeholder="Search users..." 
+          <Input
+            placeholder="Search users..."
             className="pl-10 h-9 bg-bg-card border-border-subtle focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

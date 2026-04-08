@@ -5,7 +5,7 @@ const WorkspaceTableWrapper = React.forwardRef<HTMLDivElement, React.HTMLAttribu
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("bg-bg-card border border-border-subtle rounded-xl overflow-hidden shadow-sm", className)}
+      className={cn("bg-bg-card border border-border-subtle rounded-xl overflow-hidden", className)}
       {...props}
     />
   )

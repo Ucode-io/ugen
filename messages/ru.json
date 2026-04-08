@@ -872,7 +872,10 @@
         "selectConnection": "Выбрать подключение",
         "tableRelation": "Связь таблицы",
         "selectRelation": "Выбрать связь",
-        "addNewFilter": "Добавить новое условие фильтра"
+        "addNewFilter": "Добавить новое условие фильтра",
+        "view": "Вид",
+        "automaticFilters": "Автоматические фильтры",
+        "addFilter": "Добавить фильтр"
       }
     },
     "roleManage": {

@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
-import { Controller, useForm, useFieldArray } from 'react-hook-form'
+import { useState } from 'react'
+import { Controller, useFieldArray, Control, UseFormSetValue, UseFormWatch } from 'react-hook-form'
 import {
   Filter,
   Table as TableIcon,
@@ -9,19 +9,26 @@ import {
   Eye,
   Settings2,
   ShieldCheck,
-  ChevronRight,
-  Plus,
-  Trash2,
-  Save,
   Loader2,
-  X
+  Trash2,
+  Plus
 } from 'lucide-react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui'
-import { Button } from '@/shared/ui'
+import {
+  WorkspaceTableWrapper,
+  WorkspaceTable,
+  WorkspaceTableHeader,
+  WorkspaceTableBody,
+  WorkspaceTableRow,
+  WorkspaceTableHead,
+  WorkspaceTableCell
+} from '@/widgets/project-workspace/ui/workspace-table'
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui'
+import { Switch } from '@/shared/ui/switch'
+import { PermissionCheckbox } from './permission-checkbox'
 import { cn } from '@/shared/lib/utils/cn'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { authApi, api } from '@/shared/api'
-import { DataLoadingState, DataErrorState } from '@/shared/ui'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/api'
+import { DataLoadingState } from '@/shared/ui'
 import { useTranslations } from 'next-intl'
 import {
   Dialog,
@@ -30,76 +37,17 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/shared/ui'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui"
-import { useAuthStore } from '@/entities/session'
-import { toast } from "sonner";
 
 // --- Interfaces ---
-
-interface FieldPermission {
-  field_id: string
-  view_permission: boolean
-  edit_permission: boolean
-  label: string
-  table_slug: string
-}
-
-interface ViewPermission {
-  guid: string
-  relation_id?: string
-  view_permission: boolean
-  edit_permission: boolean
-  create_permission?: boolean
-  delete_permission?: boolean
-  table_slug: string
-}
-
-interface TableViewPermission {
-  guid: string
-  view: boolean
-  edit: boolean
-  delete: boolean
-  view_id: string
-  label?: string
-}
-
-interface ActionPermission {
-  guid: string
-  custom_event_id: string
-  permission: boolean
-  table_slug: string
-  label?: string
-}
-
-interface TablePermissionRow {
-  label: string
-  slug: string
-  id: string
-  record_permissions: {
-    read: string | boolean
-    write: string | boolean
-    update: string | boolean
-    delete: string | boolean
-    is_public: boolean
-  }
-  field_permissions: FieldPermission[]
-  view_permissions?: ViewPermission[]
-  automatic_filters: Record<string, any[]>
-  action_permissions?: ActionPermission[]
-  table_view_permissions?: TableViewPermission[]
-  custom_permission: Record<string, string>
-}
 
 interface TablePermissionsProps {
   projectId: string
   roleId: string
   clientTypeId: string
+  control: Control<any>
+  setValue: UseFormSetValue<any>
+  watch: UseFormWatch<any>
+  isLoading: boolean
 }
 
 // --- Components ---
@@ -117,18 +65,17 @@ const CustomPermissionBadge = ({
   hasFilter?: boolean;
   onFilterClick?: () => void;
 }) => (
-  <div className="flex items-center gap-1 justify-center group/badge">
+  <div className="flex items-center gap-1 justify-center">
     <button
       type="button"
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative min-w-[70px] px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5",
+        "relative min-w-[75px] px-2 py-1 text-[10px] font-medium rounded-md transition-all duration-200",
         checked
-          ? "bg-primary text-white shadow-[0_2px_10px_-3px_rgba(var(--primary-rgb),0.5)] scale-100"
-          : "bg-bg-sidebar/50 border border-border-subtle/60 text-text-muted hover:text-text-main hover:border-primary/40 hover:bg-bg-sidebar"
+          ? "bg-primary text-white"
+          : "bg-bg-sidebar/40 border border-border-subtle/50 text-text-muted hover:text-text-main hover:border-border-subtle hover:bg-bg-sidebar shadow-sm"
       )}
     >
-      {checked && <ShieldCheck size={10} className="animate-in zoom-in duration-300" />}
       {label}
     </button>
     {hasFilter && (
@@ -136,11 +83,11 @@ const CustomPermissionBadge = ({
         type="button"
         onClick={onFilterClick}
         className={cn(
-          "p-1.5 rounded-lg transition-all duration-200",
-          checked ? "text-primary hover:bg-primary/10" : "text-text-muted/40 hover:text-primary hover:bg-bg-sidebar"
+          "p-1.5 rounded-md transition-all duration-200",
+          checked ? "text-primary hover:bg-primary/5" : "text-text-muted/40 hover:text-primary hover:bg-transparent"
         )}
       >
-        <Filter size={13} className={cn(checked && "fill-primary/20")} />
+        <Filter size={13} />
       </button>
     )}
   </div>
@@ -152,101 +99,27 @@ const ActionButton = ({ icon: Icon, onClick, label }: { icon: any, onClick: () =
     size="icon"
     onClick={onClick}
     title={label}
-    className="h-9 w-9 rounded-xl border border-transparent bg-transparent text-text-muted hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all duration-300"
+    className="h-8 w-8 rounded-md text-text-muted hover:text-primary hover:bg-primary/5 transition-colors"
   >
-    <Icon size={18} strokeWidth={2} />
+    <Icon size={16} />
   </Button>
 )
 
-export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermissionsProps) => {
+export const TablePermissions = ({ projectId, roleId, clientTypeId, control, setValue, watch, isLoading }: TablePermissionsProps) => {
   const t = useTranslations('widgets.permissionManage.tablePermissions')
-  const queryClient = useQueryClient()
   const [modalState, setModalState] = useState<{ type: string | null, tableIndex: number | null }>({ type: null, tableIndex: null })
   const [filterType, setFilterType] = useState('read')
   const [isScrolled, setIsScrolled] = useState(false)
 
-  const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
-
-  const { data: permissionDetail, isLoading, isError, refetch } = useQuery({
-    queryKey: ['permissions-detail', ucodeProjectId, roleId],
-    queryFn: async () => {
-      const { data } = await authApi.get(`/v2/role-permission/detailed/${ucodeProjectId}/${roleId}`, {
-        params: { 'project-id': ucodeProjectId }
-      })
-      return data.data.data
-    },
-    enabled: !!ucodeProjectId && !!roleId
-  })
-
-  const { control, setValue, handleSubmit, watch, reset } = useForm({
-    defaultValues: {
-      tables: [] as TablePermissionRow[],
-      global_permission: {} as any,
-      name: '',
-      guid: '',
-      project_id: '',
-      client_type_id: ''
-    }
-  })
-
-  useEffect(() => {
-    if (permissionDetail) {
-      reset({
-        ...permissionDetail,
-        tables: permissionDetail.tables.map((t: any) => ({
-          ...t,
-          record_permissions: {
-            ...t.record_permissions,
-            read: t.record_permissions.read === 'Yes',
-            write: t.record_permissions.write === 'Yes',
-            update: t.record_permissions.update === 'Yes',
-            delete: t.record_permissions.delete === 'Yes',
-          }
-        }))
-      })
-    }
-  }, [permissionDetail, reset])
-
-  const tables = watch('tables')
-
-  const { mutate: savePermissions, isPending: isSaving } = useMutation({
-    mutationFn: async (formData: any) => {
-      const payload = {
-        data: {
-          ...formData,
-          tables: formData.tables.map((t: any) => ({
-            ...t,
-            record_permissions: {
-              ...t.record_permissions,
-              read: t.record_permissions.read ? 'Yes' : 'No',
-              write: t.record_permissions.write ? 'Yes' : 'No',
-              update: t.record_permissions.update ? 'Yes' : 'No',
-              delete: t.record_permissions.delete ? 'Yes' : 'No',
-            }
-          }))
-        },
-        project_id: ucodeProjectId,
-        role_id: roleId
-      }
-      return authApi.put('/v2/role-permission/detailed', payload, {
-        params: { 'project-id': ucodeProjectId }
-      })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions-detail'] })
-    },
-    onError: (error) => {
-      toast.error(error.message)
-    }
-  })
+  const tables = watch('tables') || []
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setIsScrolled(e.currentTarget.scrollLeft > 0)
   }
 
   const handleSelectAll = (field: string, checked: boolean) => {
-    tables.forEach((_, index) => {
-      setValue(`tables.${index}.record_permissions.${field}` as any, checked)
+    tables.forEach((_: any, index: number) => {
+      setValue(`tables.${index}.record_permissions.${field}`, checked)
     })
   }
 
@@ -263,15 +136,16 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
   }
 
   // --- Modal Specific Data Fetching ---
-  const currentTableSlug = modalState.tableIndex !== null ? tables[modalState.tableIndex]?.slug : null
+  const currentTableSlug = modalState.tableIndex !== null ? tables[modalState.tableIndex!]?.slug : null
 
   const { data: relationsData } = useQuery({
     queryKey: ['relations', currentTableSlug, projectId],
     queryFn: async () => {
-      const { data } = await api.post(`/v2/relations/${currentTableSlug}`, {}, {
+      const { data } = await api.get(`/v2/relations/${currentTableSlug}`, {
         params: { 'project-id': projectId, table_slug: currentTableSlug }
       })
-      return (data.relations || [])
+
+      return (data?.data?.relations || [])
         .filter((r: any) => (r.type === 'Many2Many' || r.type === 'Many2One') && r.table_from.slug === currentTableSlug)
         .map((r: any) => ({
           label: r.title || r.table_to.label,
@@ -299,100 +173,76 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
   })
 
   if (isLoading) return <DataLoadingState message={t('fetching')} />
-  if (isError) return <DataErrorState onRetry={() => refetch()} />
 
   return (
-    <div className="w-full relative animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center justify-between px-6 pt-4">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-primary" />
-          <span className="text-sm font-bold text-text-main uppercase tracking-tight">{t('title')}</span>
-        </div>
-        <Button
-          disabled={isSaving}
-          onClick={handleSubmit((d) => savePermissions(d))}
-          className="bg-primary hover:bg-primary/90 text-white rounded-xl px-6"
-        >
-          {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
-          {t('save')}
-        </Button>
+    <div className="w-full relative flex flex-col p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex items-center gap-2">
+        <ShieldCheck className="w-5 h-5 text-primary" />
+        <span className="text-sm font-bold text-text-main uppercase tracking-tight">{t('title')}</span>
       </div>
 
-      <div className="px-6 py-4 max-w-[1154px]">
-        <div className="rounded-2xl border border-border-subtle/60 bg-bg-card overflow-hidden max-w-[100%]">
-          <div onScroll={handleScroll} className="overflow-auto max-h-[calc(100vh-320px)] custom-scrollbar">
-            <Table className="border-collapse w-full min-w-[1100px]">
-              <TableHeader>
-                <TableRow className="border-b-border-subtle/60 bg-bg-sidebar hover:bg-bg-sidebar transition-none">
-                  <TableHead rowSpan={2} className={cn(
-                    "w-[280px] min-w-[280px] max-w-[280px] bg-bg-sidebar sticky left-0 z-40 border-r border-border-subtle/40 text-text-main font-bold align-middle px-6 transition-shadow duration-200 rounded-tl-2xl",
-                    isScrolled && "shadow-[10px_0_15px_-3px_rgba(0,0,0,0.1),4px_0_6px_-2px_rgba(0,0,0,0.05)]"
+      <WorkspaceTableWrapper className="border border-border-subtle/50 shadow-sm overflow-hidden rounded-[16px] max-w-[1100px]">
+        <div onScroll={handleScroll} className="overflow-auto max-h-[calc(100vh-320px)] custom-scrollbar">
+          <WorkspaceTable className="border-collapse w-full min-w-[1100px]">
+            <WorkspaceTableHeader className="sticky top-0 z-50 bg-bg-card">
+              <WorkspaceTableRow className="transition-none hover:bg-transparent">
+                <WorkspaceTableHead rowSpan={2} className={cn(
+                  "w-[230px] min-w-[230px] max-w-[230px] sticky left-0 z-50 border border-border-subtle border-t-0 border-l-0 bg-bg-card text-text-main font-bold align-middle px-6 transition-shadow duration-200",
+                  isScrolled && "border-r-2"
+                )}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] tracking-tight font-medium uppercase text-text-muted">{t('objectsHeader')}</span>
+                  </div>
+                </WorkspaceTableHead>
+                <WorkspaceTableHead colSpan={5} className="text-center border border-border-subtle border-t-0 bg-bg-card">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60">{t('recordLevelHeader')}</span>
+                </WorkspaceTableHead>
+                <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('fieldHeader')}</WorkspaceTableHead>
+                <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('actionHeader')}</WorkspaceTableHead>
+                <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('relationHeader')}</WorkspaceTableHead>
+                <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card">{t('viewHeader')}</WorkspaceTableHead>
+                <WorkspaceTableHead rowSpan={2} className="text-center w-[90px] align-middle py-2 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 border border-border-subtle border-t-0 bg-bg-card border-r-0">{t('customHeader')}</WorkspaceTableHead>
+              </WorkspaceTableRow>
+              <WorkspaceTableRow className="transition-none hover:bg-transparent">
+                {[
+                  { label: t('read'), field: 'read' },
+                  { label: t('write'), field: 'write' },
+                  { label: t('update'), field: 'update' },
+                  { label: t('delete'), field: 'delete' },
+                  { label: t('public'), field: 'is_public' }
+                ].map(({ label, field }) => (
+                  <WorkspaceTableHead key={label} className={cn("w-[130px] text-center p-2 border border-border-subtle border-t-0 border-l-0 bg-bg-card")}>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <PermissionCheckbox 
+                        checked={isAllSelected(field)}
+                        onCheckedChange={(checked) => handleSelectAll(field, checked)}
+                      />
+                    </div>
+                  </WorkspaceTableHead>
+                ))}
+              </WorkspaceTableRow>
+            </WorkspaceTableHeader>
+            <WorkspaceTableBody>
+              {tables?.map((row: any, index: number) => (
+                <WorkspaceTableRow key={row.id} className="group/row transition-none hover:bg-transparent">
+                  <WorkspaceTableCell className={cn(
+                    "w-[230px] min-w-[230px] max-w-[230px] sticky left-0 bg-bg-card border-r border-border-subtle z-30 px-6 py-2 transition-shadow duration-200 group-hover:bg-bg-card",
+                    isScrolled && "border-r-2"
                   )}>
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
-                        <TableIcon size={16} className="text-primary" />
-                      </div>
-                      <span className="text-[14px] tracking-tight">{t('objectsHeader')}</span>
-                    </div>
-                  </TableHead>
-                  <TableHead colSpan={5} className="text-center py-4 border-b border-border-subtle/40 bg-bg-sidebar">
-                    <div className="flex items-center justify-center gap-2">
-                      <ShieldCheck size={14} className="text-primary" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted/60">{t('recordLevelHeader')}</span>
-                    </div>
-                  </TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">{t('fieldHeader')}</TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">{t('actionHeader')}</TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">{t('relationHeader')}</TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70">{t('viewHeader')}</TableHead>
-                  <TableHead rowSpan={2} className="text-center w-[90px] bg-bg-sidebar align-middle py-6 font-bold text-[10px] uppercase tracking-widest text-text-muted/70 rounded-tr-2xl">{t('customHeader')}</TableHead>
-                </TableRow>
-                <TableRow className="border-b-border-subtle/60 bg-bg-sidebar hover:bg-bg-sidebar transition-none">
-                  {[
-                    { label: t('read'), field: 'read' },
-                    { label: t('write'), field: 'write' },
-                    { label: t('update'), field: 'update' },
-                    { label: t('delete'), field: 'delete' },
-                    { label: t('public'), field: 'is_public' }
-                  ].map(({ label, field }) => (
-                    <TableHead key={label} className="w-[130px] text-center py-3">
-                      <label className="flex items-center justify-center gap-2 group/header cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={isAllSelected(field)}
-                          onChange={(e) => handleSelectAll(field, e.target.checked)}
-                          className="w-4 h-4 rounded border-border-subtle bg-bg-sidebar cursor-pointer accent-primary transition-all hover:ring-2 hover:ring-primary/20 shadow-sm"
-                        />
-                        <span className="text-[12px] font-bold text-text-muted group-hover/header:text-text-main transition-colors uppercase tracking-tight">{label}</span>
-                      </label>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tables?.map((row, index) => (
-                  <TableRow key={row.id} className="group/row transition-colors hover:bg-primary/[0.01]">
-                    <TableCell className={cn(
-                      "w-[280px] min-w-[280px] max-w-[280px] sticky left-0 bg-bg-card border-r border-border-subtle/40 z-30 px-6 py-5 transition-shadow duration-200",
-                      isScrolled && "shadow-[10px_0_15px_-3px_rgba(0,0,0,0.1),4px_0_6px_-2px_rgba(0,0,0,0.05)]"
-                    )}>
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-[14px] text-text-main tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-                              {row.label}
-                            </span>
-                            <ChevronRight size={12} className="text-text-muted opacity-0 group-hover/row:opacity-100 -translate-x-2 group-hover/row:translate-x-0 transition-all" />
-                          </div>
-                          <span className="text-[9px] text-primary/80 font-mono bg-primary/5 w-fit px-1.5 py-0.5 rounded-md uppercase tracking-widest mt-1 border border-primary/10 shadow-sm">
-                            {row.slug}
+                      <div className="flex flex-col min-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-[13px] text-text-main tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                            {row.label}
                           </span>
                         </div>
                       </div>
-                    </TableCell>
+                    </div>
+                  </WorkspaceTableCell>
 
-                    <TableCell className="align-middle px-2">
-                      <Controller name={`tables.${index}.record_permissions.read`} control={control} render={({ field }) => (
+                  <WorkspaceTableCell className="align-middle px-2 py-1">
+                    <Controller name={`tables.${index}.record_permissions.read`} control={control}
+                      render={({ field }) => (
                         <CustomPermissionBadge
                           label="READ"
                           checked={field.value as boolean}
@@ -400,51 +250,51 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId }: TablePermi
                           hasFilter
                           onFilterClick={() => openModal('filter', index)}
                         />
-                      )} />
-                    </TableCell>
-                    <TableCell className="align-middle px-2">
-                      <Controller name={`tables.${index}.record_permissions.write`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="WRITE" checked={field.value as boolean} onChange={field.onChange} />
-                      )} />
-                    </TableCell>
-                    <TableCell className="align-middle px-2">
-                      <Controller name={`tables.${index}.record_permissions.update`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="UPDATE" checked={field.value as boolean} onChange={field.onChange} />
-                      )} />
-                    </TableCell>
-                    <TableCell className="align-middle px-2">
-                      <Controller name={`tables.${index}.record_permissions.delete`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="DELETE" checked={field.value as boolean} onChange={field.onChange} />
-                      )} />
-                    </TableCell>
-                    <TableCell className="align-middle px-2">
-                      <Controller name={`tables.${index}.record_permissions.is_public`} control={control} render={({ field }) => (
-                        <CustomPermissionBadge label="PUBLIC" checked={field.value as boolean} onChange={field.onChange} />
-                      )} />
-                    </TableCell>
+                      )}
+                    />
+                  </WorkspaceTableCell>
+                  <WorkspaceTableCell className="align-middle px-2 py-1">
+                    <Controller name={`tables.${index}.record_permissions.write`} control={control} render={({ field }) => (
+                      <CustomPermissionBadge label="WRITE" checked={field.value as boolean} onChange={field.onChange} />
+                    )} />
+                  </WorkspaceTableCell>
+                  <WorkspaceTableCell className="align-middle px-2 py-1">
+                    <Controller name={`tables.${index}.record_permissions.update`} control={control} render={({ field }) => (
+                      <CustomPermissionBadge label="UPDATE" checked={field.value as boolean} onChange={field.onChange} />
+                    )} />
+                  </WorkspaceTableCell>
+                  <WorkspaceTableCell className="align-middle px-2 py-1">
+                    <Controller name={`tables.${index}.record_permissions.delete`} control={control} render={({ field }) => (
+                      <CustomPermissionBadge label="DELETE" checked={field.value as boolean} onChange={field.onChange} />
+                    )} />
+                  </WorkspaceTableCell>
+                  <WorkspaceTableCell className="align-middle px-2 py-1">
+                    <Controller name={`tables.${index}.record_permissions.is_public`} control={control} render={({ field }) => (
+                      <CustomPermissionBadge label="PUBLIC" checked={field.value as boolean} onChange={field.onChange} />
+                    )} />
+                  </WorkspaceTableCell>
 
-                    <TableCell className="text-center align-middle">
-                      <ActionButton icon={TableIcon} label={t('fieldHeader')} onClick={() => openModal('field', index)} />
-                    </TableCell>
-                    <TableCell className="text-center align-middle">
-                      <ActionButton icon={Zap} label={t('actionHeader')} onClick={() => openModal('action', index)} />
-                    </TableCell>
-                    <TableCell className="text-center align-middle">
-                      <ActionButton icon={LinkIcon} label={t('relationHeader')} onClick={() => openModal('relation', index)} />
-                    </TableCell>
-                    <TableCell className="text-center align-middle">
-                      <ActionButton icon={Eye} label={t('viewHeader')} onClick={() => openModal('view', index)} />
-                    </TableCell>
-                    <TableCell className="text-center align-middle">
-                      <ActionButton icon={Settings2} label={t('customHeader')} onClick={() => openModal('custom', index)} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  <WorkspaceTableCell className="text-center align-middle px-2 py-1">
+                    <ActionButton icon={TableIcon} label={t('fieldHeader')} onClick={() => openModal('field', index)} />
+                  </WorkspaceTableCell>
+                  <WorkspaceTableCell className="text-center align-middle px-2 py-1">
+                    <ActionButton icon={Zap} label={t('actionHeader')} onClick={() => openModal('action', index)} />
+                  </WorkspaceTableCell>
+                  <WorkspaceTableCell className="text-center align-middle px-2 py-1">
+                    <ActionButton icon={LinkIcon} label={t('relationHeader')} onClick={() => openModal('relation', index)} />
+                  </WorkspaceTableCell>
+                  <WorkspaceTableCell className="text-center align-middle px-2 py-1">
+                    <ActionButton icon={Eye} label={t('viewHeader')} onClick={() => openModal('view', index)} />
+                  </WorkspaceTableCell>
+                  <WorkspaceTableCell className="text-center align-middle px-2 py-1">
+                    <ActionButton icon={Settings2} label={t('customHeader')} onClick={() => openModal('custom', index)} />
+                  </WorkspaceTableCell>
+                </WorkspaceTableRow>
+              ))}
+            </WorkspaceTableBody>
+          </WorkspaceTable>
         </div>
-      </div>
+      </WorkspaceTableWrapper>
 
       {modalState.type && (
         <Dialog open={!!modalState.type} onOpenChange={closeModal}>
@@ -521,72 +371,60 @@ const ModalContent = ({
       fields.length > 0 && fields.every((f: any) => f[prop])
 
     return (
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-bg-sidebar/30">
-            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
-            <TableHead className="text-[10px] uppercase font-bold text-text-muted">{t('fieldHeader')} Name</TableHead>
-            <TableHead className="w-[120px] text-center">
-              <label className="flex flex-col items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isAllFieldSelected('view_permission')}
-                  onChange={(e) => handleToggleAll('view_permission', e.target.checked)}
-                  className="w-4 h-4 rounded border-border-subtle accent-primary"
-                />
-                <span className="text-[9px] uppercase font-bold text-text-muted">{t('view')}</span>
-              </label>
-            </TableHead>
-            <TableHead className="w-[120px] text-center">
-              <label className="flex flex-col items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isAllFieldSelected('edit_permission')}
-                  onChange={(e) => handleToggleAll('edit_permission', e.target.checked)}
-                  className="w-4 h-4 rounded border-border-subtle accent-primary"
-                />
-                <span className="text-[9px] uppercase font-bold text-text-muted">{t('update')}</span>
-              </label>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {fields.map((field: any, idx: number) => (
-            <TableRow key={field.field_id}>
-              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
-              <TableCell className="text-[13px] font-medium text-text-main">{field.label}</TableCell>
-              <TableCell className="text-center">
-                <Controller
-                  name={`tables.${tableIndex}.field_permissions.${idx}.view_permission`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <input
-                      type="checkbox"
-                      checked={f.value}
-                      onChange={f.onChange}
-                      className="w-4 h-4 rounded border-border-subtle bg-bg-card checked:bg-primary checked:border-primary cursor-pointer accent-primary transition-all"
-                    />
-                  )}
-                />
-              </TableCell>
-              <TableCell className="text-center">
-                <Controller
-                  name={`tables.${tableIndex}.field_permissions.${idx}.edit_permission`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <input
-                      type="checkbox"
-                      checked={f.value}
-                      onChange={f.onChange}
-                      className="w-4 h-4 rounded border-border-subtle bg-bg-card checked:bg-primary checked:border-primary cursor-pointer accent-primary transition-all"
-                    />
-                  )}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <WorkspaceTableWrapper>
+        <WorkspaceTable>
+          <WorkspaceTableHeader className="bg-bg-card">
+            <WorkspaceTableRow className="transition-none hover:bg-transparent">
+              <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
+              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('fieldHeader')} Name</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[120px] text-center border border-border-subtle bg-bg-card">
+                <div className="flex flex-col items-center gap-1">
+                  <PermissionCheckbox 
+                    checked={isAllFieldSelected('view_permission')}
+                    onCheckedChange={(checked) => handleToggleAll('view_permission', checked)}
+                  />
+                  <span className="text-[9px] uppercase font-bold text-text-muted">{t('view')}</span>
+                </div>
+              </WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[120px] text-center border border-border-subtle bg-bg-card">
+                <div className="flex flex-col items-center gap-1">
+                  <PermissionCheckbox 
+                    checked={isAllFieldSelected('edit_permission')}
+                    onCheckedChange={(checked) => handleToggleAll('edit_permission', checked)}
+                  />
+                  <span className="text-[9px] uppercase font-bold text-text-muted">{t('update')}</span>
+                </div>
+              </WorkspaceTableHead>
+            </WorkspaceTableRow>
+          </WorkspaceTableHeader>
+          <WorkspaceTableBody>
+            {fields.map((field: any, idx: number) => (
+              <WorkspaceTableRow key={field.field_id} className="transition-none hover:bg-transparent group/row">
+                <WorkspaceTableCell className="px-4 py-1 text-[11px] text-text-muted border border-border-subtle group-hover:bg-bg-card">{idx + 1}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-[13px] font-medium text-text-main border border-border-subtle group-hover:bg-bg-card">{field.label}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-center border border-border-subtle group-hover:bg-bg-card">
+                  <Controller
+                    name={`tables.${tableIndex}.field_permissions.${idx}.view_permission`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <PermissionCheckbox checked={f.value} onCheckedChange={f.onChange} />
+                    )}
+                  />
+                </WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-center group-hover:bg-bg-card">
+                  <Controller
+                    name={`tables.${tableIndex}.field_permissions.${idx}.edit_permission`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <PermissionCheckbox checked={f.value} onCheckedChange={f.onChange} />
+                    )}
+                  />
+                </WorkspaceTableCell>
+              </WorkspaceTableRow>
+            ))}
+          </WorkspaceTableBody>
+        </WorkspaceTable>
+      </WorkspaceTableWrapper>
     )
   }
 
@@ -595,37 +433,34 @@ const ModalContent = ({
     if (actions.length === 0) return <p className="text-center text-text-muted text-sm py-8">{t('noActions')}</p>
 
     return (
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-bg-sidebar/30">
-            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
-            <TableHead className="text-[10px] uppercase font-bold text-text-muted">{t('actionHeader')} Name</TableHead>
-            <TableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted">Permission</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {actions.map((action: any, idx: number) => (
-            <TableRow key={action.guid}>
-              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
-              <TableCell className="text-[13px] font-medium text-text-main">{action.label || action.guid.slice(0, 8)}</TableCell>
-              <TableCell className="text-center">
-                <Controller
-                  name={`tables.${tableIndex}.action_permissions.${idx}.permission`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <input
-                      type="checkbox"
-                      checked={f.value}
-                      onChange={f.onChange}
-                      className="w-4 h-4 rounded border-border-subtle bg-bg-card checked:bg-primary checked:border-primary cursor-pointer accent-primary transition-all"
-                    />
-                  )}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <WorkspaceTableWrapper>
+        <WorkspaceTable>
+          <WorkspaceTableHeader className="bg-bg-card">
+            <WorkspaceTableRow className="transition-none hover:bg-transparent">
+              <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
+              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('actionHeader')} Name</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">Permission</WorkspaceTableHead>
+            </WorkspaceTableRow>
+          </WorkspaceTableHeader>
+          <WorkspaceTableBody>
+            {actions.map((action: any, idx: number) => (
+              <WorkspaceTableRow key={action.guid} className="transition-none hover:bg-transparent group/row">
+                <WorkspaceTableCell className="px-4 py-1 text-[11px] text-text-muted border border-border-subtle group-hover:bg-bg-card">{idx + 1}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-[13px] font-medium text-text-main border border-border-subtle group-hover:bg-bg-card">{action.label || action.guid.slice(0, 8)}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-center border border-border-subtle group-hover:bg-bg-card">
+                  <Controller
+                    name={`tables.${tableIndex}.action_permissions.${idx}.permission`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <PermissionCheckbox checked={f.value} onCheckedChange={f.onChange} />
+                    )}
+                  />
+                </WorkspaceTableCell>
+              </WorkspaceTableRow>
+            ))}
+          </WorkspaceTableBody>
+        </WorkspaceTable>
+      </WorkspaceTableWrapper>
     )
   }
 
@@ -634,37 +469,34 @@ const ModalContent = ({
     if (rels.length === 0) return <p className="text-center text-text-muted text-sm py-8">{t('noRelations')}</p>
 
     return (
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-bg-sidebar/30">
-            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
-            <TableHead className="text-[10px] uppercase font-bold text-text-muted">{t('relationHeader')} Source</TableHead>
-            <TableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted">View Permission</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rels.map((rel: any, idx: number) => (
-            <TableRow key={rel.guid}>
-              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
-              <TableCell className="text-[13px] font-medium text-text-main">{rel.table_slug}</TableCell>
-              <TableCell className="text-center">
-                <Controller
-                  name={`tables.${tableIndex}.view_permissions.${idx}.view_permission`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <input
-                      type="checkbox"
-                      checked={f.value}
-                      onChange={f.onChange}
-                      className="w-4 h-4 rounded border-border-subtle bg-bg-card checked:bg-primary checked:border-primary cursor-pointer accent-primary transition-all"
-                    />
-                  )}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <WorkspaceTableWrapper>
+        <WorkspaceTable>
+          <WorkspaceTableHeader className="bg-bg-card">
+            <WorkspaceTableRow className="transition-none hover:bg-transparent">
+              <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
+              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('relationHeader')} Source</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">View Permission</WorkspaceTableHead>
+            </WorkspaceTableRow>
+          </WorkspaceTableHeader>
+          <WorkspaceTableBody>
+            {rels.map((rel: any, idx: number) => (
+              <WorkspaceTableRow key={rel.guid} className="transition-none hover:bg-transparent group/row">
+                <WorkspaceTableCell className="px-4 py-1 text-[11px] text-text-muted border border-border-subtle group-hover:bg-bg-card">{idx + 1}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-[13px] font-medium text-text-main border border-border-subtle group-hover:bg-bg-card">{rel.table_slug}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-center border border-border-subtle group-hover:bg-bg-card">
+                  <Controller
+                    name={`tables.${tableIndex}.view_permissions.${idx}.view_permission`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <PermissionCheckbox checked={f.value} onCheckedChange={f.onChange} />
+                    )}
+                  />
+                </WorkspaceTableCell>
+              </WorkspaceTableRow>
+            ))}
+          </WorkspaceTableBody>
+        </WorkspaceTable>
+      </WorkspaceTableWrapper>
     )
   }
 
@@ -673,40 +505,42 @@ const ModalContent = ({
     if (views.length === 0) return <p className="text-center text-text-muted text-sm py-8">{t('noViews')}</p>
 
     return (
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-bg-sidebar/30">
-            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
-            <TableHead className="text-[10px] uppercase font-bold text-text-muted">View Label</TableHead>
-            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">{t('view')}</TableHead>
-            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">{t('update')}</TableHead>
-            <TableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted">{t('delete')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {views.map((v: any, idx: number) => (
-            <TableRow key={v.guid}>
-              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
-              <TableCell className="text-[13px] font-medium text-text-main">{v.label || v.view_id.slice(0, 8)}</TableCell>
-              <TableCell className="text-center">
-                <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.view`} control={control} render={({ field: f }) => (
-                  <input type="checkbox" checked={f.value} onChange={f.onChange} className="w-4 h-4 rounded border-border-subtle accent-primary" />
-                )} />
-              </TableCell>
-              <TableCell className="text-center">
-                <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.edit`} control={control} render={({ field: f }) => (
-                  <input type="checkbox" checked={f.value} onChange={f.onChange} className="w-4 h-4 rounded border-border-subtle accent-primary" />
-                )} />
-              </TableCell>
-              <TableCell className="text-center">
-                <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.delete`} control={control} render={({ field: f }) => (
-                  <input type="checkbox" checked={f.value} onChange={f.onChange} className="w-4 h-4 rounded border-border-subtle accent-primary" />
-                )} />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <WorkspaceTableWrapper>
+        <WorkspaceTable>
+          <WorkspaceTableHeader className="bg-bg-card">
+            <WorkspaceTableRow className="transition-none hover:bg-transparent">
+              <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
+              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">View Label</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('view')}</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('update')}</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('delete')}</WorkspaceTableHead>
+            </WorkspaceTableRow>
+          </WorkspaceTableHeader>
+          <WorkspaceTableBody>
+            {views.map((v: any, idx: number) => (
+              <WorkspaceTableRow key={v.guid} className="transition-none hover:bg-transparent group/row">
+                <WorkspaceTableCell className="px-4 py-1 text-[11px] text-text-muted border border-border-subtle group-hover:bg-bg-card">{idx + 1}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-[13px] font-medium text-text-main border border-border-subtle group-hover:bg-bg-card">{v.label || v.view_id.slice(0, 8)}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-center border border-border-subtle group-hover:bg-bg-card">
+                  <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.view`} control={control} render={({ field: f }) => (
+                    <PermissionCheckbox checked={f.value} onCheckedChange={f.onChange} />
+                  )} />
+                </WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-center border border-border-subtle group-hover:bg-bg-card">
+                  <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.edit`} control={control} render={({ field: f }) => (
+                    <PermissionCheckbox checked={f.value} onCheckedChange={f.onChange} />
+                  )} />
+                </WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-center border border-border-subtle group-hover:bg-bg-card">
+                  <Controller name={`tables.${tableIndex}.table_view_permissions.${idx}.delete`} control={control} render={({ field: f }) => (
+                    <PermissionCheckbox checked={f.value} onCheckedChange={f.onChange} />
+                  )} />
+                </WorkspaceTableCell>
+              </WorkspaceTableRow>
+            ))}
+          </WorkspaceTableBody>
+        </WorkspaceTable>
+      </WorkspaceTableWrapper>
     )
   }
 
@@ -717,64 +551,50 @@ const ModalContent = ({
     const formatKey = (k: string) => k.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 
     return (
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-bg-sidebar/30">
-            <TableHead className="w-10 text-[10px] uppercase font-bold text-text-muted">No</TableHead>
-            <TableHead className="text-[10px] uppercase font-bold text-text-muted">Setting</TableHead>
-            <TableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted">Permission</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {keys.map((k, idx) => (
-            <TableRow key={k}>
-              <TableCell className="text-[11px] text-text-muted">{idx + 1}</TableCell>
-              <TableCell className="text-[13px] font-medium text-text-main">{formatKey(k)}</TableCell>
-              <TableCell className="text-center">
-                <Controller
-                  name={`tables.${tableIndex}.custom_permission.${k}`}
-                  control={control}
-                  render={({ field: f }) => (
-                    <input
-                      type="checkbox"
-                      checked={f.value === 'Yes'}
-                      onChange={(e) => f.onChange(e.target.checked ? 'Yes' : 'No')}
-                      className="w-4 h-4 rounded border-border-subtle accent-primary"
-                    />
-                  )}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <WorkspaceTableWrapper>
+        <WorkspaceTable>
+          <WorkspaceTableHeader className="bg-bg-card">
+            <WorkspaceTableRow className="transition-none hover:bg-transparent">
+              <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
+              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">Setting</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">Permission</WorkspaceTableHead>
+            </WorkspaceTableRow>
+          </WorkspaceTableHeader>
+          <WorkspaceTableBody>
+            {keys.map((k, idx) => (
+              <WorkspaceTableRow key={k} className="transition-none hover:bg-transparent group/row">
+                <WorkspaceTableCell className="px-4 py-1 text-[11px] text-text-muted border border-border-subtle group-hover:bg-bg-card">{idx + 1}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-[13px] font-medium text-text-main border border-border-subtle group-hover:bg-card">{formatKey(k)}</WorkspaceTableCell>
+                <WorkspaceTableCell className="px-4 py-1 text-center border border-border-subtle group-hover:bg-bg-card">
+                  <Controller
+                    name={`tables.${tableIndex}.custom_permission.${k}`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <PermissionCheckbox 
+                        checked={f.value === 'Yes'} 
+                        onCheckedChange={(checked) => f.onChange(checked ? 'Yes' : 'No')} 
+                      />
+                    )}
+                  />
+                </WorkspaceTableCell>
+              </WorkspaceTableRow>
+            ))}
+          </WorkspaceTableBody>
+        </WorkspaceTable>
+      </WorkspaceTableWrapper>
     )
   }
 
   if (type === 'filter') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-1 bg-bg-sidebar/50 p-1 rounded-xl w-fit border border-border-subtle/40">
-          {['read', 'write'].map(t => (
-            <button
-              key={t}
-              onClick={() => setFilterType(t)}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all uppercase tracking-tight",
-                filterType === t ? "bg-primary text-white shadow-sm" : "hover:bg-hover-bg text-text-muted"
-              )}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
         <FilterRows
           tableIndex={tableIndex}
           filterType={filterType}
           control={control}
           relationsData={relationsData}
           connectionsData={connectionsData}
+          watch={watch}
         />
       </div>
     )
@@ -783,8 +603,9 @@ const ModalContent = ({
   return null
 }
 
-const FilterRows = ({ tableIndex, filterType, control, relationsData, connectionsData }: any) => {
+const FilterRows = ({ tableIndex, filterType, control, relationsData, connectionsData, watch }: any) => {
   const t = useTranslations('widgets.permissionManage.tablePermissions')
+  const tableSlug = watch(`tables.${tableIndex}.slug`)
   const { fields, append, remove } = useFieldArray({
     control,
     name: `tables.${tableIndex}.automatic_filters.${filterType}`
@@ -792,83 +613,99 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        {fields.length === 0 ? (
-          <div className="text-center py-10 bg-bg-sidebar/20 rounded-2xl border border-dashed border-border-subtle">
-            <p className="text-text-muted text-xs">{t('noFilters')}</p>
-          </div>
-        ) : (
-          fields.map((item, idx) => (
-            <div key={item.id} className="group relative flex items-center gap-4 bg-bg-card p-4 rounded-2xl border border-border-subtle/60 hover:border-primary/30 transition-all shadow-sm">
-              <div className="flex-1 space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('connectTo')}</p>
-                    <Controller
-                      name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.object_field`}
-                      control={control}
-                      render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className="h-10 bg-bg-sidebar border-border-subtle text-text-main text-xs">
-                            <SelectValue placeholder={t('selectConnection')} />
-                          </SelectTrigger>
-                          <SelectContent className="bg-bg-card border-border-subtle">
-                            {connectionsData?.map((c: any) => (
-                              <SelectItem key={c.value} value={c.value} className="text-xs">
-                                {c.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('tableRelation')}</p>
-                    <Controller
-                      name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.custom_field`}
-                      control={control}
-                      render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className="h-10 bg-bg-sidebar border-border-subtle text-text-main text-xs">
-                            <SelectValue placeholder={t('selectRelation')} />
-                          </SelectTrigger>
-                          <SelectContent className="bg-bg-card border-border-subtle">
-                            {relationsData?.map((r: any) => (
-                              <SelectItem key={r.value} value={r.value} className="text-xs">
-                                {r.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => remove(idx)}
-                className="h-9 w-9 text-text-muted hover:text-destructive hover:bg-destructive/10 rounded-xl"
-              >
-                <Trash2 size={16} />
-              </Button>
-            </div>
-          )
-          ))}
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-bold text-text-main uppercase tracking-tight">{t('automaticFilters')}</h4>
+        <Button
+          size="sm"
+          onClick={() => append({ 
+            custom_field: 'user_id', 
+            object_field: '', 
+            table_slug: tableSlug,
+            not_use_in_tab: false 
+          })}
+          className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg h-8 px-3"
+        >
+          <Plus size={14} className="mr-1.5" />
+          {t('addFilter')}
+        </Button>
       </div>
 
-      <Button
-        onClick={() => append({ object_field: '', custom_field: '', guid: crypto.randomUUID() })}
-        variant="ghost"
-        className="w-full h-11 border border-dashed border-border-subtle text-text-muted hover:text-primary hover:border-primary/30 rounded-2xl gap-2 font-semibold text-xs transition-all"
-      >
-        <Plus size={16} />
-        {t('addNewFilter')}
-      </Button>
+      <div className="space-y-3">
+        {fields.map((field, idx) => (
+          <div key={field.id} className="flex items-center gap-3 bg-bg-sidebar/30 p-4 rounded-2xl border border-border-subtle/40 group hover:border-primary/20 transition-all">
+            <div className="flex-1 space-y-1">
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1">Target Object</label>
+              <Controller
+                control={control}
+                name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.custom_field`}
+                render={({ field: f }) => (
+                  <Select value={f.value} onValueChange={f.onChange}>
+                    <SelectTrigger className="bg-bg-card border-border-subtle h-9 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {connectionsData?.map((c: any) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <div className="flex-1 space-y-1">
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1">Source Relation</label>
+              <Controller
+                control={control}
+                name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.object_field`}
+                render={({ field: f }) => (
+                  <Select value={f.value} onValueChange={f.onChange}>
+                    <SelectTrigger className="bg-bg-card border-border-subtle h-9 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {relationsData?.map((r: any) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <div className="w-[100px] space-y-1.5 flex flex-col items-center justify-center">
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">Not in tab</label>
+              <Controller
+                control={control}
+                name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.not_use_in_tab`}
+                render={({ field: f }) => (
+                  <Switch
+                    checked={f.value}
+                    onCheckedChange={f.onChange}
+                    size="sm"
+                  />
+                )}
+              />
+            </div>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => remove(idx)}
+              className="mt-6 border-border-subtle hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 h-9 w-9 rounded-xl transition-all"
+            >
+              <Trash2 size={16} />
+            </Button>
+          </div>
+        ))}
+
+        {fields.length === 0 && (
+          <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-border-subtle/40 rounded-3xl opacity-40">
+            <Filter size={32} className="text-text-muted mb-2" />
+            <p className="text-xs font-medium">{t('noFilters')}</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
-
-

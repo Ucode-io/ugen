@@ -872,7 +872,10 @@
         "selectConnection": "Select connection",
         "tableRelation": "Table Relation",
         "selectRelation": "Select relation",
-        "addNewFilter": "Add New Filter Condition"
+        "addNewFilter": "Add New Filter Condition",
+        "view": "View",
+        "automaticFilters": "Automatic filters",
+        "addFilter": "Add Filter"
       }
     },
     "roleManage": {

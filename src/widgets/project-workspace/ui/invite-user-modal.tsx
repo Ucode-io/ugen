@@ -85,6 +85,18 @@ export const InviteUserModal = ({
     }
   })
 
+  // const { mutate: inviteMutation, isPending: isInviting } = useMutation({
+  //   mutationFn: createUser,
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ['users-workspace'] })
+  //     onOpenChange(false)
+  //     reset()
+  //   },
+  //   onError: (error) => {
+  //     console.error("Failed to invite user:", error)
+  //   }
+  // })
+
   const { mutate: inviteMutation, isPending: isInviting } = useMutation({
     mutationFn: createUser,
     onSuccess: () => {
@@ -96,17 +108,6 @@ export const InviteUserModal = ({
       console.error("Failed to invite user:", error)
     }
   })
-  // const { mutate: inviteMutation, isPending: isInviting } = useMutation({
-  //   mutationFn: createUser,
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ['users'] })
-  //     onOpenChange(false)
-  //     reset()
-  //   },
-  //   onError: (error) => {
-  //     console.error("Failed to invite user:", error)
-  //   }
-  // })
 
   const { mutate: updateMutation, isPending: isUpdating } = useMutation({
     mutationFn: updateUser,

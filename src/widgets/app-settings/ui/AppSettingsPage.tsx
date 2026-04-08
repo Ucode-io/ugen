@@ -727,7 +727,7 @@ export const AppSettingsPage = () => {
         {/* I18N Tab */}
         {activeTab === 'i18n' && (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 py-4">
               <div className="relative flex-1 max-w-sm group">
                 <Search size={14} className={cn(
                   "absolute left-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors",

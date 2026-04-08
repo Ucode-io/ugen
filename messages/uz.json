@@ -872,7 +872,10 @@
         "selectConnection": "Ulanishni tanlang",
         "tableRelation": "Jadval bog'lanishi",
         "selectRelation": "Bog'lanishni tanlang",
-        "addNewFilter": "Yangi filtr shartini qo'shish"
+        "addNewFilter": "Yangi filtr shartini qo'shish",
+        "view": "Ko'rinish",
+        "automaticFilters": "Avtomatik filtrlar",
+        "addFilter": "Filtr qo'shish"
       }
     },
     "roleManage": {
