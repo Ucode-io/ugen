@@ -646,6 +646,7 @@
         },
         "details": {
           "user": "Foydalanuvchi",
+          "actionBy": "Kim tomonidan bajarildi",
           "action": "Harakat",
           "date": "Sana",
           "collection": "To'plam",
@@ -665,7 +666,10 @@
           "compute": "Hisoblash",
           "dbBandwidth": "MB trafigi",
           "fileBandwidth": "Fayl trafigi",
-          "vectorBandwidth": "Vektorli trafik"
+          "vectorBandwidth": "Vektorli trafik",
+          "url": "URL",
+          "method": "Metod",
+          "time": "Vaqt"
         }
       },
       "common": {

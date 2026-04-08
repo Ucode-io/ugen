@@ -22,8 +22,6 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
   const t = useTranslations('widgets.databaseStudio')
   const { currentView, setCurrentView, breadcrumbs, resetToTables } = useDatabaseStore()
 
-  console.log({ currentView })
-
   const renderContent = () => {
     switch (currentView) {
       case 'tables': return <TablesView />

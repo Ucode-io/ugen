@@ -646,6 +646,7 @@
         },
         "details": {
           "user": "Пользователь",
+          "actionBy": "Кем выполнено",
           "action": "Действие",
           "date": "Дата",
           "collection": "Коллекция",
@@ -665,7 +666,10 @@
           "compute": "Вычисления",
           "dbBandwidth": "Трафик БД",
           "fileBandwidth": "Трафик файлов",
-          "vectorBandwidth": "Векторный трафик"
+          "vectorBandwidth": "Векторный трафик",
+          "url": "URL",
+          "method": "Метод",
+          "time": "Время"
         }
       },
       "common": {

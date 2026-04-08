@@ -11,6 +11,8 @@ import {
 import { Button } from '@/shared/ui/button'
 import { Label } from '@/shared/ui/label'
 import { useTables } from '@/entities/database/api/database-api'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/api'
 import { Copy, Check, Loader2 } from 'lucide-react'
 import Editor from '@monaco-editor/react'
 import { toast } from 'sonner'
@@ -29,27 +31,88 @@ const LANGUAGES = [
 
 export const ApiIntegrationsPage = ({ projectId }: ApiIntegrationsPageProps) => {
   const { data: tables = [], isLoading: isLoadingTables } = useTables()
-  const [selectedTable, setSelectedTable] = useState<string>('')
+  const { data: endpoints = [], isLoading: isLoadingEndpoints } = useQuery({
+    queryKey: ['custom-endpoints-list'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/custom-endpoints')
+      console.log({ data })
+      return data?.data?.endpoints || []
+    },
+    staleTime: 0,
+  })
+
+  // Value format: "table:slug" or "endpoint:id"
+  const [selectedItem, setSelectedItem] = useState<string>('')
   const [activeTab, setActiveTab] = useState('javascript')
   const [isCopied, setIsCopied] = useState(false)
   const { theme } = useUIStore()
 
   const API_KEY = useAuthStore((state) => state.apiKey)
 
-  // Auto-select first table if none selected
+  // Auto-select first item if none selected
   useMemo(() => {
-    if (tables.length > 0 && !selectedTable) {
-      const defaultTable = tables.find(t => t.slug === 'users') || tables[0]
-      if (defaultTable) {
-        setSelectedTable(defaultTable.slug)
+    if (!selectedItem) {
+      if (tables.length > 0) {
+        const defaultTable = tables.find(t => t.slug === 'users') || tables[0]
+        if (defaultTable) setSelectedItem(`table:${defaultTable.slug}`)
+      } else if (endpoints.length > 0) {
+        setSelectedItem(`endpoint:${endpoints[0].id}`)
       }
     }
-  }, [tables, selectedTable])
+  }, [tables, endpoints, selectedItem])
 
-  const currentSlug = selectedTable || 'table_name'
+  const isEndpoint = selectedItem.startsWith('endpoint:')
+  const currentId = selectedItem.split(':')[1] || 'current_id'
 
-  const jsCode = `const API_KEY = '${API_KEY}';
-const BASE_URL = 'https://admin-api.ucode.run/v2/items/${currentSlug}';
+  const currentEndpoint = useMemo(() => {
+    if (!isEndpoint) return null
+    return endpoints.find((e: any) => e.id === currentId)
+  }, [endpoints, currentId, isEndpoint])
+
+  const toCamelCase = (str: string) => {
+    return str.replace(/([-_][a-z])/ig, ($1) => $1.toUpperCase().replace('-', '').replace('_', ''))
+  }
+
+  const toPascalCase = (str: string) => {
+    const camel = toCamelCase(str)
+    return camel.charAt(0).toUpperCase() + camel.slice(1)
+  }
+
+  const fnNameJS = currentEndpoint?.name ? toCamelCase(currentEndpoint.name).replace(/\s+/g, '') : 'runEndpoint'
+  const fnNameGo = currentEndpoint?.name ? toPascalCase(currentEndpoint.name).replace(/\s+/g, '') : 'RunEndpoint'
+  const fnNamePy = currentEndpoint?.name ? currentEndpoint.name.toLowerCase().replace(/\s+/g, '_') : 'run_endpoint'
+  const description = currentEndpoint?.description || 'Executes the custom endpoint'
+
+  // Code Templates
+  const jsCode = isEndpoint
+    ? `const API_KEY = '${API_KEY}';
+const id = '${currentId}';
+const BASE_URL = \`https://admin-api.ucode.run/v1/custom-endpoints/\${id}/run\`;
+
+const headers = {
+  'authorization': 'API-KEY',
+  'x-api-key': API_KEY,
+  'Content-Type': 'application/json'
+};
+
+/**
+ * ${currentEndpoint?.name || 'Custom Endpoint'}
+ * ${description}
+ */
+async function ${fnNameJS}(params) {
+  const response = await fetch(BASE_URL, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ params })
+  });
+  return response.json();
+}
+
+// Example usage:
+// ${fnNameJS}({ key: 'value' }).then(console.log);
+`
+    : `const API_KEY = '${API_KEY}';
+const BASE_URL = 'https://admin-api.ucode.run/v2/items/${currentId}';
 
 const headers = {
   'authorization': 'API-KEY',
@@ -104,10 +167,34 @@ async function deleteRecord(id) {
 //   .then(res => console.log('Created:', res));
 `
 
-  const pythonCode = `import requests
+  const pythonCode = isEndpoint
+    ? `import requests
 
 API_KEY = '${API_KEY}'
-BASE_URL = "https://admin-api.ucode.run/v2/items/${currentSlug}"
+ENDPOINT_ID = '${currentId}'
+URL = f"https://admin-api.ucode.run/v1/custom-endpoints/{ENDPOINT_ID}/run"
+
+headers = {
+    "authorization": "API-KEY",
+    "x-api-key": API_KEY,
+    "Content-Type": "application/json"
+}
+
+def ${fnNamePy}(params):
+    """
+    ${currentEndpoint?.name || 'Custom Endpoint'}
+    ${description}
+    """
+    response = requests.post(URL, headers=headers, json={"params": params})
+    return response.json()
+
+# Example usage:
+# print(${fnNamePy}({"key": "value"}))
+`
+    : `import requests
+
+API_KEY = '${API_KEY}'
+BASE_URL = "https://admin-api.ucode.run/v2/items/${currentId}"
 HEADERS = {
     "authorization": "API-KEY",
     "x-api-key": API_KEY,
@@ -150,7 +237,44 @@ def delete_record(record_id: str):
 # print("Created:", new_item)
 `
 
-  const goCode = `package main
+  const goCode = isEndpoint
+    ? `package main
+
+import (
+\t"bytes"
+\t"encoding/json"
+\t"net/http"
+)
+
+const API_KEY = "${API_KEY}"
+const ENDPOINT_ID = "${currentId}"
+const URL = "https://admin-api.ucode.run/v1/custom-endpoints/" + ENDPOINT_ID + "/run"
+
+// ${currentEndpoint?.name || 'Custom Endpoint'}
+// ${description}
+func ${fnNameGo}(params map[string]string) (interface{}, error) {
+\tpayload := map[string]interface{}{
+\t\t"params": params,
+\t}
+\tbody, _ := json.Marshal(payload)
+
+\treq, _ := http.NewRequest("POST", URL, bytes.NewBuffer(body))
+\treq.Header.Set("authorization", "API-KEY")
+\treq.Header.Set("x-api-key", API_KEY)
+\treq.Header.Set("Content-Type", "application/json")
+
+\tresp, err := http.DefaultClient.Do(req)
+\tif err != nil {
+\t\treturn nil, err
+\t}
+\tdefer resp.Body.Close()
+
+\tvar result interface{}
+\tjson.NewDecoder(resp.Body).Decode(&result)
+\treturn result, nil
+}
+`
+    : `package main
 
 import (
 \t"bytes"
@@ -161,7 +285,7 @@ import (
 )
 
 const APIKey = "${API_KEY}"
-const BaseURL = "https://admin-api.ucode.run/v2/items/${currentSlug}"
+const BaseURL = "https://admin-api.ucode.run/v2/items/${currentId}"
 
 func setHeaders(req *http.Request) {
 \treq.Header.Set("authorization", "API-KEY")
@@ -262,45 +386,61 @@ func DeleteRecord(id string) ([]byte, error) {
     <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
       {/* ── Two dropdowns above the editor ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-            Select Table
+      <div className="flex flex-row gap-4 items-end">
+        <div className="flex flex-col gap-1.5 w-[200px]">
+          <Label className="text-[10px] font-bold text-text-muted/80 uppercase tracking-widest ml-1">
+            Integration Target
           </Label>
-          <Select value={selectedTable} onValueChange={setSelectedTable}>
-            <SelectTrigger className="h-10 bg-bg-card border-border-subtle rounded-xl text-sm">
-              <SelectValue placeholder={isLoadingTables ? 'Loading…' : 'Choose a table…'} />
+          <Select value={selectedItem} onValueChange={setSelectedItem}>
+            <SelectTrigger className="h-8 bg-bg-card border-border-subtle rounded-lg text-xs">
+              <SelectValue placeholder={(isLoadingTables || isLoadingEndpoints) ? 'Loading…' : 'Choose target'} />
             </SelectTrigger>
-            <SelectContent className="max-h-[300px] rounded-xl border-border-subtle shadow-xl">
-              <SelectGroup>
-                <SelectLabel>Tables</SelectLabel>
-                {isLoadingTables ? (
-                  <SelectItem value="__loading__" disabled>Loading...</SelectItem>
-                ) : tables.length === 0 ? (
-                  <SelectItem value="__empty__" disabled>No tables found</SelectItem>
-                ) : (
-                  tables.map((t: any) => (
-                    <SelectItem key={t.slug} value={t.slug}>
-                      {t.title || t.name || t.slug}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectGroup>
+            <SelectContent className="max-h-[300px] rounded-lg border-border-subtle shadow-xl w-[200px]">
+              {(isLoadingTables || isLoadingEndpoints) ? (
+                <SelectItem value="__loading__" disabled className="text-xs">Loading...</SelectItem>
+              ) : (
+                <>
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px]">Tables</SelectLabel>
+                    {tables.length === 0 ? (
+                      <SelectItem value="__empty_tables__" disabled className="text-xs">No tables found</SelectItem>
+                    ) : (
+                      tables.map((t: any) => (
+                        <SelectItem key={`table:${t.slug}`} value={`table:${t.slug}`} className="text-xs px-2">
+                          {t.title || t.name || t.slug}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px]">Custom Endpoints</SelectLabel>
+                    {endpoints.length === 0 ? (
+                      <SelectItem value="__empty_endpoints__" disabled className="text-xs">No endpoints</SelectItem>
+                    ) : (
+                      endpoints.map((e: any) => (
+                        <SelectItem key={`endpoint:${e.id}`} value={`endpoint:${e.id}`} className="text-xs px-2">
+                          {e.name || e.id}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectGroup>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-            Programming Language
+        <div className="flex flex-col gap-1.5 w-[160px]">
+          <Label className="text-[10px] font-bold text-text-muted/80 uppercase tracking-widest ml-1">
+            Language
           </Label>
           <Select value={activeTab} onValueChange={setActiveTab}>
-            <SelectTrigger className="h-10 bg-bg-card border-border-subtle rounded-xl text-sm">
+            <SelectTrigger className="h-8 bg-bg-card border-border-subtle rounded-lg text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-border-subtle shadow-xl">
+            <SelectContent className="rounded-lg border-border-subtle shadow-xl w-[160px]">
               {LANGUAGES.map(lang => (
-                <SelectItem key={lang.id} value={lang.id}>
+                <SelectItem key={lang.id} value={lang.id} className="text-xs px-2">
                   {lang.label}
                 </SelectItem>
               ))}

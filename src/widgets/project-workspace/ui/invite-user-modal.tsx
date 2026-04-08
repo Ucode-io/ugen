@@ -23,20 +23,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs"
 import { useClientTypes, useRoles, useCreateUser, useUpdateUser } from "../api/users"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-const inviteSchema = z.object({
+const getInviteSchema = (isEdit: boolean, changePassword: boolean) => z.object({
   clientType: z.string().min(1, "Required"),
   role: z.string().min(1, "Required"),
-  login: z.string().min(2, "Login must be at least 2 characters"),
-  phone: z.string().min(5, "Invalid phone number"),
-  email: z.string().email("Invalid email address"),
-  status: z.string().min(1, "Required"),
-  password: z.string().min(1, "Required"),
+  status: z.string().min(1, "Required").default('ACTIVE'),
+  login: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  password: z.string().optional(),
+  inviteMethod: z.enum(['login', 'phone', 'email', 'link']).default('login')
+}).superRefine((data, ctx) => {
+  if (data.inviteMethod === 'login') {
+    if (!data.login || data.login.length < 2) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ['login'] })
+    }
+    if ((!isEdit || changePassword) && (!data.password || data.password.length < 1)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ['password'] })
+    }
+  }
+  if (data.inviteMethod === 'phone') {
+    if (!data.phone || data.phone.length < 5) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ['phone'] })
+    }
+  }
+  if (data.inviteMethod === 'email') {
+    if (!data.email || !/^\S+@\S+\.\S+$/.test(data.email)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ['email'] })
+    }
+  }
 })
 
-type InviteFormValues = z.infer<typeof inviteSchema>
+type InviteFormValues = {
+  clientType: string;
+  role: string;
+  status: string;
+  login?: string;
+  phone?: string;
+  email?: string;
+  password?: string;
+  inviteMethod: 'login' | 'phone' | 'email' | 'link';
+}
 
 interface InviteUserModalProps {
   open: boolean
@@ -61,6 +91,7 @@ export const InviteUserModal = ({
   const isEdit = !!initialData
   const { data: clientTypeOptions = [], isLoading: isLoadingTypes } = useClientTypes(projectId)
   const [isCopied, setIsCopied] = useState(false)
+  const [changePassword, setChangePassword] = useState(!isEdit)
   const queryClient = useQueryClient()
   const createUser = useCreateUser()
   const updateUser = useUpdateUser()
@@ -71,9 +102,10 @@ export const InviteUserModal = ({
     control,
     watch,
     reset,
+    setValue,
     formState: { errors }
   } = useForm<InviteFormValues>({
-    resolver: zodResolver(inviteSchema),
+    resolver: zodResolver(getInviteSchema(isEdit, changePassword)) as any,
     defaultValues: {
       clientType: '',
       role: '',
@@ -81,7 +113,8 @@ export const InviteUserModal = ({
       phone: '',
       email: '',
       status: 'ACTIVE',
-      password: ''
+      password: '',
+      inviteMethod: 'login'
     }
   })
 
@@ -122,24 +155,53 @@ export const InviteUserModal = ({
   })
 
   const currentClientType = watch('clientType')
+  const activeTab = watch('inviteMethod')
+  const currentRole = watch('role')
+
   const { data: roleOptions = [], isLoading: isLoadingRoles } = useRoles({
     id: currentClientType || '',
     projectId
   })
 
+  // Auto-select first client type and role for create mode
+  useEffect(() => {
+    if (open && !initialData) {
+      if (clientTypeOptions.length > 0 && !currentClientType) {
+        setValue('clientType', clientTypeOptions[0].value, { shouldValidate: true })
+      }
+    }
+  }, [open, initialData, clientTypeOptions, currentClientType, setValue])
+
+  useEffect(() => {
+    if (open && !initialData) {
+      if (roleOptions.length > 0 && currentClientType) {
+        if (!currentRole || !roleOptions.find(r => r.value === currentRole)) {
+          setValue('role', roleOptions[0].value, { shouldValidate: true })
+        }
+      }
+    }
+  }, [open, initialData, roleOptions, currentRole, currentClientType, setValue])
+
   // Handle initial data and defaults
   useEffect(() => {
     if (open) {
       if (initialData) {
+        let method: 'login' | 'phone' | 'email' = 'login'
+        if (initialData.phone) method = 'phone'
+        if (initialData.email || initialData.mail) method = 'email'
+        if (initialData.login) method = 'login'
+
         reset({
           clientType: initialData.client_type_id || initialData.client_id || '',
           role: initialData.role_id || '',
           login: initialData.login || '',
-          password: initialData.password || '',
+          password: '',
           phone: initialData.phone || '',
           email: initialData.email || initialData.mail || '',
-          status: initialData.status || 'ACTIVE'
+          status: initialData.status || 'ACTIVE',
+          inviteMethod: method
         })
+        setChangePassword(false)
       } else if (clientTypeOptions.length > 0) {
         reset({
           clientType: clientTypeOptions[0].value,
@@ -148,19 +210,17 @@ export const InviteUserModal = ({
           phone: '',
           email: '',
           status: 'ACTIVE',
-          password: ''
+          password: '',
+          inviteMethod: 'login'
         })
+        setChangePassword(true)
       }
     }
   }, [open, initialData, clientTypeOptions, reset])
 
   const formValues = watch()
 
-  const statusOptions = [
-    { label: 'Active', value: 'ACTIVE' },
-    { label: 'Inactive', value: 'INACTIVE' },
-    { label: 'Blocked', value: 'BLOCKED' },
-  ]
+
 
   const inviteLink = useMemo(() => {
     const domain = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_DOMAIN || 'localhost:3000')
@@ -182,36 +242,41 @@ export const InviteUserModal = ({
   }
 
   const onSubmit = (data: InviteFormValues) => {
+    if (data.inviteMethod === 'link' && !isEdit) {
+      onOpenChange(false);
+      return;
+    }
+
     if (isEdit) {
-      updateMutation({
-        data: {
-          id: initialData.id,
-          client_type_id: data.clientType,
-          login: data.login,
-          phone: data.phone,
-          email: data.email,
-          project_id: projectId,
-          role_id: data.role,
-          status: data.status,
-          env_id: envId,
-          company_id: initialData.company_id,
-          password: data.password
-        }
-      })
+      const payload: any = {
+        id: initialData.id,
+        client_type_id: data.clientType,
+        project_id: projectId,
+        role_id: data.role,
+        status: data.status,
+        company_id: initialData.company_id,
+        login: data.inviteMethod === 'login' ? data.login : undefined,
+        phone: data.inviteMethod === 'phone' ? data.phone : undefined,
+        email: data.inviteMethod === 'email' ? data.email : undefined,
+      }
+      if (changePassword && data.password && data.inviteMethod === 'login') {
+        payload.password = data.password
+      }
+      updateMutation({ data: payload })
       return
     }
 
     inviteMutation({
       data: {
         client_type_id: data.clientType,
-        login: data.login,
-        phone: data.phone,
-        email: data.email,
         project_id: projectId,
         role_id: data.role,
         status: data.status,
         env_id: envId,
-        password: data.password
+        login: data.inviteMethod === 'login' ? data.login : undefined,
+        phone: data.inviteMethod === 'phone' ? data.phone : undefined,
+        email: data.inviteMethod === 'email' ? data.email : undefined,
+        password: data.inviteMethod === 'login' ? data.password : undefined
       }
     })
   }
@@ -220,20 +285,25 @@ export const InviteUserModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 flex flex-col max-h-[90vh] overflow-hidden">
-        <DialogHeader className="p-6 pb-2">
-          <DialogTitle className="uppercase">{isEdit ? "Edit User" : "Invite User"}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-md p-0 flex flex-col max-h-[90vh] overflow-hidden max-w-lg">
+        <DialogHeader className="p-4 pb-1">
+          <DialogTitle className="font-size-[16px] ">{isEdit ? "Edit User" : "Invite User"}</DialogTitle>
+          {/* <DialogDescription>
             {isEdit ? "Update user details below." : "Enter the user details to generate an invite link."}
-          </DialogDescription>
+          </DialogDescription> */}
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-text-main">Client Type</label>
+          <div className="flex-1 overflow-y-auto px-4 py-1">
+            <Tabs
+              value={activeTab}
+              onValueChange={(val) => {
+                setValue('inviteMethod', val as any);
+              }}
+              className="w-full"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-[130px] flex-shrink-0">
                   <Controller
                     name="clientType"
                     control={control}
@@ -243,12 +313,12 @@ export const InviteUserModal = ({
                         value={field.value}
                         disabled={isLoadingTypes || isEdit}
                       >
-                        <SelectTrigger className="bg-bg-sidebar">
-                          <SelectValue placeholder={isLoadingTypes ? "Loading..." : "Select type"} />
+                        <SelectTrigger className="h-8 text-[12px] bg-bg-sidebar">
+                          <SelectValue placeholder={isLoadingTypes ? "Loading..." : "User type"} />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-xl border-border-subtle shadow-lg max-w-[130px]">
                           {clientTypeOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
+                            <SelectItem key={opt.value} value={opt.value} className="text-[12px] px-1">
                               {opt.label}
                             </SelectItem>
                           ))}
@@ -256,11 +326,10 @@ export const InviteUserModal = ({
                       </Select>
                     )}
                   />
-                  {errors.clientType && <p className="text-xs text-destructive">{errors.clientType.message}</p>}
+                  {errors.clientType && <p className="text-[10px] text-destructive absolute mt-0.5">{errors.clientType.message}</p>}
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-text-main">Role</label>
+                <div className="w-[130px] flex-shrink-0">
                   <Controller
                     name="role"
                     control={control}
@@ -270,12 +339,12 @@ export const InviteUserModal = ({
                         value={field.value}
                         disabled={isLoadingRoles}
                       >
-                        <SelectTrigger className="bg-bg-sidebar">
-                          <SelectValue placeholder={isLoadingRoles ? "Loading..." : "Select role"} />
+                        <SelectTrigger className="h-8 text-[12px] bg-bg-sidebar">
+                          <SelectValue placeholder={isLoadingRoles ? "Loading..." : "Role"} />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-xl border-border-subtle shadow-lg max-w-[130px]">
                           {roleOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
+                            <SelectItem key={opt.value} value={opt.value} className="text-[12px] px-1">
                               {opt.label}
                             </SelectItem>
                           ))}
@@ -283,117 +352,123 @@ export const InviteUserModal = ({
                       </Select>
                     )}
                   />
-                  {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
+                  {errors.role && <p className="text-[10px] text-destructive absolute mt-0.5">{errors.role.message}</p>}
                 </div>
+
+                <TabsList className="flex flex-1 h-8 p-1 rounded-lg bg-bg-sidebar">
+                  <TabsTrigger value="login" className="flex-1 h-6 text-[11px] px-1">Login</TabsTrigger>
+                  <TabsTrigger value="phone" className="flex-1 h-6 text-[11px] px-1">Phone</TabsTrigger>
+                  <TabsTrigger value="email" className="flex-1 h-6 text-[11px] px-1">Email</TabsTrigger>
+                  {!isEdit && <TabsTrigger value="link" className="flex-1 h-6 text-[11px] px-1">Link</TabsTrigger>}
+                </TabsList>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Login</label>
-                <Input
-                  {...register("login")}
-                  type="text"
-                  placeholder="Enter login"
-                  readOnly={isEdit}
-                />
-                {errors.login && <p className="text-xs text-destructive">{errors.login.message}</p>}
-              </div>
+              <TabsContent value="login" className="space-y-4 outline-none pb-1">
+                <div className="space-y-1.5">
+                  <Input
+                    {...register("login")}
+                    type="text"
+                    placeholder="Login"
+                    className="bg-bg-sidebar"
+                  />
+                  {errors.login && <p className="text-xs text-destructive">{errors.login.message}</p>}
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Password</label>
-                <Input
-                  {...register("password")}
-                  type="text"
-                  placeholder="Enter password"
-                />
-                {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Phone</label>
-                <Controller
-                  name="phone"
-                  control={control}
-                  render={({ field }) => (
-                    <PhoneInputReusable
-                      placeholder="Enter phone number"
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={!!errors.phone}
-                    />
-                  )}
-                />
-                {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Email</label>
-                <Input
-                  {...register("email")}
-                  type="email"
-                  placeholder="Enter email"
-                />
-                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Status</label>
-                <Controller
-                  name="status"
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="bg-bg-sidebar">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
-              </div>
-
-              {!isEdit && (
-                <div className="mt-2 p-3 rounded-lg bg-bg-sidebar border border-border-subtle space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-semibold text-text-muted uppercase">Invite Link</span>
+                {!changePassword && isEdit && (
+                  <div className="flex justify-end relative z-10 -mb-2">
                     <button
                       type="button"
-                      onClick={copyToClipboard}
-                      className="flex items-center gap-1.5 text-primary hover:text-primary-hover transition-colors text-xs font-medium"
+                      onClick={() => setChangePassword(!changePassword)}
+                      className="text-[12px] font-semibold text-primary hover:underline hover:text-primary-hover"
                     >
-                      {isCopied ? (
-                        <>
-                          <Check size={14} />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={14} />
-                          Copy link
-                        </>
-                      )}
+                      Change Password
                     </button>
                   </div>
-                  <div className="text-[11px] text-text-muted break-all font-mono bg-bg-card p-2 rounded border border-border-subtle/50">
-                    {inviteLink}
+                )}
+
+                {(changePassword || !isEdit) && (
+                  <div className="space-y-1.5">
+                    <Input
+                      {...register("password")}
+                      type="password"
+                      placeholder={isEdit ? "Enter new password" : "Password"}
+                      className="bg-bg-sidebar"
+                    />
+                    {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
                   </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="phone" className="space-y-4 outline-none pb-1">
+                <div className="space-y-1.5">
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <PhoneInputReusable
+                        placeholder="Phone"
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        error={!!errors.phone}
+                      />
+                    )}
+                  />
+                  {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="email" className="space-y-4 outline-none pb-1">
+                <div className="space-y-1.5">
+                  <Input
+                    {...register("email")}
+                    type="email"
+                    placeholder="Email"
+                    className="bg-bg-sidebar"
+                  />
+                  {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                </div>
+              </TabsContent>
+
+              {!isEdit && (
+                <TabsContent value="link" className="space-y-4 outline-none pb-1">
+                  <div className="p-3 rounded-lg bg-bg-sidebar border border-border-subtle space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-semibold text-text-muted uppercase">Invite Link</span>
+                      <button
+                        type="button"
+                        onClick={copyToClipboard}
+                        className="flex items-center gap-1.5 text-primary hover:text-primary-hover transition-colors text-[13px] font-medium"
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check size={14} />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} />
+                            Copy link
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <div className="text-[11px] text-text-muted break-all font-mono bg-bg-card p-2 rounded border border-border-subtle/50">
+                      {inviteLink}
+                    </div>
+                  </div>
+                </TabsContent>
               )}
-            </div>
+            </Tabs>
           </div>
 
-          <div className="p-6 pt-2 border-t border-border-subtle flex justify-end gap-3">
+          <div className="p-4 pt-2 bg-bg-sidebar/40 flex justify-end gap-3">
             <Button variant="ghost" type="button" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isEdit ? (isLoading ? "Saving..." : "Save Changes") : (isLoading ? "Inviting..." : "Invite User")}
+            <Button type="submit" disabled={isLoading} className="w-[120px]">
+              {activeTab === 'link' && !isEdit
+                ? "Done"
+                : isEdit ? (isLoading ? "Saving..." : "Save Changes") : (isLoading ? "Inviting..." : "Invite User")}
             </Button>
           </div>
         </form>

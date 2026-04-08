@@ -34,6 +34,12 @@ interface User {
   company_id: string
   client_type_id?: string
   status?: string
+  client_type_id_data?: {
+    name: string
+  }
+  role_id_data?: {
+    name: string
+  }
 }
 
 interface UsersManagementProps {
@@ -63,6 +69,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
   const projectName = propProjectInfo?.title || authProject?.title || ''
   const companyName = propProjectInfo?.company_name || 'My Company'
   const envId = authUser?.environment_id || ''
+  const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
 
   // Set default client type when options are loaded
   useEffect(() => {
@@ -109,8 +116,24 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
 
   const columns = useMemo<ColumnDef<User>[]>(() => [
     { accessorKey: 'client_platform_id_data.name', header: 'Name' },
-    { accessorKey: 'client_type_id_data.name', header: 'User Type' },
-    { accessorKey: 'role_id_data.name', header: 'Role' },
+    {
+      accessorKey: 'client_type_id_data.name',
+      header: 'User Type',
+      cell: ({ row }) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+          {row.original.client_type_id_data?.name}
+        </span>
+      )
+    },
+    {
+      accessorKey: 'role_id_data.name',
+      header: 'Role',
+      cell: ({ row }) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-bg-sidebar border border-border-subtle text-text-muted">
+          {row.original.role_id_data?.name}
+        </span>
+      )
+    },
     { accessorKey: 'login', header: 'Login' },
     { accessorKey: 'email', header: 'Email' },
     { accessorKey: 'phone', header: 'Phone' },
@@ -184,7 +207,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
         </div>
         <Button className="px-8 gap-2 h-9 bg-primary hover:bg-primary/90 text-white font-semibold" onClick={() => setIsInviteModalOpen(true)}>
           <UserPlus size={16} />
-          Add User
+          Ivite User
         </Button>
       </div>
 
@@ -204,7 +227,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
       <InviteUserModal
         open={isInviteModalOpen}
         onOpenChange={handleModalClose}
-        projectId={projectId}
+        projectId={ucodeProjectId || ''}
         projectName={projectName}
         companyName={companyName}
         envId={envId}

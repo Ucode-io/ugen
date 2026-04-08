@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/shared/api";
 import { SubTabs } from "@/shared/ui";
 import { OverviewTab } from "./overview";
 import { HealthTab } from "./health";
@@ -14,6 +16,14 @@ import { BarChart2, Gauge, BarChart } from "lucide-react";
 export const AnalyticsDashboard = () => {
   const t = useTranslations('widgets.analytics');
   const [activeTab, setActiveTab] = useState("usage-limits");
+
+  const { data: pricingData } = useQuery({
+    queryKey: ['pricing-all'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/pricing/all');
+      return data;
+    }
+  });
 
   const tabs = [
     { id: "usage-limits", label: "Usage Limits", icon: Gauge },
@@ -41,8 +51,8 @@ export const AnalyticsDashboard = () => {
         {activeTab === "health" && <HealthTab />}
         {activeTab === "query-performance" && <QueryPerformanceTab />}
         {activeTab === "visitors" && <VisitorsTab />}
-        {activeTab === "usage-limits" && <UsageLimitsTab />}
-        {activeTab === "project-statistics" && <ProjectStatisticsTab />}
+        {activeTab === "usage-limits" && <UsageLimitsTab pricingData={pricingData} />}
+        {activeTab === "project-statistics" && <ProjectStatisticsTab pricingData={pricingData} />}
       </div>
     </div>
   );

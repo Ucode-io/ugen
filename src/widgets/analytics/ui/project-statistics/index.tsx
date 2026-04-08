@@ -11,30 +11,57 @@ import {
   WorkspaceTableCell,
 } from '@/widgets/project-workspace/ui/workspace-table'
 
-export const ProjectStatisticsTab = () => {
+export const ProjectStatisticsTab = ({ pricingData }: any) => {
+  const d = pricingData?.data || {};
+
+  const formatUnit = (value: number, unit: string) => {
+    if (unit !== 'bytes') return value.toLocaleString();
+    if (value === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(value) / Math.log(k));
+    return parseFloat((value / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <div className="space-y-8 pt-4 animate-in fade-in duration-300">
       {/* Stat cards row 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Frontend Pages</div>
-          <div className="text-[22px] font-bold text-primary mb-1">6</div>
-          <div className="text-[11px] text-text-muted">+1 draft page</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">Microfrontends</div>
+          <div className="text-[22px] font-bold text-primary mb-1">
+            {formatUnit(d.microfrontend?.current || 0, d.microfrontend?.unit || 'count')}
+          </div>
+          <div className="text-[11px] text-text-muted">
+            Limit: {formatUnit(d.microfrontend?.limit || 0, d.microfrontend?.unit || 'count')}
+          </div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
           <div className="text-xs text-text-muted font-semibold mb-2">Server Functions</div>
-          <div className="text-[22px] font-bold text-purple-500 mb-1">4</div>
-          <div className="text-[11px] text-text-muted">3 active, 1 disabled</div>
+          <div className="text-[22px] font-bold text-purple-500 mb-1">
+            {formatUnit(d.functions?.current || 0, d.functions?.unit || 'count')}
+          </div>
+          <div className="text-[11px] text-text-muted">
+             Limit: {formatUnit(d.functions?.limit || 0, d.functions?.unit || 'count')}
+          </div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Database Tables</div>
-          <div className="text-[22px] font-bold text-green-500 mb-1">9</div>
-          <div className="text-[11px] text-text-muted">62,432 total rows</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">Database Size</div>
+          <div className="text-[22px] font-bold text-green-500 mb-1">
+             {formatUnit(d.database_size?.current || 0, d.database_size?.unit || 'bytes')}
+          </div>
+          <div className="text-[11px] text-text-muted">
+             Limit: {formatUnit(d.database_size?.limit || 0, d.database_size?.unit || 'bytes')}
+          </div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">API Keys</div>
-          <div className="text-[22px] font-bold text-blue-500 mb-1">3</div>
-          <div className="text-[11px] text-text-muted">1,600 RPS combined</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">Users</div>
+          <div className="text-[22px] font-bold text-orange-500 mb-1">
+             {formatUnit(d.users?.current || 0, d.users?.unit || 'count')}
+          </div>
+          <div className="text-[11px] text-text-muted">
+             Limit: {formatUnit(d.users?.limit || 0, d.users?.unit || 'count')}
+          </div>
         </div>
       </div>
 

@@ -56,28 +56,28 @@ const parseJson = (str: string) => {
 const LogDetailAccordion = ({ item, type, isSuccess }: any) => {
   const [activeTab, setActiveTab] = useState('general')
   const t = useTranslations('widgets.databaseStudio')
-  
+
   const req = item.request ? parseJson(item.request) : null
   const res = item.response ? parseJson(item.response) : null
 
   return (
     <div className="p-4 bg-bg-main/30 animate-in slide-in-from-top-2 duration-200">
       <div className="flex items-center gap-6 border-b border-border-subtle mb-4 px-2">
-        <button 
+        <button
           onClick={() => setActiveTab('general')}
           className={cn("pb-3 text-[13px] font-semibold transition-colors relative", activeTab === 'general' ? "text-text-main" : "text-text-muted hover:text-text-main")}
         >
           General
           {activeTab === 'general' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('request')}
           className={cn("pb-3 text-[13px] font-semibold transition-colors relative", activeTab === 'request' ? "text-text-main" : "text-text-muted hover:text-text-main")}
         >
           Request
           {activeTab === 'request' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('response')}
           className={cn("pb-3 text-[13px] font-semibold transition-colors relative", activeTab === 'response' ? "text-text-main" : "text-text-muted hover:text-text-main")}
         >
@@ -91,13 +91,21 @@ const LogDetailAccordion = ({ item, type, isSuccess }: any) => {
           type === 'activity' ? (
             <div className="grid grid-cols-2 gap-y-5 gap-x-8">
               <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.user')}</p>
-                <p className="text-[13px] text-text-main font-medium">{item.user_info || 'System'}</p>
+                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.url')}</p>
+                <p className="text-[13px] text-text-main font-medium">{req?.data?.url || item?.action_source || '-'}</p>
               </div>
               <div>
+                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.method')}</p>
+                <p className="text-[13px] text-text-main font-medium">{item?.action_type || '-'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.actionBy')}</p>
+                <p className="text-[13px] text-text-main font-medium">{item.user_info || 'System'}</p>
+              </div>
+              {/* <div>
                 <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.action')}</p>
                 <p className="text-[13px] text-text-main font-medium">{item.action_type}</p>
-              </div>
+              </div> */}
               <div>
                 <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.date')}</p>
                 <p className="text-[13px] text-text-main font-medium">{new Date(item.date).toLocaleString()}</p>
@@ -130,7 +138,7 @@ const LogDetailAccordion = ({ item, type, isSuccess }: any) => {
               <div className="col-span-2">
                 <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.time')}</p>
                 <p className="text-[13px] text-text-muted">
-                  Started: <span className="text-text-main">{new Date(item.started_at).toLocaleString()}</span><br/>
+                  Started: <span className="text-text-main">{new Date(item.started_at).toLocaleString()}</span><br />
                   Completed: <span className="text-text-main">{new Date(item.completed_at).toLocaleString()}</span>
                 </p>
               </div>
@@ -145,7 +153,7 @@ const LogDetailAccordion = ({ item, type, isSuccess }: any) => {
             </div>
           )
         )}
-        
+
         {activeTab === 'request' && (
           <div>
             <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Request Data</p>
@@ -158,7 +166,7 @@ const LogDetailAccordion = ({ item, type, isSuccess }: any) => {
         {activeTab === 'response' && (
           <div>
             <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Response Data</p>
-            <pre className={cn("bg-bg-sidebar rounded-xl border border-border-subtle p-4 text-[11.5px] font-mono overflow-auto max-h-[300px] whitespace-pre-wrap", 
+            <pre className={cn("bg-bg-sidebar rounded-xl border border-border-subtle p-4 text-[11.5px] font-mono overflow-auto max-h-[300px] whitespace-pre-wrap",
               !isSuccess && type === 'function' ? 'text-destructive border-destructive/20' : 'text-text-main'
             )}>
               {res ? (typeof res === 'object' ? JSON.stringify(res, null, 2) : res) : 'No response data'}
@@ -492,7 +500,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                   </WorkspaceTableHeader>
                   <WorkspaceTableBody>
                     {isActivityLoading ? (
-                       Array.from({ length: Math.min(activityLimit, 10) }).map((_, i) => (
+                      Array.from({ length: Math.min(activityLimit, 10) }).map((_, i) => (
                         <WorkspaceTableRow key={`sk-${i}`}>
                           <WorkspaceTableCell><div className="h-4 w-6 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
                           <WorkspaceTableCell><div className="h-4 w-24 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
@@ -501,13 +509,13 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                           <WorkspaceTableCell><div className="h-4 w-20 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
                           <WorkspaceTableCell></WorkspaceTableCell>
                         </WorkspaceTableRow>
-                       ))
+                      ))
                     ) : activityLogsData?.histories?.length ? (
                       activityLogsData.histories.map((item: any, idx: number) => {
                         const isExpanded = expandedActivityId === item.id;
                         return (
                           <React.Fragment key={item.id}>
-                            <WorkspaceTableRow 
+                            <WorkspaceTableRow
                               className={cn("cursor-pointer hover:bg-hover-bg/50 group", isExpanded && "bg-hover-bg/30")}
                               onClick={() => setExpandedActivityId(isExpanded ? null : item.id)}
                             >
@@ -637,7 +645,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                   </WorkspaceTableHeader>
                   <WorkspaceTableBody>
                     {isFunctionLoading ? (
-                       Array.from({ length: Math.min(functionLimit, 10) }).map((_, i) => (
+                      Array.from({ length: Math.min(functionLimit, 10) }).map((_, i) => (
                         <WorkspaceTableRow key={`sk-${i}`}>
                           <WorkspaceTableCell><div className="h-4 w-6 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
                           <WorkspaceTableCell><div className="h-4 w-24 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
@@ -647,15 +655,15 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                           <WorkspaceTableCell><div className="h-4 w-20 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
                           <WorkspaceTableCell></WorkspaceTableCell>
                         </WorkspaceTableRow>
-                       ))
+                      ))
                     ) : functionLogsData?.function_logs?.length ? (
                       functionLogsData.function_logs.map((item: any, idx: number) => {
                         const isExpanded = expandedFunctionId === item.id;
                         const isSuccess = item.status === 'success';
-                        
+
                         return (
                           <React.Fragment key={item.id}>
-                            <WorkspaceTableRow 
+                            <WorkspaceTableRow
                               className={cn("cursor-pointer hover:bg-hover-bg/50 group", isExpanded && "bg-hover-bg/30")}
                               onClick={() => setExpandedFunctionId(isExpanded ? null : item.id)}
                             >

@@ -646,6 +646,7 @@
         },
         "details": {
           "user": "User",
+          "actionBy": "Action By",
           "action": "Action",
           "date": "Date",
           "collection": "Collection",
@@ -665,7 +666,10 @@
           "compute": "Compute",
           "dbBandwidth": "DB Bandwidth",
           "fileBandwidth": "File Bandwidth",
-          "vectorBandwidth": "Vector Bandwidth"
+          "vectorBandwidth": "Vector Bandwidth",
+          "url": "URL",
+          "method": "Method",
+          "time": "Time"
         }
       },
       "common": {
