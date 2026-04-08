@@ -8,6 +8,7 @@ import { useRouter } from "@/shared/lib/i18n/navigation"
 import { api } from "@/shared/api"
 import { useTranslations } from "next-intl"
 import { useAuthStore } from '@/entities/session'
+import type { CodeEditorTarget } from '@/entities/session'
 
 import { useFilesStore, IFile } from "@/entities/project/model/files-store"
 
@@ -47,6 +48,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const setApiKey = useAuthStore(state => state.setApiKey)
   const setUcodeProjectId = useAuthStore(state => state.setUcodeProjectId)
   const setActiveProjectTab = useAuthStore(state => state.setActiveProjectTab)
+  const setCodeEditorTarget = useAuthStore(state => state.setCodeEditorTarget)
   const hasNoFiles = files.length === 0;
   const t = useTranslations('features.project')
 
@@ -56,6 +58,11 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         project_files: updatedFiles
       })
     }
+  }
+
+  const handleEditCode = (target: CodeEditorTarget) => {
+    setCodeEditorTarget(target)
+    setActiveTab('code')
   }
 
   useEffect(() => {
@@ -155,6 +162,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
                 setIsSidebarCollapsed={setIsDashboardSidebarCollapsed}
                 projectInfo={projectInfo}
                 projectId={projectId}
+                onEditCode={handleEditCode}
               />
             ) : hasNoFiles ? (
               <EmptyProjectView

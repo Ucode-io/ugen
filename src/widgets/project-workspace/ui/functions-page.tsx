@@ -10,6 +10,7 @@ import {
   Search,
   RefreshCw,
   ScrollText,
+  Code2,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
@@ -58,6 +59,7 @@ interface FunctionItem {
 
 interface FunctionPageProps {
   projectId: string
+  onEditCode?: (fn: FunctionItem) => void
 }
 
 type View = 'list' | 'create' | 'detail'
@@ -71,7 +73,7 @@ const timeData = [
   { label: '12 hours', value: 43200000 },
 ]
 
-export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
+export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
   const [view, setView] = useState<View>('list')
   const [selectedFn, setSelectedFn] = useState<FunctionItem | null>(null)
   const [detailTab, setDetailTab] = useState<'details' | 'logs'>('details')
@@ -235,20 +237,36 @@ export const FunctionsPage = ({ projectId }: FunctionPageProps) => {
     {
       id: 'actions',
       cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={(e) => {
-            e.stopPropagation()
-            setFnToDelete(row.original)
-          }}
-          className="text-destructive hover:bg-destructive/10 rounded-lg h-8 w-8"
-        >
-          <Trash2 size={16} />
-        </Button>
+        <div className="flex items-center gap-1">
+          {onEditCode && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditCode(row.original)
+              }}
+              className="text-primary hover:bg-primary/10 rounded-lg h-7 px-2 text-[11px] font-semibold gap-1"
+            >
+              <Code2 size={13} />
+              Edit
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation()
+              setFnToDelete(row.original)
+            }}
+            className="text-destructive hover:bg-destructive/10 rounded-lg h-8 w-8"
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
       )
     }
-  ], [])
+  ], [onEditCode])
 
   if (view === 'list') {
     return (

@@ -23,6 +23,7 @@ import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
 import { DatabaseStudio, LogsView } from '@/widgets/database-studio'
 import { CodeView } from '@/widgets/project-workspace'
+import { CodeEditorTarget } from '@/entities/session'
 import { ClientTypeManagement } from '@/widgets/client-type-management'
 import { useMemo } from 'react'
 import { useMenus } from '@/entities/menu/lib/use-menus'
@@ -66,13 +67,15 @@ interface ProjectDashboardProps {
   setIsSidebarCollapsed: (collapsed: boolean) => void
   projectInfo?: any
   projectId?: string
+  onEditCode?: (target: CodeEditorTarget) => void
 }
 
 export const ProjectDashboard = ({
   isSidebarCollapsed,
   setIsSidebarCollapsed,
   projectInfo,
-  projectId
+  projectId,
+  onEditCode,
 }: ProjectDashboardProps) => {
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview')
 
@@ -177,11 +180,11 @@ export const ProjectDashboard = ({
     }
 
     if (activeSection === "functions") {
-      return <CodeView projectId={projectId ?? ""} />;
+      return <CodeView projectId={projectId ?? ""} onEditCode={onEditCode} />;
     }
 
     if (activeSection === "microfrontend") {
-      return <CodeView projectId={projectId ?? ""} activeTab="microfrontend" />;
+      return <CodeView projectId={projectId ?? ""} activeTab="microfrontend" onEditCode={onEditCode} />;
     }
 
     if (activeSection === "files") {

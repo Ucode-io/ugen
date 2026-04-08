@@ -5,13 +5,15 @@ import { Zap, Layers2, ArrowUp } from 'lucide-react'
 import { Button, SubTabs, UsageIndicator } from '@/shared/ui'
 import { FunctionsPage } from './functions-page'
 import { MicrofrontendPage } from './microfrontend-page'
+import { CodeEditorTarget } from '@/entities/session'
 
 interface CodeViewProps {
   projectId: string
   activeTab?: string
+  onEditCode?: (target: CodeEditorTarget) => void
 }
 
-export const CodeView = ({ projectId, activeTab: externalActiveTab }: CodeViewProps) => {
+export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }: CodeViewProps) => {
   const [internalActiveTab, setInternalActiveTab] = useState('microfrontend')
   const activeTab = externalActiveTab || internalActiveTab
   const setActiveTab = externalActiveTab ? () => { } : setInternalActiveTab
@@ -54,9 +56,31 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab }: CodeViewPr
 
       <div className="pt-2">
         {activeTab === 'functions' ? (
-          <FunctionsPage projectId={projectId} />
+          <FunctionsPage
+            projectId={projectId}
+            onEditCode={onEditCode ? (fn) => onEditCode({
+              kind: 'function',
+              id: fn.id,
+              name: fn.name,
+              path: fn.path,
+              branch: fn.branch,
+              type: fn.type,
+              repoId: fn.repo_id,
+            }) : undefined}
+          />
         ) : (
-          <MicrofrontendPage projectId={projectId} />
+          <MicrofrontendPage
+            projectId={projectId}
+            onEditCode={onEditCode ? (mf) => onEditCode({
+              kind: 'microfrontend',
+              id: mf.id,
+              name: mf.name,
+              path: mf.path,
+              branch: mf.branch,
+              type: mf.type,
+              repoId: mf.project_id,
+            }) : undefined}
+          />
         )}
       </div>
     </div>

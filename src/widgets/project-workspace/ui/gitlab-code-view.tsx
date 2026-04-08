@@ -20,6 +20,7 @@ interface GitlabEditorProps {
   type?: string;  // "MICRO_FRONTEND", "KNATIVE", etc.
   repoId?: string; // e.g. "5996"
   onPublish?: () => void;
+  className?: string;
 }
 
 interface FileNode {
@@ -29,7 +30,7 @@ interface FileNode {
   type: "blob" | "tree";
 }
 
-export function GitlabCodeEditor({ path, branch, name, type, repoId, onPublish }: GitlabEditorProps) {
+export function GitlabCodeEditor({ path, branch, name, type, repoId, onPublish, className }: GitlabEditorProps) {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [openedFiles, setOpenedFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -177,7 +178,7 @@ export function GitlabCodeEditor({ path, branch, name, type, repoId, onPublish }
     <div className={`bg-bg-main flex w-full flex-1 overflow-hidden text-[13px] border-border-subtle ${
       isFullscreen 
         ? "fixed inset-0 z-[9999] h-screen w-screen rounded-none" 
-        : "h-[500px] rounded-b-2xl border-t max-w-[958px]"
+        : className ?? "h-[500px] rounded-b-2xl border-t max-w-[958px]"
     }`}>
       <CodeSidebar
         header={

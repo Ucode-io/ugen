@@ -17,9 +17,34 @@ import estreePlugin from "prettier/plugins/estree";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import { useUIStore } from "@/shared/model/theme/use-ui-store";
 import { api } from "@/shared/api";
+import { useQuery } from "@tanstack/react-query";
+import { useAuthStore } from "@/entities/session";
+import type { CodeEditorTarget } from "@/entities/session";
+import { GitlabCodeEditor } from "./gitlab-code-view";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui";
+import { Layers2, Zap, Sparkles } from "lucide-react";
 
 
 
+// ── Types ──────────────────────────────────────────────────────────────────
+type DropdownOption = {
+  value: string;          // unique key used in the Select
+  label: string;
+  group: 'frontend' | 'microfrontend' | 'function';
+  target: CodeEditorTarget;
+};
+
+const FRONTEND_VALUE = '__generated_frontend__';
+
+// ── Component ───────────────────────────────────────────────────────────────
 export const ProjectCodeViewer = ({
   projectId,
   getLanguageByPath,
@@ -27,6 +52,7 @@ export const ProjectCodeViewer = ({
   projectId: string;
   getLanguageByPath: (path: string) => string;
 }) => {
+  // ── Files store ────────────────────────────────────────────────────────────
   const files = useFilesStore((state) => state.files);
   const activeFile = useFilesStore((state) => state.activeFile);
   const openedFiles = useFilesStore((state) => state.openedFiles);
@@ -38,6 +64,109 @@ export const ProjectCodeViewer = ({
   const setUpdatedFiles = useFilesStore((state) => state.setUpdatedFiles);
   const updateFile = useFilesStore((state) => state.updateFile);
 
+  // ── Dropdown state ─────────────────────────────────────────────────────────
+  const [selectedValue, setSelectedValue] = useState<string>(FRONTEND_VALUE);
+
+  // Read pending target from store (set by </> Edit button) and auto-select it
+  const codeEditorTarget = useAuthStore((state) => state.codeEditorTarget);
+  const setCodeEditorTarget = useAuthStore((state) => state.setCodeEditorTarget);
+
+  // ── API Queries for dropdown options ──────────────────────────────────────
+  const { data: microfrontendsData = [] } = useQuery({
+    queryKey: ['microfrontends-dropdown', projectId],
+    queryFn: async () => {
+      const { data } = await api.get('/v2/functions/micro-frontend', {
+        params: { offset: 0, limit: 50, 'project-id': projectId },
+      });
+      return (data.data?.functions ?? []) as Array<{
+        id: string; name: string; path: string; branch?: string;
+        type: string; project_id?: string;
+      }>;
+    },
+    enabled: !!projectId,
+  });
+
+  const { data: functionsData = [] } = useQuery({
+    queryKey: ['functions-dropdown', projectId],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/function', {
+        params: { limit: 50, offset: 0, 'project-id': projectId },
+      });
+      return (data.data?.functions ?? []) as Array<{
+        id: string; name: string; path?: string; branch?: string;
+        type: string; repo_id?: string;
+      }>;
+    },
+    enabled: !!projectId,
+  });
+
+  // Build the full option list
+  const dropdownOptions = useMemo<DropdownOption[]>(() => [
+    {
+      value: FRONTEND_VALUE,
+      label: 'Generated Frontend',
+      group: 'frontend',
+      target: { kind: 'frontend' },
+    },
+    ...microfrontendsData.map((mf) => ({
+      value: `mf__${mf.id}`,
+      label: mf.name,
+      group: 'microfrontend' as const,
+      target: {
+        kind: 'microfrontend' as const,
+        id: mf.id,
+        name: mf.name,
+        path: mf.path,
+        branch: mf.branch ?? 'master',
+        type: mf.type,
+        repoId: mf.project_id,
+      },
+    })),
+    ...functionsData.map((fn) => ({
+      value: `fn__${fn.id}`,
+      label: fn.name,
+      group: 'function' as const,
+      target: {
+        kind: 'function' as const,
+        id: fn.id,
+        name: fn.name,
+        path: fn.path,
+        branch: fn.branch ?? 'master',
+        type: fn.type,
+        repoId: fn.repo_id,
+      },
+    })),
+  ], [microfrontendsData, functionsData]);
+
+  // Auto-select when codeEditorTarget arrives from the store.
+  // We also re-run whenever dropdownOptions changes (API data loads) so we can
+  // match even if the queries finish after the tab switch.
+  useEffect(() => {
+    if (!codeEditorTarget) return;
+    // Wait until at least one non-frontend option has loaded before giving up
+    const hasLoadedOptions = dropdownOptions.length > 1;
+    const match = dropdownOptions.find(
+      (o) => o.target.kind === codeEditorTarget.kind && o.target.id === codeEditorTarget.id
+    );
+    if (match) {
+      setSelectedValue(match.value);
+      setCodeEditorTarget(null); // consumed
+    } else if (hasLoadedOptions) {
+      // Options loaded but item not found — still clear to avoid stale state
+      setCodeEditorTarget(null);
+    }
+    // If options not yet loaded, keep codeEditorTarget in store and retry on next render
+  }, [codeEditorTarget, dropdownOptions, setCodeEditorTarget]);
+
+  // The currently active dropdown selection
+  const activeOption = useMemo(
+    () => dropdownOptions.find((o) => o.value === selectedValue) ?? dropdownOptions[0],
+    [dropdownOptions, selectedValue]
+  );
+
+  const isGitlabMode = activeOption?.target?.kind !== 'frontend';
+
+  // ── Editor state ───────────────────────────────────────────────────────────
   const [sidebarMode, setSidebarMode] = useState<"explorer" | "search">(
     "explorer",
   );
@@ -370,89 +499,161 @@ export const ProjectCodeViewer = ({
 
   const activeFileObj = files.find((f) => f.path === activeFile);
 
-  return (
-    <div className="bg-bg-main flex h-full w-full flex-1 overflow-hidden text-[13px]">
-      <CodeSidebar
-        fileTree={fileTree}
-        activeFile={activeFile}
-        openFolders={openFolders}
-        onOpenFile={openFile}
-        onToggleFolder={toggleFolder}
-        sidebarMode={sidebarMode}
-        onSidebarModeChange={setSidebarMode}
-        enableSearch={true}
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        searchResults={globalSearchResults}
-        onResultClick={jumpToLine}
-      />
-
-      {/* Main Content */}
-      <div className="bg-bg-main flex h-full min-w-0 flex-1 flex-col">
-        <CodeEditorTabs
-          openedFiles={openedFiles}
-          activeFile={activeFile}
-          updatedFiles={updatedFiles.map(f => f.path)}
-          theme={theme}
-          onSelectFile={setActiveFile}
-          onCloseFile={closeFile}
-        />
-
-        {/* Action Bar */}
-        <CodeActionBar
-          activeFile={activeFile}
-          onFormat={handleSave}
-        />
-
-        {/* Editor */}
-        <div className="relative w-full flex-1">
-          {activeFile ? (
-            <Editor
-              height="100%"
-              path={`file:///${activeFile.startsWith("src/") ? activeFile : `src/${activeFile}`}`}
-              language={activeFileObj?.language || "javascript"}
-              value={activeFileObj?.content || ""}
-              theme={currentTheme}
-              beforeMount={handleEditorWillMount}
-              onMount={handleEditorDidMount}
-              onChange={handleEditorChange}
-              options={{
-                tabSize: 2,
-                fontFamily: "JetBrains Mono, Fira Code, monospace",
-                fontSize: 14,
-                fontLigatures: true,
-                lineNumbers: "on",
-                glyphMargin: true,
-                folding: true,
-                minimap: { enabled: true },
-                scrollBeyondLastLine: false,
-                formatOnType: true,
-                formatOnPaste: true,
-                autoIndent: "full",
-                colorDecorators: true,
-                hover: { enabled: true },
-                suggest: {
-                  showProperties: true,
-                  showMethods: true,
-                  showClasses: true,
-                },
-                quickSuggestions: {
-                  other: true,
-                  comments: false,
-                  strings: true,
-                },
-                suggestOnTriggerCharacters: true,
-                acceptSuggestionOnEnter: "on",
-                multiCursorModifier: "alt",
-                selectionHighlight: true,
-                occurrencesHighlight: "singleFile",
-              }}
-            />
-          ) : (
-            <CodeEmptyState />
+  // ── Dropdown UI helper ─────────────────────────────────────────────────────
+  const EditorDropdown = (
+    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle bg-bg-card shrink-0 z-10">
+      <Select value={selectedValue} onValueChange={setSelectedValue}>
+        <SelectTrigger className="h-7 w-[260px] text-xs border-border-subtle bg-bg-sidebar rounded-lg gap-1.5 px-2">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="text-xs">
+          <SelectItem value={FRONTEND_VALUE}>
+            <span className="flex items-center gap-1.5">
+              <Sparkles size={12} className="text-primary" />
+              Generated Frontend
+            </span>
+          </SelectItem>
+          {microfrontendsData.length > 0 && (
+            <SelectGroup>
+              <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
+                <span className="flex items-center gap-1">
+                  <Layers2 size={10} /> Microfrontends
+                </span>
+              </SelectLabel>
+              {dropdownOptions
+                .filter((o) => o.group === 'microfrontend')
+                .map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+            </SelectGroup>
           )}
+          {functionsData.length > 0 && (
+            <SelectGroup>
+              <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
+                <span className="flex items-center gap-1">
+                  <Zap size={10} /> Functions
+                </span>
+              </SelectLabel>
+              {dropdownOptions
+                .filter((o) => o.group === 'function')
+                .map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+            </SelectGroup>
+          )}
+        </SelectContent>
+      </Select>
+      <span className="text-[11px] text-text-muted">
+        {isGitlabMode ? 'GitLab Repository' : 'AI Generated'}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="bg-bg-main flex h-full w-full flex-1 overflow-hidden flex-col text-[13px]">
+      {EditorDropdown}
+
+      {isGitlabMode ? (
+        <div className="flex-1 overflow-hidden">
+          <GitlabCodeEditor
+            key={selectedValue}
+            path={activeOption?.target?.path ?? ''}
+            branch={activeOption?.target?.branch ?? 'master'}
+            name={activeOption?.target?.name ?? ''}
+            type={activeOption?.target?.type}
+            repoId={activeOption?.target?.repoId}
+            className="h-full"
+          />
         </div>
-      </div>
+      ) : (
+        <div className="bg-bg-main flex h-full flex-1 overflow-hidden">
+          <CodeSidebar
+            fileTree={fileTree}
+            activeFile={activeFile}
+            openFolders={openFolders}
+            onOpenFile={openFile}
+            onToggleFolder={toggleFolder}
+            sidebarMode={sidebarMode}
+            onSidebarModeChange={setSidebarMode}
+            enableSearch={true}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            searchResults={globalSearchResults}
+            onResultClick={jumpToLine}
+          />
+
+          {/* Main Content */}
+          <div className="bg-bg-main flex h-full min-w-0 flex-1 flex-col">
+            <CodeEditorTabs
+              openedFiles={openedFiles}
+              activeFile={activeFile}
+              updatedFiles={updatedFiles.map(f => f.path)}
+              theme={theme}
+              onSelectFile={setActiveFile}
+              onCloseFile={closeFile}
+            />
+
+            {/* Action Bar */}
+            <CodeActionBar
+              activeFile={activeFile}
+              onFormat={handleSave}
+            />
+
+            {/* Editor */}
+            <div className="relative w-full flex-1">
+              {activeFile ? (
+                <Editor
+                  height="100%"
+                  path={`file:///${activeFile.startsWith("src/") ? activeFile : `src/${activeFile}`}`}
+                  language={activeFileObj?.language || "javascript"}
+                  value={activeFileObj?.content || ""}
+                  theme={currentTheme}
+                  beforeMount={handleEditorWillMount}
+                  onMount={handleEditorDidMount}
+                  onChange={handleEditorChange}
+                  options={{
+                    tabSize: 2,
+                    fontFamily: "JetBrains Mono, Fira Code, monospace",
+                    fontSize: 14,
+                    fontLigatures: true,
+                    lineNumbers: "on",
+                    glyphMargin: true,
+                    folding: true,
+                    minimap: { enabled: true },
+                    scrollBeyondLastLine: false,
+                    formatOnType: true,
+                    formatOnPaste: true,
+                    autoIndent: "full",
+                    colorDecorators: true,
+                    hover: { enabled: true },
+                    suggest: {
+                      showProperties: true,
+                      showMethods: true,
+                      showClasses: true,
+                    },
+                    quickSuggestions: {
+                      other: true,
+                      comments: false,
+                      strings: true,
+                    },
+                    suggestOnTriggerCharacters: true,
+                    acceptSuggestionOnEnter: "on",
+                    multiCursorModifier: "alt",
+                    selectionHighlight: true,
+                    occurrencesHighlight: "singleFile",
+                  }}
+                />
+              ) : (
+                <CodeEmptyState />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

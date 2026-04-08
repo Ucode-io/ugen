@@ -1,4 +1,14 @@
 import { create } from 'zustand'
+
+export interface CodeEditorTarget {
+  kind: 'frontend' | 'microfrontend' | 'function'
+  path?: string
+  branch?: string
+  name?: string
+  type?: string
+  repoId?: string
+  id?: string
+}
 import { persist, createJSONStorage } from 'zustand/middleware'
 
 export interface Permission {
@@ -49,10 +59,12 @@ export interface AuthState {
   apiKey: string | null;
   ucodeProjectId: string | null;
   activeProjectTab: 'dashboard' | 'code' | 'preview' | null;
+  codeEditorTarget: CodeEditorTarget | null;
   languages: Language[];
   setApiKey: (key: string | null) => void;
   setUcodeProjectId: (key: string | null) => void;
   setActiveProjectTab: (tab: 'dashboard' | 'code' | 'preview' | null) => void;
+  setCodeEditorTarget: (target: CodeEditorTarget | null) => void;
   setLanguages: (languages: Language[]) => void;
   setAuth: (
     user: UserData,
@@ -82,10 +94,12 @@ export const useAuthStore = create<AuthState>()(
       apiKey: null,
       ucodeProjectId: null,
       activeProjectTab: null,
+      codeEditorTarget: null,
       languages: [],
       setApiKey: (key) => set({ apiKey: key }),
       setUcodeProjectId: (key) => set({ ucodeProjectId: key }),
       setActiveProjectTab: (tab) => set({ activeProjectTab: tab }),
+      setCodeEditorTarget: (target) => set({ codeEditorTarget: target }),
       setLanguages: (languages: Language[]) => set({ languages }),
       setAuth: (user, project, permissions, appPermissions, globalPermission, accessToken, refreshToken) =>
         set({
@@ -112,6 +126,7 @@ export const useAuthStore = create<AuthState>()(
           activeView: 'home',
           apiKey: null,
           activeProjectTab: null,
+          codeEditorTarget: null,
           languages: [],
         }),
       setActiveView: (view) => set({ activeView: view }),
