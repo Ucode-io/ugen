@@ -42,7 +42,7 @@ export const databaseApi = {
     return data?.data?.tables || [];
   },
 
-  fetchTableRecords: async (tableSlug: string, projectId: string, clientTypeId?: string, limit: number = 20, offset: number = 0): Promise<TableRecord[]> => {
+  fetchTableRecords: async (tableSlug: string, projectId: string, clientTypeId?: string, limit: number = 20, offset: number = 0, filters?: any[], columns?: string[]): Promise<TableRecord[]> => {
     const params: any = {
       "project-id": projectId,
       limit,
@@ -54,11 +54,24 @@ export const databaseApi = {
     }
 
     try {
-      const { data } = await api.get(`/v2/items/${tableSlug}`, {
-        params
-      });
+      let data: any;
+
+      if (filters && filters.length > 0) {
+        const payload = {
+          filters,
+          logic: 'AND',
+          columns: columns || [],
+          limit,
+          offset
+        };
+        const response = await api.post(`/v2/items/${tableSlug}/filter`, payload, { params });
+        data = response.data;
+      } else {
+        const response = await api.get(`/v2/items/${tableSlug}`, { params });
+        data = response.data;
+      }
       // Handle various response wrappers typical in this API
-      const items = data?.data?.data?.response || data?.data?.response || data?.response || data?.data || [];
+      const items = data?.data?.data?.data || data?.data?.data?.response || data?.data?.response || data?.response || data?.data || [];
       return Array.isArray(items) ? items : [];
     } catch (error) {
       console.error(`Error fetching records for table ${tableSlug}:`, error);
@@ -75,8 +88,8 @@ export const databaseApi = {
   },
 
   fetchTableDetail: async (tableSlug: string, projectId: string): Promise<TableDetail> => {
-    const { data } = await api.post<{ data: TableDetail }>(`/v1/table-details/${tableSlug}?projectId=${projectId}`, { data: {} });
-    return data?.data;
+    const { data } = await api.post<any>(`/v1/table-details/${tableSlug}?projectId=${projectId}`, { data: {} });
+    return data?.data?.data || data?.data;
   },
 
   executeQuery: async (sql: string): Promise<any[]> => {
@@ -117,10 +130,10 @@ export const useTables = (search?: string, limit?: number, offset?: number) =>
     queryFn: () => databaseApi.fetchTables(search, limit, offset)
   });
 
-export const useTableRecords = (tableSlug: string | null, projectId: string, clientTypeId?: string) =>
+export const useTableRecords = (tableSlug: string | null, projectId: string, clientTypeId?: string, filters?: any[], columns?: string[]) =>
   useQuery({
-    queryKey: ['db-records', tableSlug, projectId, clientTypeId],
-    queryFn: () => databaseApi.fetchTableRecords(tableSlug!, projectId, clientTypeId),
+    queryKey: ['db-records', tableSlug, projectId, clientTypeId, filters, columns],
+    queryFn: () => databaseApi.fetchTableRecords(tableSlug!, projectId, clientTypeId, 20, 0, filters, columns),
     enabled: !!tableSlug && !!projectId
   });
 

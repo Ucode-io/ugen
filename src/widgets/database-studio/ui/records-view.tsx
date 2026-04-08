@@ -44,12 +44,24 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
   const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
   const { selectedTable, setCurrentView, resetToTables, setFilters } = useDatabaseStore()
-  const { data: records, isLoading: isRecordsLoading, refetch } = useTableRecords(selectedTable, ucodeProjectId || projectId)
   const { data: tableDetail, isLoading: isDetailLoading } = useTableDetail(selectedTable, ucodeProjectId || "")
   const [filterQuery, setFilterQuery] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
-  const schema: Column[] = tableDetail?.fields || []
+  const [localFilters, setLocalFilters] = useState<{ id: string; column: string; operator: string; value: string }[]>([])
+  const [appliedFilters, setAppliedFilters] = useState<any[]>([])
+
+  const schema: Column[] = tableDetail?.fields || (tableDetail as any)?.data?.fields || []
+  const allColumns = useMemo(() => schema.map(c => c.slug), [schema])
+
+  const { data: records, isLoading: isRecordsLoading, refetch } = useTableRecords(
+    selectedTable,
+    ucodeProjectId || projectId,
+    undefined,
+    appliedFilters.length > 0 ? appliedFilters : undefined,
+    appliedFilters.length > 0 ? allColumns : undefined
+  )
+
   const isSchemaLoading = isDetailLoading
 
   const columns = useMemo(() => {
@@ -175,7 +187,7 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 p-3 bg-bg-main/50 border-b border-border-subtle overflow-x-auto whitespace-nowrap">
+      <div className="flex items-center gap-2 p-3 bg-bg-main/50 border-b border-border-subtle overflow-x-auto whitespace-nowrap min-h-[47px]">
         <AddRowDialog tableName={selectedTable} schema={schema || []} />
         <button
           onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -189,41 +201,134 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
           <Filter size={14} />
           {t('records.filter')}
         </button>
-        <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors">
+        {/* <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors">
           {t('records.viewPolicies')}
-        </button>
+        </button> */}
       </div>
 
       {isFilterOpen && (
-        <div className="p-4 bg-bg-main/30 border-b border-border-subtle flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold text-text-muted uppercase tracking-widest">{t('records.filters')}</span>
+        <div className="p-4 bg-bg-main/30 border-b border-border-subtle flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+
+          {/* Top Bar */}
+          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+            <span className="text-xs font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
+              <Filter size={14} />
+              {t('records.filters')}
+            </span>
+
             <button
-              onClick={() => { setFilters({}); setIsFilterOpen(false); }}
-              className="text-[10px] font-medium text-text-muted hover:text-primary transition-colors"
+              onClick={() => {
+                const cleanedFilters = localFilters.map(f => {
+                  let val: any = f.value;
+                  if (f.operator === 'in') {
+                    val = val.split(',').map((s: string) => s.trim()).filter(Boolean);
+                  } else if (f.value === 'true') {
+                    val = true;
+                  } else if (f.value === 'false') {
+                    val = false;
+                  } else if (!isNaN(Number(f.value)) && f.value.trim() !== '') {
+                    val = Number(f.value);
+                  }
+                  return { column: f.column, operator: f.operator, value: val };
+                }).filter(f => ['is_null', 'is_not_null'].includes(f.operator) || f.value !== '');
+                setAppliedFilters(cleanedFilters);
+              }}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all active:scale-[0.98] shadow-sm"
             >
-              {t('records.clearAll')}
+              Apply Filters
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="flex items-center gap-2 bg-bg-card p-1.5 rounded-md border border-border-subtle shadow-sm">
-              <select className="bg-transparent text-xs outline-none border-none text-text-main pr-2">
-                {schema?.map(c => <option key={c.slug} value={c.slug}>{c.label}</option>)}
-              </select>
-              <span className="text-[10px] text-text-muted px-1">{t('records.contains')}</span>
-              <input
-                type="text"
-                placeholder={t('records.valuePlaceholder')}
-                className="bg-bg-main border border-border-subtle rounded px-2 py-0.5 text-xs outline-none focus:border-primary/50"
-              />
-              <button className="p-1 hover:bg-hover-bg rounded text-text-muted">
-                <X size={12} />
+
+          {/* Split Section */}
+          <div className="flex flex-col sm:flex-row gap-6">
+
+            {/* Left Side: Filters vertical list (bigger) */}
+            <div className="flex-1 flex flex-col gap-2 min-w-0">
+              {localFilters.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-6 text-text-muted/60 border border-dashed border-border-subtle rounded-lg bg-bg-card/50">
+                  <Filter size={24} className="mb-2 opacity-50" />
+                  <p className="text-xs font-medium">No active filters.</p>
+                  <p className="text-[10px] mt-1">Click &quot;Add Condition&quot; to start filtering records.</p>
+                </div>
+              ) : (
+                localFilters.map((filter) => (
+                  <div key={filter.id} className="flex items-center gap-3 bg-bg-card p-2 rounded-md border border-border-subtle shadow-sm flex-wrap">
+                    <select
+                      value={filter.column}
+                      onChange={(e) => setLocalFilters(prev => prev.map(f => f.id === filter.id ? { ...f, column: e.target.value } : f))}
+                      className="bg-bg-main border border-border-subtle rounded-md text-xs outline-none text-text-main px-2 py-1.5 focus:border-primary/50 flex-1 min-w-[150px]"
+                    >
+                      {schema?.map(c => <option key={c.slug} value={c.slug}>{c.label}</option>)}
+                    </select>
+
+                    <select
+                      value={filter.operator}
+                      onChange={(e) => setLocalFilters(prev => prev.map(f => f.id === filter.id ? { ...f, operator: e.target.value } : f))}
+                      className="bg-bg-main border border-border-subtle rounded-md text-xs outline-none text-text-main px-2 py-1.5 focus:border-primary/50 w-[140px] shrink-0"
+                    >
+                      <option value="eq">Equals (=)</option>
+                      <option value="neq">Not equal (!=)</option>
+                      <option value="gt">Greater (&gt;)</option>
+                      <option value="gte">Greater or Eq (&gt;=)</option>
+                      <option value="lt">Less (&lt;)</option>
+                      <option value="lte">Less or Eq (&lt;=)</option>
+                      <option value="ilike">Contains</option>
+                      <option value="not_like">Not Contains</option>
+                      <option value="is_null">Is Null</option>
+                      <option value="is_not_null">Is Not Null</option>
+                      <option value="in">IN (array)</option>
+                    </select>
+
+                    {['is_null', 'is_not_null'].includes(filter.operator) ? (
+                      <div className="flex-1 min-w-[200px]" /> /* Space filler */
+                    ) : (
+                      <input
+                        type="text"
+                        value={filter.value}
+                        onChange={(e) => setLocalFilters(prev => prev.map(f => f.id === filter.id ? { ...f, value: e.target.value } : f))}
+                        placeholder={filter.operator === 'in' ? 'v1,v2,...' : t('records.valuePlaceholder')}
+                        className="bg-bg-main border border-border-subtle rounded-md px-3 py-1.5 text-xs outline-none focus:border-primary/50 flex-1 min-w-[200px]"
+                      />
+                    )}
+
+                    <button
+                      onClick={() => setLocalFilters(prev => prev.filter(f => f.id !== filter.id))}
+                      className="p-1.5 hover:bg-destructive/10 hover:border-destructive/30 border border-transparent hover:text-destructive rounded-md text-text-muted transition-colors ml-auto"
+                      title="Remove condition"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Right Side: Buttons (narrow) */}
+            <div className="sm:w-[200px] flex flex-row sm:flex-col gap-3 shrink-0 sm:border-r border-border-subtle sm:pr-6">
+              <button
+                onClick={() => {
+                  const defaultCol = schema?.[0]?.slug || '';
+                  setLocalFilters(prev => [...prev, { id: Math.random().toString(36).substring(7), column: defaultCol, operator: 'eq', value: '' }])
+                }}
+                className="flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 py-2 rounded-md border border-dashed border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:border-text-muted transition-colors w-full"
+              >
+                <PlusCircle size={14} />
+                {t('records.addCondition')}
+              </button>
+
+              <button
+                onClick={() => {
+                  setLocalFilters([])
+                  setAppliedFilters([])
+                  setIsFilterOpen(false)
+                }}
+                className="flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 py-2 rounded-md border border-border-subtle text-xs font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors w-full"
+              >
+                <X size={14} />
+                {t('records.clearAll')}
               </button>
             </div>
-            <button className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-dashed border-border-subtle text-[11px] text-text-muted hover:text-text-main hover:border-text-muted transition-colors">
-              <PlusCircle size={12} />
-              {t('records.addCondition')}
-            </button>
+
           </div>
         </div>
       )}

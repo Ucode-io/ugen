@@ -58,15 +58,7 @@ export const ProjectHeader = ({
   return (
     <header className="h-[48px] border-b border-border-subtle bg-bg-card flex items-center justify-between px-4 shrink-0 z-10 transition-all duration-300">
       <div className="flex items-center gap-2">
-        <button
-          onClick={onToggleChat}
-          className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
-          title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
-        >
-          {isChatCollapsed ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
-        </button>
-
-        {activeTab === 'dashboard' && (
+        {/* {activeTab === 'dashboard' && (
           <button
             onClick={onToggleSidebar}
             className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
@@ -74,9 +66,9 @@ export const ProjectHeader = ({
           >
             <LayoutDashboard size={16} className={isSidebarCollapsed ? "opacity-50" : "opacity-100"} />
           </button>
-        )}
+        )} */}
 
-        <div className="bg-border-subtle w-[1px] h-4 mx-1" />
+        {/* <div className="bg-border-subtle w-[1px] h-4 mx-1" /> */}
         <button
           onClick={() => router.push('/projects')}
           className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
@@ -87,6 +79,15 @@ export const ProjectHeader = ({
         <h1 className="text-[15px] font-medium text-text-main truncate max-w-[300px] ml-1">
           {projectTitle}
         </h1>
+
+
+        <button
+          onClick={onToggleChat}
+          className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0 ml-[70px]"
+          title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
+        >
+          {isChatCollapsed ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
+        </button>
       </div>
 
       <ReusableTabs

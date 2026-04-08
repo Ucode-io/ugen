@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -25,7 +26,7 @@ import { DatabaseStudio, LogsView } from '@/widgets/database-studio'
 import { CodeView } from '@/widgets/project-workspace'
 import { CodeEditorTarget } from '@/entities/session'
 import { ClientTypeManagement } from '@/widgets/client-type-management'
-import { useMemo } from 'react'
+
 import { useMenus } from '@/entities/menu/lib/use-menus'
 import { MenuItem } from '@/entities/menu/model/types'
 import { DashboardSidebar, NavigationItem } from './dashboard-sidebar'
@@ -77,7 +78,17 @@ export const ProjectDashboard = ({
   projectId,
   onEditCode,
 }: ProjectDashboardProps) => {
-  const [activeSection, setActiveSection] = useState<DashboardSection>('overview')
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const activeSection = (searchParams.get('section') as DashboardSection) || 'overview'
+
+  const setActiveSection = useCallback((section: DashboardSection) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('section', section)
+    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+  }, [searchParams, pathname, router])
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
 
