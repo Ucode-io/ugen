@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -82,7 +82,9 @@ export const ProjectDashboard = ({
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const activeSection = (searchParams.get('section') as DashboardSection) || 'overview'
+  const paramsSection = searchParams.get('section');
+
+  const activeSection = (paramsSection as DashboardSection) || 'overview'
 
   const setActiveSection = useCallback((section: DashboardSection) => {
     const params = new URLSearchParams(searchParams.toString())

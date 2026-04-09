@@ -22,6 +22,9 @@ export interface Column {
   isNullable: boolean;
   isPrimaryKey: boolean;
   defaultValue?: any;
+  required?: boolean;
+  default?: any;
+  index?: "true" | "false";
 }
 
 export interface TableDetail extends Table {

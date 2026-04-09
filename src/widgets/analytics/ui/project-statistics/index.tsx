@@ -28,74 +28,58 @@ export const ProjectStatisticsTab = ({ pricingData }: any) => {
       {/* Stat cards row 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Microfrontends</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">Function count</div>
           <div className="text-[22px] font-bold text-primary mb-1">
-            {formatUnit(d.microfrontend?.current || 0, d.microfrontend?.unit || 'count')}
+            {formatUnit(d.functions?.current || 0, 'count')}
           </div>
-          <div className="text-[11px] text-text-muted">
-            Limit: {formatUnit(d.microfrontend?.limit || 0, d.microfrontend?.unit || 'count')}
-          </div>
+          <div className="text-[11px] text-text-muted">Total defined functions</div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Server Functions</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">Microfront count</div>
           <div className="text-[22px] font-bold text-purple-500 mb-1">
-            {formatUnit(d.functions?.current || 0, d.functions?.unit || 'count')}
+            {formatUnit(d.microfrontend?.current || 0, 'count')}
           </div>
-          <div className="text-[11px] text-text-muted">
-             Limit: {formatUnit(d.functions?.limit || 0, d.functions?.unit || 'count')}
-          </div>
+          <div className="text-[11px] text-text-muted">Total microfrontends</div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Database Size</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">Table count</div>
           <div className="text-[22px] font-bold text-green-500 mb-1">
-             {formatUnit(d.database_size?.current || 0, d.database_size?.unit || 'bytes')}
+            {formatUnit(d.tables?.current || 12, 'count')}
           </div>
-          <div className="text-[11px] text-text-muted">
-             Limit: {formatUnit(d.database_size?.limit || 0, d.database_size?.unit || 'bytes')}
-          </div>
+          <div className="text-[11px] text-text-muted">Database tables</div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Users</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">API key count</div>
           <div className="text-[22px] font-bold text-orange-500 mb-1">
-             {formatUnit(d.users?.current || 0, d.users?.unit || 'count')}
+            {formatUnit(d.api_keys?.current || 4, 'count')}
           </div>
-          <div className="text-[11px] text-text-muted">
-             Limit: {formatUnit(d.users?.limit || 0, d.users?.unit || 'count')}
-          </div>
+          <div className="text-[11px] text-text-muted">Active API keys</div>
         </div>
       </div>
 
       {/* Stat cards row 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">API Calls (24h)</div>
-          <div className="text-[22px] font-bold text-text-main mb-1">12,847</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-green-500 font-medium">
-            <ArrowUp size={12} /> +18% from yesterday
+          <div className="text-xs text-text-muted font-semibold mb-2">Active user count</div>
+          <div className="text-[22px] font-bold text-text-main mb-1">248</div>
+          <div className="text-[11px] text-green-500 font-medium flex items-center gap-1.5">
+            <ArrowUp size={12} /> +12% from last week
           </div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Active Users</div>
-          <div className="text-[22px] font-bold text-text-main mb-1">4</div>
-          <div className="text-[11px] text-text-muted font-medium">2 online now</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">API call count last day</div>
+          <div className="text-[22px] font-bold text-text-main mb-1">12,847</div>
+          <div className="text-[11px] text-text-muted font-medium">Total requests</div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Avg Response Time</div>
+          <div className="text-xs text-text-muted font-semibold mb-2">Average response time last day</div>
           <div className="flex items-baseline gap-1 mb-1">
             <span className="text-[22px] font-bold text-text-main">142</span>
             <span className="text-[13px] text-text-muted font-normal">ms</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-green-500 font-medium">
-            <ArrowDown size={12} /> -23ms from last week
+            <ArrowDown size={12} /> -23ms from yesterday
           </div>
-        </div>
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Error Rate</div>
-          <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-[22px] font-bold text-text-main">0.3</span>
-            <span className="text-[13px] text-text-muted font-normal">%</span>
-          </div>
-          <div className="text-[11px] text-text-muted font-medium">4 errors in last 24h</div>
         </div>
       </div>
 
@@ -106,39 +90,39 @@ export const ProjectStatisticsTab = ({ pricingData }: any) => {
           API Requests (Last 7 Days)
         </h2>
         <div className="bg-bg-card border border-border-subtle rounded-xl h-[200px] flex items-end gap-3 p-5 pb-6">
-           <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-             <div className="w-full bg-primary rounded-t-md h-[60%]" />
-             <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Mon</span>
-           </div>
-           <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-             <div className="w-full bg-primary rounded-t-md h-[75%]" />
-             <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Tue</span>
-           </div>
-           <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-             <div className="w-full bg-primary rounded-t-md h-[45%]" />
-             <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Wed</span>
-           </div>
-           <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-             <div className="w-full bg-primary rounded-t-md h-[90%]" />
-             <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Thu</span>
-           </div>
-           <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-             <div className="w-full bg-primary rounded-t-md h-[82%]" />
-             <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Fri</span>
-           </div>
-           <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-             <div className="w-full bg-primary/40 rounded-t-md h-[30%]" />
-             <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Sat</span>
-           </div>
-           <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-             <div className="w-full bg-primary/40 rounded-t-md h-[25%]" />
-             <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Sun</span>
-           </div>
+          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+            <div className="w-full bg-primary rounded-t-md h-[60%]" />
+            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Mon</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+            <div className="w-full bg-primary rounded-t-md h-[75%]" />
+            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Tue</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+            <div className="w-full bg-primary rounded-t-md h-[45%]" />
+            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Wed</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+            <div className="w-full bg-primary rounded-t-md h-[90%]" />
+            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Thu</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+            <div className="w-full bg-primary rounded-t-md h-[82%]" />
+            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Fri</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+            <div className="w-full bg-primary/40 rounded-t-md h-[30%]" />
+            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Sat</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+            <div className="w-full bg-primary/40 rounded-t-md h-[25%]" />
+            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Sun</span>
+          </div>
         </div>
       </div>
 
       {/* Low-code stats table */}
-      <div>
+      {/* <div>
         <h2 className="text-lg font-bold text-text-main mb-4 flex items-center gap-2">
           <List size={18} className="text-text-muted" />
           Low-Code Statistics
@@ -244,7 +228,7 @@ export const ProjectStatisticsTab = ({ pricingData }: any) => {
             </WorkspaceTableBody>
           </WorkspaceTable>
         </WorkspaceTableWrapper>
-      </div>
+      </div> */}
 
     </div>
   )

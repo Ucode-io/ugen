@@ -16,9 +16,9 @@ export const CoreNav = ({ isCollapsed, onSearchClick }: CoreNavProps) => {
   const items = [
     { key: "home", href: "/", icon: Home },
     { key: "search", href: "/search", icon: Search },
-    { key: "templates", href: "/dashboard/templates", icon: Layers },
+    // { key: "templates", href: "/dashboard/templates", icon: Layers },
     // Adding Analytics to Sidebar core nav
-    { key: "analytics", href: "/dashboard/analytics", icon: BarChart2 },
+    // { key: "analytics", href: "/dashboard/analytics", icon: BarChart2 },
   ]
 
   return (

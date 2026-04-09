@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { WorkspaceChat } from "@/widgets/workspace-chat"
 import { PanelLeftClose, PanelRightClose, ChevronLeft, CodeXml, Globe, Loader2, Play } from "lucide-react"
 import { ProjectCodeViewer } from "@/widgets/project-workspace/ui/project-code-viewer"
@@ -16,6 +16,7 @@ import { ProjectHeader } from "@/widgets/project-workspace/ui/project-header"
 import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard"
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view"
 import { ErrorBoundary } from "@/shared/ui"
+import { usePathname, useSearchParams } from "next/navigation"
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -38,9 +39,12 @@ const getLanguageByPath = (path: string) => {
 };
 
 export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => {
-  const [isChatCollapsed, setIsChatCollapsed] = useState(false)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
   const [isDashboardSidebarCollapsed, setIsDashboardSidebarCollapsed] = useState(false)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'code' | 'preview'>('preview')
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [projectTitle, setProjectTitle] = useState('Loading...')
   const [isLoading, setIsLoading] = useState(true)
   const [projectInfo, setProjectInfo] = useState<any>(null)
@@ -51,6 +55,14 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const setCodeEditorTarget = useAuthStore(state => state.setCodeEditorTarget)
   const hasNoFiles = files.length === 0;
   const t = useTranslations('features.project')
+
+  const activeTab = searchParams.get('tab') as 'dashboard' | 'code' | 'preview' || 'preview'
+
+  const setActiveTab = useCallback((tab: 'dashboard' | 'code' | 'preview') => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', tab)
+    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+  }, [searchParams, pathname, router])
 
   const handleSaveChanges = () => {
     if (updatedFiles.length > 0) {
@@ -140,15 +152,15 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           setActiveTab={setActiveTab}
           isSidebarCollapsed={isDashboardSidebarCollapsed}
           onToggleSidebar={() => setIsDashboardSidebarCollapsed(!isDashboardSidebarCollapsed)}
-          isChatCollapsed={isChatCollapsed}
-          onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
           isLoading={isLoading}
           hasNoFiles={hasNoFiles}
           onSave={handleSaveChanges}
+          isChatCollapsed={isChatCollapsed}
+          onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
         />
 
         <div className="flex flex-1 overflow-hidden">
-          <WorkspaceChat projectId={projectId} isCollapsed={isChatCollapsed} />
+          <WorkspaceChat projectId={projectId} isChatCollapsed={isChatCollapsed} setIsChatCollapsed={setIsChatCollapsed} />
 
           {/* Content Area */}
           <div className="flex-1 flex overflow-hidden">
@@ -169,7 +181,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               <EmptyProjectView
                 onStartChatting={() => {
                   setActiveTab('preview')
-                  if (isChatCollapsed) setIsChatCollapsed(false);
+                  // if (isChatCollapsed) setIsChatCollapsed(false);
                 }}
               />
             ) : activeTab === 'code' ? (

@@ -22,7 +22,18 @@ import { toast } from 'sonner'
 export const TablesView = () => {
   const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
-  const { data: tables, isLoading } = useTables()
+  
+  const [search, setSearch] = React.useState('')
+  const [debouncedSearch, setDebouncedSearch] = React.useState('')
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const { data: tables, isLoading } = useTables(debouncedSearch)
   const { setSelectedTable, setCurrentView } = useDatabaseStore()
   const deleteTableMutation = useDeleteTable()
   const [tableToDelete, setTableToDelete] = React.useState<Table | null>(null)
@@ -43,7 +54,7 @@ export const TablesView = () => {
     }
   }
 
-  if (isLoading) {
+  if (isLoading && !debouncedSearch) {
     return (
       <div className="flex flex-col gap-2 p-2">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -55,15 +66,17 @@ export const TablesView = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-2 flex items-center justify-between">
+      {/* <div className="px-3 py-2 flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-[0.6px] text-text-muted font-[600]">Tables</span>
         <button className="h-6 w-6 rounded-md hover:bg-bg-sidebar text-text-muted flex items-center justify-center transition-colors">
           <Plus size={10} />
         </button>
-      </div>
+      </div> */}
       <div className="px-2 mb-2">
         <input
           placeholder="Search tables..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           className="w-full px-2 py-1.5 text-[11px] bg-bg-main border border-border-subtle rounded-md focus:border-[#004eea] outline-none"
         />
       </div>

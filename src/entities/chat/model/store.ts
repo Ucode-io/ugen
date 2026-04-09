@@ -10,6 +10,7 @@ export type Message = {
   images?: string[]
   pending_action?: any
   bpmnXml?: string
+  plan?: any
 }
 
 interface ChatState {

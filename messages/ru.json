@@ -175,6 +175,8 @@
     },
     "records": {
       "count": "{count} записей",
+      "limit": "Лимит",
+      "page": "Страница",
       "searchPlaceholder": "Поиск записей...",
       "sqlQuery": "SQL Запрос",
       "filter": "Фильтр",
@@ -598,6 +600,8 @@
       },
       "records": {
         "count": "Записей: {count}",
+        "limit": "Лимит",
+        "page": "Страница",
         "searchPlaceholder": "Поиск записей...",
         "sqlQuery": "SQL Запрос",
         "filter": "Фильтр",

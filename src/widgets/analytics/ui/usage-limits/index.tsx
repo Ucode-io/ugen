@@ -47,11 +47,11 @@ export const UsageLimitsTab = ({ pricingData }: any) => {
       {/* Usage meters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { key: 'functions', label: 'Server Functions', color: 'bg-primary', textColor: 'text-primary' },
-          { key: 'microfrontend', label: 'Microfrontends', color: 'bg-blue-500', textColor: 'text-blue-500' },
-          { key: 'database_size', label: 'Database Size', color: 'bg-green-500', textColor: 'text-green-500' },
-          { key: 'asset_size', label: 'Asset Size', color: 'bg-purple-500', textColor: 'text-purple-500' },
-          { key: 'users', label: 'Users', color: 'bg-orange-500', textColor: 'text-orange-500' },
+          { key: 'api_call', label: 'API call per month', color: 'bg-primary', textColor: 'text-primary' },
+          { key: 'storage', label: 'Storage size', color: 'bg-blue-500', textColor: 'text-blue-500' },
+          { key: 'items', label: 'DB records (row)', color: 'bg-green-500', textColor: 'text-green-500' },
+          { key: 'asset', label: 'Asset info', color: 'bg-purple-500', textColor: 'text-purple-500' },
+          { key: 'tokens', label: 'Token usage', color: 'bg-orange-500', textColor: 'text-orange-500' },
         ].map((metric) => {
           const item = d[metric.key];
           const current = item?.current || 0;
@@ -63,7 +63,7 @@ export const UsageLimitsTab = ({ pricingData }: any) => {
             <div key={metric.key} className="bg-bg-card border border-border-subtle rounded-xl p-4">
               <div className="text-xs text-text-muted font-semibold mb-2">{metric.label}</div>
               <div className="flex items-baseline gap-1.5 mb-2">
-                <span className={cn("text-[22px] font-bold", metric.textColor)}>{formatUnit(current, unit)}</span>
+                <span className={cn("text-[20px] font-bold", metric.textColor)}>{formatUnit(current, unit)}</span>
                 <span className="text-[12px] text-text-muted">/ {formatUnit(limit, unit)}</span>
               </div>
               <div className="h-1.5 bg-bg-sidebar rounded-full overflow-hidden mb-1.5">

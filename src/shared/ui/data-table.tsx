@@ -47,6 +47,8 @@ interface DataTableProps<TData, TValue> {
   onLimitChange?: (limit: number) => void
   isLoading?: boolean
   className?: string
+  tableClassName?: string
+  rowClassName?: string | ((data: TData) => string)
   containerClassName?: string
   emptyMessage?: string
   onRowClick?: (data: TData) => void
@@ -62,6 +64,8 @@ export function DataTable<TData, TValue>({
   onLimitChange,
   isLoading = false,
   className,
+  tableClassName,
+  rowClassName,
   containerClassName,
   emptyMessage,
   onRowClick,
@@ -128,6 +132,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className={cn("w-full h-full flex flex-col rounded-ai border border-border-subtle bg-bg-card shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden transition-all", className)}>
       <Table
+        className={tableClassName}
         wrapperClassName={cn(
           "transition-all flex-1",
           containerClassName
@@ -168,7 +173,10 @@ export function DataTable<TData, TValue>({
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
                 onClick={() => onRowClick?.(row.original)}
-                className={cn(onRowClick && "cursor-pointer")}
+                className={cn(
+                  onRowClick && "cursor-pointer",
+                  typeof rowClassName === 'function' ? rowClassName(row.original) : rowClassName
+                )}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

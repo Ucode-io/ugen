@@ -10,11 +10,11 @@ interface ProjectHeaderProps {
   setActiveTab: (tab: 'dashboard' | 'code' | 'preview') => void
   isSidebarCollapsed: boolean
   onToggleSidebar: () => void
-  isChatCollapsed: boolean
-  onToggleChat: () => void
   isLoading: boolean
   hasNoFiles: boolean
   onSave?: () => void
+  isChatCollapsed: boolean
+  onToggleChat: () => void
 }
 
 export const ProjectHeader = ({
@@ -23,11 +23,11 @@ export const ProjectHeader = ({
   setActiveTab,
   isSidebarCollapsed,
   onToggleSidebar,
-  isChatCollapsed,
-  onToggleChat,
   isLoading,
   hasNoFiles,
   onSave,
+  isChatCollapsed,
+  onToggleChat,
 }: ProjectHeaderProps) => {
   const router = useRouter()
   const t = useTranslations('features.project')

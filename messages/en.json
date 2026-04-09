@@ -175,6 +175,8 @@
     },
     "records": {
       "count": "{count} records",
+      "limit": "Limit",
+      "page": "Page",
       "searchPlaceholder": "Search records...",
       "sqlQuery": "SQL Query",
       "filter": "Filter",
@@ -598,6 +600,8 @@
       },
       "records": {
         "count": "{count} records",
+        "limit": "Limit",
+        "page": "Page",
         "searchPlaceholder": "Search records...",
         "sqlQuery": "SQL Query",
         "filter": "Filter",

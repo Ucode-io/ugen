@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Loader2 } from "lucide-react";
+import { CircleChevronLeft, Loader2 } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
@@ -36,7 +36,8 @@ const getLanguageByPath = (path: string) => {
 
 interface WorkspaceChatProps {
   projectId: string
-  isCollapsed?: boolean;
+  isChatCollapsed: boolean
+  setIsChatCollapsed: (isChatCollapsed: boolean) => void
 }
 
 interface QuestionOption {
@@ -119,7 +120,7 @@ const PendingActionConfirm = ({
   )
 }
 
-export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatProps) => {
+export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }: WorkspaceChatProps) => {
   const t = useTranslations('widgets.workspaceChat');
 
   const QUESTION_DATA: Question[] = [
@@ -264,11 +265,12 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
 
       if (historyMessages.length > 0) {
         setChatId(historyMessages[0].chat_id || historyMessages?.[1]?.chat_id);
-        const formatted = historyMessages.map((m: any) => ({
-          id: m.id || m.message_id || Date.now().toString(),
+        const formatted = historyMessages.map((m: Message) => ({
+          id: m.id || Date.now().toString(),
           role: m.role || "ai",
           content: m.content || "",
           pending_action: m.pending_action,
+          bpmnXml: m?.plan?.bpmn_xml,
         }));
 
         const previousScrollHeight = scrollRef.current?.scrollHeight || 0;
@@ -507,23 +509,29 @@ export const WorkspaceChat = ({ projectId, isCollapsed = false }: WorkspaceChatP
         <div className="fixed inset-0 z-[9999] cursor-col-resize select-none pointer-events-auto" />
       )}
       <div
-        className={`bg-bg-main border-border-subtle relative flex h-full shrink-0 flex-col ${isCollapsed ? "w-0 border-r-0" : "border-r"}`}
+        className={`bg-bg-main group border-border-subtle relative flex h-full shrink-0 flex-col ${isChatCollapsed ? "w-0 border-r-0" : "border-r"}`}
         style={{
-          width: isCollapsed ? 0 : `${width}px`,
+          width: isChatCollapsed ? 0 : `${width}px`,
           transition: isResizing ? 'none' : 'width 300ms cubic-bezier(0.4, 0, 0.2, 1), border 300ms opacity 300ms'
         }}
       >
         {/* Resize Handle */}
-        {!isCollapsed && (
-          <div
-            onPointerDown={startResizing}
-            className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 transition-colors group z-50 flex items-center justify-center translate-x-1/2"
-          >
-            <div className="w-1 h-12 bg-border-subtle group-hover:bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm" />
-          </div>
-        )}
         <div
-          className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
+          onPointerDown={startResizing}
+          className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 transition-colors group z-50 flex items-center justify-center translate-x-1/2"
+        >
+          <div className="w-1 h-12 bg-border-subtle group-hover:bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm" />
+        </div>
+
+        {/* <button
+          onClick={() => setIsChatCollapsed(!isChatCollapsed)}
+          className={`opacity-0 group-hover:opacity-100 text-white outline-none rounded-full flex items-center justify-center shrink-0  absolute top-1/2 right-[${isChatCollapsed ? "-20px" : "-12px"}] z-50 p-0.5 bg-primary/40 ${isChatCollapsed ? "rotate-180" : ""}`}
+          title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
+        >
+          <CircleChevronLeft size={16} />
+        </button> */}
+        <div
+          className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isChatCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
         >
           {/* Messages list */}
           <div

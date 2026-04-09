@@ -1,18 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Editor from '@monaco-editor/react'
 import {
   Play,
-  Trash2,
-  Plus,
-  ChevronRight,
   Database,
   History,
-  FileCode,
-  LayoutGrid,
   Menu,
-  ChevronLeft,
   Settings,
   Sparkles,
   RefreshCw,
@@ -53,11 +47,16 @@ export const SqlConsole = () => {
     sqlScripts,
     activeScriptId,
     updateActiveScript,
-    setActiveScriptId,
     addScript
   } = useDatabaseStore()
 
   const { data: tables, isLoading: isTablesLoading } = useTables()
+  const tablesRef = useRef(tables)
+
+  useEffect(() => {
+    tablesRef.current = tables
+  }, [tables])
+
   const executeMutation = useExecuteQuery()
 
   const activeScript = sqlScripts.find(s => s.id === activeScriptId)
@@ -78,8 +77,48 @@ export const SqlConsole = () => {
     if (value !== undefined) updateActiveScript(value)
   }
 
-  const handleTableClick = (tableName: string) => {
-    updateActiveScript(`SELECT * FROM ${tableName} LIMIT 10;`.trim())
+  const handleEditorDidMount = (editor: any, monaco: any) => {
+    // Register completion provider for SQL tables
+    const provider = monaco.languages.registerCompletionItemProvider('sql', {
+      triggerCharacters: [' ', '.', '"'],
+      provideCompletionItems: (model: any, position: any) => {
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+
+        const currentTables = tablesRef.current || [];
+
+        const suggestions = currentTables.map((table: any) => ({
+          label: table.slug,
+          kind: monaco.languages.CompletionItemKind.Field,
+          documentation: table.label || table.slug,
+          insertText: table.slug,
+          range: range,
+          detail: 'Table'
+        }));
+
+        const keywords = [
+          { label: 'SELECT', insertText: 'SELECT', kind: monaco.languages.CompletionItemKind.Keyword, range },
+          { label: 'FROM', insertText: 'FROM', kind: monaco.languages.CompletionItemKind.Keyword, range },
+          { label: 'WHERE', insertText: 'WHERE', kind: monaco.languages.CompletionItemKind.Keyword, range },
+          { label: 'INSERT INTO', insertText: 'INSERT INTO', kind: monaco.languages.CompletionItemKind.Keyword, range },
+          { label: 'UPDATE', insertText: 'UPDATE', kind: monaco.languages.CompletionItemKind.Keyword, range },
+          { label: 'DELETE FROM', insertText: 'DELETE FROM', kind: monaco.languages.CompletionItemKind.Keyword, range },
+          { label: 'LIMIT 10', insertText: 'LIMIT 10', kind: monaco.languages.CompletionItemKind.Snippet, range },
+        ];
+
+        return { suggestions: [...suggestions, ...keywords] };
+      },
+    });
+
+    // Cleanup on editor dispose
+    editor.onDidDispose(() => {
+      provider.dispose();
+    });
   }
 
   const projectId = useAuthStore((state) => state.project?.project_id)
@@ -93,8 +132,6 @@ export const SqlConsole = () => {
     },
     enabled: !!projectId
   })
-
-  console.log({ customEndpoints })
 
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [formData, setFormData] = useState({ name: '', description: '', method: 'GET' })
@@ -128,15 +165,55 @@ export const SqlConsole = () => {
     }
   }
 
-  const columns = React.useMemo(() => {
+  const columns = useMemo(() => {
     if (!results.length) return []
     return Object.keys(results[0]).map(key => ({
       accessorKey: key,
-      header: key,
+      header: () => <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted/80">{key}</div>,
       cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
         const val = row.getValue(key)
-        const displayVal = typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val ?? '')
-        return <span title={displayVal} className="truncate block max-w-[200px]">{displayVal}</span>
+
+        if (typeof val === 'number') {
+          return <span className="text-blue-500 font-mono text-[12px] font-semibold">{val}</span>
+        }
+
+        if (typeof val === 'boolean') {
+          return (
+            <span className={cn(
+              "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center justify-center min-w-[50px]",
+              val
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "bg-text-muted/10 text-text-muted border border-text-muted/20"
+            )}>
+              {val ? 'TRUE' : 'FALSE'}
+            </span>
+          )
+        }
+
+        if (val === null) {
+          return <span className="text-text-muted/40 italic text-[11px] px-1">null</span>
+        }
+
+        // Heuristic for UUID
+        if (typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+          return <span className="text-amber-600/80 font-mono text-[11px] truncate block w-[200px]" title={val}>{val}</span>
+        }
+
+        // Heuristic for Date/Time
+        const isDate = typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)
+
+        const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '')
+        return (
+          <span
+            title={displayVal}
+            className={cn(
+              "truncate block w-[200px] text-[12px] leading-tight py-0.5 font-medium",
+              isDate ? "text-text-muted/70" : "text-text-main"
+            )}
+          >
+            {displayVal}
+          </span>
+        )
       }
     }))
   }, [results])
@@ -150,20 +227,20 @@ export const SqlConsole = () => {
           !isSidebarOpen && "w-0 -translate-x-full pointer-events-none sm:w-0 sm:opacity-0"
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-border-subtle h-[57px]">
+        {/* <div className="flex items-center justify-between p-4 border-b border-border-subtle h-[57px]">
           <h4 className="text-sm font-semibold text-text-main flex items-center gap-2">
             <Database size={14} className="text-primary" />
             {t('sqlConsole.explorer')}
           </h4>
-          {/* <button
+          <button
             onClick={() => addScript(`Query ${sqlScripts.length + 1}`, 'SELECT * FROM users LIMIT 10;')}
             className="p-1 px-1.5 rounded-md hover:bg-hover-bg text-text-muted hover:text-text-main transition-all border border-transparent hover:border-border-subtle"
           >
             <Plus size={14} />
-          </button> */}
-        </div>
+          </button>
+        </div> */}
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2">
           {/* Scripts Section */}
           {/* <div className="space-y-1">
             <span className="px-2 py-1.5 text-[11px] font-bold text-text-muted/70 uppercase tracking-widest flex items-center gap-2">
@@ -188,9 +265,9 @@ export const SqlConsole = () => {
           </div> */}
 
           <div className="space-y-1">
-            <span className="px-2 py-1.5 text-[11px] font-bold text-text-muted/70 uppercase tracking-widest flex items-center gap-2 mt-4">
+            <span className="px-2 py-1.5 text-[11px] font-bold text-text-muted/70 uppercase tracking-widest flex items-center gap-2">
               <Sparkles size={12} />
-              Custom Endpoints
+              Saved Queries
             </span>
             {isEndpointsLoading ? (
               <div className="space-y-2 p-2">
@@ -201,7 +278,7 @@ export const SqlConsole = () => {
               <button
                 key={endpoint.id}
                 onClick={() => loadEndpointAsScript(endpoint)}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-all group active:scale-[0.98]"
+                className="w-full flex items-center gap-3 px-3 py-1 rounded-md text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-all group active:scale-[0.98]"
                 title="Load into Editor"
               >
                 <span className="bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0">
@@ -212,31 +289,6 @@ export const SqlConsole = () => {
             ))}
           </div>
 
-          {/* Tables Section */}
-          <div className="space-y-1">
-            <span className="px-2 py-1.5 text-[11px] font-bold text-text-muted/70 uppercase tracking-widest flex items-center gap-2">
-              <LayoutGrid size={12} />
-              {t('sqlConsole.tables')}
-            </span>
-            {isTablesLoading ? (
-              <div className="space-y-2 p-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : (
-              tables?.map(table => (
-                <button
-                  key={table.slug}
-                  onClick={() => handleTableClick(table.slug)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-all group active:scale-[0.98]"
-                >
-                  <ChevronRight size={12} className="text-text-muted/40 transition-transform group-hover:translate-x-0.5" />
-                  <span className="truncate">{table?.label || table.slug}</span>
-                </button>
-              ))
-            )}
-          </div>
         </div>
       </div>
 
@@ -285,6 +337,7 @@ export const SqlConsole = () => {
             theme={theme === 'dark' ? 'vs-dark' : 'light'}
             value={activeScript?.content}
             onChange={handleEditorChange}
+            onMount={handleEditorDidMount}
             options={{
               minimap: { enabled: false },
               fontSize: 14,
@@ -308,7 +361,7 @@ export const SqlConsole = () => {
               </span>
             )}
           </div>
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto">
             {executeMutation.error ? (
               <div className="flex items-start gap-4 p-4 rounded-ai border border-destructive/20 bg-destructive/5 text-destructive">
                 <AlertCircle size={20} className="shrink-0 mt-0.5" />
@@ -322,7 +375,8 @@ export const SqlConsole = () => {
                 columns={columns}
                 data={results}
                 containerClassName="border-none shadow-none"
-                className="border-none shadow-none"
+                tableClassName="min-w-max border-collapse"
+                className="border-none shadow-none [&_td]:p-1.5 [&_td]:border [&_td]:border-border-subtle [&_th]:p-1.5 [&_th]:border [&_th]:border-border-subtle [&_th]:h-8"
               />
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[150px] text-text-muted space-y-3 grayscale opacity-70">

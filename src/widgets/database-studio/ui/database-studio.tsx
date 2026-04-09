@@ -22,12 +22,16 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
   const t = useTranslations('widgets.databaseStudio')
   const { currentView, setCurrentView, breadcrumbs, resetToTables } = useDatabaseStore()
 
-  console.log({ currentView })
+  const [isPannelOpen, setIsPannelOpen] = useState(true)
+
+  const onTogglePannel = () => {
+    setIsPannelOpen(!isPannelOpen)
+  }
 
   const renderContent = () => {
     switch (currentView) {
       case 'tables': return <TablesView />
-      case 'records': return <RecordsView projectId={projectId} />
+      case 'records': return <RecordsView projectId={projectId} isPannelOpen={isPannelOpen} onTogglePannel={onTogglePannel} />
       case 'query': return <QueryView />
       case 'sql-console': return <SqlConsole />
       default: return <TablesView />
@@ -68,12 +72,14 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
           </div>
         ) : (
           <>
-            <div className="w-[220px] min-w-[220px] border-r border-border-subtle bg-bg-card flex flex-col overflow-y-auto pt-2 min-h-[540px]">
-              <TablesView />
-            </div>
+            {
+              isPannelOpen && <div className="w-[220px] min-w-[220px] border-r border-border-subtle bg-bg-card flex flex-col overflow-y-auto pt-2 min-h-[540px]">
+                <TablesView />
+              </div>
+            }
             <div className="flex-1 flex flex-col overflow-hidden bg-bg-main">
               {/* Need to be careful here: RecordsView expects to just display records. However, if no table is selected, we should show a placeholder or something */}
-              <RecordsView projectId={projectId} />
+              <RecordsView projectId={projectId} isPannelOpen={isPannelOpen} onTogglePannel={onTogglePannel} />
             </div>
           </>
         )}

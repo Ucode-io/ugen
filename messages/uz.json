@@ -174,7 +174,9 @@
       "advanced": "Kengaytirilgan"
     },
     "records": {
-      "count": "{count} yozuvlar",
+      "count": "{count} ta yozuv",
+      "limit": "Limit",
+      "page": "Sahifa",
       "searchPlaceholder": "Yozuvlarni qidirish...",
       "sqlQuery": "SQL So'rov",
       "filter": "Filtr",
@@ -598,6 +600,8 @@
       },
       "records": {
         "count": "Yozuvlar: {count}",
+        "limit": "Limit",
+        "page": "Sahifa",
         "searchPlaceholder": "Yozuvlarni qidirish...",
         "sqlQuery": "SQL So'rovi",
         "filter": "Filtr",

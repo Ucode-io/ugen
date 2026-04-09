@@ -9,7 +9,7 @@ import {
   ChevronDown,
   ChevronRight
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
@@ -53,127 +53,191 @@ const parseJson = (str: string) => {
   }
 }
 
-const LogDetailAccordion = ({ item, type, isSuccess }: any) => {
+const LogStatusBadge = ({ status, isSuccess }: { status: number | string, isSuccess: boolean }) => {
+  const icon = isSuccess ? (
+    <div className="w-3.5 h-3.5 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+  ) : (
+    <div className="w-3.5 h-3.5 rounded-full bg-destructive/10 flex items-center justify-center text-destructive font-bold text-[10px]">✕</div>
+  )
+
+  return (
+    <div className={cn(
+      "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[12px] font-bold border",
+      isSuccess ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-destructive/10 text-destructive border-destructive/20"
+    )}>
+      {icon}
+      <span>{status}</span>
+    </div>
+  )
+}
+
+const LogMethodBadge = ({ method }: { method: string }) => {
+  const methodColors: Record<string, string> = {
+    'GET': 'bg-green-500/10 text-green-500 border-green-500/20',
+    'POST': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    'PUT': 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    'DELETE': 'bg-destructive/10 text-destructive border-destructive/20',
+    'PATCH': 'bg-purple-500/10 text-purple-500 border-purple-500/20'
+  }
+
+  const colorClass = methodColors[method.toUpperCase()] || 'bg-text-muted/10 text-text-muted border-border-subtle'
+
+  return (
+    <span className={cn(
+      "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border min-w-[45px] text-center",
+      colorClass
+    )}>
+      {method}
+    </span>
+  )
+}
+
+const LogAccordionItem = ({ item, isExpanded, onToggle, type }: any) => {
   const [activeTab, setActiveTab] = useState('general')
   const t = useTranslations('widgets.databaseStudio')
 
+  const isSuccess = type === 'activity' ? true : item.status === 'success'
+  const statusCode = type === 'activity' ? (item?.status_code || item.action_type?.includes('DELETE') ? 204 : (item.action_type?.includes('CREATE') ? 201 : 200)) : (isSuccess ? 200 : 500)
+
   const req = item.request ? parseJson(item.request) : null
   const res = item.response ? parseJson(item.response) : null
+  const method = type === 'activity' ? (item.method_api || 'GET') : (item.request_method || 'GET')
+  const path = type === 'activity' ? (item.table_slug ? `/api/v2/items/${item.table_slug}` : item.action_source || '/api/v1/system') : (item.name || item.function_name || '/api/v1/function')
+
+  const rawDate = (item.date || item.started_at)?.replace('Z', '')
+  const timeAgo = rawDate ? formatDistanceToNow(parseISO(rawDate), { addSuffix: true }) : ''
 
   return (
-    <div className="p-4 bg-bg-main/30 animate-in slide-in-from-top-2 duration-200">
-      <div className="flex items-center gap-6 border-b border-border-subtle mb-4 px-2">
-        <button
-          onClick={() => setActiveTab('general')}
-          className={cn("pb-3 text-[13px] font-semibold transition-colors relative", activeTab === 'general' ? "text-text-main" : "text-text-muted hover:text-text-main")}
-        >
-          General
-          {activeTab === 'general' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-        </button>
-        <button
-          onClick={() => setActiveTab('request')}
-          className={cn("pb-3 text-[13px] font-semibold transition-colors relative", activeTab === 'request' ? "text-text-main" : "text-text-muted hover:text-text-main")}
-        >
-          Request
-          {activeTab === 'request' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-        </button>
-        <button
-          onClick={() => setActiveTab('response')}
-          className={cn("pb-3 text-[13px] font-semibold transition-colors relative", activeTab === 'response' ? "text-text-main" : "text-text-muted hover:text-text-main")}
-        >
-          Response
-          {activeTab === 'response' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-        </button>
+    <div className={cn(
+      "border-b border-border-subtle last:border-none transition-all",
+      isExpanded && "bg-bg-card shadow-sm"
+    )}>
+      {/* Header */}
+      <div
+        onClick={onToggle}
+        className="flex items-center gap-4 px-4 py-2.5 cursor-pointer hover:bg-hover-bg/30 transition-colors group"
+      >
+        <LogMethodBadge method={method} />
+
+        <div className="flex-1 flex items-center justify-between min-w-0">
+          <span className="text-[13.5px] font-medium text-text-main truncate pr-4">{path}</span>
+
+          <div className="flex items-center gap-4 shrink-0">
+            <span className="text-[12px] text-text-muted opacity-60 font-medium">
+              {timeAgo}
+            </span>
+            <LogStatusBadge status={statusCode} isSuccess={isSuccess} />
+            <ChevronDown
+              size={16}
+              className={cn("text-text-muted transition-transform duration-300", isExpanded && "rotate-180")}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="px-2 pb-2">
-        {activeTab === 'general' && (
-          type === 'activity' ? (
-            <div className="grid grid-cols-2 gap-y-5 gap-x-8">
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.url')}</p>
-                <p className="text-[13px] text-text-main font-medium">{req?.data?.url || item?.action_source || '-'}</p>
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="pb-4 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-6 border-b border-border-subtle bg-hover-bg/20 px-4 mb-4">
+            {['general', 'request', 'response'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "py-2.5 text-[12.5px] font-semibold transition-all relative capitalize",
+                  activeTab === tab ? "text-primary" : "text-text-muted hover:text-text-main"
+                )}
+              >
+                {tab}
+                {activeTab === tab && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full shadow-[0_-2px_6px_rgba(59,130,246,0.3)] animate-in fade-in zoom-in-75 duration-300" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="px-6">
+            {activeTab === 'general' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-12">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{t('logs.details.url')}</p>
+                  <p className="text-[13px] text-text-main font-medium break-all">{req?.data?.url || path}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{t('logs.details.method')}</p>
+                  <p className="text-[13px] text-text-main font-medium uppercase">
+                    <LogMethodBadge method={method} />
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{t('logs.details.status')}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] text-text-main font-medium">{statusCode}</span>
+                    {item.duration && <span className="text-[12px] text-text-muted font-normal">({item.duration}ms)</span>}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{t('logs.details.time')}</p>
+                  <div className="text-[12.5px] leading-relaxed">
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 text-text-muted">Started:</span>
+                      <span className="text-text-main font-medium">{new Date(item.date || item.started_at).toLocaleString()}</span>
+                    </div>
+                    {(item.completed_at || (item.date && item.duration)) && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-16 text-text-muted">Finished:</span>
+                        <span className="text-text-main font-medium">
+                          {item.completed_at ? new Date(item.completed_at).toLocaleString() : new Date(new Date(item.date).getTime() + (item.duration || 0)).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{t('logs.details.actionBy')}</p>
+                  <div className="flex items-center gap-2 text-text-main font-medium text-[13px]">
+                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <User size={12} />
+                    </div>
+                    {item.user_info || 'system'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{t('logs.details.actionType')}</p>
+                  <p className="text-[13px] text-text-main font-mono bg-ring/20 px-2 py-0.5 rounded w-fit">{item.action_type}</p>
+                </div>
+                {item.table_slug && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{t('logs.details.collection')}</p>
+                    <p className="text-[13px] text-text-main font-mono bg-hover-bg/50 px-2 py-0.5 rounded w-fit">{item.table_slug}</p>
+                  </div>
+                )}
               </div>
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.method')}</p>
-                <p className="text-[13px] text-text-main font-medium">{item?.action_type || '-'}</p>
+            )}
+
+            {activeTab === 'request' && (
+              <div className="animate-in fade-in duration-300">
+                <pre className="bg-bg-sidebar/50 rounded-xl border border-border-subtle p-4 text-[12px] font-mono text-text-main overflow-auto max-h-[400px] whitespace-pre-wrap scrollbar-thin scrollbar-thumb-border-subtle">
+                  {req ? JSON.stringify(req, null, 2) : '// No request data'}
+                </pre>
               </div>
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.actionBy')}</p>
-                <p className="text-[13px] text-text-main font-medium">{item.user_info || 'System'}</p>
-              </div>
-              {/* <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.action')}</p>
-                <p className="text-[13px] text-text-main font-medium">{item.action_type}</p>
-              </div> */}
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.date')}</p>
-                <p className="text-[13px] text-text-main font-medium">{new Date(item.date).toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.collection')}</p>
-                <p className="text-[13px] text-text-main font-medium font-mono">{item.table_slug || '-'}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-5 gap-x-6">
-              <div className="col-span-2">
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.name')}</p>
-                <p className="text-[13px] text-text-main font-medium">{item.name || item.function_name || '-'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.status')}</p>
-                <span className={cn(
-                  "inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase",
-                  isSuccess ? "bg-green-500/10 text-green-500" : "bg-destructive/10 text-destructive"
+            )}
+
+            {activeTab === 'response' && (
+              <div className="animate-in fade-in duration-300">
+                <pre className={cn(
+                  "bg-bg-sidebar/50 rounded-xl border border-border-subtle p-4 text-[12px] font-mono overflow-auto max-h-[400px] whitespace-pre-wrap scrollbar-thin scrollbar-thumb-border-subtle",
+                  !isSuccess ? "text-destructive" : "text-text-main"
                 )}>
-                  {item.status}
-                </span>
-                <span className="text-[12px] text-text-muted ml-2">({item.duration}ms)</span>
+                  {res ? JSON.stringify(res, null, 2) : '// No response data'}
+                </pre>
               </div>
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.requestMethod')}</p>
-                <p className="text-[13px] text-text-main font-medium uppercase">{item.request_method || '-'}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.time')}</p>
-                <p className="text-[13px] text-text-muted">
-                  Started: <span className="text-text-main">{new Date(item.started_at).toLocaleString()}</span><br />
-                  Completed: <span className="text-text-main">{new Date(item.completed_at).toLocaleString()}</span>
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.actionType')}</p>
-                <p className="text-[13px] text-text-main font-medium">{item.action_type || '-'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{t('logs.details.tableSlug')}</p>
-                <p className="text-[13px] text-text-main font-medium font-mono">{item.table_slug || '-'}</p>
-              </div>
-            </div>
-          )
-        )}
-
-        {activeTab === 'request' && (
-          <div>
-            <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Request Data</p>
-            <pre className="bg-bg-sidebar rounded-xl border border-border-subtle p-4 text-[11.5px] font-mono text-text-main overflow-auto max-h-[300px] whitespace-pre-wrap">
-              {req ? (typeof req === 'object' ? JSON.stringify(req, null, 2) : req) : 'No request data'}
-            </pre>
+            )}
           </div>
-        )}
-
-        {activeTab === 'response' && (
-          <div>
-            <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Response Data</p>
-            <pre className={cn("bg-bg-sidebar rounded-xl border border-border-subtle p-4 text-[11.5px] font-mono overflow-auto max-h-[300px] whitespace-pre-wrap",
-              !isSuccess && type === 'function' ? 'text-destructive border-destructive/20' : 'text-text-main'
-            )}>
-              {res ? (typeof res === 'object' ? JSON.stringify(res, null, 2) : res) : 'No response data'}
-            </pre>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -486,82 +550,29 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
             </div>
 
             <div className="flex-1 overflow-auto bg-bg-main relative">
-              <WorkspaceTableWrapper className="border-none shadow-none rounded-none h-full">
-                <WorkspaceTable>
-                  <WorkspaceTableHeader className="sticky top-0 z-10">
-                    <WorkspaceTableRow>
-                      <WorkspaceTableHead className="w-16">#</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.action')}</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.collection')}</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.time')}</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.actionBy')}</WorkspaceTableHead>
-                      <WorkspaceTableHead className="w-10"></WorkspaceTableHead>
-                    </WorkspaceTableRow>
-                  </WorkspaceTableHeader>
-                  <WorkspaceTableBody>
-                    {isActivityLoading ? (
-                      Array.from({ length: Math.min(activityLimit, 10) }).map((_, i) => (
-                        <WorkspaceTableRow key={`sk-${i}`}>
-                          <WorkspaceTableCell><div className="h-4 w-6 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-24 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-20 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-32 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-20 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell></WorkspaceTableCell>
-                        </WorkspaceTableRow>
-                      ))
-                    ) : activityLogsData?.histories?.length ? (
-                      activityLogsData.histories.map((item: any, idx: number) => {
-                        const isExpanded = expandedActivityId === item.id;
-                        return (
-                          <React.Fragment key={item.id}>
-                            <WorkspaceTableRow
-                              className={cn("cursor-pointer hover:bg-hover-bg/50 group", isExpanded && "bg-hover-bg/30")}
-                              onClick={() => setExpandedActivityId(isExpanded ? null : item.id)}
-                            >
-                              <WorkspaceTableCell className="text-text-muted">{(activityPage - 1) * activityLimit + idx + 1}</WorkspaceTableCell>
-                              <WorkspaceTableCell>
-                                <span className={cn(
-                                  "bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
-                                  item.action_type?.includes('DELETE') && "bg-destructive/10 text-destructive",
-                                  item.action_type?.includes('UPDATE') && "bg-yellow-500/10 text-yellow-500",
-                                  item.action_type?.includes('CREATE') && "bg-green-500/10 text-green-500"
-                                )}>
-                                  {item.action_type}
-                                </span>
-                              </WorkspaceTableCell>
-                              <WorkspaceTableCell className="font-mono">{item.table_slug || '-'}</WorkspaceTableCell>
-                              <WorkspaceTableCell className="text-text-muted">{new Date(item.date).toLocaleString()}</WorkspaceTableCell>
-                              <WorkspaceTableCell>
-                                <div className="flex items-center gap-1.5 text-text-muted">
-                                  <User size={13} />
-                                  <span>{item.user_info || 'System'}</span>
-                                </div>
-                              </WorkspaceTableCell>
-                              <WorkspaceTableCell className="text-right">
-                                <div className={cn("p-1.5 rounded-md text-text-muted group-hover:bg-bg-sidebar group-hover:text-text-main transition-all ml-auto w-fit", isExpanded && "bg-bg-sidebar text-text-main")}>
-                                  <ChevronDown size={16} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
-                                </div>
-                              </WorkspaceTableCell>
-                            </WorkspaceTableRow>
-                            {isExpanded && (
-                              <WorkspaceTableRow className="hover:bg-transparent">
-                                <WorkspaceTableCell colSpan={6} className="p-0 border-b border-border-subtle bg-bg-main/10 shadow-inner">
-                                  <LogDetailAccordion item={item} type="activity" />
-                                </WorkspaceTableCell>
-                              </WorkspaceTableRow>
-                            )}
-                          </React.Fragment>
-                        )
-                      })
-                    ) : (
-                      <WorkspaceTableRow>
-                        <WorkspaceTableCell colSpan={6} className="h-32 text-center text-text-muted">No activity logs found.</WorkspaceTableCell>
-                      </WorkspaceTableRow>
-                    )}
-                  </WorkspaceTableBody>
-                </WorkspaceTable>
-              </WorkspaceTableWrapper>
+              <div className="flex flex-col min-h-0">
+                {isActivityLoading ? (
+                  <div className="p-4 space-y-3">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div key={i} className="h-10 w-full bg-hover-bg animate-pulse rounded-lg" />
+                    ))}
+                  </div>
+                ) : activityLogsData?.histories?.length ? (
+                  activityLogsData.histories.map((item: any) => (
+                    <LogAccordionItem
+                      key={item.id}
+                      item={item}
+                      isExpanded={expandedActivityId === item.id}
+                      onToggle={() => setExpandedActivityId(expandedActivityId === item.id ? null : item.id)}
+                      type="activity"
+                    />
+                  ))
+                ) : (
+                  <div className="h-48 flex items-center justify-center text-text-muted text-sm italic">
+                    No activity logs found.
+                  </div>
+                )}
+              </div>
             </div>
 
             <TablePaginationFooter
@@ -630,80 +641,29 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
             </div>
 
             <div className="flex-1 overflow-auto bg-bg-main relative">
-              <WorkspaceTableWrapper className="border-none shadow-none rounded-none h-full">
-                <WorkspaceTable>
-                  <WorkspaceTableHeader className="sticky top-0 z-10">
-                    <WorkspaceTableRow>
-                      <WorkspaceTableHead className="w-16">#</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.function')}</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.time')}</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.status')}</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.duration')}</WorkspaceTableHead>
-                      <WorkspaceTableHead>{t('logs.columns.tableSlug')}</WorkspaceTableHead>
-                      <WorkspaceTableHead className="w-10"></WorkspaceTableHead>
-                    </WorkspaceTableRow>
-                  </WorkspaceTableHeader>
-                  <WorkspaceTableBody>
-                    {isFunctionLoading ? (
-                      Array.from({ length: Math.min(functionLimit, 10) }).map((_, i) => (
-                        <WorkspaceTableRow key={`sk-${i}`}>
-                          <WorkspaceTableCell><div className="h-4 w-6 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-24 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-32 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-20 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-16 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell><div className="h-4 w-20 bg-hover-bg animate-pulse rounded" /></WorkspaceTableCell>
-                          <WorkspaceTableCell></WorkspaceTableCell>
-                        </WorkspaceTableRow>
-                      ))
-                    ) : functionLogsData?.function_logs?.length ? (
-                      functionLogsData.function_logs.map((item: any, idx: number) => {
-                        const isExpanded = expandedFunctionId === item.id;
-                        const isSuccess = item.status === 'success';
-
-                        return (
-                          <React.Fragment key={item.id}>
-                            <WorkspaceTableRow
-                              className={cn("cursor-pointer hover:bg-hover-bg/50 group", isExpanded && "bg-hover-bg/30")}
-                              onClick={() => setExpandedFunctionId(isExpanded ? null : item.id)}
-                            >
-                              <WorkspaceTableCell className="text-text-muted">{(functionPage - 1) * functionLimit + idx + 1}</WorkspaceTableCell>
-                              <WorkspaceTableCell className="font-bold">{item.function_name || item.name}</WorkspaceTableCell>
-                              <WorkspaceTableCell className="text-text-muted">{new Date(item.started_at).toLocaleString()}</WorkspaceTableCell>
-                              <WorkspaceTableCell>
-                                <span className={cn(
-                                  "rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase",
-                                  isSuccess ? "bg-green-500/10 text-green-500" : "bg-destructive/10 text-destructive"
-                                )}>
-                                  {item.status}
-                                </span>
-                              </WorkspaceTableCell>
-                              <WorkspaceTableCell className="font-mono text-text-muted">{item.duration}ms</WorkspaceTableCell>
-                              <WorkspaceTableCell className="font-mono">{item.table_slug || '-'}</WorkspaceTableCell>
-                              <WorkspaceTableCell className="text-right">
-                                <div className={cn("p-1.5 rounded-md text-text-muted group-hover:bg-bg-sidebar group-hover:text-text-main transition-all ml-auto w-fit", isExpanded && "bg-bg-sidebar text-text-main")}>
-                                  <ChevronDown size={16} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
-                                </div>
-                              </WorkspaceTableCell>
-                            </WorkspaceTableRow>
-                            {isExpanded && (
-                              <WorkspaceTableRow className="hover:bg-transparent">
-                                <WorkspaceTableCell colSpan={7} className="p-0 border-b border-border-subtle bg-bg-main/10 shadow-inner">
-                                  <LogDetailAccordion item={item} type="function" isSuccess={isSuccess} />
-                                </WorkspaceTableCell>
-                              </WorkspaceTableRow>
-                            )}
-                          </React.Fragment>
-                        )
-                      })
-                    ) : (
-                      <WorkspaceTableRow>
-                        <WorkspaceTableCell colSpan={7} className="h-32 text-center text-text-muted">No function logs found.</WorkspaceTableCell>
-                      </WorkspaceTableRow>
-                    )}
-                  </WorkspaceTableBody>
-                </WorkspaceTable>
-              </WorkspaceTableWrapper>
+              <div className="flex flex-col min-h-0">
+                {isFunctionLoading ? (
+                  <div className="p-4 space-y-3">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div key={i} className="h-10 w-full bg-hover-bg animate-pulse rounded-lg" />
+                    ))}
+                  </div>
+                ) : functionLogsData?.function_logs?.length ? (
+                  functionLogsData.function_logs.map((item: any) => (
+                    <LogAccordionItem
+                      key={item.id}
+                      item={item}
+                      isExpanded={expandedFunctionId === item.id}
+                      onToggle={() => setExpandedFunctionId(expandedFunctionId === item.id ? null : item.id)}
+                      type="function"
+                    />
+                  ))
+                ) : (
+                  <div className="h-48 flex items-center justify-center text-text-muted text-sm italic">
+                    No function logs found.
+                  </div>
+                )}
+              </div>
             </div>
 
             <TablePaginationFooter

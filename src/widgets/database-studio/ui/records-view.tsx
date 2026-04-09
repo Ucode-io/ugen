@@ -1,52 +1,44 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Plus,
   Filter,
   RefreshCw,
-  Terminal,
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
   Check,
-  Search,
-  MoreVertical,
   X,
-  PlusCircle,
-  AlertCircle,
-  Database
+  Database,
+  PanelRightClose,
+  PanelLeftClose,
+  Save,
+  Ban
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   useDatabaseStore,
   useTableRecords,
+  useTableDetail,
   useAddRecord,
-  useTableDetail
+  useUpdateRecord,
+  Column
 } from '@/entities/database'
 import { DataTable } from '@/shared/ui'
 import { Button } from '@/shared/ui'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
   Popover,
   PopoverContent,
   PopoverTrigger
 } from '@/shared/ui'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { cn } from '@/shared/lib/utils/cn'
 
 import { Skeleton } from '@/shared/ui'
 import { useTranslations } from 'next-intl'
-import { Column } from '@/entities/database/model/types'
 import { useAuthStore } from '@/entities/session'
 
-export const RecordsView = ({ projectId }: { projectId: string }) => {
+export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { projectId: string, isPannelOpen: boolean, onTogglePannel: () => void }) => {
   const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
   const { selectedTable, setCurrentView, resetToTables, setFilters } = useDatabaseStore()
@@ -60,17 +52,56 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
   const [limit, setLimit] = useState(50)
   const [offset, setOffset] = useState(0)
 
+  const [isInlineAdding, setIsInlineAdding] = useState(false)
+  const [inlineRowData, setInlineRowData] = useState<Record<string, any>>({})
+  const [editingCell, setEditingCell] = useState<{ id: string; key: string } | null>(null)
+  const [editValue, setEditValue] = useState<any>(null)
+
+  const addRecordMutation = useAddRecord()
+  const updateRecordMutation = useUpdateRecord()
+
+  const currentPage = Math.floor(offset / limit) + 1
+  const [tempPage, setTempPage] = useState(String(currentPage))
+  const [tempLimit, setTempLimit] = useState(String(limit))
+
+  useEffect(() => {
+    setTempPage(String(currentPage))
+  }, [currentPage])
+
+  useEffect(() => {
+    setTempLimit(String(limit))
+  }, [limit])
+
+  const handlePageBlur = () => {
+    const val = parseInt(tempPage)
+    if (!isNaN(val) && val > 0) {
+      setOffset((val - 1) * limit)
+    } else {
+      setTempPage(String(currentPage))
+    }
+  }
+
+  const handleLimitBlur = () => {
+    const val = parseInt(tempLimit)
+    if (!isNaN(val) && val > 0) {
+      setLimit(val)
+      setOffset(0)
+    } else {
+      setTempLimit(String(limit))
+    }
+  }
+
   const schema: Column[] = tableDetail?.fields || (tableDetail as any)?.data?.fields || []
   const allColumns = useMemo(() => schema.map(c => c.slug), [schema])
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (allColumns.length > 0 && selectedColumns.length === 0) {
       setSelectedColumns(allColumns)
     }
   }, [allColumns])
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = setTimeout(() => {
       const cleanedFilters = localFilters.map(f => {
         let val: any = f.value;
@@ -91,19 +122,119 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
   }, [localFilters]);
 
   // Reset offset when limit changes or filters apply
-  React.useEffect(() => {
+  useEffect(() => {
     setOffset(0);
   }, [limit, appliedFilters]);
 
-  const { data: records, isLoading: isRecordsLoading, refetch } = useTableRecords(
+  const { data, isLoading: isRecordsLoading, refetch } = useTableRecords(
     selectedTable,
-    ucodeProjectId || projectId,
-    undefined,
+    projectId,
+    ucodeProjectId || "",
     limit,
     offset,
-    appliedFilters.length > 0 ? appliedFilters : undefined,
-    selectedColumns.length > 0 ? selectedColumns : undefined
+    appliedFilters,
+    selectedColumns
   )
+
+  const records = data?.items || []
+  const fetchDuration = data?.duration || 0
+
+  const transformValue = (val: any, col: Column) => {
+    if (val === '' || val === undefined || val === null) return null
+
+    const type = (col.type || '').toUpperCase()
+    
+    // Provided Types Mapping Categories
+    const floatTypes = ["NUMBER", "FLOAT", "FLOAT_NOLIMIT", "FORMULA"]
+    const boolTypes = ["CHECKBOX", "SWITCH"]
+    const arrayTypes = ["MULTISELECT", "LOOKUPS", "DYNAMIC", "LANGUAGE_TYPE", "MULTI_IMAGE", "MULTI_FILE", "MONEY", "ARRAY"]
+    const serialTypes = ["INCREMENT_NUMBER"]
+
+    if (floatTypes.includes(type) || serialTypes.includes(type)) {
+      const num = Number(val)
+      if (isNaN(num)) return { error: `${col.label} must be a number` }
+      return num
+    } else if (boolTypes.includes(type)) {
+      return val === 'true' || val === true || val === '1'
+    } else if (arrayTypes.includes(type)) {
+      return typeof val === 'string' 
+        ? val.split(',').map(s => s.trim()).filter(Boolean) 
+        : val
+    }
+    return val
+  }
+
+  const handleSaveInline = async () => {
+    if (!selectedTable) return
+
+    const dataToSave: Record<string, any> = {}
+    for (const col of schema) {
+      if (col.isPrimaryKey && col.type === 'uuid') continue
+
+      let rawVal = inlineRowData[col.slug]
+      if (col.required && (rawVal === undefined || rawVal === '' || rawVal === null)) {
+        toast.error(`${col.label} is required`)
+        return
+      }
+
+      const result = transformValue(rawVal, col)
+      if (result && typeof result === 'object' && 'error' in result) {
+        toast.error(result.error as string)
+        return
+      }
+      dataToSave[col.slug] = result
+    }
+
+    try {
+      await addRecordMutation.mutateAsync({ tableName: selectedTable, data: dataToSave })
+      setIsInlineAdding(false)
+      setInlineRowData({})
+      toast.success('Record added successfully')
+      refetch()
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to add record')
+    }
+  }
+
+  const handleUpdateRecord = async (row: any, key: string, newVal: any) => {
+    if (!selectedTable || editingCell === null) return
+    
+    // If value hasn't changed, just close
+    if (newVal === row[key]) {
+      setEditingCell(null)
+      setEditValue(null)
+      return
+    }
+
+    const col = schema?.find(s => s.slug === key)
+    if (!col) return
+
+    const result = transformValue(newVal, col)
+    if (result && typeof result === 'object' && 'error' in result) {
+      toast.error(result.error as string)
+      return
+    }
+
+    const updatedData = { ...row, [key]: result }
+    
+    try {
+      await updateRecordMutation.mutateAsync({ tableName: selectedTable, data: updatedData })
+      toast.success('Record updated')
+      refetch()
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to update record')
+    } finally {
+      setEditingCell(null)
+      setEditValue(null)
+    }
+  }
+
+  const displayRecords = useMemo(() => {
+    if (!isInlineAdding) return records
+    return [{ __isDraft: true, ...inlineRowData }, ...records]
+  }, [records, isInlineAdding, inlineRowData])
 
   const isSchemaLoading = isDetailLoading
 
@@ -124,15 +255,62 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
       const label = schemaField?.label || key
       return {
         accessorKey: key,
-        header: () => <div className="min-w-[200px] font-medium text-text-muted">{label}</div>,
-        cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
-          const val = row.getValue(key)
-          let content = <span>{String(val ?? '')}</span>
+        header: () => <div className="min-w-[200px] font-semibold text-text-muted text-[11px] uppercase tracking-wider">{label}</div>,
+        cell: ({ row }: { row: { getValue: (key: string) => unknown; original: any; id: string } }) => {
+          const isEditing = editingCell?.id === row.id && editingCell?.key === key
+          
+          if (isEditing) {
+            return (
+              <div className="min-w-[200px] max-w-[400px] text-[13px] leading-tight py-0 px-0">
+                <input
+                  autoFocus
+                  type="text"
+                  value={editValue ?? ''}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => handleUpdateRecord(row.original, key, editValue)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleUpdateRecord(row.original, key, editValue)
+                    if (e.key === 'Escape') {
+                      setEditingCell(null)
+                      setEditValue(null)
+                    }
+                  }}
+                  className="w-full bg-transparent border-none p-0 text-[13px] outline-none placeholder:text-text-muted/30 font-medium"
+                />
+              </div>
+            )
+          }
 
-          if (typeof val === 'boolean') {
+          if (row.original.__isDraft) {
+            const schemaField = schema?.find((s) => s.slug === key)
+            const isAutoUuid = schemaField?.isPrimaryKey && schemaField?.type === 'uuid'
+
+            if (isAutoUuid) {
+              return <div className="text-[11px] text-text-muted/40 italic px-2">Auto-gen</div>
+            }
+
+            return (
+              <div className="min-w-[200px] max-w-[400px] text-[13px] leading-tight py-0 px-0">
+                <input
+                  type="text"
+                  value={row.original[key] ?? ''}
+                  onChange={(e) => setInlineRowData(prev => ({ ...prev, [key]: e.target.value }))}
+                  placeholder={`Enter ${schemaField?.type || 'value'}...`}
+                  className="w-full bg-transparent border-none p-0 text-[13px] outline-none placeholder:text-text-muted/30 placeholder:text-sm"
+                />
+              </div>
+            )
+          }
+
+          const val = row.getValue(key)
+          let content: React.ReactNode = null
+
+          if (typeof val === 'number') {
+            content = <span className="text-blue-500 font-mono text-[12px] font-semibold">{val}</span>
+          } else if (typeof val === 'boolean') {
             content = (
               <span className={cn(
-                "px-2 py-0.5 rounded-md text-[11px] font-medium uppercase tracking-wider",
+                "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center justify-center min-w-[50px]",
                 val
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "bg-text-muted/10 text-text-muted border border-text-muted/20"
@@ -141,18 +319,38 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
               </span>
             )
           } else if (val === null) {
-            content = <span className="text-text-muted italic opacity-70">null</span>
-          } else if (typeof val === 'object') {
-            content = <span className="text-text-main font-mono text-xs">{JSON.stringify(val)}</span>
+            content = <span className="text-text-muted/40 italic text-[11px] px-1">null</span>
+          } else if (typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+            content = <span className="text-amber-600/80 font-mono text-[11px] truncate block w-[200px]" title={val}>{val}</span>
+          } else if (typeof val === 'object' && val !== null) {
+            content = <span className="text-text-main font-mono text-[10px] opacity-80">{JSON.stringify(val)}</span>
+          } else {
+            const isDate = typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)
+            const displayVal = String(val ?? '')
+            content = (
+              <span className={cn(isDate ? "text-text-muted/70" : "text-text-main")} title={displayVal}>
+                {displayVal}
+              </span>
+            )
           }
 
-          return <div className="min-w-[200px] max-w-[300px] truncate text-sm">{content}</div>
+          return (
+            <div 
+              className="min-w-[200px] max-w-[400px] truncate text-[13px] leading-tight py-0 cursor-text hover:bg-primary/[0.04] transition-colors rounded px-1 -mx-1"
+              onClick={() => {
+                setEditingCell({ id: row.id, key })
+                setEditValue(val)
+              }}
+            >
+              {content}
+            </div>
+          )
         }
       }
     })
-  }, [schema, records, selectedColumns])
+  }, [schema, records, selectedColumns, isInlineAdding, editingCell, editValue])
 
-  React.useEffect(() => {
+  useEffect(() => {
     // We no longer redirect to 'tables' when selectedTable is null since they are shown side by side
   }, [selectedTable])
 
@@ -166,8 +364,8 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden w-full">
-      <div className="flex items-center justify-between p-4 border-b border-border-subtle shrink-0">
+    <div className="flex flex-col h-full overflow-hidden w-full max-w-[100%]">
+      {/* <div className="flex items-center justify-between p-4 border-b border-border-subtle shrink-0">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold text-text-main">
             {tableDetail?.label || selectedTable}
@@ -176,11 +374,56 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
             {t('records.count', { count: records?.length || 0 })}
           </span>
         </div>
-      </div>
+      </div> */}
 
       <div className="flex items-center justify-between p-3 bg-bg-main/50 border-b border-border-subtle overflow-x-auto whitespace-nowrap min-h-[47px] shrink-0">
         <div className="flex items-center gap-2">
-          <AddRowDialog tableName={selectedTable} schema={schema || []} />
+          <button
+            onClick={onTogglePannel}
+            className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
+            title={isPannelOpen ? `Open AI Chat` : `Collapse AI Chat`}
+          >
+            {!isPannelOpen ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+
+          {isInlineAdding ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                className="px-2.5 py-1.5 text-[11px] font-medium gap-1.5 bg-primary hover:bg-primary/90 text-white"
+                onClick={handleSaveInline}
+                loading={addRecordMutation.isPending}
+              >
+                <Save size={14} />
+                Save changes
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="px-2.5 py-1.5 text-[11px] font-medium gap-1.5 border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg shadow-none"
+                onClick={() => {
+                  setIsInlineAdding(false)
+                  setInlineRowData({})
+                }}
+              >
+                <Ban size={14} />
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setIsInlineAdding(true)
+                setInlineRowData({})
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+            >
+              <Plus size={14} />
+              {t('records.addRow')}
+            </button>
+          )}
+
           <button
             onClick={() => {
               if (!isFilterOpen && localFilters.length === 0) {
@@ -243,25 +486,53 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
         </div>
 
         <div className="flex items-center gap-3 shrink-0 ml-4">
-          <div className="flex items-center h-8 rounded-md border border-border-subtle bg-bg-main overflow-hidden text-xs font-mono text-text-muted shadow-sm">
+          {/* <div className="h-4 w-px bg-border-subtle/50 mx-1" /> */}
+          <div className="ml-auto flex items-center gap-1.5 px-1 text-[11px] font-medium text-text-muted/60">
+            <span>{records.length}</span>
+            <span>rows</span>
+            <span className="opacity-40">•</span>
+            <span>{fetchDuration}ms</span>
+          </div>
+          <div className="flex items-center h-8 rounded-md border border-border-subtle bg-bg-main overflow-hidden text-[11px] font-medium text-text-muted shadow-sm hover:border-border-main transition-colors">
             <button
-              className="h-full px-2 border-r border-border-subtle hover:bg-hover-bg hover:text-text-main disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="h-full px-2 border-r border-border-subtle hover:bg-hover-bg hover:text-text-main disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - limit))}
+              title="Previous Page"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={14} />
             </button>
-            <div className="h-full px-3 flex items-center border-r border-border-subtle bg-bg-card font-medium text-text-main">
-              {limit}
+            <div className="flex items-center border-r border-border-subtle bg-bg-card/50 px-2 h-full gap-1">
+              {/* <span className="text-[10px] text-text-muted uppercase opacity-40 font-bold tracking-tighter">{t('records.limit')}</span> */}
+              <input
+                type="text"
+                value={tempLimit}
+                onChange={(e) => setTempLimit(e.target.value)}
+                onBlur={handleLimitBlur}
+                onKeyDown={(e) => e.key === 'Enter' && handleLimitBlur()}
+                className="w-8 bg-transparent text-center outline-none text-text-main font-mono focus:text-primary transition-colors"
+                title="Rows per page"
+              />
             </div>
-            <div className="h-full px-3 flex items-center border-r border-border-subtle bg-bg-card font-medium text-text-main">
-              {offset}
+            <div className="flex items-center border-r border-border-subtle bg-bg-card/50 px-2 h-full gap-1">
+              {/* <span className="text-[10px] text-text-muted uppercase opacity-40 font-bold tracking-tighter">{t('records.page')}</span> */}
+              <input
+                type="text"
+                value={tempPage}
+                onChange={(e) => setTempPage(e.target.value)}
+                onBlur={handlePageBlur}
+                onKeyDown={(e) => e.key === 'Enter' && handlePageBlur()}
+                className="w-8 bg-transparent text-center outline-none text-text-main font-mono focus:text-primary transition-colors"
+                title="Current page"
+              />
             </div>
             <button
-              className="h-full px-2 hover:bg-hover-bg hover:text-text-main transition-colors"
+              className="h-full px-2 hover:bg-hover-bg hover:text-text-main disabled:opacity-50 transition-colors shrink-0"
+              disabled={!records || records.length < limit}
               onClick={() => setOffset(offset + limit)}
+              title="Next Page"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </button>
           </div>
 
@@ -276,21 +547,23 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
       </div>
 
       {isFilterOpen && (
-        <div className="p-3 bg-bg-main/30 border-b border-border-subtle flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-200 shrink-0">
+        <div className={cn("p-3 bg-bg-main/30 border-b border-border-subtle flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-200 shrink-0", localFilters.length > 0 ? "items-start" : "items-center self-stretch")}>
           {localFilters.length === 0 ? (
             <div className="text-xs text-text-muted px-3 py-2 font-medium">No active filters. Click Add filter.</div>
           ) : (
             <div className="flex flex-col gap-2">
-              {localFilters.map((filter) => (
+              {localFilters.map((filter, index) => (
                 <div key={filter.id} className="flex items-center gap-2">
                   <button
                     onClick={() => setLocalFilters(prev => prev.filter(f => f.id !== filter.id))}
-                    className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-destructive bg-bg-card border border-border-subtle rounded-md hover:border-destructive/30 transition-colors shrink-0"
+                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-destructive bg-bg-card border border-border-subtle rounded-md hover:border-destructive/30 transition-colors shrink-0"
                     title="Remove filter"
                   >
                     <X size={12} />
                   </button>
-                  <span className="text-[13px] font-medium text-text-muted shrink-0 w-12 flex justify-center px-2 py-1 bg-bg-card rounded-md">where</span>
+                  <span className="text-[13px] font-medium text-text-muted shrink-0 w-12 flex justify-center px-2 py-1 bg-bg-card rounded-md">
+                    {index === 0 ? 'where' : 'and'}
+                  </span>
 
                   <select
                     value={filter.column}
@@ -311,8 +584,9 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
                     <option value="gte">greater or eq</option>
                     <option value="lt">less</option>
                     <option value="lte">less or eq</option>
-                    <option value="ilike">contains</option>
-                    <option value="not_like">not contains</option>
+                    <option value="like">like</option>
+                    <option value="not_like">not like</option>
+                    <option value="ilike">ilike</option>
                     <option value="is_null">is null</option>
                     <option value="is_not_null">is not null</option>
                     <option value="in">is in</option>
@@ -332,31 +606,36 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
             </div>
           )}
 
-          <div className="flex items-center gap-3 pl-8">
-            <button
-              onClick={() => {
-                const defaultCol = schema?.[0]?.slug || '';
-                setLocalFilters(prev => [...prev, { id: Math.random().toString(36).substring(7), column: defaultCol, operator: 'eq', value: '' }])
-              }}
-              className="flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-text-main transition-colors"
-            >
-              <Plus size={12} /> Add filter
-            </button>
-            <span className="text-border-subtle">|</span>
-            <button
-              onClick={() => {
-                setLocalFilters([])
-              }}
-              className="text-xs font-medium text-text-muted hover:text-destructive transition-colors"
-            >
-              Clear filters
-            </button>
+          <div
+            className={cn(
+              "flex items-start gap-3 pl-8 border-l border-border-subtle transition-all duration-200 h-full"
+            )}
+          >
+            <div className="flex items-center gap-2 h-8">
+              <button
+                onClick={() => {
+                  const defaultCol = schema?.[0]?.slug || '';
+                  setLocalFilters(prev => [...prev, { id: Math.random().toString(36).substring(7), column: defaultCol, operator: 'eq', value: '' }])
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg"
+              >
+                <Plus size={12} /> Add filter
+              </button>
+              <button
+                onClick={() => {
+                  setLocalFilters([])
+                }}
+                className="text-xs font-medium text-text-muted hover:text-destructive transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {isRecordsLoading ? (
-        <div className="p-4 space-y-4">
+        <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex gap-4">
               {Array.from({ length: columns.length || 4 }).map((_, j) => (
@@ -368,90 +647,15 @@ export const RecordsView = ({ projectId }: { projectId: string }) => {
       ) : (
         <DataTable
           columns={columns}
-          data={records || []}
+          data={displayRecords}
           isLoading={isRecordsLoading}
           emptyMessage={t('records.noResults')}
-          containerClassName="border-none shadow-none max-w-[958px]"
-          className="min-w-max rounded-none border-none"
+          containerClassName="border-none shadow-none"
+          tableClassName="min-w-max border-collapse"
+          rowClassName={(row: any) => row.__isDraft ? "bg-primary/[0.04] dark:bg-primary/[0.08]" : ""}
+          className="rounded-none border-none [&_td]:p-1.5 [&_td]:border [&_td]:border-border-subtle [&_th]:p-1.5 [&_th]:border [&_th]:border-border-subtle [&_th]:h-8"
         />
       )}
     </div>
-  )
-}
-
-const AddRowDialog = ({ tableName, schema }: { tableName: string; schema: Column[] }) => {
-  const t = useTranslations('databaseStudio')
-  const [open, setOpen] = useState(false)
-  const addRecordMutation = useAddRecord()
-
-  const formSchema = useMemo(() => {
-    const shape: Record<string, any> = {}
-    schema.forEach(col => {
-      if (col.isPrimaryKey && col.type === 'uuid') return
-      shape[col.slug] = col.isNullable ? z.any().optional() : z.any()
-    })
-    return z.object(shape)
-  }, [schema])
-
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
-    resolver: zodResolver(formSchema)
-  })
-
-  const onSubmit = async (data: Record<string, unknown>) => {
-    try {
-      await addRecordMutation.mutateAsync({ tableName, data: data as any })
-      setOpen(false)
-      reset()
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors">
-          <Plus size={14} />
-          {t('records.addRow')}
-        </button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-bg-card border-border-subtle">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Database size={18} className="text-primary" />
-            {t('records.addRecordTitle', { table: tableName })}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-          <div className="grid gap-4">
-            {schema.filter(col => !(col.isPrimaryKey && col.type === 'uuid')).map(col => (
-              <div key={col.slug} className="grid grid-cols-4 items-center gap-4">
-                <label className="text-right text-xs font-medium text-text-muted">
-                  {col.label}
-                  {!col.isNullable && <span className="text-destructive ml-0.5">*</span>}
-                </label>
-                <div className="col-span-3">
-                  <input
-                    {...register(col.slug)}
-                    className="w-full px-3 py-2 text-sm bg-bg-main border border-border-subtle rounded-md focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                    placeholder={`Enter ${col.type}...`}
-                  />
-                  {errors[col.slug] && <p className="text-[10px] text-destructive mt-1">{t('records.fieldRequired')}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              className="bg-primary hover:bg-primary/90 text-white"
-              loading={addRecordMutation.isPending}
-            >
-              {t('records.saveRecord')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   )
 }

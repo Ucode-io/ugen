@@ -42,12 +42,15 @@ export const databaseApi = {
     return data?.data?.tables || [];
   },
 
-  fetchTableRecords: async (tableSlug: string, projectId: string, clientTypeId?: string, limit: number = 20, offset: number = 0, filters?: any[], columns?: string[]): Promise<TableRecord[]> => {
+  fetchTableRecords: async (tableSlug: string, projectId: string, clientTypeId?: string, limit: number = 20, offset: number = 0, filters?: any[], columns?: string[]): Promise<{ items: TableRecord[]; duration: number }> => {
+    const start = performance.now();
     const page = Math.floor(offset / limit);
     const params: any = {
       "project-id": projectId,
-      limit,
-      offset: page
+      data: JSON.stringify({
+        limit,
+        offset: page
+      })
     };
 
     if (clientTypeId) {
@@ -62,8 +65,10 @@ export const databaseApi = {
           filters: filters || [],
           logic: 'AND',
           columns: columns || [],
-          limit,
-          offset: page
+          data: JSON.stringify({
+            limit,
+            offset: page
+          })
         };
         const response = await api.post(`/v2/items/${tableSlug}/filter`, payload, { params });
         data = response.data;
@@ -73,10 +78,14 @@ export const databaseApi = {
       }
       // Handle various response wrappers typical in this API
       const items = data?.data?.data?.data || data?.data?.data?.response || data?.data?.response || data?.response || data?.data || [];
-      return Array.isArray(items) ? items : [];
+      const duration = Math.round(performance.now() - start);
+      return { 
+        items: Array.isArray(items) ? items : [], 
+        duration 
+      };
     } catch (error) {
       console.error(`Error fetching records for table ${tableSlug}:`, error);
-      return [];
+      return { items: [], duration: 0 };
     }
   },
 
@@ -100,9 +109,11 @@ export const databaseApi = {
   },
 
   addRecord: async (tableName: string, data: any): Promise<any> => {
-    await new Promise(r => setTimeout(r, 500));
-    console.log('Add Record to:', tableName, data);
-    return { success: true };
+    return api.post(`/v2/items/${tableName}`, { data });
+  },
+
+  updateRecord: async (tableName: string, data: any): Promise<any> => {
+    return api.put(`/v2/items/${tableName}`, { data });
   },
 
   fetchLogs: async (): Promise<any[]> => {
@@ -135,7 +146,8 @@ export const useTableRecords = (tableSlug: string | null, projectId: string, cli
   useQuery({
     queryKey: ['db-records', tableSlug, projectId, clientTypeId, limit, offset, filters, columns],
     queryFn: () => databaseApi.fetchTableRecords(tableSlug!, projectId, clientTypeId, limit, offset, filters, columns),
-    enabled: !!tableSlug && !!projectId
+    enabled: !!tableSlug && !!projectId,
+    placeholderData: (previousData) => previousData
   });
 
 export const useTableSchema = (tableName: string | null) =>
@@ -162,6 +174,17 @@ export const useAddRecord = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['db-records', variables.tableName] });
     }
+  });
+};
+
+export const useUpdateRecord = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tableName, data }: { tableName: string; data: any }) =>
+      databaseApi.updateRecord(tableName, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["table-records"] });
+    },
   });
 };
 
