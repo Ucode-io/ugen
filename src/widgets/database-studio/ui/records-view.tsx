@@ -174,7 +174,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
     for (const col of schema) {
       if (col.isPrimaryKey && col.type === 'uuid') continue
 
-      let rawVal = inlineRowData[col.slug]
+      const rawVal = inlineRowData[col.slug]
       if (col.required && (rawVal === undefined || rawVal === '' || rawVal === null)) {
         toast.error(`${col.label} is required`)
         return
