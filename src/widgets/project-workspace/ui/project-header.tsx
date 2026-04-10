@@ -1,5 +1,5 @@
 'use client'
-import { PanelLeftClose, PanelRightClose, ChevronLeft, CodeXml, Globe, LayoutDashboard } from "lucide-react"
+import { PanelLeftClose, PanelRightClose, CodeXml, Globe, LayoutDashboard, House } from "lucide-react"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { ReusableTabs } from "@/shared/ui"
@@ -74,7 +74,7 @@ export const ProjectHeader = ({
           className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
           title="Back to Projects"
         >
-          <ChevronLeft size={16} />
+          <House size={16} />
         </button>
         <h1 className="text-[15px] font-medium text-text-main truncate max-w-[300px] ml-1">
           {projectTitle}
@@ -83,7 +83,7 @@ export const ProjectHeader = ({
 
         <button
           onClick={onToggleChat}
-          className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0 ml-[70px]"
+          className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0 ml-[40px]"
           title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
         >
           {isChatCollapsed ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}

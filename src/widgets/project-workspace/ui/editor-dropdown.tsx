@@ -48,12 +48,19 @@ export const EditorDropdown = ({
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="text-xs">
-          <SelectItem value={FRONTEND_VALUE}>
-            <span className="flex items-center gap-1.5">
-              <Sparkles size={12} className="text-primary" />
-              Generated Frontend
-            </span>
-          </SelectItem>
+          <SelectGroup>
+            <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
+              <span className="flex items-center gap-1">
+                <Sparkles size={10} /> Frontend
+              </span>
+            </SelectLabel>
+            <SelectItem value={FRONTEND_VALUE}>
+              <span className="flex items-center gap-1.5">
+                <Sparkles size={12} className="text-primary" />
+                Generated Frontend
+              </span>
+            </SelectItem>
+          </SelectGroup>
 
           {hasMicrofrontends && (
             <SelectGroup>

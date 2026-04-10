@@ -27,6 +27,10 @@ const LANGUAGES = [
   { id: 'javascript', label: 'JavaScript' },
   { id: 'python', label: 'Python' },
   { id: 'go', label: 'Go' },
+  { id: 'curl', label: 'cURL' },
+  { id: 'dart', label: 'Dart' },
+  { id: 'kotlin', label: 'Kotlin' },
+  { id: 'swift', label: 'Swift' },
 ]
 
 export const ApiIntegrationsPage = ({ projectId }: ApiIntegrationsPageProps) => {
@@ -358,10 +362,204 @@ func DeleteRecord(id string) ([]byte, error) {
 }
 `
 
+  const curlCode = isEndpoint
+    ? `curl -X POST "https://admin-api.ucode.run/v1/custom-endpoints/${currentId}/run" \\
+     -H "authorization: API-KEY" \\
+     -H "x-api-key: ${API_KEY}" \\
+     -H "Content-Type: application/json" \\
+     -d '{
+           "params": {
+             "key": "value"
+           }
+         }'`
+    : `# 1. Get all records
+curl -X GET "https://admin-api.ucode.run/v2/items/${currentId}" \\
+     -H "authorization: API-KEY" \\
+     -H "x-api-key: ${API_KEY}"
+
+# 2. Get a single record
+curl -X GET "https://admin-api.ucode.run/v2/items/${currentId}/RECORD_ID" \\
+     -H "authorization: API-KEY" \\
+     -H "x-api-key: ${API_KEY}"
+
+# 3. Create a new record
+curl -X POST "https://admin-api.ucode.run/v2/items/${currentId}" \\
+     -H "authorization: API-KEY" \\
+     -H "x-api-key: ${API_KEY}" \\
+     -H "Content-Type: application/json" \\
+     -d '{"data": {"title": "New Item"}}'
+`
+
+  const dartCode = isEndpoint
+    ? `import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<void> runEndpoint() async {
+  final url = Uri.parse('https://admin-api.ucode.run/v1/custom-endpoints/${currentId}/run');
+  final headers = {
+    'authorization': 'API-KEY',
+    'x-api-key': '${API_KEY}',
+    'Content-Type': 'application/json',
+  };
+
+  final response = await http.post(
+    url,
+    headers: headers,
+    body: jsonEncode({
+      'params': {'key': 'value'},
+    }),
+  );
+
+  print('Response: \${response.body}');
+}
+`
+    : `import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+class ApiClient {
+  static const String baseUrl = 'https://admin-api.ucode.run/v2/items/${currentId}';
+  static const Map<String, String> headers = {
+    'authorization': 'API-KEY',
+    'x-api-key': '${API_KEY}',
+    'Content-Type': 'application/json',
+  };
+
+  // Get all records
+  static Future<List<dynamic>> getItems() async {
+    final response = await http.get(Uri.parse(baseUrl), headers: headers);
+    return jsonDecode(response.body);
+  }
+
+  // Create record
+  static Future<dynamic> createItem(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: headers,
+      body: jsonEncode({'data': data}),
+    );
+    return jsonDecode(response.body);
+  }
+}
+`
+
+  const kotlinCode = isEndpoint
+    ? `import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+
+val API_KEY = "${API_KEY}"
+val URL = "https://admin-api.ucode.run/v1/custom-endpoints/${currentId}/run"
+
+fun runEndpoint(params: Map<String, Any>) {
+    val client = OkHttpClient()
+    val json = JSONObject().apply {
+        put("params", JSONObject(params))
+    }
+    
+    val body = json.toString().toRequestBody("application/json".toMediaType())
+    val request = Request.Builder()
+        .url(URL)
+        .post(body)
+        .addHeader("authorization", "API-KEY")
+        .addHeader("x-api-key", API_KEY)
+        .build()
+
+    client.newCall(request).execute().use { response ->
+        println(response.body?.string())
+    }
+}
+`
+    : `import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+
+class ApiClient {
+    private val client = OkHttpClient()
+    private val baseUrl = "https://admin-api.ucode.run/v2/items/${currentId}"
+    private val apiKey = "${API_KEY}"
+
+    fun getItems(): String? {
+        val request = Request.Builder()
+            .url(baseUrl)
+            .addHeader("authorization", "API-KEY")
+            .addHeader("x-api-key", apiKey)
+            .build()
+
+        return client.newCall(request).execute().body?.string()
+    }
+
+    fun createItem(data: Map<String, Any>): String? {
+        val json = JSONObject().apply {
+            put("data", JSONObject(data))
+        }
+        val body = json.toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(baseUrl)
+            .post(body)
+            .addHeader("authorization", "API-KEY")
+            .addHeader("x-api-key", apiKey)
+            .build()
+
+        return client.newCall(request).execute().body?.string()
+    }
+}
+`
+
+  const swiftCode = isEndpoint
+    ? `import Foundation
+
+let apiKey = "${API_KEY}"
+let url = URL(string: "https://admin-api.ucode.run/v1/custom-endpoints/${currentId}/run")!
+
+var request = URLRequest(url: url)
+request.httpMethod = "POST"
+request.setValue("API-KEY", forHTTPHeaderField: "authorization")
+request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+let params = ["key": "value"]
+let body = ["params": params]
+request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+let task = URLSession.shared.dataTask(with: request) { data, response, error in
+    if let data = data {
+        print(String(data: data, encoding: .utf8)!)
+    }
+}
+task.resume()
+`
+    : `import Foundation
+
+struct ApiClient {
+    static let baseUrl = "https://admin-api.ucode.run/v2/items/${currentId}"
+    static let apiKey = "${API_KEY}"
+    
+    static func getItems() {
+        var request = URLRequest(url: URL(string: baseUrl)!)
+        request.setValue("API-KEY", forHTTPHeaderField: "authorization")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            if let data = data {
+                print(String(data: data, encoding: .utf8)!)
+            }
+        }.resume()
+    }
+}
+`
+
   const codeMap: Record<string, string> = {
     javascript: jsCode,
     python: pythonCode,
     go: goCode,
+    curl: curlCode,
+    dart: dartCode,
+    kotlin: kotlinCode,
+    swift: swiftCode,
   }
 
   const activeCode = codeMap[activeTab]
@@ -378,6 +576,10 @@ func DeleteRecord(id string) ([]byte, error) {
       case 'javascript': return 'javascript'
       case 'python': return 'python'
       case 'go': return 'go'
+      case 'curl': return 'shell'
+      case 'dart': return 'dart'
+      case 'kotlin': return 'kotlin'
+      case 'swift': return 'swift'
       default: return 'javascript'
     }
   }
@@ -413,7 +615,7 @@ func DeleteRecord(id string) ([]byte, error) {
                     )}
                   </SelectGroup>
                   <SelectGroup>
-                    <SelectLabel className="text-[10px]">Custom Endpoints</SelectLabel>
+                    <SelectLabel className="text-[10px]">Custom Queries</SelectLabel>
                     {endpoints.length === 0 ? (
                       <SelectItem value="__empty_endpoints__" disabled className="text-xs">No endpoints</SelectItem>
                     ) : (

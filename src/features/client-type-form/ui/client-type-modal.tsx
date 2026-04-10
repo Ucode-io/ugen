@@ -137,11 +137,9 @@ export const ClientTypeModal = ({
                       value={tableOptions.find((opt: any) => opt.value === field.value)?.value}
                       disabled={isLoading}
                     >
-                      <FormControl>
-                        <SelectTrigger className="bg-bg-sidebar">
-                          <SelectValue placeholder={isLoadingTables ? t('loading') : t('tablePlaceholder')} />
-                        </SelectTrigger>
-                      </FormControl>
+                      <SelectTrigger className="bg-bg-sidebar">
+                        <SelectValue placeholder={isLoadingTables ? t('loading') : t('tablePlaceholder')} />
+                      </SelectTrigger>
                       <SelectContent>
                         {tableOptions.map((opt: any) => (
                           <SelectItem key={opt.value} value={opt.value}>

@@ -60,9 +60,9 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
           <Terminal size={14} /> SQL Editor
         </button>
         <div className="flex-1"></div>
-        <div className="text-[11px] text-text-muted flex items-center gap-1.5">
+        {/* <div className="text-[11px] text-text-muted flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> Connected &middot; PostgreSQL
-        </div>
+        </div> */}
       </div>
 
       <div className="flex-1 flex overflow-hidden">

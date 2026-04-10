@@ -188,10 +188,10 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50"
+            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 w-7 items-center justify-center rounded-full transition-colors disabled:opacity-50"
             title={t('input.attachFile')}
           >
-            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+            {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
           </button>
 
           <ModelSelector
@@ -199,25 +199,24 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
             onValueChange={setSelectedModel}
             size="sm"
           />
+        </div>
 
+        <div className="flex items-center gap-1">
           <button
             className={
               `
               border-border-subtle text-text-muted hover:bg-hover-bg 
-              hover:text-text-main flex h-8 items-center justify-center 
-              gap-2 rounded-full border px-2.5 text-xs font-medium transition-colors
+              hover:text-text-main flex h-7 items-center justify-center 
+              gap-1.5 rounded-full border px-2 text-xs font-medium transition-colors
               ${isInspectMode ? "bg-text-main text-bg-main" : ""}
               `
             }
             onClick={handleToggleVisualEdit}
           >
-            <MousePointerClick size={14} />
-            <span>{t('input.visualEdits')}</span>
+            <MousePointerClick size={13} />
+            {/* <span>{t('input.visualEdits')}</span> */}
           </button>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
+          {/* <button
             className={
               `
               text-text-muted hover:bg-hover-bg hover:text-text-main 
@@ -238,17 +237,17 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
               }
             }}
             size="sm"
-          />
+          /> */}
           <button
             onClick={handleSend}
             disabled={(!value.trim() && uploadedFiles.length === 0) || isUploading || isSending}
-            className="bg-text-main text-bg-main ml-1 flex h-8 w-8 items-center justify-center rounded-full transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-text-main text-bg-main ml-1 flex h-7 w-7 items-center justify-center rounded-full transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             title={t('input.send')}
           >
             {isSending ? (
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={14} className="animate-spin" />
             ) : (
-              <ArrowUp size={16} strokeWidth={2.5} />
+              <ArrowUp size={14} strokeWidth={2.5} />
             )}
           </button>
         </div>

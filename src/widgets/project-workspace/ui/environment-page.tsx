@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ChevronLeft, Loader2, PenLine, ArrowLeftRight, Globe, Plus, SquarePen } from 'lucide-react'
+import { ChevronLeft, Loader2, PenLine, ArrowLeftRight, Globe, Plus, SquarePen, RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, authApi } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
@@ -75,11 +75,44 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
     {
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-text-main" onClick={(e) => { e.stopPropagation(); handleEdit(row.original); }}>
-          <SquarePen size={14} />
-        </Button>
-      )
+      cell: ({ row }) => {
+        const isProduction = row.original.name.toLowerCase() === 'production'
+        
+        return (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={cn(
+                  "relative inline-flex h-5 w-9 shrink-0 cursor-wait items-center rounded-full border-2 border-transparent transition-colors focus:outline-none",
+                  isProduction ? "bg-primary" : "bg-border-subtle/50"
+                )}
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none flex items-center justify-center h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform",
+                    isProduction ? "translate-x-4" : "translate-x-0"
+                  )}
+                >
+                  <RefreshCw size={10} className={cn(isProduction ? "text-primary" : "text-text-muted")} />
+                </span>
+              </button>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-text-muted hover:text-text-main"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleEdit(row.original)
+              }}
+            >
+              <SquarePen size={14} />
+            </Button>
+          </div>
+        )
+      }
     }
   ], [activeEnvId])
 

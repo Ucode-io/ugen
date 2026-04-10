@@ -11,6 +11,12 @@ interface SwitchProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
   ({ className, checked, onCheckedChange, size = 'md', ...props }, ref) => {
+    const sizeClasses = {
+      sm: { container: "h-4 w-8", thumb: "h-3 w-3", translate: "translate-x-4" },
+      md: { container: "h-5 w-9", thumb: "h-4 w-4", translate: "translate-x-4" },
+      lg: { container: "h-6 w-11", thumb: "h-5 w-5", translate: "translate-x-5" },
+    }[size]
+
     return (
       <button
         type="button"
@@ -18,7 +24,8 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         aria-checked={checked}
         data-state={checked ? "checked" : "unchecked"}
         className={cn(
-          `peer inline-flex h-${size === 'sm' ? '5' : size === 'md' ? '6' : '7'} w-${size === 'sm' ? '10' : size === 'md' ? '11' : '13'} shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`,
+          "peer inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          sizeClasses.container,
           checked ? "bg-primary" : "bg-border-subtle hover:bg-border-subtle/80",
           className
         )}
@@ -29,8 +36,9 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         <span
           data-state={checked ? "checked" : "unchecked"}
           className={cn(
-            `pointer-events-none block h-${size === 'sm' ? '4' : size === 'md' ? '5' : '6'} w-${size === 'sm' ? '4' : size === 'md' ? '5' : '6'} rounded-full bg-white shadow-md ring-0 transition-transform border border-black/5`,
-            checked ? "translate-x-5" : "translate-x-0"
+            "pointer-events-none block rounded-full bg-white shadow-md ring-0 transition-transform border border-black/5",
+            sizeClasses.thumb,
+            checked ? sizeClasses.translate : "translate-x-0"
           )}
         />
       </button>

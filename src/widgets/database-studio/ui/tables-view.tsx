@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Table as TableIcon, ChevronRight, Trash2, Plus } from 'lucide-react'
+import { Table as TableIcon, Trash2 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils/cn'
 import { useTables, useDatabaseStore, useDeleteTable } from '@/entities/database'
 import { useAuthStore } from '@/entities/session'
@@ -22,7 +22,7 @@ import { toast } from 'sonner'
 export const TablesView = () => {
   const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
-  
+
   const [search, setSearch] = React.useState('')
   const [debouncedSearch, setDebouncedSearch] = React.useState('')
 
@@ -101,7 +101,7 @@ export const TablesView = () => {
               <TableIcon size={12} className={cn("mr-2", isActive ? "text-[#004eea]" : "text-text-muted/70 group-hover:text-text-main/70")} />
               <span className="truncate">{table.label}</span>
 
-              <button
+              {/* <button
                 onClick={(e) => {
                   e.stopPropagation()
                   setTableToDelete(table)
@@ -113,7 +113,7 @@ export const TablesView = () => {
                 title={t('tables.delete')}
               >
                 <Trash2 size={12} />
-              </button>
+              </button> */}
             </div>
           )
         })}

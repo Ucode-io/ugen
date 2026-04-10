@@ -14,7 +14,9 @@ import {
   PanelRightClose,
   PanelLeftClose,
   Save,
-  Ban
+  Ban,
+  MoreHorizontal,
+  Download
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -33,6 +35,7 @@ import {
   PopoverTrigger
 } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
+import { exportToCSV, exportToJSON, exportToXLSX } from '@/shared/lib/utils/export-utils'
 
 import { Skeleton } from '@/shared/ui'
 import { useTranslations } from 'next-intl'
@@ -143,7 +146,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
     if (val === '' || val === undefined || val === null) return null
 
     const type = (col.type || '').toUpperCase()
-    
+
     // Provided Types Mapping Categories
     const floatTypes = ["NUMBER", "FLOAT", "FLOAT_NOLIMIT", "FORMULA"]
     const boolTypes = ["CHECKBOX", "SWITCH"]
@@ -157,8 +160,8 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
     } else if (boolTypes.includes(type)) {
       return val === 'true' || val === true || val === '1'
     } else if (arrayTypes.includes(type)) {
-      return typeof val === 'string' 
-        ? val.split(',').map(s => s.trim()).filter(Boolean) 
+      return typeof val === 'string'
+        ? val.split(',').map(s => s.trim()).filter(Boolean)
         : val
     }
     return val
@@ -199,7 +202,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
 
   const handleUpdateRecord = async (row: any, key: string, newVal: any) => {
     if (!selectedTable || editingCell === null) return
-    
+
     // If value hasn't changed, just close
     if (newVal === row[key]) {
       setEditingCell(null)
@@ -217,7 +220,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
     }
 
     const updatedData = { ...row, [key]: result }
-    
+
     try {
       await updateRecordMutation.mutateAsync({ tableName: selectedTable, data: updatedData })
       toast.success('Record updated')
@@ -228,6 +231,31 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
     } finally {
       setEditingCell(null)
       setEditValue(null)
+    }
+  }
+
+  const handleExport = (format: 'json' | 'csv' | 'xlsx') => {
+    if (!records.length) {
+      toast.error('No records to export')
+      return
+    }
+
+    const filename = `${selectedTable}_export_${new Date().getTime()}`
+
+    try {
+      if (format === 'json') {
+        exportToJSON(records, filename)
+        toast.success('Successfully exported to JSON')
+      } else if (format === 'csv') {
+        exportToCSV(records, filename)
+        toast.success('Successfully exported to CSV')
+      } else if (format === 'xlsx') {
+        exportToXLSX(records, filename)
+        toast.success('Successfully exported to XLSX')
+      }
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast.error('Failed to export data')
     }
   }
 
@@ -258,7 +286,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
         header: () => <div className="min-w-[200px] font-semibold text-text-muted text-[11px] uppercase tracking-wider">{label}</div>,
         cell: ({ row }: { row: { getValue: (key: string) => unknown; original: any; id: string } }) => {
           const isEditing = editingCell?.id === row.id && editingCell?.key === key
-          
+
           if (isEditing) {
             return (
               <div className="min-w-[200px] max-w-[400px] text-[13px] leading-tight py-0 px-0">
@@ -335,7 +363,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
           }
 
           return (
-            <div 
+            <div
               className="min-w-[200px] max-w-[400px] truncate text-[13px] leading-tight py-0 cursor-text hover:bg-primary/[0.04] transition-colors rounded px-1 -mx-1"
               onClick={() => {
                 setEditingCell({ id: row.id, key })
@@ -543,6 +571,50 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
           >
             <RefreshCw size={14} className={cn(isRecordsLoading && "animate-spin")} />
           </button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
+                title="Options"
+              >
+                <MoreHorizontal size={14} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[180px] p-1 bg-bg-card border-border-subtle shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95 duration-200">
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => refetch()}
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                >
+                  <RefreshCw size={14} className={cn("text-text-muted group-hover:text-primary transition-colors", isRecordsLoading && "animate-spin")} />
+                  Refresh rows
+                </button>
+                <div className="h-px bg-border-subtle my-1 mx-1" />
+                <button
+                  onClick={() => handleExport('json')}
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                >
+                  <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                  Export all to .json
+                </button>
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                >
+                  <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                  Export all to .csv
+                </button>
+                <button
+                  onClick={() => handleExport('xlsx')}
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                >
+                  <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                  Export all to .xlsx
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

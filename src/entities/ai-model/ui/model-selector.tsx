@@ -30,9 +30,9 @@ export const ModelSelector = ({
 }: ModelSelectorProps) => {
   const t = useTranslations();
   const sizeClasses = {
-    sm: "h-8 px-2 text-xs gap-1.5",
-    md: "h-9 px-2.5 text-sm gap-2",
-    lg: "h-10 px-3 text-base gap-2.5",
+    sm: "h-6 px-2 text-xs gap-1.5",
+    md: "h-8 px-2.5 text-sm gap-2",
+    lg: "h-9 px-3 text-base gap-2.5",
   }[size];
 
   const selectItemClasses = {

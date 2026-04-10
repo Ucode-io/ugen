@@ -4,13 +4,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Editor from '@monaco-editor/react'
 import {
   Play,
-  Database,
   History,
   Menu,
   Settings,
   Sparkles,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  PanelLeftClose,
+  PanelRightClose
 } from 'lucide-react'
 import {
   useDatabaseStore,
@@ -300,7 +301,7 @@ export const SqlConsole = () => {
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-1.5 rounded-md hover:bg-hover-bg text-text-muted border border-border-subtle/50 transition-colors"
             >
-              <Menu size={16} />
+              {isSidebarOpen ? <PanelLeftClose size={16} /> : <PanelRightClose size={16} />}
             </button>
             <div className="h-4 w-px bg-border-subtle mx-1 hidden sm:block" />
             <h4 className="text-sm font-semibold text-text-main hidden sm:block">{activeScript?.name}</h4>
@@ -316,7 +317,7 @@ export const SqlConsole = () => {
               className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle text-xs font-semibold text-text-muted hover:text-text-main hover:bg-hover-bg transition-all active:scale-[0.98]"
             >
               <Settings size={14} className="text-primary/60" />
-              Save Endpoint
+              Save Query
             </button>
             <button
               onClick={handleRun}

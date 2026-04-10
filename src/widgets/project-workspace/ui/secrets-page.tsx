@@ -24,7 +24,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription
+  DialogDescription,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/shared/ui'
 import { WorkspaceDataTable } from './workspace-data-table'
 
@@ -99,6 +104,15 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
       accessorKey: 'key',
       header: 'Key',
       cell: ({ row }: any) => <span className="font-mono text-[13px] text-text-main font-bold">{row.original.key}</span>
+    },
+    {
+      accessorKey: 'environment',
+      header: 'Environment',
+      cell: () => (
+        <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 text-[10px] font-bold uppercase tracking-wider">
+          Production
+        </span>
+      )
     },
     {
       accessorKey: 'value',
@@ -207,6 +221,17 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
                 className="rounded-xl border-border-subtle"
                 onChange={(e) => setSecretForm(prev => ({ ...prev, key: e.target.value }))}
               />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Environment</label>
+              <Select value="production">
+                <SelectTrigger className="rounded-xl border-border-subtle bg-bg-sidebar/50">
+                  <SelectValue placeholder="production" />
+                </SelectTrigger>
+                <SelectContent className="bg-bg-card border-border-subtle">
+                  <SelectItem value="production">Production</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Value</label>

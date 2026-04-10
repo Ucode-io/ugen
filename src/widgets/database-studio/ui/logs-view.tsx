@@ -466,20 +466,34 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
 
   return (
     <div className="flex flex-col gap-4 w-full h-full animate-in fade-in duration-500 min-h-0">
-      <div className="mb-2 shrink-0">
-        <h1 className="text-[22px] font-bold text-text-main mb-1">Logs</h1>
-        <p className="text-text-muted text-[13px]">Monitor system activity and serverless function executions.</p>
-      </div>
+      <div className="flex items-center justify-between mb-2 shrink-0">
+        <div>
+          <h1 className="text-[22px] font-bold text-text-main mb-1">Logs</h1>
+          <p className="text-text-muted text-[13px]">Monitor system activity and serverless function executions.</p>
+        </div>
 
-      <SubTabs
-        options={[
-          { id: 'activity', label: 'Activity Logs', icon: Activity },
-          { id: 'function', label: 'Function Logs', icon: FileText },
-        ]}
-        activeId={activeTab}
-        onTabChange={(id) => setActiveTab(id)}
-        containerClassName="px-0 shrink-0"
-      />
+        <div className="w-[200px]">
+          <Select value={activeTab} onValueChange={(val) => setActiveTab(val)}>
+            <SelectTrigger className="bg-bg-card border-border-subtle h-10 text-[14px] font-semibold rounded-xl shadow-sm">
+              <SelectValue placeholder="Log Type" />
+            </SelectTrigger>
+            <SelectContent className="bg-bg-card border-border-subtle">
+              <SelectItem value="activity" className="text-[13px] font-medium py-2.5">
+                <div className="flex items-center gap-2">
+                  <Activity size={14} className="text-primary" />
+                  Activity Logs
+                </div>
+              </SelectItem>
+              <SelectItem value="function" className="text-[13px] font-medium py-2.5">
+                <div className="flex items-center gap-2">
+                  <FileText size={14} className="text-primary" />
+                  Function Logs
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <div className="ai-card overflow-hidden flex flex-col flex-1 min-h-[400px]">
         {activeTab === 'activity' ? (
@@ -508,7 +522,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                   <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
                     <SelectValue placeholder={t('logs.allActions')} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px] overflow-y-auto bg-bg-card border-border-subtle">
                     {ACTION_OPTIONS.map(opt => (
                       <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                     ))}
@@ -525,22 +539,6 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                     value={collection}
                     onChange={(e) => {
                       setCollection(e.target.value)
-                      setActivityPage(1)
-                    }}
-                    className="w-full h-9 pl-9 pr-4 rounded-lg bg-bg-card border border-border-subtle text-[13px] text-text-main placeholder:text-text-muted transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5 flex-1 min-w-[200px]">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">User</label>
-                <div className="relative group">
-                  <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" />
-                  <input
-                    placeholder={t('logs.searchByUser')}
-                    value={userInfo}
-                    onChange={(e) => {
-                      setUserInfo(e.target.value)
                       setActivityPage(1)
                     }}
                     className="w-full h-9 pl-9 pr-4 rounded-lg bg-bg-card border border-border-subtle text-[13px] text-text-main placeholder:text-text-muted transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"

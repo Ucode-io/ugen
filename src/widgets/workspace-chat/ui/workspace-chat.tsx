@@ -123,40 +123,6 @@ const PendingActionConfirm = ({
 export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }: WorkspaceChatProps) => {
   const t = useTranslations('widgets.workspaceChat');
 
-  const QUESTION_DATA: Question[] = [
-    {
-      id: 'panel-type',
-      title: t('questions.panelType.title'),
-      type: 'multi',
-      options: [
-        { id: 'crm', label: t('questions.panelType.crm') },
-        { id: 'tms', label: t('questions.panelType.tms') },
-        { id: 'erp', label: t('questions.panelType.erp') },
-      ]
-    },
-    {
-      id: 'framework',
-      title: t('questions.framework.title'),
-      type: 'single',
-      options: [
-        { id: 'nextjs', label: t('questions.framework.nextjs') },
-        { id: 'vite', label: t('questions.framework.vite') },
-        { id: 'remix', label: t('questions.framework.remix') },
-      ]
-    },
-    {
-      id: 'features',
-      title: t('questions.features.title'),
-      type: 'multi',
-      options: [
-        { id: 'auth', label: t('questions.features.auth') },
-        { id: 'i18n', label: t('questions.features.i18n') },
-        { id: 'pwa', label: t('questions.features.pwa') },
-        { id: 'analytics', label: t('questions.features.analytics') },
-      ]
-    }
-  ];
-
   const MOCK_CHAT: Message[] = [
     {
       id: '1',
@@ -165,9 +131,10 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }
     }
   ]
 
-  const [width, setWidth] = useState(550);
+  const width = useChatStore((state) => state.chatWidth);
+  const setChatWidth = useChatStore((state) => state.setChatWidth);
   const [isResizing, setIsResizing] = useState(false);
-  const dragStartWidthRef = useRef(550);
+  const dragStartWidthRef = useRef(360);
   const dragStartXRef = useRef(0);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -320,11 +287,11 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }
         const newWidth = dragStartWidthRef.current + deltaX;
 
         if (newWidth >= 360 && newWidth <= 580) {
-          setWidth(newWidth);
+          setChatWidth(newWidth);
         } else if (newWidth < 360) {
-          setWidth(360);
+          setChatWidth(360);
         } else if (newWidth > 580) {
-          setWidth(580);
+          setChatWidth(580);
         }
       }
     },
