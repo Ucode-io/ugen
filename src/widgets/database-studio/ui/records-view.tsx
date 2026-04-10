@@ -141,6 +141,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
 
   const records = data?.items || []
   const fetchDuration = data?.duration || 0
+  const types = data?.types || {}
 
   const transformValue = (val: any, col: Column) => {
     if (val === '' || val === undefined || val === null) return null
@@ -281,9 +282,22 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
     return baseKeys.map((key) => {
       const schemaField = schema?.find((s) => s.slug === key)
       const label = schemaField?.label || key
+      const pgType = types[key] || ''
+
       return {
         accessorKey: key,
-        header: () => <div className="min-w-[200px] font-semibold text-text-muted text-[11px] uppercase tracking-wider">{label}</div>,
+        header: () => (
+          <div className="min-w-[200px] py-1 flex items-center gap-0.5">
+            <div className="font-bold text-text-main text-[11px] uppercase tracking-wider truncate" title={label}>
+              {label}
+            </div>
+            {pgType && (
+              <div className="text-[9px] text-text-muted/60 font-mono font-medium bg-bg-sidebar w-fit px-1 rounded border border-border-subtle/50">
+                {pgType}
+              </div>
+            )}
+          </div>
+        ),
         cell: ({ row }: { row: { getValue: (key: string) => unknown; original: any; id: string } }) => {
           const isEditing = editingCell?.id === row.id && editingCell?.key === key
 
@@ -333,30 +347,44 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
           const val = row.getValue(key)
           let content: React.ReactNode = null
 
+          // Enhanced rendering based on PG Type
+          const isArrayType = pgType.startsWith('_')
+          const isUuid = pgType === 'uuid'
+          const isBool = pgType === 'bool'
+          const isTimestamp = pgType === 'timestamp' || pgType === 'timestamptz'
+
           if (typeof val === 'number') {
             content = <span className="text-blue-500 font-mono text-[12px] font-semibold">{val}</span>
-          } else if (typeof val === 'boolean') {
+          } else if (isBool || typeof val === 'boolean') {
+            const boolVal = val === true || val === 'true' || val === '1'
             content = (
               <span className={cn(
                 "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center justify-center min-w-[50px]",
-                val
+                boolVal
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "bg-text-muted/10 text-text-muted border border-text-muted/20"
               )}>
-                {val ? 'TRUE' : 'FALSE'}
+                {boolVal ? 'TRUE' : 'FALSE'}
               </span>
             )
           } else if (val === null) {
             content = <span className="text-text-muted/40 italic text-[11px] px-1">null</span>
-          } else if (typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
-            content = <span className="text-amber-600/80 font-mono text-[11px] truncate block w-[200px]" title={val}>{val}</span>
-          } else if (typeof val === 'object' && val !== null) {
-            content = <span className="text-text-main font-mono text-[10px] opacity-80">{JSON.stringify(val)}</span>
+          } else if (isUuid || (typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val))) {
+            content = <span className="text-amber-600/80 font-mono text-[11px] truncate block w-[200px]" title={String(val)}>{String(val)}</span>
+          } else if (isArrayType || (typeof val === 'object' && val !== null)) {
+            const displayObj = typeof val === 'string' ? val : JSON.stringify(val);
+            content = (
+              <div className="flex items-center gap-1 overflow-hidden max-w-[300px]">
+                <span className="text-teal-600 font-mono text-[10px] bg-teal-50 px-1 rounded border border-teal-100/50 truncate">
+                  {displayObj}
+                </span>
+              </div>
+            )
           } else {
-            const isDate = typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)
+            const isDate = isTimestamp || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))
             const displayVal = String(val ?? '')
             content = (
-              <span className={cn(isDate ? "text-text-muted/70" : "text-text-main")} title={displayVal}>
+              <span className={cn(isDate ? "text-text-muted/70 font-mono text-[12px]" : "text-text-main")} title={displayVal}>
                 {displayVal}
               </span>
             )
@@ -723,7 +751,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
           isLoading={isRecordsLoading}
           emptyMessage={t('records.noResults')}
           containerClassName="border-none shadow-none"
-          tableClassName="min-w-max border-collapse"
+          tableClassName="min-w-max"
           rowClassName={(row: any) => row.__isDraft ? "bg-primary/[0.04] dark:bg-primary/[0.08]" : ""}
           className="rounded-none border-none [&_td]:p-1.5 [&_td]:border [&_td]:border-border-subtle [&_th]:p-1.5 [&_th]:border [&_th]:border-border-subtle [&_th]:h-8"
         />

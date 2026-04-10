@@ -14,8 +14,9 @@ export interface UserPayload {
 }
 
 export const userApi = {
-  getUsers: async (params: { clientTypeId: string, projectId: string, limit: number, offset: number, search?: string }) => {
-    const { data } = await api.get('/v2/items/user', {
+  getUsers: async (params: { clientTypeId: string, projectId: string, limit: number, offset: number, search?: string, tableSlug?: string }) => {
+    const endpoint = params.tableSlug ? `/v2/items/${params.tableSlug}` : '/v2/items/user';
+    const { data } = await api.get(endpoint, {
       params: {
         "client-type-id": params.clientTypeId,
         "project-id": params.projectId,

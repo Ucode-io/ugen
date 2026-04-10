@@ -42,11 +42,12 @@ export const databaseApi = {
     return data?.data?.tables || [];
   },
 
-  fetchTableRecords: async (tableSlug: string, projectId: string, clientTypeId?: string, limit: number = 20, offset: number = 0, filters?: any[], columns?: string[]): Promise<{ items: TableRecord[]; duration: number }> => {
+  fetchTableRecords: async (tableSlug: string, projectId: string, clientTypeId?: string, limit: number = 20, offset: number = 0, filters?: any[], columns?: string[]): Promise<{ items: TableRecord[]; types: Record<string, string>; duration: number }> => {
     const start = performance.now();
     const page = Math.floor(offset / limit);
     const params: any = {
       "project-id": projectId,
+      with_types: true,
       data: JSON.stringify({
         limit,
         offset: page
@@ -76,16 +77,19 @@ export const databaseApi = {
         const response = await api.get(`/v2/items/${tableSlug}`, { params });
         data = response.data;
       }
+      console.log({ data })
       // Handle various response wrappers typical in this API
-      const items = data?.data?.data?.data || data?.data?.data?.response || data?.data?.response || data?.response || data?.data || [];
+      const items = data?.data?.data?.response || [];
+      const types = data?.data?.data?.types || {};
       const duration = Math.round(performance.now() - start);
-      return { 
-        items: Array.isArray(items) ? items : [], 
-        duration 
+      return {
+        items: Array.isArray(items) ? items : [],
+        types,
+        duration
       };
     } catch (error) {
       console.error(`Error fetching records for table ${tableSlug}:`, error);
-      return { items: [], duration: 0 };
+      return { items: [], types: {}, duration: 0 };
     }
   },
 
@@ -102,10 +106,11 @@ export const databaseApi = {
     return data?.data?.data || data?.data;
   },
 
-  executeQuery: async (sql: string): Promise<any[]> => {
+  executeQuery: async (sql: string): Promise<{ items: any[]; types: Record<string, string> }> => {
     const { data } = await api.post('/v1/custom-endpoints/exec-query', { sql });
     const items = data?.data?.rows || data?.data?.response || data?.response || data?.data || data || [];
-    return Array.isArray(items) ? items : (typeof items === 'object' && items !== null ? [items] : []);
+    const types = data?.data?.types || {};
+    return { items: Array.isArray(items) ? items : (typeof items === 'object' && items !== null ? [items] : []), types };
   },
 
   addRecord: async (tableName: string, data: any): Promise<any> => {

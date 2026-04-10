@@ -6,6 +6,7 @@ import { clientTypeApi } from '@/entities/client-type/api/client-type-api'
 export interface ClientTypeOption {
   label: string
   value: string
+  table_slug?: string
 }
 
 /**
@@ -20,6 +21,7 @@ export const useClientTypes = (projectId?: string) => {
       return items.map((item: any) => ({
         label: item.name || item.label || 'Unknown',
         value: item.guid || item.value || item.id,
+        table_slug: item.table_slug
       })) as ClientTypeOption[]
     },
     enabled: !!projectId,
@@ -42,10 +44,10 @@ export const useRoles = ({ id, projectId }: { id: string, projectId: string }) =
   })
 }
 
-export const useUsers = ({ clientTypeId, projectId, limit, offset, search }: { clientTypeId: string, projectId: string, limit: number, offset: number, search: string }) => {
+export const useUsers = ({ clientTypeId, projectId, limit, offset, search, tableSlug }: { clientTypeId: string, projectId: string, limit: number, offset: number, search: string, tableSlug?: string }) => {
   return useQuery({
-    queryKey: ['users-workspace', clientTypeId, projectId, limit, offset, search],
-    queryFn: () => userApi.getUsers({ clientTypeId, projectId, limit, offset, search }),
+    queryKey: ['users-workspace', clientTypeId, projectId, limit, offset, search, tableSlug],
+    queryFn: () => userApi.getUsers({ clientTypeId, projectId, limit, offset, search, tableSlug }),
     enabled: !!projectId,
     staleTime: 0, // 5 minutes
   })

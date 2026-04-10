@@ -6,6 +6,7 @@ import { Play, Terminal, ChevronLeft, RefreshCw, Sparkles, AlertCircle } from 'l
 import { useDatabaseStore, useExecuteQuery } from '@/entities/database'
 import { DataTable } from '@/shared/ui'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
+import { cn } from '@/shared/lib/utils/cn'
 
 import { useTranslations } from 'next-intl'
 
@@ -23,6 +24,7 @@ export const QueryView = ({ defaultQuery, hideBackButton = false }: QueryViewPro
 
   const [query, setQuery] = useState(defaultQuery || '')
   const [results, setResults] = useState<any[]>([])
+  const [types, setTypes] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (defaultQuery) {
@@ -36,7 +38,8 @@ export const QueryView = ({ defaultQuery, hideBackButton = false }: QueryViewPro
     if (!query) return
     try {
       const data = await executeMutation.mutateAsync(query)
-      setResults(data)
+      setResults(data.items)
+      setTypes(data.types)
     } catch (err) {
       console.error(err)
     }
@@ -44,15 +47,58 @@ export const QueryView = ({ defaultQuery, hideBackButton = false }: QueryViewPro
 
   const columns = React.useMemo(() => {
     if (!results.length) return []
-    return Object.keys(results[0]).map(key => ({
-      accessorKey: key,
-      header: key,
-      cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
-        const val = row.getValue(key)
-        return <span>{String(val ?? '')}</span>
+    return Object.keys(results[0]).map(key => {
+      const pgType = types[key] || ''
+      return {
+        accessorKey: key,
+        header: () => (
+          <div className="min-w-[150px] py-1 flex items-center gap-2">
+            <span className="font-bold text-text-main text-[11px] uppercase tracking-wider truncate">{key}</span>
+            {pgType && (
+              <span className="text-[9px] text-text-muted/60 font-mono font-medium bg-bg-sidebar px-1 rounded border border-border-subtle/50">
+                {pgType}
+              </span>
+            )}
+          </div>
+        ),
+        cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
+          const val = row.getValue(key)
+          let content: React.ReactNode = null
+
+          const isUuid = pgType === 'uuid' || (typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val))
+          const isBool = pgType === 'bool' || typeof val === 'boolean'
+          const isTimestamp = pgType === 'timestamp' || pgType === 'timestamptz' || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))
+
+          if (typeof val === 'number') {
+            content = <span className="text-blue-500 font-mono text-[12px] font-semibold">{val}</span>
+          } else if (isBool) {
+            const boolVal = val === true || val === 'true' || val === '1'
+            return (
+              <span className={cn(
+                "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center justify-center min-w-[50px]",
+                boolVal ? "bg-primary/10 text-primary border border-primary/20" : "bg-text-muted/10 text-text-muted border border-text-muted/20"
+              )}>
+                {boolVal ? 'TRUE' : 'FALSE'}
+              </span>
+            )
+          } else if (val === null) {
+            content = <span className="text-text-muted/40 italic text-[11px]">null</span>
+          } else if (isUuid) {
+            content = <span className="text-amber-600/80 font-mono text-[11px] truncate block w-[180px]" title={String(val)}>{String(val)}</span>
+          } else {
+            const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '')
+            content = (
+              <span className={cn("text-[13px] font-medium truncate", isTimestamp ? "text-text-muted/70 font-mono" : "text-text-main")} title={displayVal}>
+                {displayVal}
+              </span>
+            )
+          }
+
+          return <div className="min-w-[150px] max-w-[300px] truncate">{content}</div>
+        }
       }
-    }))
-  }, [results])
+    })
+  }, [results, types])
 
   if (!selectedTable && !defaultQuery) return null
 

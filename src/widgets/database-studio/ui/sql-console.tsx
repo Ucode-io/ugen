@@ -62,13 +62,15 @@ export const SqlConsole = () => {
 
   const activeScript = sqlScripts.find(s => s.id === activeScriptId)
   const [results, setResults] = useState<any[]>([])
+  const [types, setTypes] = useState<any>({})
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   const handleRun = async () => {
     if (!activeScript?.content) return
     try {
       const data = await executeMutation.mutateAsync(activeScript.content)
-      setResults(data)
+      setResults(data.items)
+      setTypes(data.types)
     } catch (err) {
       console.error(err)
     }
@@ -168,56 +170,77 @@ export const SqlConsole = () => {
 
   const columns = useMemo(() => {
     if (!results.length) return []
-    return Object.keys(results[0]).map(key => ({
-      accessorKey: key,
-      header: () => <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted/80">{key}</div>,
-      cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
-        const val = row.getValue(key)
+    return Object.keys(results[0]).map(key => {
+      const pgType = types[key] || ''
+      return {
+        accessorKey: key,
+        header: () => (
+          <div className="min-w-[200px] py-1 flex items-center gap-2">
+            <div className="font-bold text-text-main text-[11px] uppercase tracking-wider truncate" title={key}>
+              {key}
+            </div>
+            {pgType && (
+              <div className="text-[9px] text-text-muted/60 font-mono font-medium bg-bg-sidebar w-fit px-1 rounded border border-border-subtle/50">
+                {pgType}
+              </div>
+            )}
+          </div>
+        ),
+        cell: ({ row }: { row: { getValue: (key: string) => unknown } }) => {
+          const val = row.getValue(key)
+          let content: React.ReactNode = null
 
-        if (typeof val === 'number') {
-          return <span className="text-blue-500 font-mono text-[12px] font-semibold">{val}</span>
-        }
+          // Enhanced rendering based on PG Type or Heuristics
+          const isArrayType = pgType.startsWith('_')
+          const isUuid = pgType === 'uuid' || (typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val))
+          const isBool = pgType === 'bool' || typeof val === 'boolean'
+          const isTimestamp = pgType === 'timestamp' || pgType === 'timestamptz' || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))
 
-        if (typeof val === 'boolean') {
+          if (typeof val === 'number') {
+            content = <span className="text-blue-500 font-mono text-[12px] font-semibold">{val}</span>
+          } else if (isBool) {
+            const boolVal = val === true || val === 'true' || val === '1'
+            content = (
+              <span className={cn(
+                "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center justify-center min-w-[50px]",
+                boolVal
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "bg-text-muted/10 text-text-muted border border-text-muted/20"
+              )}>
+                {boolVal ? 'TRUE' : 'FALSE'}
+              </span>
+            )
+          } else if (val === null) {
+            content = <span className="text-text-muted/40 italic text-[11px] px-1">null</span>
+          } else if (isUuid) {
+            content = <span className="text-amber-600/80 font-mono text-[11px] truncate block w-[200px]" title={String(val)}>{String(val)}</span>
+          } else if (isArrayType || (typeof val === 'object' && val !== null)) {
+            const displayObj = typeof val === 'string' ? val : JSON.stringify(val);
+            content = (
+              <div className="flex items-center gap-1 overflow-hidden max-w-[300px]">
+                <span className="text-teal-600 font-mono text-[10px] bg-teal-50 px-1 rounded border border-teal-100/50 truncate">
+                  {displayObj}
+                </span>
+              </div>
+            )
+          } else {
+            const displayVal = String(val ?? '')
+            content = (
+              <span className={cn(isTimestamp ? "text-text-muted/70 font-mono text-[12px]" : "text-text-main")} title={displayVal}>
+                {displayVal}
+              </span>
+            )
+          }
+
           return (
-            <span className={cn(
-              "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center justify-center min-w-[50px]",
-              val
-                ? "bg-primary/10 text-primary border border-primary/20"
-                : "bg-text-muted/10 text-text-muted border border-text-muted/20"
-            )}>
-              {val ? 'TRUE' : 'FALSE'}
-            </span>
+            <div className="min-w-[200px] max-w-[400px] truncate text-[13px] leading-tight py-0 px-1 -mx-1">
+              {content}
+            </div>
           )
         }
-
-        if (val === null) {
-          return <span className="text-text-muted/40 italic text-[11px] px-1">null</span>
-        }
-
-        // Heuristic for UUID
-        if (typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
-          return <span className="text-amber-600/80 font-mono text-[11px] truncate block w-[200px]" title={val}>{val}</span>
-        }
-
-        // Heuristic for Date/Time
-        const isDate = typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)
-
-        const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '')
-        return (
-          <span
-            title={displayVal}
-            className={cn(
-              "truncate block w-[200px] text-[12px] leading-tight py-0.5 font-medium",
-              isDate ? "text-text-muted/70" : "text-text-main"
-            )}
-          >
-            {displayVal}
-          </span>
-        )
       }
-    }))
-  }, [results])
+    })
+  }, [results, types])
 
   return (
     <div className="flex bg-bg-card flex-1 flex-col sm:flex-row overflow-hidden min-h-[600px] h-[calc(100vh-280px)]">
@@ -376,7 +399,7 @@ export const SqlConsole = () => {
                 columns={columns}
                 data={results}
                 containerClassName="border-none shadow-none"
-                tableClassName="min-w-max border-collapse"
+                tableClassName="min-w-max"
                 className="border-none shadow-none [&_td]:p-1.5 [&_td]:border [&_td]:border-border-subtle [&_th]:p-1.5 [&_th]:border [&_th]:border-border-subtle [&_th]:h-8"
               />
             ) : (

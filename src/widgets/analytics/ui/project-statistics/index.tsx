@@ -1,20 +1,74 @@
-import React from 'react'
-import { ArrowUp, ArrowDown, Rocket, Bot, Plug, Puzzle, Bell, Folder, Key, Database, LineChart, List } from 'lucide-react'
+import React, { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/api'
 import { cn } from '@/shared/lib/utils/cn'
-import {
-  WorkspaceTableWrapper,
-  WorkspaceTable,
-  WorkspaceTableHeader,
-  WorkspaceTableBody,
-  WorkspaceTableRow,
-  WorkspaceTableHead,
-  WorkspaceTableCell,
-} from '@/widgets/project-workspace/ui/workspace-table'
+import { LineChart, Loader2 } from 'lucide-react'
 
 export const ProjectStatisticsTab = ({ pricingData }: any) => {
   const d = pricingData?.data || {};
 
+  const { data: chartData, isLoading: isChartLoading } = useQuery({
+    queryKey: ['api-chart-stats'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/pricing/api-call/api-chart');
+      return data;
+    }
+  });
+
+  const { data: metricsData } = useQuery({
+    queryKey: ['api-performance-metrics'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/pricing/api-call/api-metrics');
+      return data;
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds for "real-time" feel
+  });
+
+  const { data: performanceData } = useQuery({
+    queryKey: ['api-performance-stats'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/pricing/performance');
+      return data;
+    },
+    refetchInterval: 30000,
+  });
+
+  const chartItems = React.useMemo(() => {
+    const rawItems = chartData?.data?.chart || [];
+    const fullChart = [];
+    const today = new Date();
+
+    // Generate last 7 days including today
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(today.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      const existing = rawItems.find((item: any) => item.date === dateStr);
+      fullChart.push({
+        date: dateStr,
+        count: existing?.count || 0
+      });
+    }
+
+    return fullChart;
+  }, [chartData]);
+
+  const maxCount = Math.max(...chartItems.map((item: any) => item.count), 1);
+
+  const getDayName = (dateStr: string) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const date = new Date(dateStr);
+    return days[date.getDay()];
+  };
+
   const formatUnit = (value: number, unit: string) => {
+    if (unit === 'count') return value.toLocaleString();
+    if (unit === 'tokens') return value.toLocaleString();
+    if (unit === 'MB') return value.toFixed(2) + ' MB';
+    if (unit === 'ms') return value % 1 === 0 ? value.toString() + ' ms' : value.toFixed(1) + ' ms';
+    if (unit === 'percent') return value % 1 === 0 ? value.toString() + '%' : value.toFixed(2) + '%';
+    if (unit === 'rate') return value % 1 === 0 ? value.toString() : value.toFixed(2);
     if (unit !== 'bytes') return value.toLocaleString();
     if (value === 0) return '0 B';
     const k = 1024;
@@ -23,213 +77,123 @@ export const ProjectStatisticsTab = ({ pricingData }: any) => {
     return parseFloat((value / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const getPercentage = (current: number, limit: number) => {
+    if (!limit) return 0;
+    return Math.min((current / limit) * 100, 100);
+  };
+
+  const renderCard = (key: string, label: string, color: string, textColor: string) => {
+    const item = d[key];
+    const current = item?.current || 0;
+    const limit = item?.limit || 0;
+    const unit = item?.unit || 'count';
+    const percentage = getPercentage(current, limit);
+
+    return (
+      <div key={key} className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+        <div>
+          <div className="text-xs text-text-muted font-semibold mb-2">{label}</div>
+          <div className="flex items-baseline gap-1.5 mb-2 flex-wrap">
+            <span className={cn("text-[20px] font-bold", textColor)}>{formatUnit(current, unit)}</span>
+            <span className="text-[12px] text-text-muted">/ {formatUnit(limit, unit)}</span>
+          </div>
+        </div>
+        <div>
+          <div className="h-1.5 bg-bg-sidebar rounded-full overflow-hidden mb-1.5">
+            <div
+              className={cn("h-full rounded-full transition-all duration-500", color)}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <div className="text-[11px] text-text-muted">
+            {formatUnit(Math.max(limit - current, 0), unit)} remaining
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSimpleCard = (label: string, value: number, subtext: string, textColor: string = 'text-text-main', unit: string = 'rate') => {
+    return (
+      <div className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+        <div>
+          <div className="text-xs text-text-muted font-semibold mb-2">{label}</div>
+          <div className={cn("text-[22px] font-bold mb-1", textColor)}>
+            {formatUnit(value, unit)}
+          </div>
+        </div>
+        <div className="text-[11px] text-text-muted font-medium">
+          {subtext}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 pt-4 animate-in fade-in duration-300">
       {/* Stat cards row 1 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Function count</div>
-          <div className="text-[22px] font-bold text-primary mb-1">
-            {formatUnit(d.functions?.current || 0, 'count')}
-          </div>
-          <div className="text-[11px] text-text-muted">Total defined functions</div>
-        </div>
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Microfront count</div>
-          <div className="text-[22px] font-bold text-purple-500 mb-1">
-            {formatUnit(d.microfrontend?.current || 0, 'count')}
-          </div>
-          <div className="text-[11px] text-text-muted">Total microfrontends</div>
-        </div>
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Table count</div>
-          <div className="text-[22px] font-bold text-green-500 mb-1">
-            {formatUnit(d.tables?.current || 12, 'count')}
-          </div>
-          <div className="text-[11px] text-text-muted">Database tables</div>
-        </div>
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">API key count</div>
-          <div className="text-[22px] font-bold text-orange-500 mb-1">
-            {formatUnit(d.api_keys?.current || 4, 'count')}
-          </div>
-          <div className="text-[11px] text-text-muted">Active API keys</div>
-        </div>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+        {renderCard('functions', 'Functions', 'bg-primary', 'text-primary')}
+        {renderCard('microfrontend', 'Microfrontends', 'bg-purple-500', 'text-purple-500')}
+        {renderCard('tables', 'Tables', 'bg-green-500', 'text-green-500')}
+        {renderCard('api_keys', 'API Keys', 'bg-orange-500', 'text-orange-500')}
+        {renderCard('users', 'Users', 'bg-text-main', 'text-text-main')}
+        {renderCard('items', 'Database Records', 'bg-blue-500', 'text-blue-500')}
+        {renderSimpleCard('Requests Per Second', metricsData?.data?.rps || 0, 'Current throughput (RPS)', 'text-blue-500')}
+        {renderSimpleCard('Requests Per Minute', metricsData?.data?.rpm || 0, 'Throughput per minute', 'text-indigo-500')}
+        {renderSimpleCard('Requests Per Hour', metricsData?.data?.rph || 0, 'Hourly traffic volume', 'text-violet-500')}
+        {renderSimpleCard('Avg Response Time', performanceData?.data?.average_response_time || 0, 'Average system latency', 'text-emerald-500', 'ms')}
+        {renderSimpleCard('Error Rate', performanceData?.data?.error_rate || 0, 'Failed requests percentage', 'text-rose-500', 'percent')}
       </div>
 
-      {/* Stat cards row 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Active user count</div>
-          <div className="text-[22px] font-bold text-text-main mb-1">248</div>
-          <div className="text-[11px] text-green-500 font-medium flex items-center gap-1.5">
-            <ArrowUp size={12} /> +12% from last week
-          </div>
-        </div>
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">API call count last day</div>
-          <div className="text-[22px] font-bold text-text-main mb-1">12,847</div>
-          <div className="text-[11px] text-text-muted font-medium">Total requests</div>
-        </div>
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
-          <div className="text-xs text-text-muted font-semibold mb-2">Average response time last day</div>
-          <div className="flex items-baseline gap-1 mb-1">
-            <span className="text-[22px] font-bold text-text-main">142</span>
-            <span className="text-[13px] text-text-muted font-normal">ms</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-green-500 font-medium">
-            <ArrowDown size={12} /> -23ms from yesterday
-          </div>
-        </div>
-      </div>
-
-      {/* Bar chart placeholder */}
+      {/* API Requests Chart */}
       <div>
         <h2 className="text-lg font-bold text-text-main mb-4 flex items-center gap-2">
           <LineChart size={18} className="text-text-muted" />
           API Requests (Last 7 Days)
         </h2>
-        <div className="bg-bg-card border border-border-subtle rounded-xl h-[200px] flex items-end gap-3 p-5 pb-6">
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-primary rounded-t-md h-[60%]" />
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Mon</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-primary rounded-t-md h-[75%]" />
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Tue</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-primary rounded-t-md h-[45%]" />
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Wed</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-primary rounded-t-md h-[90%]" />
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Thu</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-primary rounded-t-md h-[82%]" />
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Fri</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-primary/40 rounded-t-md h-[30%]" />
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Sat</span>
-          </div>
-          <div className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-            <div className="w-full bg-primary/40 rounded-t-md h-[25%]" />
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Sun</span>
-          </div>
+
+        <div className="bg-bg-card border border-border-subtle rounded-xl h-[240px] flex items-end gap-3 p-6 pb-8 relative">
+          {isChartLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-bg-card/50 backdrop-blur-[1px] rounded-xl">
+              <Loader2 className="animate-spin text-primary" size={24} />
+            </div>
+          ) : chartItems.length === 0 ? (
+            <div className="absolute inset-0 flex items-center justify-center text-text-muted text-sm italic">
+              No data available for the last 7 days
+            </div>
+          ) : (
+            chartItems.map((item: any, idx: number) => {
+              const heightPercentage = Math.max((item.count / maxCount) * 100, 4);
+              const isToday = idx === chartItems.length - 1;
+
+              return (
+                <div key={item.date} className="flex-1 flex flex-col items-center gap-3 h-full justify-end group">
+                  <div className="relative w-full flex items-end justify-center h-full pt-6">
+                    <div
+                      className={cn(
+                        "w-full max-w-[40px] rounded-t-lg transition-all duration-500 ease-out flex items-center justify-center",
+                        isToday ? "bg-primary shadow-[0_0_15px_rgba(59,130,246,0.3)]" : "bg-bg-sidebar group-hover:bg-primary/40"
+                      )}
+                      style={{ height: `${heightPercentage}%` }}
+                    >
+                      <div className="absolute -top-7 bg-bg-card border border-border-subtle px-1.5 py-0.5 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10">
+                        {item.count}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "text-[10px] uppercase tracking-wider font-bold transition-colors",
+                    isToday ? "text-primary font-extrabold" : "text-text-muted group-hover:text-text-main"
+                  )}>
+                    {getDayName(item.date)}
+                  </span>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
-
-      {/* Low-code stats table */}
-      {/* <div>
-        <h2 className="text-lg font-bold text-text-main mb-4 flex items-center gap-2">
-          <List size={18} className="text-text-muted" />
-          Low-Code Statistics
-        </h2>
-        <WorkspaceTableWrapper>
-          <WorkspaceTable>
-            <WorkspaceTableHeader>
-              <WorkspaceTableRow>
-                <WorkspaceTableHead className="w-1/2">Metric</WorkspaceTableHead>
-                <WorkspaceTableHead className="w-1/4">Value</WorkspaceTableHead>
-                <WorkspaceTableHead className="w-1/4">Change</WorkspaceTableHead>
-              </WorkspaceTableRow>
-            </WorkspaceTableHeader>
-            <WorkspaceTableBody>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>
-                  <div className="flex items-center gap-3">
-                    <Rocket size={15} className="text-primary w-4" />
-                    <span>Total Deployments</span>
-                  </div>
-                </WorkspaceTableCell>
-                <WorkspaceTableCell className="font-bold">47</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-green-500 font-medium text-[12px]">
-                   <div className="flex items-center gap-1.5"><ArrowUp size={12} /> +12 this week</div>
-                </WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>
-                  <div className="flex items-center gap-3">
-                    <Bot size={15} className="text-purple-500 w-4" />
-                    <span>AI Code Generations</span>
-                  </div>
-                </WorkspaceTableCell>
-                <WorkspaceTableCell className="font-bold">234</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-green-500 font-medium text-[12px]">
-                   <div className="flex items-center gap-1.5"><ArrowUp size={12} /> +38 this week</div>
-                </WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>
-                  <div className="flex items-center gap-3">
-                    <Plug size={15} className="text-blue-500 w-4" />
-                    <span>Custom Endpoints</span>
-                  </div>
-                </WorkspaceTableCell>
-                <WorkspaceTableCell className="font-bold">4</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-text-muted">—</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>
-                  <div className="flex items-center gap-3">
-                    <Puzzle size={15} className="text-green-500 w-4" />
-                    <span>Active Integrations</span>
-                  </div>
-                </WorkspaceTableCell>
-                <WorkspaceTableCell className="font-bold">4</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-text-muted">—</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>
-                  <div className="flex items-center gap-3">
-                    <Bell size={15} className="text-yellow-500 w-4" />
-                    <span>Webhook Events</span>
-                  </div>
-                </WorkspaceTableCell>
-                <WorkspaceTableCell className="font-bold">1,892</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-green-500 font-medium text-[12px]">
-                   <div className="flex items-center gap-1.5"><ArrowUp size={12} /> +241 this week</div>
-                </WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>
-                  <div className="flex items-center gap-3">
-                    <Folder size={15} className="text-primary w-4" />
-                    <span>Files Stored</span>
-                  </div>
-                </WorkspaceTableCell>
-                <WorkspaceTableCell className="font-bold">2,156</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-text-muted text-[12px]">2.4 GB used</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>
-                  <div className="flex items-center gap-3">
-                    <Key size={15} className="text-text-muted w-4" />
-                    <span>Secrets</span>
-                  </div>
-                </WorkspaceTableCell>
-                <WorkspaceTableCell className="font-bold">5</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-text-muted">—</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>
-                  <div className="flex items-center gap-3">
-                    <Database size={15} className="text-blue-500 w-4" />
-                    <span>Total DB Rows</span>
-                  </div>
-                </WorkspaceTableCell>
-                <WorkspaceTableCell className="font-bold">62,432</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-green-500 font-medium text-[12px]">
-                   <div className="flex items-center gap-1.5"><ArrowUp size={12} /> +1,204 this week</div>
-                </WorkspaceTableCell>
-              </WorkspaceTableRow>
-            </WorkspaceTableBody>
-          </WorkspaceTable>
-        </WorkspaceTableWrapper>
-      </div> */}
-
     </div>
   )
 }

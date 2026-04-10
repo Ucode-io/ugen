@@ -22,7 +22,8 @@ export const AnalyticsDashboard = () => {
     queryFn: async () => {
       const { data } = await api.get('/v1/pricing/all');
       return data;
-    }
+    },
+    staleTime: 0,
   });
 
   const tabs = [
@@ -47,10 +48,10 @@ export const AnalyticsDashboard = () => {
       <SubTabs options={tabs} activeId={activeTab} onTabChange={setActiveTab} containerClassName="px-0" />
 
       <div className="animate-in fade-in duration-300">
-        {activeTab === "overview" && <OverviewTab />}
+        {/* {activeTab === "overview" && <OverviewTab />}
         {activeTab === "health" && <HealthTab />}
         {activeTab === "query-performance" && <QueryPerformanceTab />}
-        {activeTab === "visitors" && <VisitorsTab />}
+        {activeTab === "visitors" && <VisitorsTab />} */}
         {activeTab === "usage-limits" && <UsageLimitsTab pricingData={pricingData} />}
         {activeTab === "project-statistics" && <ProjectStatisticsTab pricingData={pricingData} />}
       </div>

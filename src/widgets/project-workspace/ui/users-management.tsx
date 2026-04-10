@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { UserPlus, Trash2 } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 
-import { ReusableTabs, UsageIndicator, Input } from "@/shared/ui"
+import { SubTabs, UsageIndicator, Input } from "@/shared/ui"
 import { WorkspaceDataTable } from "./workspace-data-table"
 import { Button } from "@/shared/ui"
 import { Search } from "lucide-react"
@@ -48,6 +48,16 @@ interface UsersManagementProps {
 }
 
 export const UsersManagement = ({ projectId: propProjectId, projectInfo: propProjectInfo }: UsersManagementProps) => {
+  // Auth store data
+  const authProject = useAuthStore((state) => state.project)
+  const authUser = useAuthStore((state) => state.user)
+  const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
+
+  const projectId = propProjectId || ucodeProjectId || authProject?.project_id || ''
+  const projectName = propProjectInfo?.title || authProject?.title || ''
+  const companyName = propProjectInfo?.company_name || 'My Company'
+  const envId = authUser?.environment_id || ''
+
   const [activeClientType, setActiveClientType] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
@@ -56,20 +66,13 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
-  const { data: clientTypeOptions = [] } = useClientTypes()
+  const { data: clientTypeOptions = [] } = useClientTypes(projectId)
   const queryClient = useQueryClient()
   const deleteUser = useDeleteUser()
 
-  // Auth store data
-  const authProject = useAuthStore((state) => state.project)
-  const authUser = useAuthStore((state) => state.user)
-
-  const projectId = propProjectId || ''
-  const authProjectId = authProject?.project_id || ''
-  const projectName = propProjectInfo?.title || authProject?.title || ''
-  const companyName = propProjectInfo?.company_name || 'My Company'
-  const envId = authUser?.environment_id || ''
-  const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
+  const activeTableSlug = useMemo(() => {
+    return clientTypeOptions.find(opt => opt.value === activeClientType)?.table_slug
+  }, [clientTypeOptions, activeClientType])
 
   // Set default client type when options are loaded
   useEffect(() => {
@@ -89,6 +92,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
     offset: currentPage,
     projectId,
     search: searchTerm,
+    tableSlug: activeTableSlug
   })
 
   const { mutate: deleteMutation, isPending: isDeleting } = useMutation({
@@ -158,7 +162,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
     },
   ], [roles])
 
-  const mappedTabsOptions = clientTypeOptions.map(opt => ({
+  const subTabOptions = clientTypeOptions.map(opt => ({
     id: opt.value,
     label: opt.label
   }))
@@ -173,9 +177,9 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
         <div className="flex items-center gap-4">
           <UsageIndicator
             label="Users"
-            value={data?.data?.count || 0}
+            value={data?.count || 0}
             total={10}
-            percentage={((data?.data?.count || 0) / 10) * 100}
+            percentage={((data?.count || 0) / 10) * 100}
           />
           <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90 text-white rounded-lg h-9 px-4 text-[13px] font-semibold">
             Upgrade Plan
@@ -183,17 +187,18 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
         </div>
       </div>
 
-      {mappedTabsOptions.length > 0 && (
-        <ReusableTabs
-          options={mappedTabsOptions}
-          activeId={activeClientType}
-          onTabChange={(id) => {
-            setActiveClientType(id)
-            setCurrentPage(0)
-          }}
-          className="bg-bg-card w-fit"
-        />
-      )}
+      <div className="border-b border-border-subtle overflow-x-auto no-scrollbar">
+        {subTabOptions.length > 0 && (
+          <SubTabs
+            options={subTabOptions}
+            activeId={activeClientType}
+            onTabChange={(id: string) => {
+              setActiveClientType(id)
+              setCurrentPage(0)
+            }}
+          />
+        )}
+      </div>
 
       <div className="flex items-center justify-between gap-3">
         <div className="relative group max-w-[320px] flex-1">
@@ -207,7 +212,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
         </div>
         <Button className="px-8 gap-2 h-9 bg-primary hover:bg-primary/90 text-white font-semibold" onClick={() => setIsInviteModalOpen(true)}>
           <UserPlus size={16} />
-          Ivite User
+          Invite User
         </Button>
       </div>
 

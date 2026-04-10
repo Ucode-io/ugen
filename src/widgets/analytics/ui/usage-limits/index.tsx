@@ -42,38 +42,49 @@ export const UsageLimitsTab = ({ pricingData }: any) => {
         <Button className="gap-2 shrink-0">
           <ArrowUp size={16} /> Upgrade Plan
         </Button>
-      </div>
-
-      {/* Usage meters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      </div>      {/* Usage meters */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
         {[
-          { key: 'api_call', label: 'API call per month', color: 'bg-primary', textColor: 'text-primary' },
-          { key: 'storage', label: 'Storage size', color: 'bg-blue-500', textColor: 'text-blue-500' },
+          { key: 'monthly_api_calls', label: 'API call per month', color: 'bg-primary', textColor: 'text-primary' },
+          { key: 'database_size', label: 'Database size', color: 'bg-blue-500', textColor: 'text-blue-500' },
           { key: 'items', label: 'DB records (row)', color: 'bg-green-500', textColor: 'text-green-500' },
-          { key: 'asset', label: 'Asset info', color: 'bg-purple-500', textColor: 'text-purple-500' },
-          { key: 'tokens', label: 'Token usage', color: 'bg-orange-500', textColor: 'text-orange-500' },
+          { key: 'asset_size', label: 'Asset size', color: 'bg-purple-500', textColor: 'text-purple-500' },
+          { key: 'monthly_tokens', label: 'Monthly Tokens', color: 'bg-orange-500', textColor: 'text-orange-500' },
+          { key: 'today_tokens', label: 'Daily Tokens', color: 'bg-pink-500', textColor: 'text-pink-500' },
         ].map((metric) => {
           const item = d[metric.key];
           const current = item?.current || 0;
           const limit = item?.limit || 0;
           const unit = item?.unit || 'count';
           const percentage = getPercentage(current, limit);
-          
+
+          const displayUnit = unit === 'MB' ? 'MB' : unit;
+          const formatValue = (val: number) => {
+            if (unit === 'count') return val.toLocaleString();
+            if (unit === 'tokens') return val.toLocaleString();
+            if (unit === 'MB') return val.toFixed(2) + ' MB';
+            return formatUnit(val, unit);
+          };
+
           return (
-            <div key={metric.key} className="bg-bg-card border border-border-subtle rounded-xl p-4">
-              <div className="text-xs text-text-muted font-semibold mb-2">{metric.label}</div>
-              <div className="flex items-baseline gap-1.5 mb-2">
-                <span className={cn("text-[20px] font-bold", metric.textColor)}>{formatUnit(current, unit)}</span>
-                <span className="text-[12px] text-text-muted">/ {formatUnit(limit, unit)}</span>
+            <div key={metric.key} className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+              <div>
+                <div className="text-xs text-text-muted font-semibold mb-2">{metric.label}</div>
+                <div className="flex items-baseline gap-1.5 mb-2 flex-wrap">
+                  <span className={cn("text-[20px] font-bold", metric.textColor)}>{formatValue(current)}</span>
+                  <span className="text-[12px] text-text-muted">/ {formatValue(limit)}</span>
+                </div>
               </div>
-              <div className="h-1.5 bg-bg-sidebar rounded-full overflow-hidden mb-1.5">
-                <div 
-                  className={cn("h-full rounded-full transition-all duration-500", metric.color)} 
-                  style={{ width: `${percentage}%` }} 
-                />
-              </div>
-              <div className="text-[11px] text-text-muted">
-                {formatUnit(Math.max(limit - current, 0), unit)} remaining
+              <div>
+                <div className="h-1.5 bg-bg-sidebar rounded-full overflow-hidden mb-1.5">
+                  <div
+                    className={cn("h-full rounded-full transition-all duration-500", metric.color)}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                <div className="text-[11px] text-text-muted">
+                  {formatValue(Math.max(limit - current, 0))} remaining
+                </div>
               </div>
             </div>
           );
