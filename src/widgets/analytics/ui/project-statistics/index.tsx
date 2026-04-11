@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { cn } from '@/shared/lib/utils/cn'
+import { formatBytesAsGB } from '@/shared/lib/utils/format-bytes'
 import { LineChart, Loader2 } from 'lucide-react'
 
 export const ProjectStatisticsTab = ({ pricingData }: any) => {
@@ -69,12 +70,8 @@ export const ProjectStatisticsTab = ({ pricingData }: any) => {
     if (unit === 'ms') return value % 1 === 0 ? value.toString() + ' ms' : value.toFixed(1) + ' ms';
     if (unit === 'percent') return value % 1 === 0 ? value.toString() + '%' : value.toFixed(2) + '%';
     if (unit === 'rate') return value % 1 === 0 ? value.toString() : value.toFixed(2);
-    if (unit !== 'bytes') return value.toLocaleString();
-    if (value === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(value) / Math.log(k));
-    return parseFloat((value / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    if (unit === 'bytes') return formatBytesAsGB(value);
+    return value.toLocaleString();
   };
 
   const getPercentage = (current: number, limit: number) => {

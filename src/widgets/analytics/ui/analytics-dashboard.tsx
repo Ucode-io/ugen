@@ -26,6 +26,14 @@ export const AnalyticsDashboard = () => {
     staleTime: 0,
   });
 
+  const { data: fareData } = useQuery({
+    queryKey: ['fares'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/fare');
+      return data;
+    },
+  });
+
   const tabs = [
     { id: "usage-limits", label: "Usage Limits", icon: Gauge },
     { id: "project-statistics", label: "Project Statistics", icon: BarChart },
@@ -52,7 +60,7 @@ export const AnalyticsDashboard = () => {
         {activeTab === "health" && <HealthTab />}
         {activeTab === "query-performance" && <QueryPerformanceTab />}
         {activeTab === "visitors" && <VisitorsTab />} */}
-        {activeTab === "usage-limits" && <UsageLimitsTab pricingData={pricingData} />}
+        {activeTab === "usage-limits" && <UsageLimitsTab pricingData={pricingData} fareData={fareData} />}
         {activeTab === "project-statistics" && <ProjectStatisticsTab pricingData={pricingData} />}
       </div>
     </div>

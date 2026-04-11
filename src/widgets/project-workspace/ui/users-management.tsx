@@ -11,7 +11,8 @@ import { Search } from "lucide-react"
 import { useAuthStore } from "@/entities/session"
 import { InviteUserModal } from "./invite-user-modal"
 import { useClientTypes, useRoles, useUsers, useDeleteUser } from "../api/users"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query"
+import { api } from "@/shared/api"
 import {
   Dialog,
   DialogContent,
@@ -66,6 +67,15 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
+  const { data: pricingData } = useQuery({
+    queryKey: ['pricing-all'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/pricing/all')
+      return data
+    },
+    staleTime: 0,
+  })
+
   const { data: clientTypeOptions = [] } = useClientTypes(projectId)
   const queryClient = useQueryClient()
   const deleteUser = useDeleteUser()
@@ -99,6 +109,7 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
     mutationFn: deleteUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['pricing-all'] })
       setUserToDelete(null)
     },
     onError: (error) => {
@@ -178,8 +189,10 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
           <UsageIndicator
             label="Users"
             value={data?.count || 0}
-            total={10}
-            percentage={((data?.count || 0) / 10) * 100}
+            total={pricingData?.data?.users?.limit || 0}
+            percentage={pricingData?.data?.users?.limit
+              ? Math.min(((data?.count || 0) / pricingData.data.users.limit) * 100, 100)
+              : 0}
           />
           <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90 text-white rounded-lg h-9 px-4 text-[13px] font-semibold">
             Upgrade Plan
