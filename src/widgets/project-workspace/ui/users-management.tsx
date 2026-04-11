@@ -76,6 +76,8 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
     staleTime: 0,
   })
 
+  console.log({pricingData})
+
   const { data: clientTypeOptions = [] } = useClientTypes(projectId)
   const queryClient = useQueryClient()
   const deleteUser = useDeleteUser()
@@ -188,10 +190,10 @@ export const UsersManagement = ({ projectId: propProjectId, projectInfo: propPro
         <div className="flex items-center gap-4">
           <UsageIndicator
             label="Users"
-            value={data?.count || 0}
+            value={pricingData?.data?.users?.current || 0}
             total={pricingData?.data?.users?.limit || 0}
             percentage={pricingData?.data?.users?.limit
-              ? Math.min(((data?.count || 0) / pricingData.data.users.limit) * 100, 100)
+              ? Math.min(((pricingData.data.users.current || 0) / pricingData.data.users.limit) * 100, 100)
               : 0}
           />
           <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90 text-white rounded-lg h-9 px-4 text-[13px] font-semibold">

@@ -29,9 +29,11 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
     staleTime: 0,
   })
 
-  const mfData = pricingData?.data?.microfrontend
-  const pagesValue = mfData?.current || 0
-  const pagesTotal = mfData?.limit || 0
+  const isFunctionsTab = activeTab === 'functions'
+  const activeUsage = isFunctionsTab ? pricingData?.data?.functions : pricingData?.data?.microfrontend
+  const usageLabel = isFunctionsTab ? 'Functions' : 'Pages'
+  const pagesValue = activeUsage?.current || 0
+  const pagesTotal = activeUsage?.limit || 0
   const pagesPercentage = pagesTotal > 0 ? Math.min((pagesValue / pagesTotal) * 100, 100) : 0
 
   return (
@@ -46,7 +48,7 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
             
             <div className="flex items-center gap-3">
               <UsageIndicator
-                label="Pages"
+                label={usageLabel}
                 value={pagesValue}
                 total={pagesTotal}
                 percentage={pagesPercentage}

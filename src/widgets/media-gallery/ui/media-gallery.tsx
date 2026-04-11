@@ -32,7 +32,6 @@ import { MediaViewerModal } from './media-viewer-modal'
 import { Button, UsageIndicator } from "@/shared/ui";
 import { api } from "@/shared/api";
 import { cn } from '@/shared/lib/utils/cn'
-import { formatBytes } from '@/shared/lib/utils/format-bytes'
 import { MediaSkeleton } from './media-skeleton'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef } from 'react'
@@ -129,8 +128,9 @@ export const MediaGallery = ({
 
   // Storage usage from backend
   const assetSize = pricingData?.data?.asset_size;
-  const storageUsed = formatBytes(assetSize?.current || 0);
-  const storageTotal = formatBytes(assetSize?.limit || 0);
+  const unit = assetSize?.unit ?? 'MB'
+  const storageUsed = assetSize ? `${(assetSize.current || 0).toFixed(2)} ${unit}` : '0 MB'
+  const storageTotal = assetSize ? `${(assetSize.limit || 0).toFixed(2)} ${unit}` : '0 MB'
   const storagePercentage = assetSize?.limit
     ? Math.min(((assetSize.current || 0) / assetSize.limit) * 100, 100)
     : 0;
