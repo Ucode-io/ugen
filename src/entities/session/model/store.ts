@@ -39,11 +39,12 @@ export interface UserData {
 }
 
 export interface ProjectData {
-  company_id: string
-  project_id: string
-  status: string
-  subscription_type: string
-  title: string
+  company_id: string;
+  project_id: string;
+  status: string;
+  subscription_type: string;
+  title: string;
+  fare_id: string;
 }
 
 export interface AuthState {

@@ -2,13 +2,13 @@
 
 import React, { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, Play, FileText, Image as ImageIcon } from 'lucide-react'
+import { Check, Play, FileText } from 'lucide-react'
 import { FileItem } from '@/entities/media-file/model/types'
 
 interface MediaCardProps {
   item: FileItem;
   isSelected: boolean;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, shiftKey?: boolean) => void;
   isSelectionMode: boolean;
   onPreview: (item: FileItem) => void;
 }
@@ -40,24 +40,37 @@ export const MediaCard = ({
     )
   }, [item.link])
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (isSelectionMode) {
+      onToggle(item.id, e.shiftKey)
+    } else {
+      onPreview(item)
+    }
+  }
+
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onToggle(item.id, e.shiftKey)
+  }
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      onClick={() => isSelectionMode ? onToggle(item.id) : onPreview(item)}
+      onClick={handleCardClick}
       className={`group relative bg-bg-card border rounded-xl overflow-hidden cursor-pointer transition-all duration-150 flex flex-col shadow-sm
-        ${isSelectionMode
-          ? isSelected
-            ? 'border-primary ring-1 ring-primary/40'
-            : 'border-border-subtle hover:border-primary/30'
-          : 'border-border-subtle hover:border-[#004eea]'
+        ${isSelected
+          ? 'border-primary ring-1 ring-primary/40'
+          : isSelectionMode
+            ? 'border-border-subtle hover:border-primary/30'
+            : 'border-border-subtle hover:border-[#004eea]'
         }`}
     >
       {/* Selection Overlay */}
       <AnimatePresence>
-        {isSelectionMode && isSelected && (
+        {isSelected && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -67,16 +80,19 @@ export const MediaCard = ({
         )}
       </AnimatePresence>
 
-      {/* Checkbox Icon */}
-      {isSelectionMode && (
-        <div className={`absolute top-2 right-2 z-20 w-5 h-5 rounded flex items-center justify-center border transition-all duration-150
+      {/* Checkbox — visible on hover always, and when selected/in selection mode */}
+      <div
+        onClick={handleCheckboxClick}
+        className={`absolute top-2 right-2 z-20 w-5 h-5 rounded flex items-center justify-center border transition-all duration-150
           ${isSelected
-            ? 'bg-primary border-primary'
-            : 'bg-bg-main border-border-subtle group-hover:border-primary/50'
-          }`}>
-          {isSelected && <Check className="w-3 h-3 text-white" />}
-        </div>
-      )}
+            ? 'bg-primary border-primary opacity-100'
+            : isSelectionMode
+              ? 'bg-bg-main border-border-subtle opacity-100 group-hover:border-primary/50'
+              : 'bg-bg-main/80 border-border-subtle opacity-0 group-hover:opacity-100 group-hover:border-primary/50'
+          }`}
+      >
+        {isSelected && <Check className="w-3 h-3 text-white" />}
+      </div>
 
       {/* Thumbnail Area */}
       <div className="w-full h-[120px] bg-bg-subtle relative flex items-center justify-center overflow-hidden">

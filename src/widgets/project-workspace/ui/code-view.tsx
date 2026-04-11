@@ -6,6 +6,8 @@ import { Button, SubTabs, UsageIndicator } from '@/shared/ui'
 import { FunctionsPage } from './functions-page'
 import { MicrofrontendPage } from './microfrontend-page'
 import { CodeEditorTarget } from '@/entities/session'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/api'
 
 interface CodeViewProps {
   projectId: string
@@ -18,6 +20,20 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
   const activeTab = externalActiveTab || internalActiveTab
   const setActiveTab = externalActiveTab ? () => { } : setInternalActiveTab
 
+  const { data: pricingData } = useQuery({
+    queryKey: ['pricing-all'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/pricing/all')
+      return data
+    },
+    staleTime: 0,
+  })
+
+  const mfData = pricingData?.data?.microfrontend
+  const pagesValue = mfData?.current || 0
+  const pagesTotal = mfData?.limit || 0
+  const pagesPercentage = pagesTotal > 0 ? Math.min((pagesValue / pagesTotal) * 100, 100) : 0
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {!externalActiveTab && (
@@ -29,11 +45,11 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
             </div>
             
             <div className="flex items-center gap-3">
-              <UsageIndicator 
-                label="Pages" 
-                value={10} 
-                total={50} 
-                percentage={20} 
+              <UsageIndicator
+                label="Pages"
+                value={pagesValue}
+                total={pagesTotal}
+                percentage={pagesPercentage}
               />
               
               <Button variant="primary" size="sm" className="gap-2">

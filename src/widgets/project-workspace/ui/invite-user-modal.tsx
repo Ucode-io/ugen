@@ -134,6 +134,8 @@ export const InviteUserModal = ({
     mutationFn: createUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-workspace'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['pricing-all'] })
       onOpenChange(false)
       reset()
     },
@@ -146,6 +148,7 @@ export const InviteUserModal = ({
     mutationFn: updateUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['pricing-all'] })
       onOpenChange(false)
       reset()
     },

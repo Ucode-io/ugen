@@ -1,7 +1,12 @@
 import React from 'react'
-import { ArrowUp, Check, X } from 'lucide-react'
+import { ArrowUp } from "lucide-react";
 import { Button } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
+import {
+  formatBytesAsGB,
+  formatMBAsGB,
+  formatMBSmart,
+} from "@/shared/lib/utils/format-bytes";
 import {
   WorkspaceTableWrapper,
   WorkspaceTable,
@@ -11,17 +16,47 @@ import {
   WorkspaceTableHead,
   WorkspaceTableCell,
 } from '@/widgets/project-workspace/ui/workspace-table'
+import { useAuthStore } from "@/entities/session";
 
-export const UsageLimitsTab = ({ pricingData }: any) => {
+export const UsageLimitsTab = ({ pricingData, fareData }: any) => {
   const d = pricingData?.data || {};
+  const fares: any[] = fareData?.data?.fares || [];
+  const fareId = useAuthStore((state) => state.project?.fare_id);
+  const currentFareName: string =
+    fares.find((fare) => fare.id === fareId)?.name || "";
+
+  // Collect all unique fare items across all fares (preserving order)
+  const allFareItemsMap = new Map<
+    string,
+    { id: string; name: string; type: string }
+  >();
+  fares.forEach((fare) => {
+    fare.fare_item_prices?.forEach((fip: any) => {
+      if (!allFareItemsMap.has(fip.fare_item_id)) {
+        allFareItemsMap.set(fip.fare_item_id, fip.fare_item);
+      }
+    });
+  });
+  const fareItemRows = Array.from(allFareItemsMap.values());
+
+  // Build lookup: fareId -> fareItemId -> value
+  const fareValueMap: Record<string, Record<string, string>> = {};
+  fares.forEach((fare) => {
+    fareValueMap[fare.id] = {};
+    fare.fare_item_prices?.forEach((fip: any) => {
+      fareValueMap[fare.id][fip.fare_item_id] = fip.value;
+    });
+  });
+
+  const formatFareValue = (value: string | undefined) => {
+    if (!value || value === "-1") return "Unlimited";
+    if (value === "0") return "—";
+    return value;
+  };
 
   const formatUnit = (value: number, unit: string) => {
-    if (unit !== 'bytes') return value.toLocaleString();
-    if (value === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(value) / Math.log(k));
-    return parseFloat((value / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    if (unit !== "bytes") return value.toLocaleString();
+    return formatBytesAsGB(value);
   };
 
   const getPercentage = (current: number, limit: number) => {
@@ -30,161 +65,192 @@ export const UsageLimitsTab = ({ pricingData }: any) => {
   };
 
   return (
-    <div className="space-y-6 pt-4 animate-in fade-in duration-300">
+    <div className="animate-in fade-in space-y-6 pt-4 duration-300">
       {/* Current plan banner */}
-      <div className="flex items-center justify-between bg-primary/10 border border-primary/30 rounded-xl px-5 py-4">
+      <div className="bg-primary/10 border-primary/30 flex items-center justify-between rounded-xl border px-5 py-4">
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-primary font-bold mb-0.5">Current Plan</div>
-          <div className="text-lg font-bold text-text-main">
-            Small <span className="text-[13px] text-text-muted font-normal ml-1">— $300 / month</span>
+          <div className="text-primary mb-0.5 text-[11px] font-bold tracking-wide uppercase">
+            Current Plan
+          </div>
+          <div className="text-text-main text-lg font-bold">
+            Small{" "}
+            <span className="text-text-muted ml-1 text-[13px] font-normal">
+              — $300 / month
+            </span>
           </div>
         </div>
-        <Button className="gap-2 shrink-0">
+        <Button className="shrink-0 gap-2">
           <ArrowUp size={16} /> Upgrade Plan
         </Button>
-      </div>      {/* Usage meters */}
+      </div>{" "}
+      {/* Usage meters */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
         {[
-          { key: 'monthly_api_calls', label: 'API call per month', color: 'bg-primary', textColor: 'text-primary' },
-          { key: 'database_size', label: 'Database size', color: 'bg-blue-500', textColor: 'text-blue-500' },
-          { key: 'items', label: 'DB records (row)', color: 'bg-green-500', textColor: 'text-green-500' },
-          { key: 'asset_size', label: 'Asset size', color: 'bg-purple-500', textColor: 'text-purple-500' },
-          { key: 'monthly_tokens', label: 'Monthly Tokens', color: 'bg-orange-500', textColor: 'text-orange-500' },
-          { key: 'today_tokens', label: 'Daily Tokens', color: 'bg-pink-500', textColor: 'text-pink-500' },
+          {
+            key: "monthly_api_calls",
+            label: "API call per month",
+            color: "bg-primary",
+            textColor: "text-primary",
+          },
+          {
+            key: "database_size",
+            label: "Database size",
+            color: "bg-blue-500",
+            textColor: "text-blue-500",
+          },
+          {
+            key: "items",
+            label: "DB records (row)",
+            color: "bg-green-500",
+            textColor: "text-green-500",
+          },
+          {
+            key: "asset_size",
+            label: "Asset size",
+            color: "bg-purple-500",
+            textColor: "text-purple-500",
+          },
+          {
+            key: "monthly_tokens",
+            label: "Monthly Tokens",
+            color: "bg-orange-500",
+            textColor: "text-orange-500",
+          },
+          {
+            key: "today_tokens",
+            label: "Daily Tokens",
+            color: "bg-pink-500",
+            textColor: "text-pink-500",
+          },
         ].map((metric) => {
           const item = d[metric.key];
           const current = item?.current || 0;
           const limit = item?.limit || 0;
-          const unit = item?.unit || 'count';
+          const unit = item?.unit || "count";
           const percentage = getPercentage(current, limit);
 
-          const displayUnit = unit === 'MB' ? 'MB' : unit;
-          const formatValue = (val: number) => {
-            if (unit === 'count') return val.toLocaleString();
-            if (unit === 'tokens') return val.toLocaleString();
-            if (unit === 'MB') return val.toFixed(2) + ' MB';
+          const formatCurrent = (val: number) => {
+            if (unit === "count") return val.toLocaleString();
+            if (unit === "tokens") return val.toLocaleString();
+            if (unit === "MB") return formatMBSmart(val);
+            return formatUnit(val, unit);
+          };
+
+          const formatLimit = (val: number) => {
+            if (unit === "count") return val.toLocaleString();
+            if (unit === "tokens") return val.toLocaleString();
+            if (unit === "MB") return formatMBAsGB(val);
             return formatUnit(val, unit);
           };
 
           return (
-            <div key={metric.key} className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
+            <div
+              key={metric.key}
+              className="bg-bg-card border-border-subtle flex min-h-[140px] flex-col justify-between rounded-xl border p-4 transition-shadow hover:shadow-md"
+            >
               <div>
-                <div className="text-xs text-text-muted font-semibold mb-2">{metric.label}</div>
-                <div className="flex items-baseline gap-1.5 mb-2 flex-wrap">
-                  <span className={cn("text-[20px] font-bold", metric.textColor)}>{formatValue(current)}</span>
-                  <span className="text-[12px] text-text-muted">/ {formatValue(limit)}</span>
+                <div className="text-text-muted mb-2 text-xs font-semibold">
+                  {metric.label}
+                </div>
+                <div className="mb-2 flex flex-wrap items-baseline gap-1.5">
+                  <span
+                    className={cn("text-[20px] font-bold", metric.textColor)}
+                  >
+                    {formatCurrent(current)}
+                  </span>
+                  <span className="text-text-muted text-[12px]">
+                    / {formatLimit(limit)}
+                  </span>
                 </div>
               </div>
               <div>
-                <div className="h-1.5 bg-bg-sidebar rounded-full overflow-hidden mb-1.5">
+                <div className="bg-bg-sidebar mb-1.5 h-1.5 overflow-hidden rounded-full">
                   <div
-                    className={cn("h-full rounded-full transition-all duration-500", metric.color)}
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      metric.color,
+                    )}
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
-                <div className="text-[11px] text-text-muted">
-                  {formatValue(Math.max(limit - current, 0))} remaining
+                <div className="text-text-muted text-[11px]">
+                  {formatCurrent(Math.max(limit - current, 0))} remaining
                 </div>
               </div>
             </div>
           );
         })}
       </div>
-
       {/* Plan comparison table */}
-      <div>
-        <div className="text-sm font-semibold text-text-main mb-3 ml-1">Plan Comparison</div>
-        <WorkspaceTableWrapper>
-          <WorkspaceTable>
-            <WorkspaceTableHeader>
-              <WorkspaceTableRow>
-                <WorkspaceTableHead className="w-1/3">Feature</WorkspaceTableHead>
-                <WorkspaceTableHead className="text-center w-1/6">
-                  <div className="font-bold text-text-main">Free</div>
-                  <div className="font-normal text-text-muted normal-case text-[11px] mt-0.5">$0/mo</div>
-                </WorkspaceTableHead>
-                <WorkspaceTableHead className="text-center w-1/6 bg-primary/5 text-primary border-t-2 border-t-primary border-x border-x-primary/20">
-                  <div className="font-bold">Small ✓</div>
-                  <div className="font-normal text-text-muted normal-case text-[11px] mt-0.5">$300/mo</div>
-                </WorkspaceTableHead>
-                <WorkspaceTableHead className="text-center w-1/6">
-                  <div className="font-bold text-text-main">Medium</div>
-                  <div className="font-normal text-text-muted normal-case text-[11px] mt-0.5">$600/mo</div>
-                </WorkspaceTableHead>
-                <WorkspaceTableHead className="text-center w-1/6">
-                  <div className="font-bold text-text-main">Enterprise</div>
-                  <div className="font-normal text-text-muted normal-case text-[11px] mt-0.5">Custom</div>
-                </WorkspaceTableHead>
-              </WorkspaceTableRow>
-            </WorkspaceTableHeader>
-            <WorkspaceTableBody>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>API Calls</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">100</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 text-primary font-semibold border-x border-x-primary/20">500</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Unlimited</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Unlimited</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>Storage</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">10 GB</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 text-primary font-semibold border-x border-x-primary/20">50 GB</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Unlimited</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Custom</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>Database Records</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">100,000</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 text-primary font-semibold border-x border-x-primary/20">1,000,000</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Unlimited</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Unlimited</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>Log Retention</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">1 day</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 text-primary font-semibold border-x border-x-primary/20">30 days</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">30 days</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">90 days</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>Infrastructure</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Shared</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 text-primary font-semibold border-x border-x-primary/20">Shared</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Shared</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center">Dedicated</WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>Role Based Access</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 border-x border-x-primary/20"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>REST API & Webhooks</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 border-x border-x-primary/20"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>Advanced Reporting</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><X size={16} className="text-text-muted/50 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 border-x border-x-primary/20"><X size={16} className="text-text-muted/50 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-              </WorkspaceTableRow>
-              <WorkspaceTableRow>
-                <WorkspaceTableCell>Dedicated Infrastructure</WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><X size={16} className="text-text-muted/50 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center bg-primary/5 border-x border-x-primary/20 border-b-2 border-b-primary rounded-b-xl"><X size={16} className="text-text-muted/50 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><X size={16} className="text-text-muted/50 mx-auto" /></WorkspaceTableCell>
-                <WorkspaceTableCell className="text-center"><Check size={16} className="text-green-500 mx-auto" /></WorkspaceTableCell>
-              </WorkspaceTableRow>
-            </WorkspaceTableBody>
-          </WorkspaceTable>
-        </WorkspaceTableWrapper>
-      </div>
+      {fares.length > 0 && (
+        <div>
+          <div className="text-text-main mb-3 ml-1 text-sm font-semibold">
+            Plan Comparison
+          </div>
+          <WorkspaceTableWrapper>
+            <WorkspaceTable>
+              <WorkspaceTableHeader>
+                <WorkspaceTableRow>
+                  <WorkspaceTableHead className="w-1/4">
+                    Feature
+                  </WorkspaceTableHead>
+                  {fares.map((fare) => {
+                    const isCurrent = fare.name === currentFareName;
+                    return (
+                      <WorkspaceTableHead
+                        key={fare.id}
+                        className={cn(
+                          "text-center",
+                          isCurrent &&
+                            "bg-primary/5 text-primary border-t-primary border-x-primary/20 border-x border-t-2",
+                        )}
+                      >
+                        <div className="font-bold">
+                          {fare.name}
+                          {isCurrent && " ✓"}
+                        </div>
+                        <div className="text-text-muted mt-0.5 text-[11px] font-normal normal-case">
+                          {fare.price > 0 ? `$${fare.price}/mo` : "Free"}
+                        </div>
+                      </WorkspaceTableHead>
+                    );
+                  })}
+                </WorkspaceTableRow>
+              </WorkspaceTableHeader>
+              <WorkspaceTableBody>
+                {fareItemRows.map((fareItem, rowIdx) => {
+                  const isLast = rowIdx === fareItemRows.length - 1;
+                  return (
+                    <WorkspaceTableRow key={fareItem.id}>
+                      <WorkspaceTableCell>{fareItem.name}</WorkspaceTableCell>
+                      {fares.map((fare) => {
+                        const isCurrent = fare.name === currentFareName;
+                        const rawValue = fareValueMap[fare.id]?.[fareItem.id];
+                        const displayValue = formatFareValue(rawValue);
+                        return (
+                          <WorkspaceTableCell
+                            key={fare.id}
+                            className={cn(
+                              "text-center",
+                              isCurrent &&
+                                "bg-primary/5 text-primary border-x-primary/20 border-x font-semibold",
+                              isCurrent &&
+                                isLast &&
+                                "border-b-primary border-b-2",
+                            )}
+                          >
+                            {displayValue}
+                          </WorkspaceTableCell>
+                        );
+                      })}
+                    </WorkspaceTableRow>
+                  );
+                })}
+              </WorkspaceTableBody>
+            </WorkspaceTable>
+          </WorkspaceTableWrapper>
+        </div>
+      )}
     </div>
-  )
-}
+  );
+};
