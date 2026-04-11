@@ -27,6 +27,21 @@ export interface Column {
   index?: "true" | "false";
 }
 
+/** A single constraint returned by GET /v2/items/{table}/schema */
+export interface SchemaConstraint {
+  label: string;  // e.g. "PK", "FK", "UNIQUE"
+  name: string;   // e.g. "shipments_pkey"
+}
+
+/** A column entry returned by GET /v2/items/{table}/schema */
+export interface SchemaColumn {
+  name: string;
+  type: string;
+  nullable: 'YES' | 'NO' | string;
+  default: string | null;
+  constraints: SchemaConstraint[] | null;
+}
+
 export interface TableDetail extends Table {
   fields: Column[];
 }
