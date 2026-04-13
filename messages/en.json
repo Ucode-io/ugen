@@ -360,6 +360,7 @@
       "allWorkspaces": "All workspaces",
       "createWorkspace": "Create workspace",
       "dropHere": "Drop here",
+      "removeFromFolder": "Remove from folder",
       "addChild": "Add child",
       "edit": "Edit",
       "delete": "Delete",
