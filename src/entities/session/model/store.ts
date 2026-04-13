@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { queryClient } from '@/shared/api/query-client'
 
 export interface CodeEditorTarget {
   kind: 'frontend' | 'microfrontend' | 'function'
@@ -114,7 +115,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           activeView: 'dashboard'
         }),
-      logout: () =>
+      logout: () => {
+        queryClient.clear()
         set({
           user: null,
           project: null,
@@ -129,7 +131,8 @@ export const useAuthStore = create<AuthState>()(
           activeProjectTab: null,
           codeEditorTarget: null,
           languages: [],
-        }),
+        })
+      },
       setActiveView: (view) => set({ activeView: view }),
     }),
     {

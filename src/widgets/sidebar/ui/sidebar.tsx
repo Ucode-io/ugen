@@ -13,6 +13,7 @@ import { ProjectsNav } from "./components/projects-nav";
 import { RecentsNav } from "./components/recents-nav";
 import { ProjectDropdown } from "./components/project-dropdown";
 import { ProfileFooter } from "./components/profile-footer";
+import { ProfileModal } from "./components/profile-modal";
 
 export const Sidebar = () => {
   const router = useRouter();
@@ -21,6 +22,8 @@ export const Sidebar = () => {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAllProjectsOpen, setIsAllProjectsOpen] = useState(true);
+
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const [isProjectPopupOpen, setIsProjectPopupOpen] = useState(false);
   const projectPopupRef = useRef<HTMLDivElement>(null);
@@ -82,6 +85,7 @@ export const Sidebar = () => {
           isProjectPopupOpen={isProjectPopupOpen}
           setIsProjectPopupOpen={setIsProjectPopupOpen}
           projectPopupRef={projectPopupRef}
+          onOpenProfileModal={() => setIsProfileModalOpen(true)}
         />
       </div>
 
@@ -115,9 +119,11 @@ export const Sidebar = () => {
         setActiveView={setActiveView}
         router={router}
         handleLogout={handleLogout}
+        onOpenProfileModal={() => setIsProfileModalOpen(true)}
       />
 
       <SearchModal isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
+      <ProfileModal isOpen={isProfileModalOpen} onOpenChange={setIsProfileModalOpen} />
     </aside>
   );
 }

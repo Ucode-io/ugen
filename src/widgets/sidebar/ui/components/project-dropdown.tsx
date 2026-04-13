@@ -14,6 +14,7 @@ interface ProjectPopupProps {
   isProjectPopupOpen: boolean;
   setIsProjectPopupOpen: (val: boolean) => void;
   projectPopupRef: React.RefObject<HTMLDivElement | null>;
+  onOpenProfileModal: () => void;
 }
 
 export const ProjectDropdown = ({
@@ -23,6 +24,7 @@ export const ProjectDropdown = ({
   isProjectPopupOpen,
   setIsProjectPopupOpen,
   projectPopupRef,
+  onOpenProfileModal,
 }: ProjectPopupProps) => {
   const t = useTranslations('widgets.sidebar')
 
@@ -65,7 +67,13 @@ export const ProjectDropdown = ({
                 {project?.subscription_type || t("freePlan")}
               </div>
             </div>
-            <button className="text-text-muted hover:text-text-main hover:bg-hover-bg shrink-0 rounded-md p-1.5 transition-colors">
+            <button
+              onClick={() => {
+                setIsProjectPopupOpen(false)
+                onOpenProfileModal()
+              }}
+              className="text-text-muted hover:text-text-main hover:bg-hover-bg shrink-0 rounded-md p-1.5 transition-colors"
+            >
               <Settings size={16} />
             </button>
           </div>
