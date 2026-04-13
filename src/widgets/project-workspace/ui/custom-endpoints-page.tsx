@@ -21,7 +21,7 @@ import {
   LayoutGrid,
   ChevronRight
 } from 'lucide-react'
-import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, Skeleton, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, SubTabs } from '@/shared/ui'
+import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, Skeleton, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, SubTabs, UsageIndicator } from '@/shared/ui'
 import { WorkspaceDataTable } from './workspace-data-table'
 import { ApiIntegrationsPage } from './api-integrations-page'
 import { ApiKeysPage } from './api-keys-page'
@@ -746,12 +746,39 @@ const EndpointsView = ({ projectId }: { projectId: string }) => {
 export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
   const [activeTab, setActiveTab] = useState('sdk')
 
+
+  const { data: pricingData } = useQuery({
+    queryKey: ['pricing-all'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/pricing/all')
+      return data
+    },
+  })
+
+  const apiCallsItem = pricingData?.data?.monthly_api_calls
+  const apiCurrent = apiCallsItem?.current || 0
+  const apiLimit = apiCallsItem?.limit || 0
+  const apiPercentage = apiLimit > 0 ? Math.min((apiCurrent / apiLimit) * 100, 100) : 0
+  
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-[22px] font-bold text-text-main mb-1">API</h1>
-          <p className="text-text-muted text-[13px]">Manage endpoints, SDK, and API keys</p>
+        <div className='flex items-center justify-between'>
+          <div>
+            <h1 className="text-[22px] font-bold text-text-main mb-1">API</h1>
+            <p className="text-text-muted text-[13px]">Manage endpoints, SDK, and API keys</p>
+          </div>
+          {/* ── API calls usage indicator ── */}
+          <div className='max-w-[320px] grow'>
+            <UsageIndicator
+              label="API calls / month"
+              value={apiCurrent.toLocaleString()}
+              total={apiLimit.toLocaleString()}
+              percentage={apiPercentage}
+              className="flex-1"
+            />
+          </div>
         </div>
 
         <SubTabs

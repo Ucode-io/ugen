@@ -343,7 +343,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
       <div className="space-y-6 animate-in fade-in duration-500">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-text-main tracking-tight">Microfrontend</h1>
+            <h1 className="text-2xl font-bold text-text-main tracking-tight">Frontend</h1>
             <p className="text-text-muted text-sm mt-1">Configure and manage modular micro-frontend components.</p>
           </div>
           <div className="flex items-center gap-3">

@@ -31,7 +31,7 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
 
   const isFunctionsTab = activeTab === 'functions'
   const activeUsage = isFunctionsTab ? pricingData?.data?.functions : pricingData?.data?.microfrontend
-  const usageLabel = isFunctionsTab ? 'Functions' : 'Pages'
+  const usageLabel = isFunctionsTab ? 'Server Functions' : 'Frontend'
   const pagesValue = activeUsage?.current || 0
   const pagesTotal = activeUsage?.limit || 0
   const pagesPercentage = pagesTotal > 0 ? Math.min((pagesValue / pagesTotal) * 100, 100) : 0

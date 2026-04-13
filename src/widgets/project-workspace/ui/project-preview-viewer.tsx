@@ -77,13 +77,16 @@ export const ProjectPreviewViewer = () => {
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
       if (e.data?.type === 'INSPECT_SELECT') {
-        const { tag, className, rect } = e.data
+        const { tag, id, className, name, domPath, textContent, rect } = e.data
 
         addSelectedElement({
           id: Math.random().toString(36).substr(2, 9),
           tagName: tag.toUpperCase(),
           className: className ? className.split(' ').slice(0, 3).join(' ') : '',
-          text: '' // text extraction could be added if needed
+          htmlId: id || undefined,
+          dataName: name || undefined,
+          domPath: domPath || undefined,
+          textContent: textContent || undefined,
         })
 
         if (rect && containerRef.current) {
