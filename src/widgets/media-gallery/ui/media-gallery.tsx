@@ -32,6 +32,7 @@ import { MediaViewerModal } from './media-viewer-modal'
 import { Button, UsageIndicator } from "@/shared/ui";
 import { api } from "@/shared/api";
 import { cn } from '@/shared/lib/utils/cn'
+import { formatMBSmart, formatMBAsGB } from '@/shared/lib/utils/format-bytes'
 import { MediaSkeleton } from './media-skeleton'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef } from 'react'
@@ -126,11 +127,10 @@ export const MediaGallery = ({
     isSelectionMode,
   } = useMediaGallery(files);
 
-  // Storage usage from backend
+  // Storage usage from backend (values are in MB, display as GB like analytics-dashboard)
   const assetSize = pricingData?.data?.asset_size;
-  const unit = assetSize?.unit ?? 'MB'
-  const storageUsed = assetSize ? `${(assetSize.current || 0).toFixed(2)} ${unit}` : '0 MB'
-  const storageTotal = assetSize ? `${(assetSize.limit || 0).toFixed(2)} ${unit}` : '0 MB'
+  const storageUsed = assetSize ? formatMBSmart(assetSize.current || 0) : '0 MB'
+  const storageTotal = assetSize ? formatMBAsGB(assetSize.limit || 0) : '0 GB'
   const storagePercentage = assetSize?.limit
     ? Math.min(((assetSize.current || 0) / assetSize.limit) * 100, 100)
     : 0;
