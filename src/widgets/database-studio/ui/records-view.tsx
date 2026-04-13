@@ -16,8 +16,11 @@ import {
   Save,
   Ban,
   MoreHorizontal,
-  Download
+  Download,
+  LayoutList,
+  GitFork
 } from 'lucide-react'
+import { SchemaView } from './schema-view'
 import { toast } from 'sonner'
 import {
   useDatabaseStore,
@@ -41,7 +44,10 @@ import { Skeleton } from '@/shared/ui'
 import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/entities/session'
 
+type ActiveTab = 'records' | 'schema'
+
 export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { projectId: string, isPannelOpen: boolean, onTogglePannel: () => void }) => {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('records')
   const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
   const { selectedTable, setCurrentView, resetToTables, setFilters } = useDatabaseStore()
@@ -407,7 +413,8 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
   }, [schema, records, selectedColumns, isInlineAdding, editingCell, editValue])
 
   useEffect(() => {
-    // We no longer redirect to 'tables' when selectedTable is null since they are shown side by side
+    // Reset column selection whenever the user switches to a different table
+    setSelectedColumns([])
   }, [selectedTable])
 
   if (!selectedTable) {
@@ -441,6 +448,36 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
           >
             {!isPannelOpen ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
           </button>
+
+          {/* View mode toggle: Table | Schema */}
+          <div className="flex items-center bg-bg-card border border-border-subtle rounded-lg p-0.5 gap-0.5 shrink-0">
+            <button
+              id="db-view-tab-records"
+              onClick={() => setActiveTab('records')}
+              title="Table view"
+              className={cn(
+                "p-1 rounded-[4px] transition-all duration-150 flex items-center justify-center",
+                activeTab === 'records'
+                  ? "bg-bg-main text-primary shadow-sm"
+                  : "text-text-muted/60 hover:text-text-muted"
+              )}
+            >
+              <LayoutList size={16} />
+            </button>
+            <button
+              id="db-view-tab-schema"
+              onClick={() => setActiveTab('schema')}
+              title="Schema view"
+              className={cn(
+                "p-1 rounded-[4px] transition-all duration-150 flex items-center justify-center",
+                activeTab === 'schema'
+                  ? "bg-bg-main text-primary shadow-sm"
+                  : "text-text-muted/60 hover:text-text-muted"
+              )}
+            >
+              <GitFork size={16} />
+            </button>
+          </div>
 
           {isInlineAdding ? (
             <div className="flex items-center gap-2">
@@ -646,7 +683,10 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
         </div>
       </div>
 
-      {isFilterOpen && (
+      {/* Schema tab renders full SchemaView, bypassing records UI */}
+      {activeTab === 'schema' && <SchemaView />}
+
+      {activeTab === 'records' && isFilterOpen && (
         <div className={cn("p-3 bg-bg-main/30 border-b border-border-subtle flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-200 shrink-0", localFilters.length > 0 ? "items-start" : "items-center self-stretch")}>
           {localFilters.length === 0 ? (
             <div className="text-xs text-text-muted px-3 py-2 font-medium">No active filters. Click Add filter.</div>
@@ -734,27 +774,31 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
         </div>
       )}
 
-      {isRecordsLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex gap-4">
-              {Array.from({ length: columns.length || 4 }).map((_, j) => (
-                <Skeleton key={j} className="h-8 flex-1" />
+      {activeTab === 'records' && (
+        <div className="flex-1 overflow-auto">
+          {isRecordsLoading ? (
+            <div className="space-y-4 p-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  {Array.from({ length: columns.length || 4 }).map((_, j) => (
+                    <Skeleton key={j} className="h-8 flex-1" />
+                  ))}
+                </div>
               ))}
             </div>
-          ))}
+          ) : (
+            <DataTable
+              columns={columns}
+              data={displayRecords}
+              isLoading={isRecordsLoading}
+              emptyMessage={t('records.noResults')}
+              containerClassName="border-none shadow-none"
+              tableClassName="min-w-max border-collapse"
+              rowClassName={(row: any) => row.__isDraft ? "bg-primary/[0.04] dark:bg-primary/[0.08]" : ""}
+              className="rounded-none border-none [&_td]:p-1.5 [&_td]:border [&_td]:border-border-subtle [&_th]:p-1.5 [&_th]:border [&_th]:border-border-subtle [&_th]:h-8"
+            />
+          )}
         </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={displayRecords}
-          isLoading={isRecordsLoading}
-          emptyMessage={t('records.noResults')}
-          containerClassName="border-none shadow-none"
-          tableClassName="min-w-max"
-          rowClassName={(row: any) => row.__isDraft ? "bg-primary/[0.04] dark:bg-primary/[0.08]" : ""}
-          className="rounded-none border-none [&_td]:p-1.5 [&_td]:border [&_td]:border-border-subtle [&_th]:p-1.5 [&_th]:border [&_th]:border-border-subtle [&_th]:h-8"
-        />
       )}
     </div>
   )

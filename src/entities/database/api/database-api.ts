@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api';
-import { Table, Column, TableRecord, TableDetail } from '../model/types';
+import { Table, Column, TableRecord, TableDetail, SchemaColumn } from '../model/types';
 
 // Mock DB Tables
 const MOCK_SCHEMAS: Record<string, Column[]> = {
@@ -101,6 +101,19 @@ export const databaseApi = {
     ];
   },
 
+  fetchTableSchemaV2: async (tableSlug: string, projectId: string): Promise<SchemaColumn[]> => {
+    const { data } = await api.get<any>(`/v2/items/${tableSlug}/schema`, {
+      params: { 'project-id': projectId }
+    });
+    // Real response shape: { data: { data: { columns: [...], constraints: [...] } } }
+    const columns: SchemaColumn[] =
+      data?.data?.data?.columns ??
+      data?.data?.columns ??
+      data?.columns ??
+      [];
+    return Array.isArray(columns) ? columns : [];
+  },
+
   fetchTableDetail: async (tableSlug: string, projectId: string): Promise<TableDetail> => {
     const { data } = await api.post<any>(`/v1/table-details/${tableSlug}?projectId=${projectId}`, { data: {} });
     return data?.data?.data || data?.data;
@@ -119,6 +132,28 @@ export const databaseApi = {
 
   updateRecord: async (tableName: string, data: any): Promise<any> => {
     return api.put(`/v2/items/${tableName}`, { data });
+  },
+
+  addSchemaField: async (
+    tableSlug: string,
+    projectId: string,
+    payload: {
+      id: string;
+      slug: string;
+      label: string;
+      type: string;
+      table_id: string;
+      index: string;
+      required: boolean;
+      show_label: boolean;
+      is_visible: boolean;
+      attributes: Record<string, unknown>;
+    }
+  ): Promise<any> => {
+    const { data } = await api.post<any>(`/v2/items/${tableSlug}/schema`, payload, {
+      params: { 'project-id': projectId }
+    });
+    return data;
   },
 
   fetchLogs: async (): Promise<any[]> => {
@@ -160,6 +195,17 @@ export const useTableSchema = (tableName: string | null) =>
     queryKey: ['db-schema', tableName],
     queryFn: () => databaseApi.fetchTableSchema(tableName!),
     enabled: !!tableName
+  });
+
+/** Real schema endpoint: GET /v2/items/{tableSlug}/schema
+ *  Re-fetches automatically whenever tableSlug or projectId changes.
+ */
+export const useTableSchemaV2 = (tableSlug: string | null, projectId: string) =>
+  useQuery({
+    queryKey: ['db-schema-v2', tableSlug, projectId],
+    queryFn: () => databaseApi.fetchTableSchemaV2(tableSlug!, projectId),
+    enabled: !!tableSlug && !!projectId,
+    placeholderData: (previousData) => previousData,
   });
 
 export const useExecuteQuery = () => {
@@ -213,3 +259,33 @@ export const useDeleteTable = () => {
     }
   });
 };
+
+export const useAddSchemaField = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tableSlug,
+      projectId,
+      payload,
+    }: {
+      tableSlug: string;
+      projectId: string;
+      payload: {
+        id: string;
+        slug: string;
+        label: string;
+        type: string;
+        table_id: string;
+        index: string;
+        required: boolean;
+        show_label: boolean;
+        is_visible: boolean;
+        attributes: Record<string, unknown>;
+      };
+    }) => databaseApi.addSchemaField(tableSlug, projectId, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug] });
+    },
+  });
+};
+

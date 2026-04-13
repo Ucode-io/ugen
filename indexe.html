@@ -238,6 +238,29 @@ tr:hover td{background:var(--bg3)}
 .db-val-badge.yellow{background:rgba(234,179,8,.12);color:#eab308}
 .db-val-badge.red{background:rgba(239,68,68,.12);color:var(--red)}
 #page-database.active{display:flex !important;flex-direction:column !important}
+
+/* Schema Editor */
+.schema-field-row{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);gap:12px;transition:.1s}
+.schema-field-row:hover{background:var(--bg3)}
+.schema-field-row.editing{background:var(--accent-bg);border-left:2px solid var(--accent)}
+.schema-field-name{font-weight:600;font-size:13px;color:var(--text);min-width:140px}
+.schema-field-type{font-family:'Fira Code',monospace;font-size:12px;color:#60a5fa;background:rgba(96,165,250,.08);padding:2px 8px;border-radius:4px;min-width:100px;text-align:center}
+.schema-constraint{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.schema-constraint.pk{background:rgba(234,179,8,.12);color:#eab308}
+.schema-constraint.fk{background:rgba(59,130,246,.12);color:var(--blue)}
+.schema-constraint.nn{background:rgba(239,68,68,.12);color:var(--red)}
+.schema-constraint.uq{background:rgba(168,85,247,.12);color:var(--purple)}
+.schema-constraint.df{background:rgba(34,197,94,.12);color:var(--green)}
+.schema-constraint.ai{background:rgba(234,179,8,.12);color:#eab308}
+.schema-field-actions{display:flex;gap:4px;margin-left:auto;opacity:0;transition:.15s}
+.schema-field-row:hover .schema-field-actions{opacity:1}
+.schema-action-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:.15s}
+.schema-action-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--text3)}
+.schema-action-btn.delete:hover{background:rgba(239,68,68,.1);color:var(--red);border-color:var(--red)}
+.schema-edit-row{display:grid;grid-template-columns:180px 160px 1fr auto;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg2);align-items:center}
+.schema-edit-row input,.schema-edit-row select{padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text)}
+.schema-edit-row select{min-width:120px}
+.schema-section-header{padding:10px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600;background:var(--bg2);border-bottom:1px solid var(--border)}
 .role-btn{padding:6px 16px;border:none;background:transparent;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;transition:.15s;border-right:1px solid var(--border)}
 .role-btn:last-child{border-right:none}
 .role-btn:hover{background:var(--bg3);color:var(--text)}
@@ -1053,12 +1076,15 @@ await client
           <button class="subtab" onclick="switchSubtab(this,'db-sub','db-sql-editor')" style="border-radius:0">
             <i class="fas fa-terminal" style="margin-right:4px"></i> SQL Editor
           </button>
+          <button class="subtab" onclick="switchSubtab(this,'db-sub','db-schema-editor')" style="border-radius:0">
+            <i class="fas fa-project-diagram" style="margin-right:4px"></i> Schema
+          </button>
           <span style="flex:1"></span>
           <span style="font-size:11px;color:var(--text3)"><i class="fas fa-circle" style="color:var(--green);font-size:6px;margin-right:4px"></i> Connected &middot; PostgreSQL 16</span>
         </div>
 
         <!-- DB Table Editor View -->
-        <div id="db-table-view" class="db-sub" style="flex:1;display:flex;overflow:hidden">
+        <div id="db-table-view" class="db-sub" data-display="flex" style="flex:1;display:flex;overflow:hidden">
           <!-- Table list sidebar -->
           <div style="width:200px;min-width:200px;border-right:1px solid var(--border);background:var(--bg2);overflow-y:auto;padding:8px 0">
             <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
@@ -1311,7 +1337,7 @@ await client
         </div>
 
         <!-- DB SQL Editor View -->
-        <div id="db-sql-editor" class="db-sub" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <div id="db-sql-editor" class="db-sub" data-display="flex" style="display:none;flex:1;flex-direction:column;overflow:hidden">
           <div style="display:flex;flex:1;overflow:hidden">
             <!-- Saved queries sidebar -->
             <div style="width:220px;min-width:220px;border-right:1px solid var(--border);background:var(--bg2);overflow-y:auto;padding:8px 0">
@@ -1396,6 +1422,272 @@ LIMIT 50;</textarea>
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DB Schema Editor View -->
+        <div id="db-schema-editor" class="db-sub" data-display="flex" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+          <div style="display:flex;flex:1;overflow:hidden">
+            <!-- Table list sidebar -->
+            <div style="width:200px;min-width:200px;border-right:1px solid var(--border);background:var(--bg2);overflow-y:auto;padding:8px 0">
+              <div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600">Tables</span>
+                <button class="chat-btn" style="width:22px;height:22px" title="New Table"><i class="fas fa-plus" style="font-size:10px"></i></button>
+              </div>
+              <input style="margin:0 8px 6px;width:calc(100% - 16px);padding:5px 8px;font-size:11px" placeholder="Search tables...">
+              <div class="db-tbl-item active" onclick="selectSchemaTable(this,'properties')"><i class="fas fa-table" style="color:var(--accent);font-size:10px;width:14px"></i> properties</div>
+              <div class="db-tbl-item" onclick="selectSchemaTable(this,'clients')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> clients</div>
+              <div class="db-tbl-item" onclick="selectSchemaTable(this,'transactions')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> transactions</div>
+              <div class="db-tbl-item" onclick="selectSchemaTable(this,'showings')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> showings</div>
+              <div class="db-tbl-item" onclick="selectSchemaTable(this,'users')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> users</div>
+              <div class="db-tbl-item" onclick="selectSchemaTable(this,'roles')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> roles</div>
+              <div class="db-tbl-item" onclick="selectSchemaTable(this,'media')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> media</div>
+              <div class="db-tbl-item" onclick="selectSchemaTable(this,'notifications')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> notifications</div>
+              <div class="db-tbl-item" onclick="selectSchemaTable(this,'audit_logs')"><i class="fas fa-table" style="color:var(--text3);font-size:10px;width:14px"></i> audit_logs</div>
+            </div>
+
+            <!-- Schema detail area -->
+            <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+              <!-- Schema toolbar -->
+              <div style="display:flex;align-items:center;padding:10px 16px;gap:8px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+                <i class="fas fa-table" style="color:var(--accent);font-size:13px"></i>
+                <span style="font-size:14px;font-weight:600;color:var(--text)" id="schemaTableName">properties</span>
+                <span style="font-size:12px;color:var(--text3)" id="schemaFieldCount">14 fields</span>
+                <span style="flex:1"></span>
+                <button class="btn btn-sm" onclick="toggleSchemaAddField()"><i class="fas fa-plus"></i> Add Field</button>
+                <div class="toolbar-sep" style="height:20px"></div>
+                <button class="btn btn-sm"><i class="fas fa-download"></i> Export DDL</button>
+                <button class="btn btn-sm"><i class="fas fa-sync-alt"></i> Refresh</button>
+              </div>
+
+              <!-- Add field inline form (hidden by default) -->
+              <div id="schemaAddFieldRow" style="display:none">
+                <div class="schema-edit-row">
+                  <input type="text" placeholder="Field name" id="newFieldName">
+                  <select id="newFieldType">
+                    <option value="varchar(255)">varchar(255)</option>
+                    <option value="text">text</option>
+                    <option value="int4">int4</option>
+                    <option value="int8">int8</option>
+                    <option value="serial">serial</option>
+                    <option value="bigserial">bigserial</option>
+                    <option value="numeric">numeric</option>
+                    <option value="boolean">boolean</option>
+                    <option value="timestamptz">timestamptz</option>
+                    <option value="date">date</option>
+                    <option value="jsonb">jsonb</option>
+                    <option value="uuid">uuid</option>
+                  </select>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="newFieldNN" style="accent-color:var(--accent)"> NOT NULL</label>
+                    <label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="newFieldUQ" style="accent-color:var(--accent)"> UNIQUE</label>
+                    <input type="text" placeholder="Default value" style="width:130px;padding:5px 8px;font-size:11px" id="newFieldDefault">
+                  </div>
+                  <div style="display:flex;gap:4px">
+                    <button class="btn btn-sm btn-primary" onclick="addSchemaField()"><i class="fas fa-check"></i> Add</button>
+                    <button class="btn btn-sm" onclick="toggleSchemaAddField()"><i class="fas fa-times"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fields list -->
+              <div style="flex:1;overflow:auto" id="schemaFieldsList">
+                <div class="schema-section-header">Columns</div>
+
+                <!-- id -->
+                <div class="schema-field-row" id="schema-row-id">
+                  <span class="schema-field-name">id</span>
+                  <span class="schema-field-type">serial</span>
+                  <span class="schema-constraint pk">PK</span>
+                  <span class="schema-constraint ai">AUTO INC</span>
+                  <span class="schema-constraint nn">NOT NULL</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('id')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('id')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- uuid -->
+                <div class="schema-field-row" id="schema-row-uuid">
+                  <span class="schema-field-name">uuid</span>
+                  <span class="schema-field-type">varchar(20)</span>
+                  <span class="schema-constraint uq">UNIQUE</span>
+                  <span class="schema-constraint nn">NOT NULL</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('uuid')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('uuid')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- title -->
+                <div class="schema-field-row" id="schema-row-title">
+                  <span class="schema-field-name">title</span>
+                  <span class="schema-field-type">varchar(256)</span>
+                  <span class="schema-constraint nn">NOT NULL</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('title')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('title')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- price -->
+                <div class="schema-field-row" id="schema-row-price">
+                  <span class="schema-field-name">price</span>
+                  <span class="schema-field-type">numeric(2,0)</span>
+                  <span class="schema-constraint nn">NOT NULL</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('price')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('price')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- currency -->
+                <div class="schema-field-row" id="schema-row-currency">
+                  <span class="schema-field-name">currency</span>
+                  <span class="schema-field-type">varchar(3)</span>
+                  <span class="schema-constraint df">DEFAULT 'USD'</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('currency')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('currency')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- bedrooms -->
+                <div class="schema-field-row" id="schema-row-bedrooms">
+                  <span class="schema-field-name">bedrooms</span>
+                  <span class="schema-field-type">int4</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('bedrooms')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('bedrooms')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- bathrooms -->
+                <div class="schema-field-row" id="schema-row-bathrooms">
+                  <span class="schema-field-name">bathrooms</span>
+                  <span class="schema-field-type">int4</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('bathrooms')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('bathrooms')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- area_sqft -->
+                <div class="schema-field-row" id="schema-row-area_sqft">
+                  <span class="schema-field-name">area_sqft</span>
+                  <span class="schema-field-type">numeric</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('area_sqft')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('area_sqft')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- status -->
+                <div class="schema-field-row" id="schema-row-status">
+                  <span class="schema-field-name">status</span>
+                  <span class="schema-field-type">varchar(20)</span>
+                  <span class="schema-constraint nn">NOT NULL</span>
+                  <span class="schema-constraint df">DEFAULT 'available'</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('status')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('status')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- address -->
+                <div class="schema-field-row" id="schema-row-address">
+                  <span class="schema-field-name">address</span>
+                  <span class="schema-field-type">text</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('address')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('address')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- owner_id -->
+                <div class="schema-field-row" id="schema-row-owner_id">
+                  <span class="schema-field-name">owner_id</span>
+                  <span class="schema-field-type">int4</span>
+                  <span class="schema-constraint fk">FK &rarr; users.id</span>
+                  <span class="schema-constraint nn">NOT NULL</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('owner_id')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('owner_id')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- agent_id -->
+                <div class="schema-field-row" id="schema-row-agent_id">
+                  <span class="schema-field-name">agent_id</span>
+                  <span class="schema-field-type">int4</span>
+                  <span class="schema-constraint fk">FK &rarr; users.id</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('agent_id')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('agent_id')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- created_at -->
+                <div class="schema-field-row" id="schema-row-created_at">
+                  <span class="schema-field-name">created_at</span>
+                  <span class="schema-field-type">timestamptz</span>
+                  <span class="schema-constraint nn">NOT NULL</span>
+                  <span class="schema-constraint df">DEFAULT now()</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('created_at')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('created_at')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- updated_at -->
+                <div class="schema-field-row" id="schema-row-updated_at">
+                  <span class="schema-field-name">updated_at</span>
+                  <span class="schema-field-type">timestamptz</span>
+                  <span class="schema-constraint df">DEFAULT now()</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn" title="Edit" onclick="editSchemaField('updated_at')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField('updated_at')"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+
+                <!-- Indexes section -->
+                <div class="schema-section-header" style="margin-top:4px">Indexes</div>
+                <div class="schema-field-row">
+                  <span style="font-size:12px;color:var(--text2)"><i class="fas fa-bolt" style="color:var(--accent);font-size:10px;margin-right:6px"></i> properties_pkey</span>
+                  <span class="schema-field-type" style="font-size:10px">BTREE</span>
+                  <span style="font-size:11px;color:var(--text3)">ON (id) UNIQUE</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn delete" title="Drop Index"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+                <div class="schema-field-row">
+                  <span style="font-size:12px;color:var(--text2)"><i class="fas fa-bolt" style="color:var(--text3);font-size:10px;margin-right:6px"></i> idx_properties_status</span>
+                  <span class="schema-field-type" style="font-size:10px">BTREE</span>
+                  <span style="font-size:11px;color:var(--text3)">ON (status)</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn delete" title="Drop Index"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+                <div class="schema-field-row">
+                  <span style="font-size:12px;color:var(--text2)"><i class="fas fa-bolt" style="color:var(--text3);font-size:10px;margin-right:6px"></i> idx_properties_owner</span>
+                  <span class="schema-field-type" style="font-size:10px">BTREE</span>
+                  <span style="font-size:11px;color:var(--text3)">ON (owner_id)</span>
+                  <div class="schema-field-actions">
+                    <button class="schema-action-btn delete" title="Drop Index"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom status bar -->
+              <div style="height:28px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 16px;font-size:11px;color:var(--text3);gap:16px;flex-shrink:0">
+                <span><i class="fas fa-project-diagram" style="margin-right:4px"></i> Schema: properties</span>
+                <span>14 columns</span>
+                <span>3 indexes</span>
+                <span>2 foreign keys</span>
+                <span style="flex:1"></span>
+                <span>PostgreSQL 16</span>
               </div>
             </div>
           </div>
@@ -2404,7 +2696,8 @@ function switchSubtab(btn, groupClass, showId) {
   btn.parentElement.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('.' + groupClass).forEach(s => s.style.display = 'none');
-  document.getElementById(showId).style.display = 'block';
+  const el = document.getElementById(showId);
+  el.style.display = el.dataset.display || 'flex';
 }
 
 // Chat history toggle
@@ -2449,6 +2742,146 @@ function toggleTheme() {
 function toggleDbFilter() {
   const row = document.getElementById('dbFilterRow');
   row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+}
+
+// Schema Editor helpers
+function selectSchemaTable(el, name) {
+  el.closest('div[style*="padding:8px 0"]').querySelectorAll('.db-tbl-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('schemaTableName').textContent = name;
+}
+
+function toggleSchemaAddField() {
+  const row = document.getElementById('schemaAddFieldRow');
+  row.style.display = row.style.display === 'none' ? 'block' : 'none';
+  if (row.style.display === 'block') {
+    document.getElementById('newFieldName').value = '';
+    document.getElementById('newFieldName').focus();
+  }
+}
+
+function addSchemaField() {
+  const name = document.getElementById('newFieldName').value.trim();
+  const type = document.getElementById('newFieldType').value;
+  const nn = document.getElementById('newFieldNN').checked;
+  const uq = document.getElementById('newFieldUQ').checked;
+  const df = document.getElementById('newFieldDefault').value.trim();
+  if (!name) return;
+
+  const row = document.createElement('div');
+  row.className = 'schema-field-row';
+  row.id = 'schema-row-' + name;
+  let constraints = '';
+  if (nn) constraints += '<span class="schema-constraint nn">NOT NULL</span> ';
+  if (uq) constraints += '<span class="schema-constraint uq">UNIQUE</span> ';
+  if (df) constraints += '<span class="schema-constraint df">DEFAULT \'' + df + '\'</span> ';
+  row.innerHTML = '<span class="schema-field-name">' + name + '</span>' +
+    '<span class="schema-field-type">' + type + '</span> ' + constraints +
+    '<div class="schema-field-actions">' +
+      '<button class="schema-action-btn" title="Edit" onclick="editSchemaField(\'' + name + '\')"><i class="fas fa-pencil-alt"></i></button>' +
+      '<button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField(\'' + name + '\')"><i class="fas fa-trash-alt"></i></button>' +
+    '</div>';
+
+  const sectionHeaders = document.querySelectorAll('#schemaFieldsList .schema-section-header');
+  const indexesHeader = sectionHeaders.length > 1 ? sectionHeaders[1] : null;
+  if (indexesHeader) {
+    indexesHeader.parentNode.insertBefore(row, indexesHeader);
+  } else {
+    document.getElementById('schemaFieldsList').appendChild(row);
+  }
+  toggleSchemaAddField();
+  updateSchemaFieldCount();
+}
+
+function deleteSchemaField(name) {
+  const row = document.getElementById('schema-row-' + name);
+  if (row) {
+    row.style.background = 'rgba(239,68,68,.08)';
+    row.style.opacity = '0.5';
+    row.style.transition = 'all .3s ease';
+    setTimeout(() => {
+      row.remove();
+      updateSchemaFieldCount();
+    }, 300);
+  }
+}
+
+function editSchemaField(name) {
+  const row = document.getElementById('schema-row-' + name);
+  if (!row || row.classList.contains('editing')) {
+    cancelEditSchemaField(name);
+    return;
+  }
+  row.classList.add('editing');
+  const currentName = row.querySelector('.schema-field-name').textContent;
+  const currentType = row.querySelector('.schema-field-type').textContent;
+  const constraints = row.querySelectorAll('.schema-constraint');
+  let hasNN = false, hasUQ = false, defaultVal = '';
+  constraints.forEach(c => {
+    if (c.classList.contains('nn')) hasNN = true;
+    if (c.classList.contains('uq')) hasUQ = true;
+    if (c.classList.contains('df')) {
+      const m = c.textContent.match(/DEFAULT\s+'?(.+?)'?$/);
+      if (m) defaultVal = m[1];
+    }
+  });
+
+  row.dataset.origHtml = row.innerHTML;
+  row.innerHTML =
+    '<div class="schema-edit-row" style="padding:0;border:none;background:transparent;width:100%">' +
+      '<input type="text" value="' + currentName + '" id="editFieldName-' + name + '">' +
+      '<select id="editFieldType-' + name + '">' +
+        ['varchar(255)','text','int4','int8','serial','bigserial','numeric','boolean','timestamptz','date','jsonb','uuid'].map(t =>
+          '<option value="' + t + '"' + (t === currentType ? ' selected' : '') + '>' + t + '</option>'
+        ).join('') +
+      '</select>' +
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox"' + (hasNN ? ' checked' : '') + ' id="editFieldNN-' + name + '" style="accent-color:var(--accent)"> NOT NULL</label>' +
+        '<label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox"' + (hasUQ ? ' checked' : '') + ' id="editFieldUQ-' + name + '" style="accent-color:var(--accent)"> UNIQUE</label>' +
+        '<input type="text" placeholder="Default" value="' + defaultVal + '" style="width:120px;padding:5px 8px;font-size:11px" id="editFieldDefault-' + name + '">' +
+      '</div>' +
+      '<div style="display:flex;gap:4px">' +
+        '<button class="btn btn-sm btn-primary" onclick="saveSchemaField(\'' + name + '\')"><i class="fas fa-check"></i> Save</button>' +
+        '<button class="btn btn-sm" onclick="cancelEditSchemaField(\'' + name + '\')"><i class="fas fa-times"></i></button>' +
+      '</div>' +
+    '</div>';
+}
+
+function saveSchemaField(name) {
+  const row = document.getElementById('schema-row-' + name);
+  if (!row) return;
+  const newName = document.getElementById('editFieldName-' + name).value.trim() || name;
+  const newType = document.getElementById('editFieldType-' + name).value;
+  const nn = document.getElementById('editFieldNN-' + name).checked;
+  const uq = document.getElementById('editFieldUQ-' + name).checked;
+  const df = document.getElementById('editFieldDefault-' + name).value.trim();
+
+  let constraints = '';
+  if (nn) constraints += '<span class="schema-constraint nn">NOT NULL</span> ';
+  if (uq) constraints += '<span class="schema-constraint uq">UNIQUE</span> ';
+  if (df) constraints += '<span class="schema-constraint df">DEFAULT \'' + df + '\'</span> ';
+
+  row.classList.remove('editing');
+  row.id = 'schema-row-' + newName;
+  row.innerHTML = '<span class="schema-field-name">' + newName + '</span>' +
+    '<span class="schema-field-type">' + newType + '</span> ' + constraints +
+    '<div class="schema-field-actions">' +
+      '<button class="schema-action-btn" title="Edit" onclick="editSchemaField(\'' + newName + '\')"><i class="fas fa-pencil-alt"></i></button>' +
+      '<button class="schema-action-btn delete" title="Delete" onclick="deleteSchemaField(\'' + newName + '\')"><i class="fas fa-trash-alt"></i></button>' +
+    '</div>';
+}
+
+function cancelEditSchemaField(name) {
+  const row = document.getElementById('schema-row-' + name);
+  if (!row || !row.dataset.origHtml) return;
+  row.classList.remove('editing');
+  row.innerHTML = row.dataset.origHtml;
+  delete row.dataset.origHtml;
+}
+
+function updateSchemaFieldCount() {
+  const count = document.querySelectorAll('#schemaFieldsList .schema-field-row .schema-field-name').length;
+  document.getElementById('schemaFieldCount').textContent = count + ' fields';
 }
 
 // Chat resizer
