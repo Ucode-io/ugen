@@ -403,7 +403,7 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
         const targetFolderId = overType === 'folder-dropzone'
           ? over.data.current?.folderId
           : over.data.current?.item?.id
-        if (targetFolderId) {
+        if (targetFolderId && active.data.current) {
           createFolder.mutate({
             label: active.data.current.name,
             type: 'PROJECT',
