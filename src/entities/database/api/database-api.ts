@@ -156,6 +156,17 @@ export const databaseApi = {
     return data;
   },
 
+  deleteSchemaField: async (
+    tableSlug: string,
+    fieldId: string,
+    projectId: string
+  ): Promise<any> => {
+    const { data } = await api.delete<any>(`/v2/fields/${tableSlug}/${fieldId}`, {
+      params: { 'project-id': projectId }
+    });
+    return data;
+  },
+
   fetchLogs: async (): Promise<any[]> => {
     await new Promise(r => setTimeout(r, 300));
     return [
@@ -289,3 +300,20 @@ export const useAddSchemaField = () => {
   });
 };
 
+export const useDeleteSchemaField = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tableSlug,
+      fieldId,
+      projectId,
+    }: {
+      tableSlug: string;
+      fieldId: string;
+      projectId: string;
+    }) => databaseApi.deleteSchemaField(tableSlug, fieldId, projectId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug] });
+    },
+  });
+};

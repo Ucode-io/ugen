@@ -1,17 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, X, Download, RefreshCw, Check } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Download, RefreshCw, Check, ShieldOff } from 'lucide-react'
 import {
   useDatabaseStore,
   useTableSchemaV2,
   useAddSchemaField,
+  useDeleteSchemaField,
   SchemaColumn,
 } from '@/entities/database'
 import { Skeleton } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import { useAuthStore } from '@/entities/session'
 import { toast } from 'sonner'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Protected fields — cannot be deleted
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PROTECTED_FIELDS = new Set(['guid', 'created_at', 'updated_at', 'deleted_at'])
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PostgreSQL types from spec image
@@ -85,6 +92,77 @@ const ConstraintBadge = ({ label, title }: { label: string; title?: string }) =>
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Delete Confirmation Dialog
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface DeleteConfirmDialogProps {
+  fieldName: string
+  isLoading: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+const DeleteConfirmDialog = ({ fieldName, isLoading, onConfirm, onCancel }: DeleteConfirmDialogProps) => {
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onCancel])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={onCancel}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+
+      {/* Panel */}
+      <div
+        className="relative z-10 w-[400px] bg-bg-card border border-border-subtle rounded-xl shadow-2xl p-6 flex flex-col gap-5"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Icon + title */}
+        <div className="flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center shrink-0">
+            <Trash2 size={18} className="text-destructive" />
+          </div>
+          <div className="pt-0.5">
+            <h3 className="text-[15px] font-semibold text-text-main leading-tight">Delete field</h3>
+            <p className="text-[13px] text-text-muted mt-1.5 leading-relaxed">
+              Are you sure you want to delete the field{' '}
+              <code className="font-mono font-semibold text-text-main bg-bg-main border border-border-subtle px-1.5 py-0.5 rounded text-[12px]">
+                {fieldName}
+              </code>
+              ? This action is <strong>permanent</strong> and cannot be undone.
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded-lg border border-border-subtle text-[13px] font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive text-white text-[13px] font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <Trash2 size={13} />
+            {isLoading ? 'Deleting…' : 'Delete field'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CSV export
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -105,7 +183,7 @@ function exportSchemaToCSV(tableName: string, columns: SchemaColumn[]) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Add Field Form — inline row at top of list
+// Add Field Form
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AddFieldFormProps {
@@ -126,13 +204,8 @@ interface AddFieldFormProps {
   isLoading: boolean
 }
 
-/** Convert a label string to a snake_case slug */
 function toSlug(label: string): string {
-  return label
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '')
+  return label.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 }
 
 const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormProps) => {
@@ -142,21 +215,14 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
   const [type, setType] = useState<string>('character varying')
   const [required, setRequired] = useState(false)
 
-  // Auto-derive slug from label until the user manually edits it
   const handleLabelChange = (val: string) => {
     setLabel(val)
     if (!slugTouched) setSlug(toSlug(val))
   }
 
   const handleSubmit = () => {
-    if (!label.trim()) {
-      toast.error('Label is required')
-      return
-    }
-    if (!slug.trim()) {
-      toast.error('Slug is required')
-      return
-    }
+    if (!label.trim()) { toast.error('Label is required'); return }
+    if (!slug.trim()) { toast.error('Slug is required'); return }
     onSubmit({
       id: crypto.randomUUID(),
       slug: slug.trim(),
@@ -181,7 +247,6 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
       className="flex items-center gap-2 px-4 py-2.5 border-b border-primary/30 border-l-2 border-l-primary bg-primary/[0.04] flex-wrap"
       onKeyDown={handleKeyDown}
     >
-      {/* Label */}
       <input
         autoFocus
         type="text"
@@ -190,8 +255,6 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
         onChange={e => handleLabelChange(e.target.value)}
         className="bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-semibold text-text-main outline-none focus:border-primary/60 w-[170px] shrink-0"
       />
-
-      {/* Slug — auto-generated, user can override */}
       <input
         type="text"
         placeholder="slug"
@@ -200,30 +263,17 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
         className="bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-mono text-text-muted outline-none focus:border-primary/60 w-[140px] shrink-0"
         title="Column slug (auto-derived from label)"
       />
-
-      {/* Type selector */}
       <select
         value={type}
         onChange={e => setType(e.target.value)}
         className="bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-mono text-blue-400 outline-none focus:border-primary/60 w-[210px] shrink-0"
       >
-        {PG_TYPES.map(t => (
-          <option key={t} value={t}>{t}</option>
-        ))}
+        {PG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
       </select>
-
-      {/* Required toggle */}
       <label className="flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer select-none shrink-0">
-        <input
-          type="checkbox"
-          checked={required}
-          onChange={e => setRequired(e.target.checked)}
-          className="accent-primary"
-        />
+        <input type="checkbox" checked={required} onChange={e => setRequired(e.target.checked)} className="accent-primary" />
         Required
       </label>
-
-      {/* Actions */}
       <div className="flex items-center gap-1.5 ml-auto shrink-0">
         <button
           onClick={handleSubmit}
@@ -244,17 +294,19 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FieldRow — grid layout: [name 160px] | [type 240px] | [constraints 1fr] | [actions auto]
+// FieldRow — grid: [name 160px] | [type 240px] | [constraints 1fr] | [actions auto]
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FieldRowProps {
   col: SchemaColumn
   isEditing: boolean
+  isProtected: boolean
   onEdit: () => void
   onCancelEdit: () => void
+  onDelete: () => void
 }
 
-const FieldRow = ({ col, isEditing, onEdit, onCancelEdit }: FieldRowProps) => {
+const FieldRow = ({ col, isEditing, isProtected, onEdit, onCancelEdit, onDelete }: FieldRowProps) => {
   const constraints = col.constraints ?? []
   const hasDefault = col.default !== null && col.default !== undefined && col.default !== ''
   const isNullable = col.nullable === 'YES'
@@ -285,8 +337,18 @@ const FieldRow = ({ col, isEditing, onEdit, onCancelEdit }: FieldRowProps) => {
       className="group grid items-center px-4 py-[10px] border-b border-border-subtle hover:bg-hover-bg/60 transition-colors"
       style={{ gridTemplateColumns: '160px 240px 1fr auto' }}
     >
-      {/* Col 1: name */}
-      <span className="font-semibold text-[13px] text-text-main truncate pr-2">{col.name}</span>
+      {/* Col 1: name + protected badge */}
+      <div className="flex items-center gap-1.5 pr-2 min-w-0">
+        <span className="font-semibold text-[13px] text-text-main truncate">{col.name}</span>
+        {isProtected && (
+          <span
+            title="System field — cannot be deleted"
+            className="shrink-0 text-text-muted/40 hover:text-text-muted transition-colors"
+          >
+            <ShieldOff size={10} />
+          </span>
+        )}
+      </div>
 
       {/* Col 2: type pill */}
       <div className="flex items-center">
@@ -319,12 +381,25 @@ const FieldRow = ({ col, isEditing, onEdit, onCancelEdit }: FieldRowProps) => {
         >
           <Pencil size={11} />
         </button>
-        <button
-          className="w-7 h-7 border border-border-subtle rounded bg-bg-main text-text-muted hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 flex items-center justify-center transition-colors"
-          title="Delete field"
-        >
-          <Trash2 size={11} />
-        </button>
+
+        {isProtected ? (
+          /* Protected: show disabled button with tooltip */
+          <button
+            disabled
+            title="System field — cannot be deleted"
+            className="w-7 h-7 border border-border-subtle/40 rounded bg-bg-main text-text-muted/30 flex items-center justify-center cursor-not-allowed"
+          >
+            <Trash2 size={11} />
+          </button>
+        ) : (
+          <button
+            onClick={onDelete}
+            className="w-7 h-7 border border-border-subtle rounded bg-bg-main text-text-muted hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 flex items-center justify-center transition-colors"
+            title="Delete field"
+          >
+            <Trash2 size={11} />
+          </button>
+        )}
       </div>
     </div>
   )
@@ -343,40 +418,59 @@ export const SchemaView = () => {
     ucodeProjectId || ''
   )
   const addFieldMutation = useAddSchemaField()
+  const deleteFieldMutation = useDeleteSchemaField()
 
   const [isAddingField, setIsAddingField] = useState(false)
   const [editingName, setEditingName] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
 
   // Reset UI state when switching tables
   useEffect(() => {
     setIsAddingField(false)
     setEditingName(null)
+    setDeleteTarget(null)
   }, [selectedTable])
 
   const handleAddField = async (payload: {
-    id: string
-    slug: string
-    label: string
-    type: string
-    table_id: string
-    index: string
-    required: boolean
-    show_label: boolean
-    is_visible: boolean
-    attributes: Record<string, unknown>
+    id: string; slug: string; label: string; type: string
+    table_id: string; index: string; required: boolean
+    show_label: boolean; is_visible: boolean; attributes: Record<string, unknown>
   }) => {
     if (!selectedTable) return
     try {
-      await addFieldMutation.mutateAsync({
-        tableSlug: selectedTable,
-        projectId: ucodeProjectId || '',
-        payload,
-      })
+      await addFieldMutation.mutateAsync({ tableSlug: selectedTable, projectId: ucodeProjectId || '', payload })
       toast.success(`Field "${payload.label}" added successfully`)
       setIsAddingField(false)
     } catch {
       toast.error('Failed to add field')
     }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget || !selectedTable) return
+    try {
+      await deleteFieldMutation.mutateAsync({
+        tableSlug: selectedTable,
+        fieldId: deleteTarget.id,
+        projectId: ucodeProjectId || '',
+      })
+      toast.success(`Field "${deleteTarget.name}" deleted`)
+      setDeleteTarget(null)
+    } catch {
+      toast.error('Failed to delete field')
+    }
+  }
+
+  const requestDelete = (col: SchemaColumn) => {
+    if (PROTECTED_FIELDS.has(col.name)) {
+      toast.error(`"${col.name}" is a system field and cannot be deleted`)
+      return
+    }
+    if (!col.id) {
+      toast.error('Cannot delete: field has no ID')
+      return
+    }
+    setDeleteTarget({ id: col.id, name: col.name })
   }
 
   if (!selectedTable) {
@@ -388,116 +482,127 @@ export const SchemaView = () => {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <>
+      <div className="flex flex-col h-full overflow-hidden">
 
-      {/* ── Toolbar ── */}
-      <div className="flex items-center gap-2 px-4 py-[10px] border-b border-border-subtle bg-bg-main/50 shrink-0">
-        <svg className="text-primary shrink-0" width="13" height="13" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M3 9h18M3 15h18M9 3v18" />
-        </svg>
+        {/* ── Toolbar ── */}
+        <div className="flex items-center gap-2 px-4 py-[10px] border-b border-border-subtle bg-bg-main/50 shrink-0">
+          <svg className="text-primary shrink-0" width="13" height="13" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M3 9h18M3 15h18M9 3v18" />
+          </svg>
 
-        <span className="text-[14px] font-semibold text-text-main">{selectedTable}</span>
-        <span className="text-[12px] text-text-muted/60">{columns.length} fields</span>
+          <span className="text-[14px] font-semibold text-text-main">{selectedTable}</span>
+          <span className="text-[12px] text-text-muted/60">{columns.length} fields</span>
+          <span className="flex-1" />
 
-        <span className="flex-1" />
+          <button
+            onClick={() => { setIsAddingField(v => !v); setEditingName(null) }}
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-[5px] rounded border text-[12px] font-medium transition-colors',
+              isAddingField
+                ? 'bg-primary/10 border-primary/30 text-primary'
+                : 'border-border-subtle bg-bg-card text-text-muted hover:text-text-main hover:border-border-main'
+            )}
+          >
+            <Plus size={12} /> Add Field
+          </button>
 
-        <button
-          onClick={() => { setIsAddingField(v => !v); setEditingName(null) }}
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-[5px] rounded border text-[12px] font-medium transition-colors',
-            isAddingField
-              ? 'bg-primary/10 border-primary/30 text-primary'
-              : 'border-border-subtle bg-bg-card text-text-muted hover:text-text-main hover:border-border-main'
-          )}
-        >
-          <Plus size={12} /> Add Field
-        </button>
+          <div className="h-5 w-px bg-border-subtle/60 mx-0.5" />
 
-        <div className="h-5 w-px bg-border-subtle/60 mx-0.5" />
+          <button
+            onClick={() => exportSchemaToCSV(selectedTable, columns)}
+            className="flex items-center gap-1.5 px-2.5 py-[5px] rounded border border-border-subtle bg-bg-card text-[12px] font-medium text-text-muted hover:text-text-main hover:border-border-main transition-colors"
+          >
+            <Download size={12} /> Export DDL
+          </button>
 
-        <button
-          onClick={() => exportSchemaToCSV(selectedTable, columns)}
-          className="flex items-center gap-1.5 px-2.5 py-[5px] rounded border border-border-subtle bg-bg-card text-[12px] font-medium text-text-muted hover:text-text-main hover:border-border-main transition-colors"
-        >
-          <Download size={12} /> Export DDL
-        </button>
-
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-1.5 px-2.5 py-[5px] rounded border border-border-subtle bg-bg-card text-[12px] font-medium text-text-muted hover:text-text-main hover:border-border-main transition-colors"
-        >
-          <RefreshCw size={12} className={cn(isLoading && 'animate-spin')} /> Refresh
-        </button>
-      </div>
-
-      {/* ── Fields list ── */}
-      <div className="flex-1 overflow-y-auto">
-
-        <div className="px-4 py-[10px] text-[10px] font-semibold uppercase tracking-[0.6px] text-text-muted/50 bg-bg-card border-b border-border-subtle sticky top-0 z-10">
-          Columns
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 px-2.5 py-[5px] rounded border border-border-subtle bg-bg-card text-[12px] font-medium text-text-muted hover:text-text-main hover:border-border-main transition-colors"
+          >
+            <RefreshCw size={12} className={cn(isLoading && 'animate-spin')} /> Refresh
+          </button>
         </div>
 
-        {/* Add Field inline form */}
-        {isAddingField && (
-          <AddFieldForm
-            tableId={selectedTable}
-            onClose={() => setIsAddingField(false)}
-            onSubmit={handleAddField}
-            isLoading={addFieldMutation.isPending}
-          />
-        )}
-
-        {isLoading ? (
-          <>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="grid items-center px-4 py-[10px] border-b border-border-subtle"
-                style={{ gridTemplateColumns: '160px 240px 1fr auto' }}
-              >
-                <Skeleton className="h-4 w-[120px]" />
-                <Skeleton className="h-5 w-[140px] rounded" />
-                <div className="flex gap-1.5">
-                  <Skeleton className="h-5 w-14 rounded" />
-                  <Skeleton className="h-5 w-16 rounded" />
-                </div>
-                <div className="w-16" />
-              </div>
-            ))}
-          </>
-        ) : columns.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-text-muted/50">
-            No columns found for this table.
+        {/* ── Fields list ── */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-4 py-[10px] text-[10px] font-semibold uppercase tracking-[0.6px] text-text-muted/50 bg-bg-card border-b border-border-subtle sticky top-0 z-10">
+            Columns
           </div>
-        ) : (
-          columns.map((col, i) => (
-            <FieldRow
-              key={`${col.name}-${i}`}
-              col={col}
-              isEditing={editingName === col.name}
-              onEdit={() => { setIsAddingField(false); setEditingName(col.name) }}
-              onCancelEdit={() => setEditingName(null)}
+
+          {isAddingField && (
+            <AddFieldForm
+              tableId={selectedTable}
+              onClose={() => setIsAddingField(false)}
+              onSubmit={handleAddField}
+              isLoading={addFieldMutation.isPending}
             />
-          ))
-        )}
+          )}
+
+          {isLoading ? (
+            <>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="grid items-center px-4 py-[10px] border-b border-border-subtle"
+                  style={{ gridTemplateColumns: '160px 240px 1fr auto' }}
+                >
+                  <Skeleton className="h-4 w-[120px]" />
+                  <Skeleton className="h-5 w-[140px] rounded" />
+                  <div className="flex gap-1.5">
+                    <Skeleton className="h-5 w-14 rounded" />
+                    <Skeleton className="h-5 w-16 rounded" />
+                  </div>
+                  <div className="w-16" />
+                </div>
+              ))}
+            </>
+          ) : columns.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-text-muted/50">
+              No columns found for this table.
+            </div>
+          ) : (
+            columns.map((col, i) => (
+              <FieldRow
+                key={`${col.name}-${i}`}
+                col={col}
+                isEditing={editingName === col.name}
+                isProtected={PROTECTED_FIELDS.has(col.name)}
+                onEdit={() => { setIsAddingField(false); setEditingName(col.name) }}
+                onCancelEdit={() => setEditingName(null)}
+                onDelete={() => requestDelete(col)}
+              />
+            ))
+          )}
+        </div>
+
+        {/* ── Bottom status bar ── */}
+        <div className="h-[28px] bg-bg-card border-t border-border-subtle flex items-center px-4 gap-4 text-[11px] text-text-muted/50 shrink-0 font-medium">
+          <span className="flex items-center gap-1.5">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              <path d="M4.93 4.93a10 10 0 0 0 0 14.14" />
+            </svg>
+            Schema: {selectedTable}
+          </span>
+          <span>{columns.length} columns</span>
+          <span className="flex-1" />
+          <span>PostgreSQL 16</span>
+        </div>
       </div>
 
-      {/* ── Bottom status bar ── */}
-      <div className="h-[28px] bg-bg-card border-t border-border-subtle flex items-center px-4 gap-4 text-[11px] text-text-muted/50 shrink-0 font-medium">
-        <span className="flex items-center gap-1.5">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-            <path d="M4.93 4.93a10 10 0 0 0 0 14.14" />
-          </svg>
-          Schema: {selectedTable}
-        </span>
-        <span>{columns.length} columns</span>
-        <span className="flex-1" />
-        <span>PostgreSQL 16</span>
-      </div>
-    </div>
+      {/* ── Delete confirmation dialog (rendered outside scroll container) ── */}
+      {deleteTarget && (
+        <DeleteConfirmDialog
+          fieldName={deleteTarget.name}
+          isLoading={deleteFieldMutation.isPending}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+    </>
   )
 }
