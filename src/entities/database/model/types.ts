@@ -35,6 +35,7 @@ export interface SchemaConstraint {
 
 /** A column entry returned by GET /v2/items/{table}/schema */
 export interface SchemaColumn {
+  id?: string;
   name: string;
   type: string;
   nullable: 'YES' | 'NO' | string;
