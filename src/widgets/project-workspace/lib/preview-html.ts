@@ -110,11 +110,13 @@ export const INSPECTOR_SCRIPT = `
       tag: target.tagName,
       id: target.id || null,
       className: target.className || null,
-      
+
       name: target.getAttribute("data-element-name") || null,
 
       domPath: getDomPath(target),
-      
+
+      textContent: (target.textContent || "").trim().slice(0, 200) || null,
+
       rect: {
         top: rect.top,
         left: rect.left,

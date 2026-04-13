@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react'
 import {
-  Activity,
-  FileText,
   Search,
   User,
   ChevronDown,
@@ -15,26 +13,18 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { SubTabs } from '@/shared/ui'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import { DatePickerWithRange } from '@/shared/ui'
 import { useTranslations } from 'next-intl'
-import {
-  WorkspaceTableWrapper,
-  WorkspaceTable,
-  WorkspaceTableHeader,
-  WorkspaceTableBody,
-  WorkspaceTableRow,
-  WorkspaceTableHead,
-  WorkspaceTableCell,
-} from '@/widgets/project-workspace/ui/workspace-table'
 import {
   Pagination,
   PaginationContent,
@@ -328,44 +318,105 @@ const TablePaginationFooter = ({ page, setPage, limit, setLimit, totalCount, t }
 export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string }) => {
   const t = useTranslations('widgets.databaseStudio')
 
-  const ACTION_OPTIONS = [
-    { label: t("logs.allActions"), value: "all" },
-    { label: "Create", value: "CREATE" },
-    { label: "Update", value: "UPDATE" },
-    { label: "Delete", value: "DELETE" },
-    { label: "Bulkwrite", value: "BULKWRITE" },
-    { label: "Get", value: "GET" },
-    { label: "Login", value: "LOGIN" },
-    { label: "Delete Item", value: "DELETE ITEM" },
-    { label: "Create Item", value: "CREATE ITEM" },
-    { label: "Update Item", value: "UPDATE ITEM" },
-    { label: "Create Table", value: "CREATE TABLE" },
-    { label: "Update Table", value: "UPDATE TABLE" },
-    { label: "Delete Table", value: "DELETE TABLE" },
-    { label: "Create Menu", value: "CREATE MENU" },
-    { label: "Delete Menu", value: "DELETE MENU" },
-    { label: "Update Menu", value: "UPDATE MENU" },
-    { label: "Create Field", value: "CREATE FIELD" },
-    { label: "Update Field", value: "UPDATE FIELD" },
-    { label: "Delete Field", value: "DELETE FIELD" },
-    { label: "Create View", value: "CREATE VIEW" },
-    { label: "Delete View", value: "DELETE VIEW" },
-    { label: "Update View", value: "UPDATE VIEW" },
-    { label: "Create Relation", value: "CREATE RELATION" },
-    { label: "Delete Relation", value: "DELETE RELATION" },
-    { label: "Update Relation", value: "UPDATE RELATION" },
-    { label: "Delete Layout", value: "DELETE LAYOUT" },
-    { label: "Update Layout", value: "UPDATE LAYOUT" },
-    { label: "Create Client Type", value: "CREATE CLIENT TYPE" },
-    { label: "Update Client Type", value: "UPDATE CLIENT TYPE" },
-    { label: "Delete Client Type", value: "DELETE CLIENT TYPE" },
-    { label: "Create Role", value: "CREATE ROLE" },
-    { label: "Delete Role", value: "DELETE ROLE" },
-    { label: "Update Permission", value: "UPDATE PERMISSION" },
-    { label: "Create User", value: "CREATE USER" },
-    { label: "Update User", value: "UPDATE USER" },
-    { label: "Delete User", value: "DELETE USER" },
-    { label: "Upsert Many Item", value: "UPSERT MANY ITEM" },
+  const ACTION_GROUPS = [
+    {
+      label: "Function Logs",
+      items: [
+        { label: "All Function Logs", value: "function" },
+      ],
+    },
+    {
+      label: "General",
+      items: [
+        { label: t("logs.allActions"), value: "all" },
+        { label: "Create", value: "CREATE" },
+        { label: "Update", value: "UPDATE" },
+        { label: "Delete", value: "DELETE" },
+        { label: "Bulkwrite", value: "BULKWRITE" },
+        { label: "Get", value: "GET" },
+        { label: "Login", value: "LOGIN" },
+      ],
+    },
+    {
+      label: "Items",
+      items: [
+        { label: "Create Item", value: "CREATE ITEM" },
+        { label: "Update Item", value: "UPDATE ITEM" },
+        { label: "Delete Item", value: "DELETE ITEM" },
+        { label: "Upsert Many Item", value: "UPSERT MANY ITEM" },
+      ],
+    },
+    {
+      label: "Table",
+      items: [
+        { label: "Create Table", value: "CREATE TABLE" },
+        { label: "Update Table", value: "UPDATE TABLE" },
+        { label: "Delete Table", value: "DELETE TABLE" },
+      ],
+    },
+    {
+      label: "Field",
+      items: [
+        { label: "Create Field", value: "CREATE FIELD" },
+        { label: "Update Field", value: "UPDATE FIELD" },
+        { label: "Delete Field", value: "DELETE FIELD" },
+      ],
+    },
+    {
+      label: "View",
+      items: [
+        { label: "Create View", value: "CREATE VIEW" },
+        { label: "Update View", value: "UPDATE VIEW" },
+        { label: "Delete View", value: "DELETE VIEW" },
+      ],
+    },
+    {
+      label: "Relation",
+      items: [
+        { label: "Create Relation", value: "CREATE RELATION" },
+        { label: "Update Relation", value: "UPDATE RELATION" },
+        { label: "Delete Relation", value: "DELETE RELATION" },
+      ],
+    },
+    {
+      label: "Menu",
+      items: [
+        { label: "Create Menu", value: "CREATE MENU" },
+        { label: "Update Menu", value: "UPDATE MENU" },
+        { label: "Delete Menu", value: "DELETE MENU" },
+      ],
+    },
+    {
+      label: "Layout",
+      items: [
+        { label: "Update Layout", value: "UPDATE LAYOUT" },
+        { label: "Delete Layout", value: "DELETE LAYOUT" },
+      ],
+    },
+    {
+      label: "Client Type",
+      items: [
+        { label: "Create Client Type", value: "CREATE CLIENT TYPE" },
+        { label: "Update Client Type", value: "UPDATE CLIENT TYPE" },
+        { label: "Delete Client Type", value: "DELETE CLIENT TYPE" },
+      ],
+    },
+    {
+      label: "Role & Permission",
+      items: [
+        { label: "Create Role", value: "CREATE ROLE" },
+        { label: "Delete Role", value: "DELETE ROLE" },
+        { label: "Update Permission", value: "UPDATE PERMISSION" },
+      ],
+    },
+    {
+      label: "User",
+      items: [
+        { label: "Create User", value: "CREATE USER" },
+        { label: "Update User", value: "UPDATE USER" },
+        { label: "Delete User", value: "DELETE USER" },
+      ],
+    },
   ]
 
   const STATUS_OPTIONS = [
@@ -472,27 +523,6 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
           <p className="text-text-muted text-[13px]">Monitor system activity and serverless function executions.</p>
         </div>
 
-        <div className="w-[200px]">
-          <Select value={activeTab} onValueChange={(val) => setActiveTab(val)}>
-            <SelectTrigger className="bg-bg-card border-border-subtle h-10 text-[14px] font-semibold rounded-xl shadow-sm">
-              <SelectValue placeholder="Log Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-bg-card border-border-subtle">
-              <SelectItem value="activity" className="text-[13px] font-medium py-2.5">
-                <div className="flex items-center gap-2">
-                  <Activity size={14} className="text-primary" />
-                  Activity Logs
-                </div>
-              </SelectItem>
-              <SelectItem value="function" className="text-[13px] font-medium py-2.5">
-                <div className="flex items-center gap-2">
-                  <FileText size={14} className="text-primary" />
-                  Function Logs
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className="ai-card overflow-hidden flex flex-col flex-1 min-h-[400px]">
@@ -510,21 +540,32 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                 />
               </div>
 
-              <div className="space-y-1.5 w-[160px] flex-none">
+              <div className="space-y-1.5 w-[200px] flex-none">
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Action</label>
                 <Select
-                  value={actionType}
+                  value={actionType || "all"}
                   onValueChange={(val) => {
-                    setActionType(val)
-                    setActivityPage(1)
+                    if (val === 'function') {
+                      setActiveTab('function')
+                      setActionType('')
+                    } else {
+                      setActiveTab('activity')
+                      setActionType(val)
+                      setActivityPage(1)
+                    }
                   }}
                 >
                   <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
                     <SelectValue placeholder={t('logs.allActions')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px] overflow-y-auto bg-bg-card border-border-subtle">
-                    {ACTION_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    {ACTION_GROUPS.map(group => (
+                      <SelectGroup key={group.label}>
+                        <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 py-1.5">{group.label}</SelectLabel>
+                        {group.items.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>
@@ -585,6 +626,34 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
         ) : (
           <>
             <div className="flex flex-wrap gap-3 p-4 border-b border-border-subtle bg-bg-card/30 items-end shrink-0">
+              <div className="space-y-1.5 w-[200px] flex-none">
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Action</label>
+                <Select
+                  value="function"
+                  onValueChange={(val) => {
+                    if (val !== 'function') {
+                      setActiveTab('activity')
+                      setActionType(val)
+                      setActivityPage(1)
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
+                    <SelectValue placeholder="Function Logs" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] overflow-y-auto bg-bg-card border-border-subtle">
+                    {ACTION_GROUPS.map(group => (
+                      <SelectGroup key={group.label}>
+                        <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 py-1.5">{group.label}</SelectLabel>
+                        {group.items.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-1.5 w-[240px] flex-none">
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Function</label>
                 <Select

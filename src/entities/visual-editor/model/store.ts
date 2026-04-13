@@ -4,7 +4,10 @@ interface SelectedElement {
   id: string
   tagName: string
   className?: string
-  text?: string
+  htmlId?: string
+  dataName?: string
+  domPath?: string
+  textContent?: string
 }
 
 interface VisualEditorStore {

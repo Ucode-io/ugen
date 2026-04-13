@@ -298,7 +298,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
               {label}
             </div>
             {pgType && (
-              <div className="text-[9px] text-text-muted/60 font-mono font-medium bg-bg-sidebar w-fit px-1 rounded border border-border-subtle/50">
+              <div className="text-[9px] text-text-muted/60 font-mono font-medium bg-bg-sidebar w-fit px-1 rounded border border-border-subtle/50 uppercase">
                 {pgType}
               </div>
             )}

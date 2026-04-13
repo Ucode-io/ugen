@@ -16,7 +16,7 @@ interface ChatInputProps {
 
 export const ChatInput = ({ onSendMessage, isSending, disabled, className }: ChatInputProps) => {
   const t = useTranslations('widgets.workspaceChat')
-  const { isInspectMode, selectedElements, setInspectMode, removeSelectedElement } = useVisualEditorStore()
+  const { isInspectMode, selectedElements, setInspectMode, removeSelectedElement, clearSelectedElements } = useVisualEditorStore()
   const [value, setValue] = useState("")
   const [isPlanOn, setIsPlanOn] = useState(false)
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID)
@@ -50,10 +50,34 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
   }, [value])
 
   const handleSend = () => {
-    if ((value.trim() || uploadedFiles.length > 0) && !isSending) {
-      onSendMessage(value, uploadedFiles, selectedModel);
+    if ((value.trim() || uploadedFiles.length > 0 || selectedElements.length > 0) && !isSending) {
+      let messageText = value;
+      if (selectedElements.length > 0) {
+        const elementsContext = selectedElements
+          .map((el, i) => {
+            const tag = el.tagName.toLowerCase();
+            const attrs: string[] = [];
+            if (el.htmlId) attrs.push(`id="${el.htmlId}"`);
+            if (el.className) attrs.push(`class="${el.className}"`);
+            if (el.dataName) attrs.push(`data-element-name="${el.dataName}"`);
+            const attrStr = attrs.length ? ` ${attrs.join(" ")}` : "";
+            const lines: string[] = [`Element ${i + 1}: <${tag}${attrStr}>`];
+            if (el.domPath) lines.push(`  Path: ${el.domPath}`);
+            if (el.textContent) lines.push(`  Text: "${el.textContent}"`);
+            return lines.join("\n");
+          })
+          .join("\n\n");
+        const header = selectedElements.length === 1
+          ? "I selected the following element from the UI preview — please modify it:"
+          : `I selected ${selectedElements.length} elements from the UI preview — please modify them:`;
+        messageText = messageText
+          ? `${messageText}\n\n${header}\n\n${elementsContext}`
+          : `${header}\n\n${elementsContext}`;
+      }
+      onSendMessage(messageText, uploadedFiles, selectedModel);
       setValue("");
       clearFiles();
+      clearSelectedElements();
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
@@ -122,7 +146,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
               className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary px-2 py-1 rounded-md text-xs font-medium group"
             >
               <span className="opacity-70 font-mono text-[10px]">&lt;{el.tagName.toLowerCase()}&gt;</span>
-              <span className="truncate max-w-[120px]">{el.text || el.className || t('input.element')}</span>
+              <span className="truncate max-w-[120px]">{el.textContent || el.dataName || el.className || t('input.element')}</span>
               <button
                 onClick={() => removeSelectedElement(el.id)}
                 className="hover:bg-primary/20 rounded-sm p-0.5"
@@ -240,7 +264,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className }: Cha
           /> */}
           <button
             onClick={handleSend}
-            disabled={(!value.trim() && uploadedFiles.length === 0) || isUploading || isSending}
+            disabled={(!value.trim() && uploadedFiles.length === 0 && selectedElements.length === 0) || isUploading || isSending}
             className="bg-text-main text-bg-main ml-1 flex h-7 w-7 items-center justify-center rounded-full transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             title={t('input.send')}
           >

@@ -17,12 +17,29 @@ import {
 import { cn } from '@/shared/lib/utils/cn'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslations } from 'next-intl'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/api'
+import { UsageIndicator } from '@/shared/ui'
+import { formatMBSmart, formatMBAsGB } from '@/shared/lib/utils/format-bytes'
 
 export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
   const t = useTranslations('widgets.databaseStudio')
   const { currentView, setCurrentView, breadcrumbs, resetToTables } = useDatabaseStore()
 
   const [isPannelOpen, setIsPannelOpen] = useState(true)
+
+  const { data: pricingData } = useQuery({
+    queryKey: ['pricing-all'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/pricing/all')
+      return data
+    },
+  })
+
+  const dbSize = pricingData?.data?.database_size
+  const dbUsed = dbSize ? formatMBSmart(dbSize.current || 0) : '0 MB'
+  const dbTotal = dbSize ? formatMBAsGB(dbSize.limit || 0) : '0 GB'
+  const dbPercentage = dbSize?.limit ? Math.min(((dbSize.current || 0) / dbSize.limit) * 100, 100) : 0
 
   const onTogglePannel = () => {
     setIsPannelOpen(!isPannelOpen)
@@ -60,9 +77,15 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
           <Terminal size={14} /> SQL Editor
         </button>
         <div className="flex-1"></div>
-        {/* <div className="text-[11px] text-text-muted flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div> Connected &middot; PostgreSQL
-        </div> */}
+        <div className="shrink-0">
+          <UsageIndicator
+            label="Database size"
+            value={dbUsed}
+            total={dbTotal}
+            percentage={dbPercentage}
+            className="py-1 border-none shadow-none bg-transparent"
+          />
+        </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">

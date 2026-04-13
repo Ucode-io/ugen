@@ -18,6 +18,7 @@ import Editor from '@monaco-editor/react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/entities/session'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
+import { UsageIndicator } from '@/shared/ui'
 
 interface ApiIntegrationsPageProps {
   projectId: string
@@ -52,7 +53,7 @@ export const ApiIntegrationsPage = ({ projectId }: ApiIntegrationsPageProps) => 
   const { theme } = useUIStore()
 
   const API_KEY = useAuthStore((state) => state.apiKey)
-
+  
   // Auto-select first item if none selected
   useMemo(() => {
     if (!selectedItem) {
@@ -587,7 +588,7 @@ struct ApiClient {
   return (
     <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
-      {/* ── Two dropdowns above the editor ── */}
+      {/* ── Two dropdowns + usage indicator above the editor ── */}
       <div className="flex flex-row gap-4 items-end">
         <div className="flex flex-col gap-1.5 w-[200px]">
           <Label className="text-[10px] font-bold text-text-muted/80 uppercase tracking-widest ml-1">
