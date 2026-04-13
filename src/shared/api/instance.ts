@@ -33,7 +33,7 @@ api.interceptors.request.use(
     const token = state.accessToken
     const apiKey = state.apiKey
 
-    if (apiKey && state.activeProjectTab === 'dashboard' && config.headers) {
+    if (apiKey && state.activeProjectTab === 'dashboard' && config.headers && !config.headers['Authorization']) {
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
     } else if (token && config.headers && !config.headers['Authorization']) {
@@ -53,7 +53,7 @@ authApi.interceptors.request.use(
     const token = state.accessToken
     const apiKey = state.apiKey
 
-    if (apiKey && state.activeProjectTab === 'dashboard' && config.headers) {
+    if (apiKey && state.activeProjectTab === 'dashboard' && config.headers && !config.headers['Authorization']) {
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
     } else if (token && config.headers && !config.headers['Authorization']) {

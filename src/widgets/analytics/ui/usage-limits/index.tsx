@@ -51,6 +51,10 @@ export const UsageLimitsTab = ({ pricingData, fareData }: any) => {
   const formatFareValue = (value: string | undefined) => {
     if (!value || value === "-1") return "Unlimited";
     if (value === "0") return "—";
+    const num = Number(value);
+    if (!isNaN(num)) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
+    }
     return value;
   };
 

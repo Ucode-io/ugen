@@ -2,11 +2,13 @@
 import { Link, usePathname, useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { LayoutGrid, FolderPlus, Folder, ChevronRight, Plus, Trash2, Edit2, FileIcon } from "lucide-react"
-import { useState, useRef, useEffect, MouseEvent as ReactMouseEvent } from "react"
+import { useState, useRef, useEffect, useCallback, MouseEvent as ReactMouseEvent } from "react"
 import { useProjectFolders, useCreateProjectFolder, useUpdateProjectFolder, useDeleteProjectFolder, useUpdateProjectFoldersOrder, ProjectFolder } from "@/entities/project-folder"
+import { useProjectsList } from "@/entities/project"
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -14,6 +16,9 @@ import {
   DragOverlay,
   DragStartEvent,
   DragEndEvent,
+  useDraggable,
+  useDndContext,
+  useDroppable,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -23,20 +28,44 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useQueryClient } from '@tanstack/react-query'
-import { useDroppable } from '@dnd-kit/core'
 
 const FolderEmptyDropZone = ({ folderId }: { folderId: string }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `folder-drop-${folderId}`,
     data: { type: 'folder-dropzone', folderId }
   })
+  const tWidgets = useTranslations('widgets.sidebar')
 
   return (
     <div
       ref={setNodeRef}
       className={`py-1.5 px-2 text-xs text-center border border-dashed rounded-lg transition-colors mx-1 ${isOver ? 'bg-primary/10 border-primary text-primary' : 'border-transparent text-text-muted/50'}`}
     >
-      {useTranslations('widgets.sidebar')('dropHere')}
+      {tWidgets('dropHere')}
+    </div>
+  )
+}
+
+const RootDropZone = () => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'root-dropzone',
+    data: { type: 'root-dropzone' }
+  })
+  const { active: dndActive } = useDndContext()
+  const tWidgets = useTranslations('widgets.sidebar')
+
+  if (!dndActive) return null
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`py-1.5 px-2 text-xs text-center border border-dashed rounded-lg transition-colors mx-1 mt-1 ${
+        isOver
+          ? 'bg-red-500/10 border-red-500 text-red-500'
+          : 'border-border-subtle text-text-muted/50'
+      }`}
+    >
+      {tWidgets('removeFromFolder')}
     </div>
   )
 }
@@ -114,6 +143,13 @@ const FolderNodeContent = ({ folder, level, isCollapsed, attributes, listeners, 
   const [newChildName, setNewChildName] = useState(tNav('new_folder'))
   const newChildInputRef = useRef<HTMLInputElement>(null)
 
+  const { setNodeRef: setDropRef, isOver: isDropOver } = useDroppable({
+    id: `folder-header-drop-${folder.id}`,
+    data: { type: 'folder', item: folder }
+  })
+
+  const { active: dndActive } = useDndContext()
+
   const { data: children } = useProjectFolders(folder.id, undefined, isOpen || isHovered)
   const updateFolder = useUpdateProjectFolder()
   const deleteFolder = useDeleteProjectFolder()
@@ -161,7 +197,8 @@ const FolderNodeContent = ({ folder, level, isCollapsed, attributes, listeners, 
   return (
     <div className="w-full">
       <div
-        className="group text-text-muted hover:bg-hover-bg hover:text-text-main flex w-full items-center justify-between rounded-lg transition-colors py-1 pl-1 pr-2"
+        ref={setDropRef}
+        className={`group text-text-muted hover:bg-hover-bg hover:text-text-main flex w-full items-center justify-between rounded-lg transition-colors py-1 pl-1 pr-2 ${isDropOver ? 'bg-primary/10 ring-1 ring-primary/40' : ''}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -247,7 +284,7 @@ const FolderNodeContent = ({ folder, level, isCollapsed, attributes, listeners, 
             ))}
           </SortableContext>
 
-          {children?.length === 0 && !isCreatingChild && (
+          {(children?.length === 0 || !!dndActive) && !isCreatingChild && (
             <FolderEmptyDropZone folderId={folder.id} />
           )}
 
@@ -270,6 +307,33 @@ const FolderNodeContent = ({ folder, level, isCollapsed, attributes, listeners, 
   )
 }
 
+const DraggableProjectLink = ({ project }: { project: { id: string; name: string } }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `recent-${project.id}`,
+    data: { type: 'recent-project', projectId: project.id, name: project.name },
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{ opacity: isDragging ? 0.4 : 1, cursor: isDragging ? 'grabbing' : 'grab' }}
+    >
+      <Link
+        href={`/projects/${project.id}`}
+        className="text-text-muted hover:bg-hover-bg hover:text-text-main flex items-center gap-2 rounded-lg px-2 py-1 text-sm transition-colors"
+        title={project.name}
+        onClick={(e) => { if (isDragging) e.preventDefault() }}
+        draggable={false}
+      >
+        <FileIcon size={14} className="shrink-0 text-text-muted" />
+        <span className="truncate">{project.name}</span>
+      </Link>
+    </div>
+  )
+}
+
 interface ProjectsNavProps {
   isCollapsed: boolean;
   isAllProjectsOpen: boolean;
@@ -278,13 +342,24 @@ interface ProjectsNavProps {
 
 export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOpen }: ProjectsNavProps) => {
   const tNav = useTranslations('Navigation')
+  const tWidgets = useTranslations('widgets.sidebar')
   const { data: rootFolders } = useProjectFolders(undefined, undefined, !isCollapsed && isAllProjectsOpen)
+  const { data: recentProjectsResponse } = useProjectsList(
+    { order_by: 'updated_at', order_direction: 'desc', limit: 4 },
+    { enabled: !isCollapsed && isAllProjectsOpen }
+  )
+
+  const rawRecentData = recentProjectsResponse?.response || recentProjectsResponse?.data || recentProjectsResponse
+  const recentProjects: { id: string; name: string }[] = (Array.isArray(rawRecentData) ? rawRecentData : rawRecentData?.projects || [])
+    .map((p: any) => ({ id: p.id, name: p.name || p.title || tWidgets('untitledProject') }))
+
   const createFolder = useCreateProjectFolder()
   const updateFolder = useUpdateProjectFolder()
+  const deleteFolder = useDeleteProjectFolder()
   const updateOrder = useUpdateProjectFoldersOrder()
   const queryClient = useQueryClient()
 
-  const [activeItem, setActiveItem] = useState<ProjectFolder | null>(null)
+  const [activeItem, setActiveItem] = useState<any>(null)
   const [isCreatingRoot, setIsCreatingRoot] = useState(false)
   const [newRootName, setNewRootName] = useState(tNav('new_folder'))
   const rootInputRef = useRef<HTMLInputElement>(null)
@@ -294,8 +369,19 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
+  // Prioritise pointer-within (folder headers / empty drop zones) over closest-center reordering
+  const collisionDetection = useCallback((args: Parameters<typeof closestCenter>[0]) => {
+    const pointerCollisions = pointerWithin(args)
+    if (pointerCollisions.length > 0) return pointerCollisions
+    return closestCenter(args)
+  }, [])
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
+    if (active.data.current?.type === 'recent-project') {
+      setActiveItem({ _recentProject: true, name: active.data.current.name })
+      return
+    }
     const itemData = active.data.current?.item as ProjectFolder
     if (itemData) {
       setActiveItem(itemData)
@@ -308,72 +394,191 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
 
     if (!over || active.id === over.id) return
 
-    const activeItemData = active.data.current?.item as ProjectFolder
+    const activeType = active.data.current?.type
+    const overType = over.data.current?.type
 
-    let targetParentId: string | null = null
-
-    if (over.data.current?.type === 'folder-dropzone') {
-      targetParentId = over.data.current?.folderId || null
-
-      if (activeItemData.parent_id === targetParentId) return // already in this folder
-
-      try {
-        await updateFolder.mutateAsync({ id: activeItemData.id, parent_id: targetParentId })
-      } catch {
-        queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+    // ── Recent project dragged ────────────────────────────────────────────────
+    if (activeType === 'recent-project') {
+      if (overType === 'folder' || overType === 'folder-dropzone') {
+        const targetFolderId = overType === 'folder-dropzone'
+          ? over.data.current?.folderId
+          : over.data.current?.item?.id
+        if (targetFolderId && active.data.current) {
+          createFolder.mutate({
+            label: active.data.current.name,
+            type: 'PROJECT',
+            mcp_project_id: active.data.current.projectId,
+            parent_id: targetFolderId,
+            order_number: 0,
+          })
+        }
       }
       return
     }
 
-    const overItemData = over.data.current?.item as ProjectFolder
-    if (!activeItemData || !overItemData) return
+    const activeItemData = active.data.current?.item as ProjectFolder
+    if (!activeItemData) return
 
-    const sourceParentId = activeItemData.parent_id || null
-    targetParentId = overItemData.parent_id || null
-
-    if (sourceParentId === targetParentId) {
-      // Reordering in the same list
-      const list = queryClient.getQueryData<ProjectFolder[]>(['project-folders', sourceParentId || 'root', undefined]) || []
-      const oldIndex = list.findIndex((x: ProjectFolder) => x.id === active.id)
-      const newIndex = list.findIndex((x: ProjectFolder) => x.id === over.id)
-
-      const newItems = [...list]
-      const [removed] = newItems.splice(oldIndex, 1)
-      newItems.splice(newIndex, 0, removed)
-
-      // Optimistic update
-      queryClient.setQueryData(['project-folders', sourceParentId || 'root', undefined], newItems)
-
-      try {
-        await updateOrder.mutateAsync({
-          items: newItems.map((item, i) => ({ id: item.id, order_number: i + 1 }))
-        })
-      } catch {
-        queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+    // ── PROJECT item dragged ──────────────────────────────────────────────────
+    if (activeType === 'item') {
+      // Dropped onto a folder header or folder dropzone → move to folder
+      if (overType === 'folder' || overType === 'folder-dropzone') {
+        const targetFolderId = overType === 'folder-dropzone'
+          ? over.data.current?.folderId
+          : over.data.current?.item?.id
+        if (!targetFolderId) return
+        if (activeItemData.parent_id === targetFolderId) return // already there
+        try {
+          await createFolder.mutateAsync({
+            label: activeItemData.label,
+            type: 'PROJECT',
+            mcp_project_id: activeItemData.mcp_project_id,
+            parent_id: targetFolderId,
+            order_number: 0,
+          })
+          await deleteFolder.mutateAsync(activeItemData.id)
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
+        return
       }
-    } else {
-      // Moving to a different list
-      try {
-        queryClient.setQueryData(['project-folders', sourceParentId || 'root', undefined], (old: ProjectFolder[] | undefined) => {
-          if (!old) return old;
-          return old.filter(x => x.id !== activeItemData.id);
-        })
-        const updatedItem = { ...activeItemData, parent_id: targetParentId || undefined };
-        queryClient.setQueryData(['project-folders', targetParentId || 'root', undefined], (old: ProjectFolder[] | undefined) => {
-          if (!old) return [updatedItem];
-          const newItems = [...old];
-          const overIndex = newItems.findIndex(x => x.id === overItemData.id);
-          if (overIndex >= 0) {
-            newItems.splice(overIndex, 0, updatedItem);
-          } else {
-            newItems.push(updatedItem);
-          }
-          return newItems;
-        })
 
-        await updateFolder.mutateAsync({ id: activeItemData.id, parent_id: targetParentId })
-      } catch {
-        queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+      // Dropped onto root drop zone → remove from folder
+      if (overType === 'root-dropzone') {
+        try {
+          await deleteFolder.mutateAsync(activeItemData.id)
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
+        return
+      }
+
+      // Dropped onto another item
+      const overItemData = over.data.current?.item as ProjectFolder
+      if (!overItemData) return
+
+      const sourceParentId = activeItemData.parent_id || null
+      const targetParentId = overItemData.parent_id || null
+
+      if (sourceParentId === targetParentId) {
+        // Reorder in the same folder
+        const list = queryClient.getQueryData<ProjectFolder[]>(['project-folders', sourceParentId || 'root', undefined]) || []
+        const oldIndex = list.findIndex(x => x.id === active.id)
+        const newIndex = list.findIndex(x => x.id === over.id)
+        const newItems = [...list]
+        const [removed] = newItems.splice(oldIndex, 1)
+        newItems.splice(newIndex, 0, removed)
+        queryClient.setQueryData(['project-folders', sourceParentId || 'root', undefined], newItems)
+        try {
+          await updateOrder.mutateAsync({
+            items: newItems.map((item, i) => ({ id: item.id, order_number: i + 1 }))
+          })
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
+      } else {
+        // Move to a different folder: create new entry + delete old
+        try {
+          await createFolder.mutateAsync({
+            label: activeItemData.label,
+            type: 'PROJECT',
+            mcp_project_id: activeItemData.mcp_project_id,
+            parent_id: targetParentId,
+            order_number: 0,
+          })
+          await deleteFolder.mutateAsync(activeItemData.id)
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
+      }
+      return
+    }
+
+    // ── FOLDER dragged ────────────────────────────────────────────────────────
+    if (activeType === 'folder') {
+      // Dropped onto a folder dropzone (empty folder's drop area)
+      if (overType === 'folder-dropzone') {
+        const targetParentId: string | null = over.data.current?.folderId || null
+        if (activeItemData.id === targetParentId) return // can't drop folder into itself
+        if (activeItemData.parent_id === targetParentId) return // already there
+        try {
+          await updateFolder.mutateAsync({ id: activeItemData.id, parent_id: targetParentId })
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
+        return
+      }
+
+      // Dropped onto a folder header → move into that folder
+      if (overType === 'folder') {
+        const targetParentId = over.data.current?.item?.id
+        if (activeItemData.id === targetParentId) return // can't drop folder into itself
+        if (activeItemData.parent_id === targetParentId) return // already there
+        try {
+          await updateFolder.mutateAsync({ id: activeItemData.id, parent_id: targetParentId })
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
+        return
+      }
+
+      // Dropped onto root drop zone → move folder to root
+      if (overType === 'root-dropzone') {
+        if (!activeItemData.parent_id) return // already at root
+        try {
+          await updateFolder.mutateAsync({ id: activeItemData.id, parent_id: null })
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
+        return
+      }
+
+      // Dropped onto another item (reorder or cross-list move)
+      const overItemData = over.data.current?.item as ProjectFolder
+      if (!overItemData) return
+
+      const sourceParentId = activeItemData.parent_id || null
+      const targetParentId = overItemData.parent_id || null
+
+      if (sourceParentId === targetParentId) {
+        // Reorder in the same list
+        const list = queryClient.getQueryData<ProjectFolder[]>(['project-folders', sourceParentId || 'root', undefined]) || []
+        const oldIndex = list.findIndex(x => x.id === active.id)
+        const newIndex = list.findIndex(x => x.id === over.id)
+        const newItems = [...list]
+        const [removed] = newItems.splice(oldIndex, 1)
+        newItems.splice(newIndex, 0, removed)
+        queryClient.setQueryData(['project-folders', sourceParentId || 'root', undefined], newItems)
+        try {
+          await updateOrder.mutateAsync({
+            items: newItems.map((item, i) => ({ id: item.id, order_number: i + 1 }))
+          })
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
+      } else {
+        // Moving to a different list
+        try {
+          queryClient.setQueryData(['project-folders', sourceParentId || 'root', undefined], (old: ProjectFolder[] | undefined) => {
+            if (!old) return old
+            return old.filter(x => x.id !== activeItemData.id)
+          })
+          const updatedItem = { ...activeItemData, parent_id: targetParentId || undefined }
+          queryClient.setQueryData(['project-folders', targetParentId || 'root', undefined], (old: ProjectFolder[] | undefined) => {
+            if (!old) return [updatedItem]
+            const newItems = [...old]
+            const overIndex = newItems.findIndex(x => x.id === overItemData.id)
+            if (overIndex >= 0) {
+              newItems.splice(overIndex, 0, updatedItem)
+            } else {
+              newItems.push(updatedItem)
+            }
+            return newItems
+          })
+          await updateFolder.mutateAsync({ id: activeItemData.id, parent_id: targetParentId })
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ['project-folders'] })
+        }
       }
     }
   }
@@ -409,7 +614,7 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -482,6 +687,12 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
                     <SortableNode key={folder.id} id={folder.id} item={folder} level={0} isCollapsed={isCollapsed} />
                   ))}
                 </SortableContext>
+
+                {recentProjects.map(project => (
+                  <DraggableProjectLink key={project.id} project={project} />
+                ))}
+
+                <RootDropZone />
               </div>
             )}
           </div>
@@ -491,17 +702,20 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
       <DragOverlay>
         {activeItem ? (
           <div className="opacity-90 cursor-grabbing bg-bg-main shadow-xl rounded-lg p-2 border border-border-default z-50">
-            {activeItem.type?.toUpperCase() === 'FOLDER' ? (
+            {activeItem._recentProject ? (
+              <div className="flex items-center gap-2">
+                <FileIcon size={16} className="shrink-0 text-text-muted" />
+                <span className="text-sm font-medium">{activeItem.name}</span>
+              </div>
+            ) : activeItem.type?.toUpperCase() === 'FOLDER' ? (
               <div className="flex items-center gap-2">
                 <Folder size={16} className="shrink-0 text-text-muted" />
                 <span className="text-sm font-medium">{activeItem.label}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 shrink-0 flex items-center justify-center bg-black/5 dark:bg-white/10 rounded">
-                  <span className="text-[10px] uppercase font-bold text-text-main">{activeItem.icon || (activeItem.type?.toUpperCase() === 'PROJECT' ? 'P' : 'C')}</span>
-                </div>
-                <span className="text-sm font-medium">{activeItem.label}</span>
+                <FileIcon size={16} className="shrink-0 text-text-muted" />
+                <span className="text-sm font-medium">{activeItem.label || activeItem.name}</span>
               </div>
             )}
           </div>

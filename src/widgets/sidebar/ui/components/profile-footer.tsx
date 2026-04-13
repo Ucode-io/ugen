@@ -27,6 +27,7 @@ interface ProfileFooterProps {
   setActiveView: (view: 'home' | 'dashboard') => void;
   router: any;
   handleLogout: () => void;
+  onOpenProfileModal: () => void;
 }
 
 export const ProfileFooter = ({
@@ -43,6 +44,7 @@ export const ProfileFooter = ({
   setActiveView,
   router,
   handleLogout,
+  onOpenProfileModal,
 }: ProfileFooterProps) => {
   const tNav = useTranslations('Navigation')
   const tWidgets = useTranslations('widgets.sidebar')
@@ -81,8 +83,11 @@ export const ProfileFooter = ({
       >
         <div className="relative" ref={profilePopupRef}>
           <button
-            onClick={() => setIsProfilePopupOpen(!isProfilePopupOpen)}
+            onClick={() => {
+              setIsProfilePopupOpen(!isProfilePopupOpen)
+            }}
             className="bg-primary/10 ring-border-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm ring-1 transition-opacity hover:opacity-90"
+            title={user?.login || 'Profile'}
           >
             <span className="text-primary text-sm font-bold">
               {userInitial}
@@ -109,22 +114,16 @@ export const ProfileFooter = ({
               </div>
               {/* Body */}
               <div className="border-border-subtle flex flex-col gap-0.5 border-b p-1.5">
-                <Link
-                  href="/profile"
-                  onClick={() => setIsProfilePopupOpen(false)}
-                  className="hover:bg-hover-bg text-text-main flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors"
+                <button
+                  onClick={() => {
+                    setIsProfilePopupOpen(false)
+                    onOpenProfileModal()
+                  }}
+                  className="hover:bg-hover-bg text-text-main flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors w-full"
                 >
                   <UserIcon size={16} className="text-text-muted" />
                   <span>{tWidgets('profile')}</span>
-                </Link>
-                {/* <Link
-                  href="/settings"
-                  onClick={() => setIsProfilePopupOpen(false)}
-                  className="hover:bg-hover-bg text-text-main flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors"
-                >
-                  <Settings size={16} className="text-text-muted" />
-                  <span>{tWidgets('settings')}</span>
-                </Link> */}
+                </button>
                 <div
                   className="relative z-[110]"
                   onMouseEnter={() => setIsThemeMenuOpen(true)}
@@ -165,17 +164,6 @@ export const ProfileFooter = ({
                     </div>
                   )}
                 </div>
-                {/* <button
-                  onClick={() => {
-                    setIsProfilePopupOpen(false);
-                    setActiveView("home");
-                    router.push("/");
-                  }}
-                  className="hover:bg-hover-bg text-text-main flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors"
-                >
-                  <Home size={16} className="text-text-muted" />
-                  <span>{tWidgets('homePage')}</span>
-                </button> */}
               </div>
               {/* Footer */}
               <div className="p-1.5">
@@ -194,10 +182,6 @@ export const ProfileFooter = ({
           )}
         </div>
 
-        {/* <button className="text-text-muted hover:text-text-main relative shrink-0 p-1.5 transition-colors">
-          <Bell size={18} strokeWidth={2} />
-          <span className="border-bg-sidebar absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full border bg-red-500"></span>
-        </button> */}
       </div>
     </div>
   )
