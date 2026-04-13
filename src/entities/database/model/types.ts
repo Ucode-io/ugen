@@ -37,6 +37,7 @@ export interface SchemaConstraint {
 export interface SchemaColumn {
   id?: string;
   name: string;
+  label?: string;
   type: string;
   nullable: 'YES' | 'NO' | string;
   default: string | null;

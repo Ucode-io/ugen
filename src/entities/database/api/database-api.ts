@@ -156,6 +156,28 @@ export const databaseApi = {
     return data;
   },
 
+  updateSchemaField: async (
+    tableSlug: string,
+    projectId: string,
+    payload: {
+      id: string;
+      slug: string;
+      label: string;
+      type: string;
+      table_id: string;
+      index: string;
+      required: boolean;
+      show_label: boolean;
+      is_visible: boolean;
+      attributes: Record<string, unknown>;
+    }
+  ): Promise<any> => {
+    const { data } = await api.put<any>(`/v2/items/${tableSlug}/schema`, payload, {
+      params: { 'project-id': projectId }
+    });
+    return data;
+  },
+
   deleteSchemaField: async (
     tableSlug: string,
     fieldId: string,
@@ -317,3 +339,33 @@ export const useDeleteSchemaField = () => {
     },
   });
 };
+
+export const useUpdateSchemaField = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tableSlug,
+      projectId,
+      payload,
+    }: {
+      tableSlug: string;
+      projectId: string;
+      payload: {
+        id: string;
+        slug: string;
+        label: string;
+        type: string;
+        table_id: string;
+        index: string;
+        required: boolean;
+        show_label: boolean;
+        is_visible: boolean;
+        attributes: Record<string, unknown>;
+      };
+    }) => databaseApi.updateSchemaField(tableSlug, projectId, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug] });
+    },
+  });
+};
+

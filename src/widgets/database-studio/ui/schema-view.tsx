@@ -7,6 +7,7 @@ import {
   useTableSchemaV2,
   useAddSchemaField,
   useDeleteSchemaField,
+  useUpdateSchemaField,
   SchemaColumn,
 } from '@/entities/database'
 import { Skeleton } from '@/shared/ui'
@@ -21,38 +22,34 @@ import { toast } from 'sonner'
 const PROTECTED_FIELDS = new Set(['guid', 'created_at', 'updated_at', 'deleted_at'])
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PostgreSQL types from spec image
+// PostgreSQL types
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PG_TYPES = [
-  'character varying',
-  'varchar',
-  'text',
-  'citext',
-  'integer',
-  'smallint',
-  'bigint',
-  'int2',
-  'int4',
-  'int8',
-  'serial',
-  'numeric',
-  'decimal',
-  'real',
-  'double precision',
-  'money',
-  'boolean',
-  'uuid',
-  'jsonb',
-  'json',
-  'date',
-  'timestamp',
-  'timestamptz',
-  'timestamp with time zone',
-  'timestamp without time zone',
-  'text[]',
-  'uuid[]',
+  'character varying', 'varchar', 'text', 'citext',
+  'integer', 'smallint', 'bigint', 'int2', 'int4', 'int8', 'serial',
+  'numeric', 'decimal', 'real', 'double precision', 'money',
+  'boolean', 'uuid', 'jsonb', 'json', 'date',
+  'timestamp', 'timestamptz', 'timestamp with time zone',
+  'timestamp without time zone', 'text[]', 'uuid[]',
 ] as const
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared field payload type
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface FieldPayload {
+  id: string
+  slug: string
+  label: string
+  type: string
+  table_id: string
+  index: string
+  required: boolean
+  show_label: boolean
+  is_visible: boolean
+  attributes: Record<string, unknown>
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constraint badge
@@ -103,7 +100,6 @@ interface DeleteConfirmDialogProps {
 }
 
 const DeleteConfirmDialog = ({ fieldName, isLoading, onConfirm, onCancel }: DeleteConfirmDialogProps) => {
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
     window.addEventListener('keydown', handler)
@@ -111,19 +107,12 @@ const DeleteConfirmDialog = ({ fieldName, isLoading, onConfirm, onCancel }: Dele
   }, [onCancel])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={onCancel}
-    >
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onCancel}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
-
-      {/* Panel */}
       <div
         className="relative z-10 w-[400px] bg-bg-card border border-border-subtle rounded-xl shadow-2xl p-6 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        {/* Icon + title */}
         <div className="flex items-start gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center shrink-0">
             <Trash2 size={18} className="text-destructive" />
@@ -131,7 +120,7 @@ const DeleteConfirmDialog = ({ fieldName, isLoading, onConfirm, onCancel }: Dele
           <div className="pt-0.5">
             <h3 className="text-[15px] font-semibold text-text-main leading-tight">Delete field</h3>
             <p className="text-[13px] text-text-muted mt-1.5 leading-relaxed">
-              Are you sure you want to delete the field{' '}
+              Are you sure you want to delete{' '}
               <code className="font-mono font-semibold text-text-main bg-bg-main border border-border-subtle px-1.5 py-0.5 rounded text-[12px]">
                 {fieldName}
               </code>
@@ -139,8 +128,6 @@ const DeleteConfirmDialog = ({ fieldName, isLoading, onConfirm, onCancel }: Dele
             </p>
           </div>
         </div>
-
-        {/* Actions */}
         <div className="flex items-center justify-end gap-2 pt-1">
           <button
             onClick={onCancel}
@@ -182,38 +169,36 @@ function exportSchemaToCSV(tableName: string, columns: SchemaColumn[]) {
   URL.revokeObjectURL(url)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Add Field Form
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface AddFieldFormProps {
-  tableId: string
-  onClose: () => void
-  onSubmit: (payload: {
-    id: string
-    slug: string
-    label: string
-    type: string
-    table_id: string
-    index: string
-    required: boolean
-    show_label: boolean
-    is_visible: boolean
-    attributes: Record<string, unknown>
-  }) => void
-  isLoading: boolean
-}
-
 function toSlug(label: string): string {
   return label.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 }
 
-const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormProps) => {
-  const [label, setLabel] = useState('')
-  const [slug, setSlug] = useState('')
-  const [slugTouched, setSlugTouched] = useState(false)
-  const [type, setType] = useState<string>('character varying')
-  const [required, setRequired] = useState(false)
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared Field Form (used by both Add and Edit)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface FieldFormProps {
+  tableId: string
+  /** Pre-fill values for edit mode */
+  initial?: {
+    id: string
+    slug: string
+    label: string
+    type: string
+    required: boolean
+  }
+  isLoading: boolean
+  onClose: () => void
+  onSubmit: (payload: FieldPayload) => void
+  submitLabel: string
+}
+
+const FieldForm = ({ tableId, initial, isLoading, onClose, onSubmit, submitLabel }: FieldFormProps) => {
+  const [label, setLabel] = useState(initial?.label ?? '')
+  const [slug, setSlug] = useState(initial?.slug ?? '')
+  const [slugTouched, setSlugTouched] = useState(!!initial)
+  const [type, setType] = useState(initial?.type ?? 'character varying')
+  const [required, setRequired] = useState(initial?.required ?? false)
 
   const handleLabelChange = (val: string) => {
     setLabel(val)
@@ -224,7 +209,7 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
     if (!label.trim()) { toast.error('Label is required'); return }
     if (!slug.trim()) { toast.error('Slug is required'); return }
     onSubmit({
-      id: crypto.randomUUID(),
+      id: initial?.id ?? crypto.randomUUID(),
       slug: slug.trim(),
       label: label.trim(),
       type,
@@ -247,22 +232,34 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
       className="flex items-center gap-2 px-4 py-2.5 border-b border-primary/30 border-l-2 border-l-primary bg-primary/[0.04] flex-wrap"
       onKeyDown={handleKeyDown}
     >
+      {/* Label */}
       <input
         autoFocus
         type="text"
+        disabled={!!initial}
         placeholder="Label (e.g. Phone Number)"
         value={label}
         onChange={e => handleLabelChange(e.target.value)}
         className="bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-semibold text-text-main outline-none focus:border-primary/60 w-[170px] shrink-0"
       />
+
+      {/* Slug */}
       <input
         type="text"
         placeholder="slug"
         value={slug}
         onChange={e => { setSlugTouched(true); setSlug(e.target.value) }}
-        className="bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-mono text-text-muted outline-none focus:border-primary/60 w-[140px] shrink-0"
-        title="Column slug (auto-derived from label)"
+        disabled={!!initial}
+        className={cn(
+          "bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-mono outline-none w-[150px] shrink-0",
+          initial
+            ? "text-text-muted/50 cursor-not-allowed opacity-60"
+            : "text-text-muted focus:border-primary/60"
+        )}
+        title={initial ? "Slug cannot be changed after creation" : "Column slug"}
       />
+
+      {/* Type */}
       <select
         value={type}
         onChange={e => setType(e.target.value)}
@@ -270,17 +267,26 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
       >
         {PG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
       </select>
+
+      {/* Required */}
       <label className="flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer select-none shrink-0">
-        <input type="checkbox" checked={required} onChange={e => setRequired(e.target.checked)} className="accent-primary" />
+        <input
+          type="checkbox"
+          checked={required}
+          onChange={e => setRequired(e.target.checked)}
+          className="accent-primary"
+        />
         Required
       </label>
+
+      {/* Actions */}
       <div className="flex items-center gap-1.5 ml-auto shrink-0">
         <button
           onClick={handleSubmit}
           disabled={isLoading}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-primary text-white text-[11px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <Check size={12} /> {isLoading ? 'Adding…' : 'Add'}
+          <Check size={12} /> {isLoading ? '…' : submitLabel}
         </button>
         <button
           onClick={onClose}
@@ -295,40 +301,46 @@ const AddFieldForm = ({ tableId, onClose, onSubmit, isLoading }: AddFieldFormPro
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FieldRow — grid: [name 160px] | [type 240px] | [constraints 1fr] | [actions auto]
+// When editing → replaced by inline FieldForm
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FieldRowProps {
   col: SchemaColumn
+  tableId: string
   isEditing: boolean
   isProtected: boolean
+  isUpdating: boolean
   onEdit: () => void
   onCancelEdit: () => void
+  onUpdate: (payload: FieldPayload) => void
   onDelete: () => void
 }
 
-const FieldRow = ({ col, isEditing, isProtected, onEdit, onCancelEdit, onDelete }: FieldRowProps) => {
+const FieldRow = ({
+  col, tableId, isEditing, isProtected, isUpdating,
+  onEdit, onCancelEdit, onUpdate, onDelete,
+}: FieldRowProps) => {
   const constraints = col.constraints ?? []
   const hasDefault = col.default !== null && col.default !== undefined && col.default !== ''
   const isNullable = col.nullable === 'YES'
 
+  // Editing mode — show pre-filled form inline
   if (isEditing) {
     return (
-      <div
-        className="grid border-b border-border-subtle bg-primary/[0.06] border-l-2 border-l-primary px-4 py-2.5"
-        style={{ gridTemplateColumns: '160px 240px 1fr auto' }}
-      >
-        <span className="font-semibold text-[13px] text-text-main flex items-center">{col.name}</span>
-        <span className="font-mono text-[12px] text-blue-400 bg-blue-400/[0.08] px-2 py-0.5 rounded self-center w-fit">{col.type}</span>
-        <span />
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onCancelEdit}
-            className="w-7 h-7 border border-border-subtle rounded bg-bg-main text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center justify-center transition-colors"
-          >
-            <X size={11} />
-          </button>
-        </div>
-      </div>
+      <FieldForm
+        tableId={tableId}
+        initial={{
+          id: col.id ?? '',
+          slug: col.name,
+          label: col.label ?? col.name,
+          type: col.type,
+          required: false,
+        }}
+        isLoading={isUpdating}
+        onClose={onCancelEdit}
+        onSubmit={onUpdate}
+        submitLabel="Save"
+      />
     )
   }
 
@@ -341,11 +353,8 @@ const FieldRow = ({ col, isEditing, isProtected, onEdit, onCancelEdit, onDelete 
       <div className="flex items-center gap-1.5 pr-2 min-w-0">
         <span className="font-semibold text-[13px] text-text-main truncate">{col.name}</span>
         {isProtected && (
-          <span
-            title="System field — cannot be deleted"
-            className="shrink-0 text-text-muted/40 hover:text-text-muted transition-colors"
-          >
-            <ShieldOff size={10} />
+          <span title="System field — cannot be deleted">
+            <ShieldOff size={10} className="shrink-0 text-text-muted/40" />
           </span>
         )}
       </div>
@@ -364,9 +373,7 @@ const FieldRow = ({ col, isEditing, isProtected, onEdit, onCancelEdit, onDelete 
         ))}
         {!isNullable && !constraints.some(c =>
           c.label.toUpperCase().includes('NOT NULL') || c.label.toUpperCase() === 'NN'
-        ) && (
-          <ConstraintBadge label="NOT NULL" />
-        )}
+        ) && <ConstraintBadge label="NOT NULL" />}
         {hasDefault && (
           <ConstraintBadge label={`DEFAULT ${col.default}`} title={`Default: ${col.default}`} />
         )}
@@ -383,7 +390,6 @@ const FieldRow = ({ col, isEditing, isProtected, onEdit, onCancelEdit, onDelete 
         </button>
 
         {isProtected ? (
-          /* Protected: show disabled button with tooltip */
           <button
             disabled
             title="System field — cannot be deleted"
@@ -418,31 +424,40 @@ export const SchemaView = () => {
     ucodeProjectId || ''
   )
   const addFieldMutation = useAddSchemaField()
+  const updateFieldMutation = useUpdateSchemaField()
   const deleteFieldMutation = useDeleteSchemaField()
 
   const [isAddingField, setIsAddingField] = useState(false)
   const [editingName, setEditingName] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
 
-  // Reset UI state when switching tables
   useEffect(() => {
     setIsAddingField(false)
     setEditingName(null)
     setDeleteTarget(null)
   }, [selectedTable])
 
-  const handleAddField = async (payload: {
-    id: string; slug: string; label: string; type: string
-    table_id: string; index: string; required: boolean
-    show_label: boolean; is_visible: boolean; attributes: Record<string, unknown>
-  }) => {
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleAddField = async (payload: FieldPayload) => {
     if (!selectedTable) return
     try {
       await addFieldMutation.mutateAsync({ tableSlug: selectedTable, projectId: ucodeProjectId || '', payload })
-      toast.success(`Field "${payload.label}" added successfully`)
+      toast.success(`Field "${payload.label}" added`)
       setIsAddingField(false)
     } catch {
       toast.error('Failed to add field')
+    }
+  }
+
+  const handleUpdateField = async (payload: FieldPayload) => {
+    if (!selectedTable) return
+    try {
+      await updateFieldMutation.mutateAsync({ tableSlug: selectedTable, projectId: ucodeProjectId || '', payload })
+      toast.success(`Field "${payload.label}" updated`)
+      setEditingName(null)
+    } catch {
+      toast.error('Failed to update field')
     }
   }
 
@@ -492,7 +507,6 @@ export const SchemaView = () => {
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <path d="M3 9h18M3 15h18M9 3v18" />
           </svg>
-
           <span className="text-[14px] font-semibold text-text-main">{selectedTable}</span>
           <span className="text-[12px] text-text-muted/60">{columns.length} fields</span>
           <span className="flex-1" />
@@ -532,12 +546,14 @@ export const SchemaView = () => {
             Columns
           </div>
 
+          {/* Add field form */}
           {isAddingField && (
-            <AddFieldForm
+            <FieldForm
               tableId={selectedTable}
+              isLoading={addFieldMutation.isPending}
               onClose={() => setIsAddingField(false)}
               onSubmit={handleAddField}
-              isLoading={addFieldMutation.isPending}
+              submitLabel="Add"
             />
           )}
 
@@ -568,10 +584,13 @@ export const SchemaView = () => {
               <FieldRow
                 key={`${col.name}-${i}`}
                 col={col}
+                tableId={selectedTable}
                 isEditing={editingName === col.name}
                 isProtected={PROTECTED_FIELDS.has(col.name)}
+                isUpdating={updateFieldMutation.isPending}
                 onEdit={() => { setIsAddingField(false); setEditingName(col.name) }}
                 onCancelEdit={() => setEditingName(null)}
+                onUpdate={handleUpdateField}
                 onDelete={() => requestDelete(col)}
               />
             ))
@@ -594,7 +613,7 @@ export const SchemaView = () => {
         </div>
       </div>
 
-      {/* ── Delete confirmation dialog (rendered outside scroll container) ── */}
+      {/* ── Delete confirmation dialog ── */}
       {deleteTarget && (
         <DeleteConfirmDialog
           fieldName={deleteTarget.name}
