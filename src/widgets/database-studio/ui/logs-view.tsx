@@ -332,7 +332,7 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
         { label: "Create", value: "CREATE" },
         { label: "Update", value: "UPDATE" },
         { label: "Delete", value: "DELETE" },
-        { label: "Bulkwrite", value: "BULKWRITE" },
+        // { label: "Bulkwrite", value: "BULKWRITE" },
         { label: "Get", value: "GET" },
         { label: "Login", value: "LOGIN" },
       ],
@@ -346,69 +346,69 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
         { label: "Upsert Many Item", value: "UPSERT MANY ITEM" },
       ],
     },
-    {
-      label: "Table",
-      items: [
-        { label: "Create Table", value: "CREATE TABLE" },
-        { label: "Update Table", value: "UPDATE TABLE" },
-        { label: "Delete Table", value: "DELETE TABLE" },
-      ],
-    },
-    {
-      label: "Field",
-      items: [
-        { label: "Create Field", value: "CREATE FIELD" },
-        { label: "Update Field", value: "UPDATE FIELD" },
-        { label: "Delete Field", value: "DELETE FIELD" },
-      ],
-    },
-    {
-      label: "View",
-      items: [
-        { label: "Create View", value: "CREATE VIEW" },
-        { label: "Update View", value: "UPDATE VIEW" },
-        { label: "Delete View", value: "DELETE VIEW" },
-      ],
-    },
-    {
-      label: "Relation",
-      items: [
-        { label: "Create Relation", value: "CREATE RELATION" },
-        { label: "Update Relation", value: "UPDATE RELATION" },
-        { label: "Delete Relation", value: "DELETE RELATION" },
-      ],
-    },
-    {
-      label: "Menu",
-      items: [
-        { label: "Create Menu", value: "CREATE MENU" },
-        { label: "Update Menu", value: "UPDATE MENU" },
-        { label: "Delete Menu", value: "DELETE MENU" },
-      ],
-    },
-    {
-      label: "Layout",
-      items: [
-        { label: "Update Layout", value: "UPDATE LAYOUT" },
-        { label: "Delete Layout", value: "DELETE LAYOUT" },
-      ],
-    },
-    {
-      label: "Client Type",
-      items: [
-        { label: "Create Client Type", value: "CREATE CLIENT TYPE" },
-        { label: "Update Client Type", value: "UPDATE CLIENT TYPE" },
-        { label: "Delete Client Type", value: "DELETE CLIENT TYPE" },
-      ],
-    },
-    {
-      label: "Role & Permission",
-      items: [
-        { label: "Create Role", value: "CREATE ROLE" },
-        { label: "Delete Role", value: "DELETE ROLE" },
-        { label: "Update Permission", value: "UPDATE PERMISSION" },
-      ],
-    },
+    // {
+    //   label: "Table",
+    //   items: [
+    //     { label: "Create Table", value: "CREATE TABLE" },
+    //     { label: "Update Table", value: "UPDATE TABLE" },
+    //     { label: "Delete Table", value: "DELETE TABLE" },
+    //   ],
+    // },
+    // {
+    //   label: "Field",
+    //   items: [
+    //     { label: "Create Field", value: "CREATE FIELD" },
+    //     { label: "Update Field", value: "UPDATE FIELD" },
+    //     { label: "Delete Field", value: "DELETE FIELD" },
+    //   ],
+    // },
+    // {
+    //   label: "View",
+    //   items: [
+    //     { label: "Create View", value: "CREATE VIEW" },
+    //     { label: "Update View", value: "UPDATE VIEW" },
+    //     { label: "Delete View", value: "DELETE VIEW" },
+    //   ],
+    // },
+    // {
+    //   label: "Relation",
+    //   items: [
+    //     { label: "Create Relation", value: "CREATE RELATION" },
+    //     { label: "Update Relation", value: "UPDATE RELATION" },
+    //     { label: "Delete Relation", value: "DELETE RELATION" },
+    //   ],
+    // },
+    // {
+    //   label: "Menu",
+    //   items: [
+    //     { label: "Create Menu", value: "CREATE MENU" },
+    //     { label: "Update Menu", value: "UPDATE MENU" },
+    //     { label: "Delete Menu", value: "DELETE MENU" },
+    //   ],
+    // },
+    // {
+    //   label: "Layout",
+    //   items: [
+    //     { label: "Update Layout", value: "UPDATE LAYOUT" },
+    //     { label: "Delete Layout", value: "DELETE LAYOUT" },
+    //   ],
+    // },
+    // {
+    //   label: "Client Type",
+    //   items: [
+    //     { label: "Create Client Type", value: "CREATE CLIENT TYPE" },
+    //     { label: "Update Client Type", value: "UPDATE CLIENT TYPE" },
+    //     { label: "Delete Client Type", value: "DELETE CLIENT TYPE" },
+    //   ],
+    // },
+    // {
+    //   label: "Role & Permission",
+    //   items: [
+    //     { label: "Create Role", value: "CREATE ROLE" },
+    //     { label: "Delete Role", value: "DELETE ROLE" },
+    //     { label: "Update Permission", value: "UPDATE PERMISSION" },
+    //   ],
+    // },
     {
       label: "User",
       items: [

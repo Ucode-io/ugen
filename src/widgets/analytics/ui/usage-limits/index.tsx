@@ -110,7 +110,7 @@ export const UsageLimitsTab = ({ pricingData, fareData }: any) => {
           },
           {
             key: "asset_size",
-            label: "Asset size",
+            label: "File size",
             color: "bg-purple-500",
             textColor: "text-purple-500",
           },

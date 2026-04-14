@@ -220,7 +220,7 @@ export const MediaGallery = ({
           </p>
         </div>
         <UsageIndicator
-          label="Storage"
+          label="File size"
           value={storageUsed}
           total={storageTotal}
           percentage={storagePercentage}

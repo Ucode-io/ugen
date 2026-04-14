@@ -12,7 +12,7 @@ import type { CodeEditorTarget } from '@/entities/session'
 
 import { useFilesStore, IFile } from "@/entities/project/model/files-store"
 
-import { ProjectHeader } from "@/widgets/project-workspace/ui/project-header"
+import { ProjectHeader, DeviceType } from "@/widgets/project-workspace/ui/project-header"
 import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard"
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view"
 import { ErrorBoundary } from "@/shared/ui"
@@ -45,6 +45,16 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
   const [isDashboardSidebarCollapsed, setIsDashboardSidebarCollapsed] = useState(false)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
+  const [device, setDevice] = useState<DeviceType>('desktop')
+  const [isPreviewMaximized, setIsPreviewMaximized] = useState(false)
+
+  const handleTogglePreviewMaximize = useCallback(() => {
+    setIsPreviewMaximized((prev) => {
+      const next = !prev
+      setIsChatCollapsed(next)
+      return next
+    })
+  }, [])
   const [projectTitle, setProjectTitle] = useState('Loading...')
   const [isLoading, setIsLoading] = useState(true)
   const [projectInfo, setProjectInfo] = useState<any>(null)
@@ -157,6 +167,10 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           onSave={handleSaveChanges}
           isChatCollapsed={isChatCollapsed}
           onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
+          device={device}
+          onDeviceChange={setDevice}
+          isPreviewMaximized={isPreviewMaximized}
+          onTogglePreviewMaximize={handleTogglePreviewMaximize}
         />
 
         <div className="flex flex-1 overflow-hidden">
@@ -187,7 +201,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             ) : activeTab === 'code' ? (
               <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
             ) : (
-              <ProjectPreviewViewer />
+              <ProjectPreviewViewer device={device} isMaximized={isPreviewMaximized} />
             )}
           </div>
         </div>

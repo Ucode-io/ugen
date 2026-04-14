@@ -5,8 +5,20 @@ import { useFilesStore } from "@/entities/project/model/files-store"
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler"
 import { generatePreviewHtml } from "../lib/preview-html"
 import { Loader2 } from "lucide-react"
+import type { DeviceType } from "./project-header"
 
-export const ProjectPreviewViewer = () => {
+const DEVICE_WIDTHS: Record<DeviceType, string> = {
+  desktop: '100%',
+  tablet: '768px',
+  mobile: '375px',
+}
+
+interface ProjectPreviewViewerProps {
+  device?: DeviceType
+  isMaximized?: boolean
+}
+
+export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false }: ProjectPreviewViewerProps) => {
   const { isInspectMode, addSelectedElement } = useVisualEditorStore()
   const { files } = useFilesStore()
   const [srcDoc, setSrcDoc] = useState("")
@@ -104,10 +116,12 @@ export const ProjectPreviewViewer = () => {
   }, [addSelectedElement]);
 
 
+  const iframeWidth = DEVICE_WIDTHS[device]
+
   return (
     <div
       ref={containerRef}
-      className={`flex-1 flex flex-col bg-white text-slate-900 h-full relative ${isInspectMode ? 'cursor-crosshair' : ''}`}
+      className={`flex-1 flex flex-col bg-bg-main h-full relative overflow-hidden ${isInspectMode ? 'cursor-crosshair' : ''}`}
     >
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -126,13 +140,25 @@ export const ProjectPreviewViewer = () => {
         onClose={() => setIsPromptVisible(false)}
       />
 
-      <iframe
-        ref={iframeRef}
-        className="w-full h-full border-none flex-1"
-        srcDoc={srcDoc}
-        title="Project Preview"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-      />
+      <div className={`flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300 ${isMaximized ? 'p-0' : 'py-4 px-4'}`}>
+        <div
+          className="bg-white border border-border-subtle shadow-md transition-all duration-300 overflow-hidden flex-shrink-0"
+          style={{
+            width: iframeWidth,
+            maxWidth: '100%',
+            height: '100%',
+            borderRadius: isMaximized ? '0px' : device === 'desktop' ? '12px' : '24px',
+          }}
+        >
+          <iframe
+            ref={iframeRef}
+            className="w-full h-full border-none"
+            srcDoc={srcDoc}
+            title="Project Preview"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+          />
+        </div>
+      </div>
     </div>
   )
 }
