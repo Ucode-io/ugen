@@ -712,6 +712,11 @@
         "send": "Отправить (Enter)",
         "element": "Элемент"
       },
+      "bpmn": {
+        "confirmPrompt": "Принять или отклонить BPMN",
+        "accept": "✓ Принять",
+        "reject": "✕ Отклонить"
+      },
       "codeBlock": {
         "copy": "Копировать",
         "copied": "Скопировано!"

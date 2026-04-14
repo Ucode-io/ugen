@@ -315,108 +315,23 @@ const TablePaginationFooter = ({ page, setPage, limit, setLimit, totalCount, t }
   )
 }
 
-export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string }) => {
+export const LogsView = () => {
   const t = useTranslations('widgets.databaseStudio')
 
-  const ACTION_GROUPS = [
-    {
-      label: "Function Logs",
-      items: [
-        { label: "All Function Logs", value: "function" },
-      ],
-    },
-    {
-      label: "General",
-      items: [
-        { label: t("logs.allActions"), value: "all" },
-        { label: "Create", value: "CREATE" },
-        { label: "Update", value: "UPDATE" },
-        { label: "Delete", value: "DELETE" },
-        // { label: "Bulkwrite", value: "BULKWRITE" },
-        { label: "Get", value: "GET" },
-        { label: "Login", value: "LOGIN" },
-      ],
-    },
-    {
-      label: "Items",
-      items: [
-        { label: "Create Item", value: "CREATE ITEM" },
-        { label: "Update Item", value: "UPDATE ITEM" },
-        { label: "Delete Item", value: "DELETE ITEM" },
-        { label: "Upsert Many Item", value: "UPSERT MANY ITEM" },
-      ],
-    },
-    // {
-    //   label: "Table",
-    //   items: [
-    //     { label: "Create Table", value: "CREATE TABLE" },
-    //     { label: "Update Table", value: "UPDATE TABLE" },
-    //     { label: "Delete Table", value: "DELETE TABLE" },
-    //   ],
-    // },
-    // {
-    //   label: "Field",
-    //   items: [
-    //     { label: "Create Field", value: "CREATE FIELD" },
-    //     { label: "Update Field", value: "UPDATE FIELD" },
-    //     { label: "Delete Field", value: "DELETE FIELD" },
-    //   ],
-    // },
-    // {
-    //   label: "View",
-    //   items: [
-    //     { label: "Create View", value: "CREATE VIEW" },
-    //     { label: "Update View", value: "UPDATE VIEW" },
-    //     { label: "Delete View", value: "DELETE VIEW" },
-    //   ],
-    // },
-    // {
-    //   label: "Relation",
-    //   items: [
-    //     { label: "Create Relation", value: "CREATE RELATION" },
-    //     { label: "Update Relation", value: "UPDATE RELATION" },
-    //     { label: "Delete Relation", value: "DELETE RELATION" },
-    //   ],
-    // },
-    // {
-    //   label: "Menu",
-    //   items: [
-    //     { label: "Create Menu", value: "CREATE MENU" },
-    //     { label: "Update Menu", value: "UPDATE MENU" },
-    //     { label: "Delete Menu", value: "DELETE MENU" },
-    //   ],
-    // },
-    // {
-    //   label: "Layout",
-    //   items: [
-    //     { label: "Update Layout", value: "UPDATE LAYOUT" },
-    //     { label: "Delete Layout", value: "DELETE LAYOUT" },
-    //   ],
-    // },
-    // {
-    //   label: "Client Type",
-    //   items: [
-    //     { label: "Create Client Type", value: "CREATE CLIENT TYPE" },
-    //     { label: "Update Client Type", value: "UPDATE CLIENT TYPE" },
-    //     { label: "Delete Client Type", value: "DELETE CLIENT TYPE" },
-    //   ],
-    // },
-    // {
-    //   label: "Role & Permission",
-    //   items: [
-    //     { label: "Create Role", value: "CREATE ROLE" },
-    //     { label: "Delete Role", value: "DELETE ROLE" },
-    //     { label: "Update Permission", value: "UPDATE PERMISSION" },
-    //   ],
-    // },
-    {
-      label: "User",
-      items: [
-        { label: "Create User", value: "CREATE USER" },
-        { label: "Update User", value: "UPDATE USER" },
-        { label: "Delete User", value: "DELETE USER" },
-      ],
-    },
+  const ACTIVITY_ITEMS = [
+    { label: t("logs.allActions"), value: "all" },
+    { label: "Create", value: "CREATE" },
+    { label: "Update", value: "UPDATE" },
+    { label: "Delete", value: "DELETE" },
+    { label: "Get", value: "GET" },
+    { label: "Login", value: "LOGIN" },
+    { label: "Create Item", value: "CREATE ITEM" },
+    { label: "Update Item", value: "UPDATE ITEM" },
+    { label: "Delete Item", value: "DELETE ITEM" },
+    { label: "Upsert Many Item", value: "UPSERT MANY ITEM" },
+    { label: "Create User", value: "CREATE USER" },
+    { label: "Update User", value: "UPDATE USER" },
+    { label: "Delete User", value: "DELETE USER" },
   ]
 
   const STATUS_OPTIONS = [
@@ -424,11 +339,13 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     { label: "Success", value: "success" },
     { label: "Error", value: "error" },
   ]
-  const [internalActiveTab, setInternalActiveTab] = useState('activity')
-  const activeTab = externalActiveTab || internalActiveTab
-  const setActiveTab = externalActiveTab ? () => { } : setInternalActiveTab
   const environmentId = useAuthStore((state) => state.user?.environment_id)
   const projectId = useAuthStore((state) => state.project?.project_id)
+
+  const [selectedAction, setSelectedAction] = useState<string>('activity:all')
+  const source: 'activity' | 'function' = selectedAction.startsWith('function:') ? 'function' : 'activity'
+  const activityActionType = source === 'activity' ? selectedAction.slice('activity:'.length) : ''
+  const selectedFunctionId = source === 'function' ? selectedAction.slice('function:'.length) : ''
 
   const getFirstDayOfMonthDate = () => {
     const now = new Date()
@@ -440,49 +357,38 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
     return new Date(now.getFullYear(), now.getMonth() + 1, 0)
   }
 
-  // Activity Logs States
-  const [activityPage, setActivityPage] = useState(1)
-  const [activityLimit, setActivityLimit] = useState(10)
-  const [actionType, setActionType] = useState("")
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
   const [collection, setCollection] = useState("")
-  const [userInfo, setUserInfo] = useState("")
+  const [status, setStatus] = useState("")
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: getFirstDayOfMonthDate(),
     to: getLastDayOfMonthDate()
   })
-  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const debouncedCollection = useDebounce(collection, 500)
-  const debouncedUserInfo = useDebounce(userInfo, 500)
-
-  // Function Logs States
-  const [functionPage, setFunctionPage] = useState(1)
-  const [functionLimit, setFunctionLimit] = useState(10)
-  const [functionId, setFunctionId] = useState("")
-  const [status, setStatus] = useState("")
-  const [expandedFunctionId, setExpandedFunctionId] = useState<string | null>(null)
 
   const formattedFrom = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
   const formattedTo = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
 
   const { data: activityLogsData, isLoading: isActivityLoading } = useQuery({
-    queryKey: ['activity-logs', environmentId, activityPage, activityLimit, actionType, debouncedCollection, debouncedUserInfo, formattedFrom, formattedTo],
+    queryKey: ['activity-logs', environmentId, page, limit, activityActionType, debouncedCollection, formattedFrom, formattedTo],
     queryFn: async () => {
       const { data } = await api.get(`/v2/version/history/${environmentId}`, {
         params: {
           type: 'GLOBAL',
-          limit: activityLimit,
-          offset: (activityPage - 1) * activityLimit,
-          action_type: actionType === 'all' ? '' : actionType,
+          limit,
+          offset: (page - 1) * limit,
+          action_type: activityActionType === 'all' ? '' : activityActionType,
           collection: debouncedCollection,
-          user_info: debouncedUserInfo,
           from_date: formattedFrom,
           to_date: formattedTo,
         }
       })
       return data.data
     },
-    enabled: activeTab === 'activity'
+    enabled: source === 'activity' && !!environmentId
   })
 
   const { data: functionsListData } = useQuery({
@@ -495,25 +401,39 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
       })
       return data.data.functions
     },
-    enabled: !!projectId && activeTab === 'function'
+    enabled: !!projectId
   })
 
   const { data: functionLogsData, isLoading: isFunctionLoading } = useQuery({
-    queryKey: ['function-logs', projectId, functionPage, functionLimit, functionId, status],
+    queryKey: ['function-logs', projectId, page, limit, selectedFunctionId, status],
     queryFn: async () => {
       const { data } = await api.get('/v2/functions/log', {
         params: {
-          function_id: functionId === 'all' ? '' : functionId,
+          function_id: selectedFunctionId === 'all' ? '' : selectedFunctionId,
           status: status === 'all' ? '' : status,
-          limit: functionLimit,
-          offset: (functionPage - 1) * functionLimit,
+          limit,
+          offset: (page - 1) * limit,
           'project-id': projectId
         }
       })
       return data.data
     },
-    enabled: !!projectId && activeTab === 'function'
+    enabled: !!projectId && source === 'function'
   })
+
+  const isLoading = source === 'activity' ? isActivityLoading : isFunctionLoading
+  const items: any[] = source === 'activity'
+    ? (activityLogsData?.histories || [])
+    : (functionLogsData?.function_logs || [])
+  const totalCount = source === 'activity'
+    ? (activityLogsData?.total || 0)
+    : (functionLogsData?.total_count || 0)
+
+  const handleActionChange = (val: string) => {
+    setSelectedAction(val)
+    setPage(1)
+    setExpandedId(null)
+  }
 
   return (
     <div className="flex flex-col gap-4 w-full h-full animate-in fade-in duration-500 min-h-0">
@@ -526,51 +446,43 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
       </div>
 
       <div className="ai-card overflow-hidden flex flex-col flex-1 min-h-[400px]">
-        {activeTab === 'activity' ? (
-          <>
-            <div className="flex flex-wrap gap-3 p-4 border-b border-border-subtle bg-bg-card/30 items-end shrink-0">
+        <div className="flex flex-wrap gap-3 p-4 border-b border-border-subtle bg-bg-card/30 items-end shrink-0">
+          <div className="space-y-1.5 w-[240px] flex-none">
+            <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Action</label>
+            <Select value={selectedAction} onValueChange={handleActionChange}>
+              <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
+                <SelectValue placeholder={t('logs.allActions')} />
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px] overflow-y-auto bg-bg-card border-border-subtle">
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 py-1.5">Function Logs</SelectLabel>
+                  <SelectItem value="function:all">{t('logs.allFunctions')}</SelectItem>
+                  {functionsListData?.map((f: any) => (
+                    <SelectItem key={`function:${f.id}`} value={`function:${f.id}`}>{f.name}</SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 py-1.5">Activity Logs</SelectLabel>
+                  {ACTIVITY_ITEMS.map(opt => (
+                    <SelectItem key={`activity:${opt.value}`} value={`activity:${opt.value}`}>{opt.label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {source === 'activity' && (
+            <>
               <div className="space-y-1.5 flex-none">
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Time Range</label>
                 <DatePickerWithRange
                   date={dateRange}
                   setDate={(range) => {
                     setDateRange(range)
-                    setActivityPage(1)
+                    setPage(1)
                   }}
                 />
               </div>
-
-              <div className="space-y-1.5 w-[200px] flex-none">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Action</label>
-                <Select
-                  value={actionType || "all"}
-                  onValueChange={(val) => {
-                    if (val === 'function') {
-                      setActiveTab('function')
-                      setActionType('')
-                    } else {
-                      setActiveTab('activity')
-                      setActionType(val)
-                      setActivityPage(1)
-                    }
-                  }}
-                >
-                  <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
-                    <SelectValue placeholder={t('logs.allActions')} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px] overflow-y-auto bg-bg-card border-border-subtle">
-                    {ACTION_GROUPS.map(group => (
-                      <SelectGroup key={group.label}>
-                        <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 py-1.5">{group.label}</SelectLabel>
-                        {group.items.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="space-y-1.5 flex-1 min-w-[200px]">
                 <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Collection</label>
                 <div className="relative group">
@@ -580,169 +492,72 @@ export const LogsView = ({ activeTab: externalActiveTab }: { activeTab?: string 
                     value={collection}
                     onChange={(e) => {
                       setCollection(e.target.value)
-                      setActivityPage(1)
+                      setPage(1)
                     }}
                     className="w-full h-9 pl-9 pr-4 rounded-lg bg-bg-card border border-border-subtle text-[13px] text-text-main placeholder:text-text-muted transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
+            </>
+          )}
+
+          {source === 'function' && (
+            <div className="space-y-1.5 w-[140px] flex-none">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Status</label>
+              <Select
+                value={status || 'all'}
+                onValueChange={(val) => {
+                  setStatus(val)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
+                  <SelectValue placeholder={t('logs.allStatuses')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          )}
+        </div>
 
-            <div className="flex-1 overflow-auto bg-bg-main relative">
-              <div className="flex flex-col min-h-0">
-                {isActivityLoading ? (
-                  <div className="p-4 space-y-3">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <div key={i} className="h-10 w-full bg-hover-bg animate-pulse rounded-lg" />
-                    ))}
-                  </div>
-                ) : activityLogsData?.histories?.length ? (
-                  activityLogsData.histories.map((item: any) => (
-                    <LogAccordionItem
-                      key={item.id}
-                      item={item}
-                      isExpanded={expandedActivityId === item.id}
-                      onToggle={() => setExpandedActivityId(expandedActivityId === item.id ? null : item.id)}
-                      type="activity"
-                    />
-                  ))
-                ) : (
-                  <div className="h-48 flex items-center justify-center text-text-muted text-sm italic">
-                    No activity logs found.
-                  </div>
-                )}
+        <div className="flex-1 overflow-auto bg-bg-main relative">
+          <div className="flex flex-col min-h-0">
+            {isLoading ? (
+              <div className="p-4 space-y-3">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className="h-10 w-full bg-hover-bg animate-pulse rounded-lg" />
+                ))}
               </div>
-            </div>
-
-            <TablePaginationFooter
-              page={activityPage}
-              setPage={setActivityPage}
-              limit={activityLimit}
-              setLimit={setActivityLimit}
-              totalCount={activityLogsData?.total || 0}
-              t={t}
-            />
-          </>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-3 p-4 border-b border-border-subtle bg-bg-card/30 items-end shrink-0">
-              <div className="space-y-1.5 w-[200px] flex-none">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Action</label>
-                <Select
-                  value="function"
-                  onValueChange={(val) => {
-                    if (val !== 'function') {
-                      setActiveTab('activity')
-                      setActionType(val)
-                      setActivityPage(1)
-                    }
-                  }}
-                >
-                  <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
-                    <SelectValue placeholder="Function Logs" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px] overflow-y-auto bg-bg-card border-border-subtle">
-                    {ACTION_GROUPS.map(group => (
-                      <SelectGroup key={group.label}>
-                        <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 py-1.5">{group.label}</SelectLabel>
-                        {group.items.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
+            ) : items.length ? (
+              items.map((item: any) => (
+                <LogAccordionItem
+                  key={item.id}
+                  item={item}
+                  isExpanded={expandedId === item.id}
+                  onToggle={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                  type={source}
+                />
+              ))
+            ) : (
+              <div className="h-48 flex items-center justify-center text-text-muted text-sm italic">
+                {source === 'activity' ? 'No activity logs found.' : 'No function logs found.'}
               </div>
+            )}
+          </div>
+        </div>
 
-              <div className="space-y-1.5 w-[240px] flex-none">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Function</label>
-                <Select
-                  value={functionId}
-                  onValueChange={(val) => {
-                    setFunctionId(val)
-                    setFunctionPage(1)
-                  }}
-                >
-                  <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
-                    <SelectValue placeholder={t('logs.allFunctions')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('logs.allFunctions')}</SelectItem>
-                    {functionsListData?.map((f: any) => (
-                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5 w-[140px] flex-none">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Status</label>
-                <Select
-                  value={status}
-                  onValueChange={(val) => {
-                    setStatus(val)
-                    setFunctionPage(1)
-                  }}
-                >
-                  <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
-                    <SelectValue placeholder={t('logs.allStatuses')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5 flex-1 min-w-[200px]">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Search Logs</label>
-                <div className="relative group">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" />
-                  <input
-                    placeholder="Search in log contents..."
-                    className="w-full h-9 pl-9 pr-4 rounded-lg bg-bg-card border border-border-subtle text-[13px] text-text-main placeholder:text-text-muted transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-auto bg-bg-main relative">
-              <div className="flex flex-col min-h-0">
-                {isFunctionLoading ? (
-                  <div className="p-4 space-y-3">
-                    {Array.from({ length: 10 }).map((_, i) => (
-                      <div key={i} className="h-10 w-full bg-hover-bg animate-pulse rounded-lg" />
-                    ))}
-                  </div>
-                ) : functionLogsData?.function_logs?.length ? (
-                  functionLogsData.function_logs.map((item: any) => (
-                    <LogAccordionItem
-                      key={item.id}
-                      item={item}
-                      isExpanded={expandedFunctionId === item.id}
-                      onToggle={() => setExpandedFunctionId(expandedFunctionId === item.id ? null : item.id)}
-                      type="function"
-                    />
-                  ))
-                ) : (
-                  <div className="h-48 flex items-center justify-center text-text-muted text-sm italic">
-                    No function logs found.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <TablePaginationFooter
-              page={functionPage}
-              setPage={setFunctionPage}
-              limit={functionLimit}
-              setLimit={setFunctionLimit}
-              totalCount={functionLogsData?.total_count || 0}
-              t={t}
-            />
-          </>
-        )}
+        <TablePaginationFooter
+          page={page}
+          setPage={setPage}
+          limit={limit}
+          setLimit={setLimit}
+          totalCount={totalCount}
+          t={t}
+        />
       </div>
     </div>
   )

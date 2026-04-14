@@ -712,6 +712,11 @@
         "send": "Send (Enter)",
         "element": "Element"
       },
+      "bpmn": {
+        "confirmPrompt": "Accept or Reject BPMN",
+        "accept": "✓ Accept",
+        "reject": "✕ Reject"
+      },
       "codeBlock": {
         "copy": "Copy",
         "copied": "Copied!"

@@ -47,6 +47,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [device, setDevice] = useState<DeviceType>('desktop')
   const [isPreviewMaximized, setIsPreviewMaximized] = useState(false)
+  const [microfrontendPreviewFiles, setMicrofrontendPreviewFiles] = useState<{ path: string; content: string }[] | null>(null)
 
   const handleTogglePreviewMaximize = useCallback(() => {
     setIsPreviewMaximized((prev) => {
@@ -87,6 +88,11 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setCodeEditorTarget(target)
     setActiveTab('code')
   }
+
+  const handlePreviewMicrofrontend = useCallback((files: { path: string; content: string }[]) => {
+    setMicrofrontendPreviewFiles(files)
+    setActiveTab('preview')
+  }, [setActiveTab])
 
   useEffect(() => {
     setIsLoading(true);
@@ -174,7 +180,13 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         />
 
         <div className="flex flex-1 overflow-hidden">
-          <WorkspaceChat projectId={projectId} isChatCollapsed={isChatCollapsed} setIsChatCollapsed={setIsChatCollapsed} />
+          <WorkspaceChat
+            projectId={projectId}
+            isChatCollapsed={isChatCollapsed}
+            setIsChatCollapsed={setIsChatCollapsed}
+            onSelectFunction={handleEditCode}
+            onSelectMicrofrontend={handlePreviewMicrofrontend}
+          />
 
           {/* Content Area */}
           <div className="flex-1 flex overflow-hidden">
@@ -201,7 +213,11 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             ) : activeTab === 'code' ? (
               <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
             ) : (
-              <ProjectPreviewViewer device={device} isMaximized={isPreviewMaximized} />
+              <ProjectPreviewViewer
+                device={device}
+                isMaximized={isPreviewMaximized}
+                microfrontendFiles={microfrontendPreviewFiles}
+              />
             )}
           </div>
         </div>

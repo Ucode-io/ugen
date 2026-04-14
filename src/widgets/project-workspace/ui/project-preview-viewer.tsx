@@ -2,10 +2,19 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { useVisualEditorStore } from "@/entities/visual-editor"
 import { MoveablePrompt } from "./moveable-prompt"
 import { useFilesStore } from "@/entities/project/model/files-store"
+import { useChatStore } from "@/entities/chat"
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler"
 import { generatePreviewHtml } from "../lib/preview-html"
-import { Loader2 } from "lucide-react"
+import { AlertTriangle, Loader2, Sparkles } from "lucide-react"
 import type { DeviceType } from "./project-header"
+
+interface PreviewRuntimeError {
+  message: string
+  stack?: string | null
+  filename?: string | null
+  lineno?: number | null
+  colno?: number | null
+}
 
 const DEVICE_WIDTHS: Record<DeviceType, string> = {
   desktop: '100%',
@@ -16,13 +25,36 @@ const DEVICE_WIDTHS: Record<DeviceType, string> = {
 interface ProjectPreviewViewerProps {
   device?: DeviceType
   isMaximized?: boolean
+  microfrontendFiles?: { path: string; content: string }[] | null
 }
 
-export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false }: ProjectPreviewViewerProps) => {
+const getLanguageByPath = (path: string) => {
+  const ext = path.split('.').pop()?.toLowerCase()
+  switch (ext) {
+    case 'js':
+    case 'jsx': return 'javascript'
+    case 'ts':
+    case 'tsx': return 'typescript'
+    case 'json': return 'json'
+    case 'css': return 'css'
+    case 'html': return 'html'
+    default: return 'javascript'
+  }
+}
+
+export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false, microfrontendFiles }: ProjectPreviewViewerProps) => {
   const { isInspectMode, addSelectedElement } = useVisualEditorStore()
-  const { files } = useFilesStore()
+  const { files: storeFiles } = useFilesStore()
+  const files = useMemo(
+    () => microfrontendFiles && microfrontendFiles.length > 0
+      ? microfrontendFiles.map(f => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
+      : storeFiles,
+    [microfrontendFiles, storeFiles]
+  )
+  const setPendingPrompt = useChatStore((s) => s.setPendingPrompt)
   const [srcDoc, setSrcDoc] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -37,6 +69,7 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false }
     if (isBuilding.current) return;
     isBuilding.current = true;
     setIsLoading(true);
+    setRuntimeError(null);
     try {
       await ensureEsbuild();
       console.log("[Preview] esbuild ready, building project...");
@@ -88,6 +121,17 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false }
 
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'PREVIEW_RUNTIME_ERROR') {
+        setRuntimeError({
+          message: e.data.message,
+          stack: e.data.stack,
+          filename: e.data.filename,
+          lineno: e.data.lineno,
+          colno: e.data.colno,
+        })
+        return
+      }
+
       if (e.data?.type === 'INSPECT_SELECT') {
         const { tag, id, className, name, domPath, textContent, rect } = e.data
 
@@ -116,6 +160,17 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false }
   }, [addSelectedElement]);
 
 
+  const handleFixInChat = () => {
+    if (!runtimeError) return
+    const location = runtimeError.filename
+      ? `\nFile: ${runtimeError.filename}${runtimeError.lineno ? `:${runtimeError.lineno}${runtimeError.colno ? `:${runtimeError.colno}` : ''}` : ''}`
+      : ''
+    const stack = runtimeError.stack ? `\n\nStack:\n${runtimeError.stack}` : ''
+    const content = `Исправь ошибку в превью проекта.\n\nОшибка: ${runtimeError.message}${location}${stack}`
+    setPendingPrompt({ content })
+    setRuntimeError(null)
+  }
+
   const iframeWidth = DEVICE_WIDTHS[device]
 
   return (
@@ -128,6 +183,53 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false }
           <div className="flex flex-col items-center gap-4 text-slate-500">
             <Loader2 className="animate-spin" size={32} />
             <p className="font-medium animate-pulse">Building project preview...</p>
+          </div>
+        </div>
+      )}
+
+      {runtimeError && !isLoading && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center p-6 bg-bg-main/95 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="max-w-lg w-full bg-bg-card border border-border-subtle rounded-2xl shadow-xl overflow-hidden">
+            <div className="flex items-start gap-3 p-5 border-b border-border-subtle">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-semibold text-text-main">Ошибка в превью</h3>
+                <p className="text-xs text-text-muted mt-0.5">Произошла ошибка во время выполнения кода</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="bg-bg-sidebar/60 border border-border-subtle/60 rounded-lg p-3 max-h-40 overflow-auto">
+                <pre className="text-xs text-red-500 font-mono whitespace-pre-wrap break-words">
+                  {runtimeError.message}
+                </pre>
+                {runtimeError.filename && (
+                  <p className="text-[11px] text-text-muted mt-2 font-mono break-all">
+                    {runtimeError.filename}
+                    {runtimeError.lineno ? `:${runtimeError.lineno}` : ''}
+                    {runtimeError.colno ? `:${runtimeError.colno}` : ''}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setRuntimeError(null)}
+                  className="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-main transition-colors rounded-lg"
+                >
+                  Закрыть
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFixInChat}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 active:bg-primary/80 transition-colors rounded-lg shadow-sm"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Исправить в чате
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

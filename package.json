@@ -31,6 +31,7 @@
     "date-fns": "^4.1.0",
     "esbuild-wasm": "^0.27.3",
     "framer-motion": "^12.35.2",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^0.575.0",
     "next": "15.5.12",
     "next-intl": "^4.8.3",

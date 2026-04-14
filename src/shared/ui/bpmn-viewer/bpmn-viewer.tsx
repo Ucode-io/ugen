@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 // ─── INTERFACES ──────────────────────────────────────────────────────────────
 interface BpmnNode {
@@ -267,6 +268,14 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
   const t = useTranslations('shared.bpmnViewer');
   const [activeNode, setActiveNode] = useState<string | null>(null);
   const [hoveredLane, setHoveredLane] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsFullscreen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isFullscreen]);
 
   const { lanes, crossFlows } = useMemo(() => {
     if (!bpmnXml) return { lanes: [], crossFlows: [] };
@@ -309,31 +318,52 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
     );
   };
 
-  return (
-    <div style={styles.root} className="p-5 w-full rounded-ai">
+  const diagramContent = (fullscreen: boolean) => (
+    <>
       <style>{css}</style>
 
       {/* Header */}
-      <div style={styles.header}>
-        <span style={styles.badge}>
-          <span style={styles.dot} />
-          {t('protocol')}
-        </span>
-        <h2 style={styles.title} className="text-gradient">{t('title')}</h2>
-        <p style={styles.subtitle}>
-          {t('summary', {
-            lanes: lanes.length,
-            nodes: lanes.reduce((s: number, l: any) => s + l.nodes.length, 0),
-            crossFlows: crossFlows.length,
-            s: crossFlows.length !== 1 ? "s" : ""
-          })}
-          {activeNode && ` · ${t('deselectHint')}`}
-        </p>
+      <div style={{ ...styles.header, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <span style={styles.badge}>
+            <span style={styles.dot} />
+            {t('protocol')}
+          </span>
+          <h2 style={styles.title} className="text-gradient">{t('title')}</h2>
+          <p style={styles.subtitle}>
+            {t('summary', {
+              lanes: lanes.length,
+              nodes: lanes.reduce((s: number, l: any) => s + l.nodes.length, 0),
+              crossFlows: crossFlows.length,
+              s: crossFlows.length !== 1 ? "s" : ""
+            })}
+            {activeNode && ` · ${t('deselectHint')}`}
+          </p>
+        </div>
+        {/* <button
+          onClick={() => setIsFullscreen(!fullscreen)}
+          title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: '6px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-muted)',
+            flexShrink: 0,
+            marginTop: 4,
+          }}
+        >
+          {fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+        </button> */}
       </div>
 
       {/* Diagram */}
       <div style={styles.board} className="ai-card relative flex flex-col overflow-hidden">
-        <div className="overflow-auto w-full custom-scrollbar" style={{ maxHeight: "65vh" }}>
+        <div className="overflow-auto w-full custom-scrollbar" style={{ maxHeight: fullscreen ? "calc(100vh - 220px)" : "65vh" }}>
           {/* Inner constraint to enforce horizontal scrolling when needed */}
           <div style={{ minWidth: `${160 + maxSteps * 180}px` }}>
             {/* Column index headers */}
@@ -488,7 +518,29 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
           })}
         </div>
       )}
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      <div style={styles.root} className="p-5 w-full rounded-ai">
+        {diagramContent(false)}
+      </div>
+
+      {isFullscreen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'var(--bg-main)',
+            overflow: 'auto',
+          }}
+        >
+          <div className="p-6 max-w-400 mx-auto">
+            {diagramContent(true)}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

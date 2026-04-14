@@ -261,10 +261,36 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
       <div id="root"></div>
 
       <script>
-        window.addEventListener('error', (e) => {
+        (function() {
+          function reportError(payload) {
+            try {
+              window.parent.postMessage({ type: 'PREVIEW_RUNTIME_ERROR', ...payload }, '*');
+            } catch (_) {}
+          }
+          window.addEventListener('error', (e) => {
             if (e.message && e.message.includes('ResizeObserver')) return;
             console.error("Preview Error:", e);
-        });
+            reportError({
+              message: e.message || String(e.error || 'Unknown error'),
+              stack: e.error && e.error.stack ? String(e.error.stack) : null,
+              filename: e.filename || null,
+              lineno: e.lineno || null,
+              colno: e.colno || null,
+            });
+          });
+          window.addEventListener('unhandledrejection', (e) => {
+            const reason = e.reason;
+            const message = (reason && (reason.message || String(reason))) || 'Unhandled promise rejection';
+            console.error("Preview Unhandled Rejection:", reason);
+            reportError({
+              message,
+              stack: reason && reason.stack ? String(reason.stack) : null,
+              filename: null,
+              lineno: null,
+              colno: null,
+            });
+          });
+        })();
       </script>
 
       <script type="module">

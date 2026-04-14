@@ -712,6 +712,11 @@
         "send": "Yuborish (Enter)",
         "element": "Element"
       },
+      "bpmn": {
+        "confirmPrompt": "BPMN ni qabul qilish yoki rad etish",
+        "accept": "✓ Qabul qilish",
+        "reject": "✕ Rad etish"
+      },
       "codeBlock": {
         "copy": "Nusxalash",
         "copied": "Nusxalandi!"

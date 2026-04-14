@@ -34,10 +34,14 @@ const getLanguageByPath = (path: string) => {
   }
 };
 
+import type { CodeEditorTarget } from "@/entities/session";
+
 interface WorkspaceChatProps {
   projectId: string
   isChatCollapsed: boolean
   setIsChatCollapsed: (isChatCollapsed: boolean) => void
+  onSelectFunction?: (target: CodeEditorTarget) => void
+  onSelectMicrofrontend?: (files: { path: string; content: string }[]) => void
 }
 
 interface QuestionOption {
@@ -120,7 +124,7 @@ const PendingActionConfirm = ({
   )
 }
 
-export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }: WorkspaceChatProps) => {
+export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, onSelectFunction, onSelectMicrofrontend }: WorkspaceChatProps) => {
   const t = useTranslations('widgets.workspaceChat');
 
   const MOCK_CHAT: Message[] = [
@@ -201,11 +205,6 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }
     });
 
     if (formattedAnswers.length > 0) {
-      addMessage({
-        id: Date.now().toString() + Math.random(),
-        role: 'user',
-        content: formattedAnswers.join('\n\n')
-      });
       handleSendMessage(formattedAnswers.join('\n\n'));
     }
 
@@ -400,7 +399,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }
 
       try {
         const { data: messageData } = await api.post(
-          `/v1/ai-chat/new-messages/${chatId}`,
+          `/v1/ai-chat/new-messages/${activeChatId}`,
           {
             content: text,
             images: files?.map(f => f.url) || [],
@@ -470,6 +469,9 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }
     return msg.pending_action && !msg.pending_action.approved;
   }
 
+  const lastMessage = displayMessages[displayMessages.length - 1];
+  const showBpmnConfirm = !!lastMessage?.bpmnXml;
+
   return (
     <>
       {isResizing && (
@@ -531,9 +533,32 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }
                   />
                 )}
                 {msg.bpmnXml && (
-                  <BpmnViewer
-                    bpmnXml={msg.bpmnXml}
-                  />
+                  <>
+                    <BpmnViewer bpmnXml={msg.bpmnXml} />
+                    {showBpmnConfirm && msg.id === lastMessage?.id && (
+                      <div className="flex flex-col gap-2 p-4 mt-2 ml-4 mr-4 bg-bg-card border border-border-subtle rounded-xl text-sm shadow-sm max-w-[90%] self-start animate-in fade-in slide-in-from-left-2 duration-300">
+                        <div className="font-medium text-text-main leading-snug">
+                          {t('bpmn.confirmPrompt', { fallback: 'Accept or Reject BPMN' })}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <button
+                            disabled={isSending}
+                            onClick={() => handleSendMessage('Accept')}
+                            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-primary text-white hover:bg-primary/90 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                          >
+                            {t('bpmn.accept', { fallback: 'Accept' })}
+                          </button>
+                          <button
+                            disabled={isSending}
+                            onClick={() => handleSendMessage('Reject')}
+                            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl text-text-main bg-bg-main hover:bg-hover-bg border border-border-subtle transition-all active:scale-95 disabled:opacity-50"
+                          >
+                            {t('bpmn.reject', { fallback: 'Reject' })}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
                 {isPendingActionConfirm(msg) && (
                   <PendingActionConfirm
@@ -662,6 +687,9 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed }
               onSendMessage={handleSendMessage}
               isSending={isSending}
               disabled={isDisabled}
+              projectId={projectId}
+              onSelectFunction={onSelectFunction}
+              onSelectMicrofrontend={onSelectMicrofrontend}
               className={cn(
                 "!rounded-t-none !border-t-0",
                 !showQuestionnaire && "!rounded-t-[20px] !border-t"
