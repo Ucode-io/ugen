@@ -134,7 +134,7 @@ export const ProjectPreviewViewer = ({
   const setPendingPrompt = useChatStore((s) => s.setPendingPrompt)
   const [srcDoc, setSrcDoc] = useState("")
   const [isLoading, setIsLoading] = useState(true)
-  const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(null)
+  const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError & { isBuildError?: boolean } | null>(null)
 
   // URL bar state
   const [currentUrl, setCurrentUrl] = useState('/')
@@ -171,9 +171,11 @@ export const ProjectPreviewViewer = ({
       const html = generatePreviewHtml(code, dependencies, files)
       setSrcDoc(html)
     } catch (err: any) {
+      const errorMessage = err.message || 'Unknown build error'
       setSrcDoc(
-        `<html><body style="background:#1e1e1e;color:#f87171;padding:2rem;font-family:monospace;white-space:pre-wrap;">${err.message || 'Unknown build error'}</body></html>`
+        `<html><body style="background:#1e1e1e;color:#f87171;padding:2rem;font-family:monospace;white-space:pre-wrap;">${errorMessage}</body></html>`
       )
+      setRuntimeError({ message: errorMessage, stack: err.stack ?? null, isBuildError: true })
     } finally {
       setIsLoading(false)
       isBuilding.current = false
@@ -321,15 +323,15 @@ export const ProjectPreviewViewer = ({
 
       {/* Center: URL Bar */}
       <div className="flex-1 max-w-md flex items-center gap-1">
-        <button
+        {/* <button
           type="button"
           onClick={handleRefresh}
           title="Refresh"
           className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-6 w-6 items-center justify-center rounded-md transition-colors shrink-0"
         >
           <RotateCw size={12} />
-        </button>
-        <div className="flex-1 flex items-center bg-bg-main border border-border-subtle rounded-lg h-6 px-2.5 overflow-hidden">
+        </button> */}
+        {/* <div className="flex-1 flex items-center bg-bg-main border border-border-subtle rounded-lg h-6 px-2.5 overflow-hidden">
           <input
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
@@ -338,7 +340,7 @@ export const ProjectPreviewViewer = ({
             className="w-full bg-transparent text-[12px] text-text-main outline-none placeholder:text-text-muted"
             placeholder="/"
           />
-        </div>
+        </div> */}
       </div>
 
       {/* Right: Device Picker + Fullscreen */}
@@ -417,7 +419,9 @@ export const ProjectPreviewViewer = ({
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-semibold text-text-main">Ошибка в превью</h3>
-                <p className="text-xs text-text-muted mt-0.5">Произошла ошибка во время выполнения кода</p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {runtimeError?.isBuildError ? 'Ошибка сборки проекта' : 'Произошла ошибка во время выполнения кода'}
+                </p>
               </div>
             </div>
             <div className="p-5 space-y-3">
@@ -434,13 +438,13 @@ export const ProjectPreviewViewer = ({
                 )}
               </div>
               <div className="flex items-center justify-end gap-2 pt-1">
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setRuntimeError(null)}
                   className="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-main transition-colors rounded-lg"
                 >
                   Закрыть
-                </button>
+                </button> */}
                 <button
                   type="button"
                   onClick={handleFixInChat}

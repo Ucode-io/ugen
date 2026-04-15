@@ -340,7 +340,7 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
             {activeNode && ` · ${t('deselectHint')}`}
           </p>
         </div>
-        {/* <button
+        <button
           onClick={() => setIsFullscreen(!fullscreen)}
           title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           style={{
@@ -358,7 +358,7 @@ export const BpmnViewer = ({ bpmnXml }: BpmnViewerProps) => {
           }}
         >
           {fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-        </button> */}
+        </button>
       </div>
 
       {/* Diagram */}
