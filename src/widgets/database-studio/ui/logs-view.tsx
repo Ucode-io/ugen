@@ -339,7 +339,7 @@ export const LogsView = () => {
     { label: "Success", value: "success" },
     { label: "Error", value: "error" },
   ]
-  const environmentId = useAuthStore((state) => state.user?.environment_id)
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId)
   const projectId = useAuthStore((state) => state.project?.project_id)
 
   const [selectedAction, setSelectedAction] = useState<string>('activity:all')
@@ -373,9 +373,9 @@ export const LogsView = () => {
   const formattedTo = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
 
   const { data: activityLogsData, isLoading: isActivityLoading } = useQuery({
-    queryKey: ['activity-logs', environmentId, page, limit, activityActionType, debouncedCollection, formattedFrom, formattedTo],
+    queryKey: ['activity-logs', ucodeProjectId, page, limit, activityActionType, debouncedCollection, formattedFrom, formattedTo],
     queryFn: async () => {
-      const { data } = await api.get(`/v2/version/history/${environmentId}`, {
+      const { data } = await api.get(`/v2/version/history/${ucodeProjectId}`, {
         params: {
           type: 'GLOBAL',
           limit,
@@ -388,7 +388,7 @@ export const LogsView = () => {
       })
       return data.data
     },
-    enabled: source === 'activity' && !!environmentId
+    enabled: source === 'activity' && !!ucodeProjectId
   })
 
   const { data: functionsListData } = useQuery({

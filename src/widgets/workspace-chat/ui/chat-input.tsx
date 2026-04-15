@@ -1,4 +1,4 @@
-import { Paperclip, MousePointerClick, ArrowUp, X, FileIcon, Loader2, Plus, ChevronRight, Zap, Layers2 } from "lucide-react"
+import { Paperclip, MousePointerClick, ArrowUp, X, FileIcon, Loader2, Plus, Zap, Layers2, Sparkles, Check } from "lucide-react"
 import { useState, useRef, KeyboardEvent, ClipboardEvent, DragEvent, useEffect } from "react"
 import { AudioRecorder, Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
 import { useFileUpload } from "@/shared/hooks/useFileUpload"
@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/shared/api"
 import type { CodeEditorTarget } from "@/entities/session"
 import { useAuthStore } from "@/entities/session"
+import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store"
 
 interface AttachItem {
   id: string
@@ -21,8 +22,16 @@ interface AttachItem {
   repo_id?: string
 }
 
+export interface MessageContextItem {
+  path?: string | null
+  line?: number | string | null
+  element?: string | null
+}
+
+export type MessageContext = MessageContextItem[]
+
 interface ChatInputProps {
-  onSendMessage: (msg: string, files?: any[], model?: string) => void
+  onSendMessage: (msg: string, files?: any[], model?: string, context?: MessageContext) => void
   isSending?: boolean,
   disabled?: boolean,
   className?: string
@@ -52,11 +61,12 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
   const { uploadFile, uploadedFiles, removeFile, clearFiles, isUploading } = useFileUpload()
 
   const apiKey = useAuthStore((s) => s.apiKey)
+  const activeCodeSelection = useCodeSelectionStore((s) => s.activeCodeSelection)
+  const setActiveCodeSelection = useCodeSelectionStore((s) => s.setActiveCodeSelection)
   const getApiKeyHeaders = () => apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
 
   // Attach popover state
   const [attachOpen, setAttachOpen] = useState(false)
-  const [hoveredGroup, setHoveredGroup] = useState<'function' | 'microfrontend' | null>(null)
   const [pendingItemId, setPendingItemId] = useState<string | null>(null)
 
   const { data: functionsList, isLoading: isFunctionsLoading, isError: isFunctionsError } = useQuery({
@@ -83,11 +93,17 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
     enabled: attachOpen && !!projectId,
   })
 
+  const handleSelectGeneratedFrontend = () => {
+    setActiveCodeSelection({ kind: 'frontend' })
+    onSelectMicrofrontend?.([])
+    setAttachOpen(false)
+  }
+
   const handleSelectFunction = async (fn: AttachItem) => {
     try {
       setPendingItemId(fn.id)
-      await api.get(`/v2/function/${fn.id}`, { params: { 'project-id': projectId }, headers: getApiKeyHeaders() })
-      onSelectFunction?.({
+      await api.get(`/v2/function/${fn.id}/codebase`, { params: { 'project-id': projectId }, headers: getApiKeyHeaders() })
+      setActiveCodeSelection({
         kind: 'function',
         id: fn.id,
         name: fn.name,
@@ -101,22 +117,29 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
     } finally {
       setPendingItemId(null)
       setAttachOpen(false)
-      setHoveredGroup(null)
     }
   }
 
   const handleSelectMicrofrontend = async (mf: AttachItem) => {
     try {
       setPendingItemId(mf.id)
-      const { data } = await api.get(`/v2/function/${mf.id}`, { params: { 'project-id': projectId }, headers: getApiKeyHeaders() })
+      const { data } = await api.get(`/v2/function/${mf.id}/codebase`, { params: { 'project-id': projectId }, headers: getApiKeyHeaders() })
       const files = (data?.data?.files ?? []) as { path: string; content: string }[]
-      onSelectMicrofrontend?.(files)
+      // Store files in the global store so preview can read them without forcing a tab switch
+      setActiveCodeSelection({
+        kind: 'microfrontend',
+        id: mf.id,
+        name: mf.name,
+        path: mf.path,
+        branch: mf.branch ?? 'master',
+        type: mf.type,
+        repoId: mf.project_id,
+      }, files)
     } catch (err) {
       console.error('Failed to load microfrontend', err)
     } finally {
       setPendingItemId(null)
       setAttachOpen(false)
-      setHoveredGroup(null)
     }
   }
 
@@ -138,6 +161,8 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
   const handleSend = () => {
     if ((value.trim() || uploadedFiles.length > 0 || selectedElements.length > 0) && !isSending) {
       let messageText = value;
+      let context: MessageContext | undefined;
+
       if (selectedElements.length > 0) {
         const elementsContext = selectedElements
           .map((el, i) => {
@@ -150,6 +175,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
             const lines: string[] = [`Element ${i + 1}: <${tag}${attrStr}>`];
             if (el.domPath) lines.push(`  Path: ${el.domPath}`);
             if (el.textContent) lines.push(`  Text: "${el.textContent}"`);
+            if (el.sourceFile) lines.push(`  Source: ${el.sourceFile}${el.sourceLine ? `:${el.sourceLine}` : ''}`);
             return lines.join("\n");
           })
           .join("\n\n");
@@ -159,8 +185,26 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
         messageText = messageText
           ? `${messageText}\n\n${header}\n\n${elementsContext}`
           : `${header}\n\n${elementsContext}`;
+
+        // Build context array from all selected elements that have source info
+        const contextItems = selectedElements
+          .filter(el => el.sourceFile)
+          .map(el => {
+            let element: string | undefined = el.outerHTML ?? undefined
+            if (!element) {
+              const tag = el.tagName.toLowerCase()
+              const attrs: string[] = []
+              if (el.htmlId) attrs.push(`id="${el.htmlId}"`)
+              if (el.className) attrs.push(`class="${el.className}"`)
+              if (el.dataName) attrs.push(`data-element-name="${el.dataName}"`)
+              element = `<${tag}${attrs.length ? ' ' + attrs.join(' ') : ''}>`
+            }
+            return { path: el.sourceFile, line: el.sourceLine ?? undefined, element }
+          })
+        if (contextItems.length > 0) context = contextItems
       }
-      onSendMessage(messageText, uploadedFiles, selectedModel);
+
+      onSendMessage(messageText, uploadedFiles, selectedModel, context);
       setValue("");
       clearFiles();
       clearSelectedElements();
@@ -232,7 +276,12 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
               className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary px-2 py-1 rounded-md text-xs font-medium group"
             >
               <span className="opacity-70 font-mono text-[10px]">&lt;{el.tagName.toLowerCase()}&gt;</span>
-              <span className="truncate max-w-[120px]">{el.textContent || el.dataName || el.className || t('input.element')}</span>
+              <span className="truncate max-w-25">{el.textContent || el.dataName || el.className || t('input.element')}</span>
+              {el.sourceFile && (
+                <span className="font-mono text-[10px] text-primary/60 truncate max-w-40">
+                  {el.sourceFile}{el.sourceLine != null ? `:${el.sourceLine}` : ''}
+                </span>
+              )}
               <button
                 onClick={() => removeSelectedElement(el.id)}
                 className="hover:bg-primary/20 rounded-sm p-0.5"
@@ -304,7 +353,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
             {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
           </button>
 
-          <Popover open={attachOpen} onOpenChange={(o) => { setAttachOpen(o); if (!o) setHoveredGroup(null) }}>
+          <Popover open={attachOpen} onOpenChange={setAttachOpen}>
             <PopoverTrigger asChild>
               <button
                 type="button"
@@ -314,98 +363,94 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
                 <Plus size={15} />
               </button>
             </PopoverTrigger>
-            <PopoverContent side="top" align="start" sideOffset={8} className="p-1 w-55">
-              <div className="relative" onMouseLeave={() => setHoveredGroup(null)}>
-                <button
-                  type="button"
-                  onMouseEnter={() => setHoveredGroup('function')}
-                  className={cn(
-                    "w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium text-text-main transition-colors",
-                    hoveredGroup === 'function' ? "bg-hover-bg" : "hover:bg-hover-bg"
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    <Zap size={14} className="text-primary" />
-                    Functions
-                  </span>
-                  <ChevronRight size={14} className="text-text-muted" />
-                </button>
-                <button
-                  type="button"
-                  onMouseEnter={() => setHoveredGroup('microfrontend')}
-                  className={cn(
-                    "w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium text-text-main transition-colors",
-                    hoveredGroup === 'microfrontend' ? "bg-hover-bg" : "hover:bg-hover-bg"
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    <Layers2 size={14} className="text-primary" />
-                    Microfrontends
-                  </span>
-                  <ChevronRight size={14} className="text-text-muted" />
-                </button>
+            <PopoverContent side="top" align="start" sideOffset={6} className="p-0.5 w-48 max-h-60 overflow-y-auto">
+              {(isFunctionsLoading || isMicrofrontendsLoading) ? (
+                <div className="p-0.5 space-y-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-6 rounded bg-hover-bg/60 animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {/* Generated Frontend */}
+                  <div>
+                    <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
+                      <Sparkles size={8} /> Frontend
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSelectGeneratedFrontend}
+                      className="w-full flex items-center justify-between gap-1.5 rounded px-2 py-1 text-xs text-text-main hover:bg-hover-bg text-left"
+                    >
+                      <span className="flex items-center gap-1.5 truncate">
+                        <Sparkles size={10} className="text-primary shrink-0" />
+                        Generated Frontend
+                      </span>
+                      {activeCodeSelection?.kind === 'frontend' && (
+                        <Check size={10} className="text-primary shrink-0" />
+                      )}
+                    </button>
+                  </div>
 
-                {hoveredGroup && (
-                  <div
-                    onMouseEnter={() => setHoveredGroup(hoveredGroup)}
-                    className="absolute left-full top-0 pl-1 w-60"
-                  >
-                  <div className="max-h-70 overflow-y-auto rounded-xl border border-border-subtle bg-bg-card p-1 shadow-md">
-                    {hoveredGroup === 'function' ? (
-                      isFunctionsLoading ? (
-                        <div className="p-1 space-y-1">
-                          {[0, 1, 2].map((i) => (
-                            <div key={i} className="h-8 rounded-lg bg-hover-bg/60 animate-pulse" />
-                          ))}
-                        </div>
-                      ) : isFunctionsError ? (
-                        <div className="px-3 py-4 text-xs text-red-500">Failed to load functions</div>
-                      ) : (functionsList?.length ?? 0) === 0 ? (
-                        <div className="px-3 py-4 text-xs text-text-muted">No functions</div>
-                      ) : (
-                        functionsList!.map((fn) => (
-                          <button
-                            key={fn.id}
-                            type="button"
-                            disabled={pendingItemId === fn.id}
-                            onClick={() => handleSelectFunction(fn)}
-                            className="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-text-main hover:bg-hover-bg text-left disabled:opacity-60"
-                          >
-                            <span className="truncate">{fn.name}</span>
-                            {pendingItemId === fn.id && <Loader2 size={12} className="animate-spin shrink-0" />}
-                          </button>
-                        ))
-                      )
-                    ) : (
-                      isMicrofrontendsLoading ? (
-                        <div className="p-1 space-y-1">
-                          {[0, 1, 2].map((i) => (
-                            <div key={i} className="h-8 rounded-lg bg-hover-bg/60 animate-pulse" />
-                          ))}
-                        </div>
-                      ) : isMicrofrontendsError ? (
-                        <div className="px-3 py-4 text-xs text-red-500">Failed to load microfrontends</div>
-                      ) : (microfrontendsList?.length ?? 0) === 0 ? (
-                        <div className="px-3 py-4 text-xs text-text-muted">No microfrontends</div>
-                      ) : (
-                        microfrontendsList!.map((mf) => (
-                          <button
-                            key={mf.id}
-                            type="button"
-                            disabled={pendingItemId === mf.id}
-                            onClick={() => handleSelectMicrofrontend(mf)}
-                            className="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-text-main hover:bg-hover-bg text-left disabled:opacity-60"
-                          >
-                            <span className="truncate">{mf.name}</span>
-                            {pendingItemId === mf.id && <Loader2 size={12} className="animate-spin shrink-0" />}
-                          </button>
-                        ))
-                      )
-                    )}
-                  </div>
-                  </div>
-                )}
-              </div>
+                  {(functionsList?.length ?? 0) > 0 && (
+                    <div>
+                      <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
+                        <Zap size={8} /> Functions
+                      </div>
+                      {functionsList!.map((fn) => (
+                        <button
+                          key={fn.id}
+                          type="button"
+                          disabled={pendingItemId === fn.id}
+                          onClick={() => handleSelectFunction(fn)}
+                          className="w-full flex items-center justify-between gap-1.5 rounded px-2 py-1 text-xs text-text-main hover:bg-hover-bg text-left disabled:opacity-60"
+                        >
+                          <span className="truncate">{fn.name}</span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            {activeCodeSelection?.kind === 'function' && activeCodeSelection.id === fn.id && (
+                              <Check size={10} className="text-primary" />
+                            )}
+                            {pendingItemId === fn.id && <Loader2 size={10} className="animate-spin" />}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {(microfrontendsList?.length ?? 0) > 0 && (
+                    <div>
+                      <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
+                        <Layers2 size={8} /> Microfrontends
+                      </div>
+                      {microfrontendsList!.map((mf) => (
+                        <button
+                          key={mf.id}
+                          type="button"
+                          disabled={pendingItemId === mf.id}
+                          onClick={() => handleSelectMicrofrontend(mf)}
+                          className="w-full flex items-center justify-between gap-1.5 rounded px-2 py-1 text-xs text-text-main hover:bg-hover-bg text-left disabled:opacity-60"
+                        >
+                          <span className="truncate">{mf.name}</span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            {activeCodeSelection?.kind === 'microfrontend' && activeCodeSelection.id === mf.id && (
+                              <Check size={10} className="text-primary" />
+                            )}
+                            {pendingItemId === mf.id && <Loader2 size={10} className="animate-spin" />}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {(functionsList?.length ?? 0) === 0 && (microfrontendsList?.length ?? 0) === 0 && (
+                    <div className="px-2 py-3 text-[11px] text-text-muted text-center">No items available</div>
+                  )}
+
+                  {(isFunctionsError || isMicrofrontendsError) && (
+                    <div className="px-2 py-1.5 text-[11px] text-red-500">Failed to load items</div>
+                  )}
+                </>
+              )}
             </PopoverContent>
           </Popover>
 

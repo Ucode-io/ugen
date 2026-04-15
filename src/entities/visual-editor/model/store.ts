@@ -8,6 +8,9 @@ interface SelectedElement {
   dataName?: string
   domPath?: string
   textContent?: string
+  sourceFile?: string | null
+  sourceLine?: number | null
+  outerHTML?: string | null
 }
 
 interface VisualEditorStore {

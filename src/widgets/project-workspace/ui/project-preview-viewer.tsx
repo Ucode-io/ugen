@@ -5,8 +5,19 @@ import { useFilesStore } from "@/entities/project/model/files-store"
 import { useChatStore } from "@/entities/chat"
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler"
 import { generatePreviewHtml } from "../lib/preview-html"
-import { AlertTriangle, Loader2, Sparkles } from "lucide-react"
+import {
+  AlertTriangle, Loader2, Sparkles, Layers2, Zap,
+  MousePointerClick, Monitor, Tablet, Smartphone,
+  ChevronDown, Minimize, Maximize, RotateCw,
+} from "lucide-react"
 import type { DeviceType } from "./project-header"
+import { useAuthStore } from "@/entities/session"
+import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store"
+import type { CodeSelectionFile } from "@/entities/project/model/code-selection-store"
+import { api } from "@/shared/api"
+import { useQuery } from "@tanstack/react-query"
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
+import { cn } from "@/shared/lib/utils/cn"
 
 interface PreviewRuntimeError {
   message: string
@@ -22,10 +33,19 @@ const DEVICE_WIDTHS: Record<DeviceType, string> = {
   mobile: '375px',
 }
 
+const DEVICES: { id: DeviceType; label: string; icon: React.ReactNode }[] = [
+  { id: 'desktop', label: 'Desktop', icon: <Monitor size={14} /> },
+  { id: 'tablet',  label: 'Tablet',  icon: <Tablet size={14} /> },
+  { id: 'mobile',  label: 'Mobile',  icon: <Smartphone size={14} /> },
+]
+
 interface ProjectPreviewViewerProps {
   device?: DeviceType
   isMaximized?: boolean
   microfrontendFiles?: { path: string; content: string }[] | null
+  projectId?: string
+  onDeviceChange?: (device: DeviceType) => void
+  onToggleMaximize?: () => void
 }
 
 const getLanguageByPath = (path: string) => {
@@ -42,85 +62,160 @@ const getLanguageByPath = (path: string) => {
   }
 }
 
-export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false, microfrontendFiles }: ProjectPreviewViewerProps) => {
-  const { isInspectMode, addSelectedElement } = useVisualEditorStore()
+export const ProjectPreviewViewer = ({
+  device = 'desktop',
+  isMaximized = false,
+  microfrontendFiles,
+  projectId,
+  onDeviceChange,
+  onToggleMaximize,
+}: ProjectPreviewViewerProps) => {
+  const { isInspectMode, addSelectedElement, setInspectMode } = useVisualEditorStore()
   const { files: storeFiles } = useFilesStore()
+  const activeCodeSelection = useCodeSelectionStore((s) => s.activeCodeSelection)
+  const activeCodeFiles = useCodeSelectionStore((s) => s.activeCodeFiles)
+  const setActiveCodeSelection = useCodeSelectionStore((s) => s.setActiveCodeSelection)
+  const apiKey = useAuthStore((s) => s.apiKey)
+
+  // Local preview files when user picks a source from the function-mode selector
+  const [localPreviewFiles, setLocalPreviewFiles] = useState<CodeSelectionFile[] | null>(null)
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null)
+
+  const isFunction = activeCodeSelection?.kind === 'function'
+
+  // Fetch microfrontend list only when function mode is active
+  const { data: microfrontendsList = [] } = useQuery({
+    queryKey: ['preview-microfrontends', projectId],
+    queryFn: async () => {
+      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const { data } = await api.get('/v2/functions/micro-frontend', {
+        params: { search: '', offset: 0, limit: 50, 'project-id': projectId },
+        headers,
+      })
+      return (data.data?.functions ?? []) as Array<{ id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string }>
+    },
+    enabled: isFunction && !!projectId,
+    staleTime: 0,
+  })
+
+  // Resolve which files to use for the preview:
+  // priority: localPreviewFiles > activeCodeFiles > microfrontendFiles > storeFiles
+  const previewSource = localPreviewFiles ?? activeCodeFiles ?? microfrontendFiles
   const files = useMemo(
-    () => microfrontendFiles && microfrontendFiles.length > 0
-      ? microfrontendFiles.map(f => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
+    () => previewSource && previewSource.length > 0
+      ? previewSource.map(f => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
       : storeFiles,
-    [microfrontendFiles, storeFiles]
+    [previewSource, storeFiles]
   )
+
+  const handlePickMicrofrontend = async (mf: { id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string }) => {
+    try {
+      setLoadingPreviewId(mf.id)
+      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const { data } = await api.get(`/v2/function/${mf.id}/codebase`, {
+        params: { 'project-id': projectId },
+        headers,
+      })
+      const fetched = (data?.data?.files ?? []) as CodeSelectionFile[]
+      setLocalPreviewFiles(fetched)
+      setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.project_id }, fetched)
+    } catch (err) {
+      console.error('Failed to load microfrontend for preview', err)
+    } finally {
+      setLoadingPreviewId(null)
+    }
+  }
+
+  const handlePickGeneratedFrontend = () => {
+    setLocalPreviewFiles(null)
+    setActiveCodeSelection({ kind: 'frontend' })
+  }
+
   const setPendingPrompt = useChatStore((s) => s.setPendingPrompt)
   const [srcDoc, setSrcDoc] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(null)
 
+  // URL bar state
+  const [currentUrl, setCurrentUrl] = useState('/')
+  const [urlInput, setUrlInput] = useState('/')
+  const [deviceOpen, setDeviceOpen] = useState(false)
+
   const containerRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const isBuilding = useRef(false)
 
-  const isBuilding = useRef(false);
+  // Keep a ref to files so message handler always sees the latest value
+  const filesRef = useRef(files)
+  useEffect(() => { filesRef.current = files }, [files])
 
   // Floating Prompt States
   const [isPromptVisible, setIsPromptVisible] = useState(false)
   const [promptPosition, setPromptPosition] = useState({ x: 0, y: 0 })
 
   const runCode = async () => {
-    if (isBuilding.current) return;
-    isBuilding.current = true;
-    setIsLoading(true);
-    setRuntimeError(null);
+    if (isBuilding.current) return
+    isBuilding.current = true
+    setIsLoading(true)
+    setRuntimeError(null)
     try {
-      await ensureEsbuild();
-      console.log("[Preview] esbuild ready, building project...");
-      const { code, dependencies } = await buildProjectFromFiles(files,
-        {
-          VITE_API_BASE_URL: "http://localhost:3000",
-          VITE_API_KEY: "",
-          VITE_X_API_KEY: "",
-          VITE_MAP_TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          VITE_APP_NAME: "App",
-          NODE_ENV: 'development'
-        }
-      );
-      console.log("[Preview] Build successful, code length:", code.length);
-      console.log("[Preview] Dependencies:", Object.keys(dependencies));
-      const html = generatePreviewHtml(code, dependencies, files);
-      console.log("[Preview] HTML generated, length:", html.length);
-
-      setSrcDoc(html);
+      await ensureEsbuild()
+      const { code, dependencies } = await buildProjectFromFiles(files, {
+        VITE_API_BASE_URL: "http://localhost:3000",
+        VITE_API_KEY: "",
+        VITE_X_API_KEY: "",
+        VITE_MAP_TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        VITE_APP_NAME: "App",
+        NODE_ENV: 'development'
+      })
+      const html = generatePreviewHtml(code, dependencies, files)
+      setSrcDoc(html)
     } catch (err: any) {
-      console.warn("[Preview] Build failed:", err.message || err);
-      // Wait, isBuilding is ref, it won't trigger re-render, so just set srcDoc
       setSrcDoc(
         `<html><body style="background:#1e1e1e;color:#f87171;padding:2rem;font-family:monospace;white-space:pre-wrap;">${err.message || 'Unknown build error'}</body></html>`
-      );
+      )
     } finally {
-      setIsLoading(false);
-      isBuilding.current = false;
+      setIsLoading(false)
+      isBuilding.current = false
     }
-  };
+  }
 
-  // Stable hash of files to avoid infinite re-render loops
+  const handleRefresh = () => {
+    isBuilding.current = false
+    setCurrentUrl('/')
+    setUrlInput('/')
+    runCode()
+  }
+
+  const handleUrlNavigate = () => {
+    iframeRef.current?.contentWindow?.postMessage({ type: 'NAVIGATE', url: urlInput }, '*')
+    setCurrentUrl(urlInput)
+  }
+
   const filesHash = useMemo(() => {
-    return files.map(f => f.path + ':' + f.content?.length).join('|');
-  }, [files]);
+    return files.map(f => f.path + ':' + f.content?.length).join('|')
+  }, [files])
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      runCode();
-    }, 1000);
-    return () => clearTimeout(timeout);
-  }, [filesHash]);
+    const timeout = setTimeout(() => { runCode() }, 1000)
+    return () => clearTimeout(timeout)
+  }, [filesHash])
 
   useEffect(() => {
     if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({ type: isInspectMode ? 'INSPECT_ON' : 'INSPECT_OFF' }, "*");
+      iframeRef.current.contentWindow.postMessage({ type: isInspectMode ? 'INSPECT_ON' : 'INSPECT_OFF' }, "*")
     }
-  }, [isInspectMode, srcDoc]);
+  }, [isInspectMode, srcDoc])
 
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'ROUTE_CHANGE') {
+        const url = e.data.url || '/'
+        setCurrentUrl(url)
+        setUrlInput(url)
+        return
+      }
+
       if (e.data?.type === 'PREVIEW_RUNTIME_ERROR') {
         setRuntimeError({
           message: e.data.message,
@@ -133,7 +228,29 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false, 
       }
 
       if (e.data?.type === 'INSPECT_SELECT') {
-        const { tag, id, className, name, domPath, textContent, rect } = e.data
+        const { tag, id, className, name, domPath, textContent, rect, componentName, outerHTML } = e.data
+
+        // Find the component definition in source files by component name
+        let sourceFile: string | null = null
+        let sourceLine: number | null = null
+        if (componentName) {
+          const patterns = [
+            new RegExp(`(export\\s+)?(default\\s+)?function\\s+${componentName}\\b`),
+            new RegExp(`(export\\s+)?const\\s+${componentName}\\s*[=:]`),
+            new RegExp(`(export\\s+)?class\\s+${componentName}\\b`),
+          ]
+          outer: for (const file of filesRef.current) {
+            if (!file.content) continue
+            const lines = file.content.split('\n')
+            for (let i = 0; i < lines.length; i++) {
+              if (patterns.some(p => p.test(lines[i]))) {
+                sourceFile = file.path
+                sourceLine = i + 1
+                break outer
+              }
+            }
+          }
+        }
 
         addSelectedElement({
           id: Math.random().toString(36).substr(2, 9),
@@ -143,22 +260,23 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false, 
           dataName: name || undefined,
           domPath: domPath || undefined,
           textContent: textContent || undefined,
+          sourceFile,
+          sourceLine,
+          outerHTML: outerHTML || null,
         })
-
         if (rect && containerRef.current) {
           setIsPromptVisible(true)
           setPromptPosition({
-            x: Math.max(20, rect.left + (rect.width / 2) - 300), // centered (assuming 600px width max)
+            x: Math.max(20, rect.left + (rect.width / 2) - 300),
             y: Math.max(20, rect.top + rect.height + 20)
           })
         }
       }
-    };
+    }
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [addSelectedElement]);
-
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [addSelectedElement])
 
   const handleFixInChat = () => {
     if (!runtimeError) return
@@ -172,12 +290,114 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false, 
   }
 
   const iframeWidth = DEVICE_WIDTHS[device]
+  const selectedDevice = DEVICES.find((d) => d.id === device) ?? DEVICES[0]
+
+  // Shared browser header JSX (rendered inside the card)
+  const browserHeader = (
+    <div className="h-10 shrink-0 flex items-center justify-between px-2 border-b border-border-subtle bg-bg-card gap-2">
+      {/* Left: Logo (fullscreen only) + Visual Edit */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {isMaximized && (
+          <>
+            <img src="/ugen-logo.svg" className="h-5 w-auto block dark:hidden" alt="ugen" />
+            <img src="/ugen-logo-dark.svg" className="h-5 w-auto hidden dark:block" alt="ugen" />
+            <div className="w-px h-4 bg-border-subtle mx-0.5" />
+          </>
+        )}
+        <button
+          type="button"
+          onClick={() => setInspectMode(!isInspectMode)}
+          title="Visual Edit"
+          className={cn(
+            "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+            isInspectMode
+              ? "bg-text-main text-bg-main"
+              : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+          )}
+        >
+          <MousePointerClick size={13} />
+        </button>
+      </div>
+
+      {/* Center: URL Bar */}
+      <div className="flex-1 max-w-md flex items-center gap-1">
+        <button
+          type="button"
+          onClick={handleRefresh}
+          title="Refresh"
+          className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-6 w-6 items-center justify-center rounded-md transition-colors shrink-0"
+        >
+          <RotateCw size={12} />
+        </button>
+        <div className="flex-1 flex items-center bg-bg-main border border-border-subtle rounded-lg h-6 px-2.5 overflow-hidden">
+          <input
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleUrlNavigate() }}
+            onFocus={(e) => e.target.select()}
+            className="w-full bg-transparent text-[12px] text-text-main outline-none placeholder:text-text-muted"
+            placeholder="/"
+          />
+        </div>
+      </div>
+
+      {/* Right: Device Picker + Fullscreen */}
+      <div className="flex items-center gap-0.5 shrink-0">
+        <Popover open={deviceOpen} onOpenChange={setDeviceOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 items-center gap-1 px-2 rounded-lg transition-colors"
+              title={selectedDevice.label}
+            >
+              {selectedDevice.icon}
+              <ChevronDown
+                size={12}
+                className={cn("transition-transform duration-200", deviceOpen && "rotate-180")}
+              />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" sideOffset={6} className="w-36 p-1">
+            {DEVICES.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => { onDeviceChange?.(d.id); setDeviceOpen(false) }}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors",
+                  d.id === device
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+                )}
+              >
+                {d.icon}
+                <span>{d.label}</span>
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        <button
+          type="button"
+          onClick={onToggleMaximize}
+          title={isMaximized ? 'Exit fullscreen' : 'Fullscreen'}
+          className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
+        >
+          {isMaximized ? <Minimize size={14} /> : <Maximize size={14} />}
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div
       ref={containerRef}
-      className={`flex-1 flex flex-col bg-bg-main h-full relative overflow-hidden ${isInspectMode ? 'cursor-crosshair' : ''}`}
+      className={cn(
+        "flex-1 flex flex-col bg-bg-main relative overflow-hidden",
+        isInspectMode && "cursor-crosshair"
+      )}
     >
+      {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4 text-slate-500">
@@ -187,6 +407,7 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false, 
         </div>
       )}
 
+      {/* Error overlay */}
       {runtimeError && !isLoading && (
         <div className="absolute inset-0 z-40 flex items-center justify-center p-6 bg-bg-main/95 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="max-w-lg w-full bg-bg-card border border-border-subtle rounded-2xl shadow-xl overflow-hidden">
@@ -242,25 +463,93 @@ export const ProjectPreviewViewer = ({ device = 'desktop', isMaximized = false, 
         onClose={() => setIsPromptVisible(false)}
       />
 
-      <div className={`flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300 ${isMaximized ? 'p-0' : 'py-4 px-4'}`}>
-        <div
-          className="bg-white border border-border-subtle shadow-md transition-all duration-300 overflow-hidden flex-shrink-0"
-          style={{
-            width: iframeWidth,
-            maxWidth: '100%',
-            height: '100%',
-            borderRadius: isMaximized ? '0px' : device === 'desktop' ? '12px' : '24px',
-          }}
-        >
-          <iframe
-            ref={iframeRef}
-            className="w-full h-full border-none"
-            srcDoc={srcDoc}
-            title="Project Preview"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-          />
+      {/* Function selector — browser card with header, no iframe */}
+      {isFunction && !localPreviewFiles ? (
+        <div className={cn(
+          "flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300",
+          isMaximized ? "p-0" : "py-4 px-4"
+        )}>
+          <div
+            className="flex flex-col flex-shrink-0 overflow-hidden border border-border-subtle shadow-md transition-all duration-300 bg-bg-main"
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              height: '100%',
+              borderRadius: isMaximized ? '0px' : '12px',
+            }}
+          >
+            {browserHeader}
+            <div className="flex-1 flex items-center justify-center p-8">
+              <div className="max-w-sm w-full space-y-4">
+                <div className="text-center space-y-1">
+                  <div className="flex items-center justify-center gap-2 text-text-main font-semibold text-base">
+                    <Zap size={16} className="text-primary" />
+                    {activeCodeSelection?.name ?? 'Function'} selected
+                  </div>
+                  <p className="text-text-muted text-xs">Functions have no visual preview. Pick a frontend to preview instead.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={handlePickGeneratedFrontend}
+                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-text-main bg-bg-card border border-border-subtle hover:border-primary/40 hover:bg-primary/5 transition-colors text-left"
+                  >
+                    <Sparkles size={14} className="text-primary shrink-0" />
+                    <span className="font-medium">Generated Frontend</span>
+                  </button>
+                  {microfrontendsList.length > 0 && (
+                    <>
+                      <p className="text-[10px] uppercase tracking-wider text-text-muted px-1 pt-2 flex items-center gap-1">
+                        <Layers2 size={9} /> Microfrontends
+                      </p>
+                      {microfrontendsList.map((mf) => (
+                        <button
+                          key={mf.id}
+                          type="button"
+                          disabled={loadingPreviewId === mf.id}
+                          onClick={() => handlePickMicrofrontend(mf)}
+                          className="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm text-text-main bg-bg-card border border-border-subtle hover:border-primary/40 hover:bg-primary/5 transition-colors text-left disabled:opacity-60"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Layers2 size={14} className="text-blue-500 shrink-0" />
+                            {mf.name}
+                          </span>
+                          {loadingPreviewId === mf.id && <Loader2 size={12} className="animate-spin text-text-muted shrink-0" />}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Normal preview — browser card with header + iframe as one unit */
+        <div className={cn(
+          "flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300",
+          isMaximized ? "p-0" : "py-4 px-4"
+        )}>
+          <div
+            className="flex flex-col flex-shrink-0 overflow-hidden border border-border-subtle shadow-md transition-all duration-300"
+            style={{
+              width: iframeWidth,
+              maxWidth: '100%',
+              height: '100%',
+              borderRadius: isMaximized ? '0px' : device === 'desktop' ? '12px' : '24px',
+            }}
+          >
+            {browserHeader}
+            <iframe
+              ref={iframeRef}
+              className="flex-1 w-full border-none bg-white"
+              srcDoc={srcDoc}
+              title="Project Preview"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -28,7 +28,6 @@ export const authApi = axios.create({
 // Request interceptor: inject token for main API
 api.interceptors.request.use(
   (config) => {
-    // Zustand's getState allows us to read values outside of React components
     const state = useAuthStore.getState()
     const token = state.accessToken
     const apiKey = state.apiKey
@@ -105,16 +104,13 @@ api.interceptors.response.use(
       const refreshToken = state.refreshToken
 
       if (!refreshToken) {
-        state.setActiveView('home')
         state.logout()
-        // if (typeof window !== 'undefined') window.location.href = '/'
+        if (typeof window !== 'undefined') window.location.href = '/'
         return Promise.reject(error)
       }
 
       try {
-        const { data } = await authApi.put('/v2/refresh', null, {
-          params: { refresh_token: refreshToken }
-        })
+        const { data } = await authApi.put('/v2/refresh', { refresh_token: refreshToken })
 
         // Depending on backend structure, locate the new tokens
         const tokenData = data?.data?.response?.token || data?.data?.token || data?.data || data?.response?.token || data
@@ -136,9 +132,8 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null)
         const authState = useAuthStore.getState()
-        authState.setActiveView('home')
         authState.logout()
-        // if (typeof window !== 'undefined') window.location.href = '/'
+        if (typeof window !== 'undefined') window.location.href = '/'
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

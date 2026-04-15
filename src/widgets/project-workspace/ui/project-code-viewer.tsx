@@ -20,7 +20,9 @@ import { api } from "@/shared/api";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/entities/session";
 import type { CodeEditorTarget } from "@/entities/session";
-import { GitlabCodeEditor } from "./gitlab-code-view";
+import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
+import { CodebaseEditor } from "./codebase-editor";
+import type { CodebaseFile } from "./codebase-editor";
 import { EditorDropdown, FRONTEND_VALUE } from "./editor-dropdown";
 import type { DropdownOption } from "./editor-dropdown";
 
@@ -50,7 +52,13 @@ export const ProjectCodeViewer = ({
   // Read pending target from store (set by </> Edit button) and auto-select it
   const codeEditorTarget = useAuthStore((state) => state.codeEditorTarget);
   const setCodeEditorTarget = useAuthStore((state) => state.setCodeEditorTarget);
+  const activeCodeSelection = useCodeSelectionStore((state) => state.activeCodeSelection);
+  const setActiveCodeSelection = useCodeSelectionStore((state) => state.setActiveCodeSelection);
   const apiKey = useAuthStore((state) => state.apiKey);
+
+  // ── Codebase state (for microfrontend / function mode) ────────────────────
+  const [codebaseFiles, setCodebaseFiles] = useState<CodebaseFile[]>([]);
+  const [isLoadingCodebase, setIsLoadingCodebase] = useState(false);
 
   // ── API Queries for dropdown options ──────────────────────────────────────
   const { data: microfrontendsData = [] } = useQuery({
@@ -129,8 +137,6 @@ export const ProjectCodeViewer = ({
     })),
   ], [microfrontendsData, functionsData]);
 
-  console.log({ functionsData })
-
   // Auto-select when codeEditorTarget arrives from the store.
   // We also re-run whenever dropdownOptions changes (API data loads) so we can
   // match even if the queries finish after the tab switch.
@@ -158,6 +164,63 @@ export const ProjectCodeViewer = ({
   );
 
   const isGitlabMode = activeOption?.target?.kind !== 'frontend';
+
+  // ── Init dropdown from activeCodeSelection (set externally, e.g. from chat-input)
+  // Only runs until a match is found; never overwrites a user's manual selection.
+  const selectionInitDoneRef = useRef(false);
+  useEffect(() => {
+    if (selectionInitDoneRef.current) return;
+    if (!activeCodeSelection || activeCodeSelection.kind === 'frontend') {
+      selectionInitDoneRef.current = true;
+      return;
+    }
+    // Wait until API data has loaded before trying to match
+    if (dropdownOptions.length <= 1) return;
+    const match = dropdownOptions.find(
+      (o) => o.target.kind === activeCodeSelection.kind && o.target.id === activeCodeSelection.id
+    );
+    if (match) {
+      setSelectedValue(match.value);
+    }
+    selectionInitDoneRef.current = true;
+  }, [activeCodeSelection, dropdownOptions]);
+
+  // Wrap setSelectedValue so every user-initiated dropdown change also updates the store
+  const handleDropdownChange = (value: string) => {
+    setSelectedValue(value);
+    const option = dropdownOptions.find((o) => o.value === value);
+    if (option?.target) {
+      setActiveCodeSelection(option.target);
+    }
+  };
+
+  // Fetch codebase files when a microfrontend/function is selected
+  useEffect(() => {
+    if (!isGitlabMode) {
+      setCodebaseFiles([]);
+      return;
+    }
+    const id = activeOption?.target?.id;
+    if (!id) return;
+    setIsLoadingCodebase(true);
+    const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {};
+    api
+      .get(`/v2/function/${id}/codebase`, {
+        params: { 'project-id': projectId },
+        headers,
+      })
+      .then(({ data }) => {
+        const files = (data?.data?.files ?? []) as CodebaseFile[];
+        setCodebaseFiles(files);
+        // Also update the store so preview tab can read the files without re-fetching
+        const target = activeOption?.target;
+        if (target) {
+          setActiveCodeSelection(target, files);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsLoadingCodebase(false));
+  }, [activeOption?.target?.id, isGitlabMode, projectId]);
 
   // ── Editor state ───────────────────────────────────────────────────────────
   const [sidebarMode, setSidebarMode] = useState<"explorer" | "search">(
@@ -498,7 +561,7 @@ export const ProjectCodeViewer = ({
     <div className="bg-bg-main flex h-full w-full flex-1 overflow-hidden flex-col text-[13px]">
       <EditorDropdown
         selectedValue={selectedValue}
-        setSelectedValue={setSelectedValue}
+        setSelectedValue={handleDropdownChange}
         dropdownOptions={dropdownOptions}
         hasMicrofrontends={microfrontendsData.length > 0}
         hasFunctions={functionsData.length > 0}
@@ -506,14 +569,13 @@ export const ProjectCodeViewer = ({
       />
 
       {isGitlabMode ? (
-        <div className="flex-1 overflow-hidden">
-          <GitlabCodeEditor
+        <div className="flex-1 overflow-hidden flex">
+          <CodebaseEditor
             key={selectedValue}
-            path={activeOption?.target?.path ?? ''}
-            branch={activeOption?.target?.branch ?? 'master'}
-            name={activeOption?.target?.name ?? ''}
-            type={activeOption?.target?.type}
-            repoId={activeOption?.target?.repoId}
+            files={codebaseFiles}
+            isLoading={isLoadingCodebase}
+            name={activeOption?.target?.name}
+            branch={activeOption?.target?.branch}
             className="h-full"
           />
         </div>

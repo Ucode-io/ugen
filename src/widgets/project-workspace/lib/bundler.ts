@@ -73,6 +73,7 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
     "react",
     "react-dom",
     "react/jsx-runtime",
+    "react/jsx-dev-runtime",
     "react-dom/client",
     "react-router-dom",
     "react-dom/server",
@@ -169,6 +170,7 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
     plugins: [virtualFsPlugin(fs)],
     external: allExternals,
     jsx: "automatic",
+    jsxDev: true,
     logLevel: "silent",
     define: {
       "process.env.NODE_ENV": '"development"',

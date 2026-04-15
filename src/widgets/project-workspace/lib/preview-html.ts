@@ -96,6 +96,30 @@ export const INSPECTOR_SCRIPT = `
     highlight(e.target);
   }, true);
 
+  // Walk React fiber tree to find the nearest user-defined component name (uppercase)
+  function getComponentName(el) {
+    try {
+      var fiberKey = Object.keys(el).find(function(k) {
+        return k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance');
+      });
+      if (!fiberKey) return null;
+      var fiber = el[fiberKey];
+      while (fiber) {
+        var type = fiber.type;
+        if (typeof type === 'function') {
+          var name = type.displayName || type.name;
+          if (name && name.length > 1 && name[0] === name[0].toUpperCase() && name[0] !== name[0].toLowerCase()) {
+            return name;
+          }
+        }
+        fiber = fiber.return;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   document.addEventListener("click", (e) => {
     if (!enabled) return;
     e.preventDefault();
@@ -104,18 +128,34 @@ export const INSPECTOR_SCRIPT = `
     const target = e.target;
     const rect = target.getBoundingClientRect();
 
+    // SVG elements have className as SVGAnimatedString (not clonable) — use baseVal
+    var rawClass = target.className;
+    var className = typeof rawClass === 'string' ? rawClass : (rawClass && rawClass.baseVal) || '';
+
+    // Get outerHTML as a single opening tag (no children, truncated)
+    var outerHTML = null;
+    try {
+      var raw = target.outerHTML || '';
+      // Keep only the opening tag — slice before the first '>'
+      var firstTag = raw.slice(0, raw.indexOf('>') + 1);
+      outerHTML = firstTag.slice(0, 300) || null;
+    } catch (_) {}
+
     window.parent.postMessage({
       type: "INSPECT_SELECT",
 
       tag: target.tagName,
       id: target.id || null,
-      className: target.className || null,
+      className: className || null,
 
       name: target.getAttribute("data-element-name") || null,
 
       domPath: getDomPath(target),
 
       textContent: (target.textContent || "").trim().slice(0, 200) || null,
+
+      componentName: getComponentName(target),
+      outerHTML: outerHTML,
 
       rect: {
         top: rect.top,
@@ -175,6 +215,7 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
   const imports: Record<string, string> = {
     "react": `https://esm.sh/react@${REACT_VERSION}`,
     "react/jsx-runtime": `https://esm.sh/react@${REACT_VERSION}/jsx-runtime`,
+    "react/jsx-dev-runtime": `https://esm.sh/react@${REACT_VERSION}/jsx-dev-runtime`,
     "react-dom": `https://esm.sh/react-dom@${REACT_VERSION}`,
     "react-dom/client": `https://esm.sh/react-dom@${REACT_VERSION}/client`,
     "react-dom/server": `https://esm.sh/react-dom@${REACT_VERSION}/server`,
@@ -299,6 +340,32 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
 
       <script>
         ${INSPECTOR_SCRIPT}
+      </script>
+
+      <script>
+        // Synthetic routing: notify parent of URL changes
+        (function() {
+          function notifyRoute() {
+            try {
+              window.parent.postMessage({
+                type: 'ROUTE_CHANGE',
+                url: location.pathname + location.search + location.hash
+              }, '*');
+            } catch (_) {}
+          }
+          var origPush = history.pushState.bind(history);
+          var origReplace = history.replaceState.bind(history);
+          history.pushState = function() { origPush.apply(history, arguments); notifyRoute(); };
+          history.replaceState = function() { origReplace.apply(history, arguments); notifyRoute(); };
+          window.addEventListener('popstate', notifyRoute);
+
+          // Handle navigate messages from parent
+          window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'NAVIGATE' && e.data.url) {
+              history.pushState({}, '', e.data.url);
+            }
+          });
+        })();
       </script>
     </body>
     </html>

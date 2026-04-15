@@ -367,7 +367,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
     });
   }, []);
 
-  const handleSendMessage = async (text: string, files?: any[], model?: string, pendingActionPayload?: any) => {
+  const handleSendMessage = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
     addMessage({ id: Date.now().toString(), role: "user", content: text, images: files?.map(f => f.url) || [] });
     handleAutoScroll();
 
@@ -406,6 +406,12 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
             has_files: (files?.length || 0) > 0,
             tokens_used: 100,
             model: model,
+            ...(context?.length ? {
+              context: context.map(({ element, ...rest }) => ({
+                ...rest,
+                ...(element ? { outer_html: element } : {}),
+              }))
+            } : {}),
             ...(pendingActionPayload ? { pending_action: pendingActionPayload } : {})
           },
         );
@@ -684,7 +690,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
             )}
 
             <ChatInput
-              onSendMessage={handleSendMessage}
+              onSendMessage={(msg, files, model, context) => handleSendMessage(msg, files, model, undefined, context)}
               isSending={isSending}
               disabled={isDisabled}
               projectId={projectId}

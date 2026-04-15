@@ -9,7 +9,7 @@ import { api } from "@/shared/api"
 import { useTranslations } from "next-intl"
 import { useAuthStore } from '@/entities/session'
 import type { CodeEditorTarget } from '@/entities/session'
-
+import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store"
 import { useFilesStore, IFile } from "@/entities/project/model/files-store"
 
 import { ProjectHeader, DeviceType } from "@/widgets/project-workspace/ui/project-header"
@@ -64,6 +64,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const setUcodeProjectId = useAuthStore(state => state.setUcodeProjectId)
   const setActiveProjectTab = useAuthStore(state => state.setActiveProjectTab)
   const setCodeEditorTarget = useAuthStore(state => state.setCodeEditorTarget)
+  const clearCodeSelection = useCodeSelectionStore(state => state.clearCodeSelection)
   const hasNoFiles = files.length === 0;
   const t = useTranslations('features.project')
 
@@ -148,10 +149,11 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
     return () => {
       clearWorkspace();
-      setApiKey(null)   // clear api key when leaving project workspace
+      setApiKey(null)
       setActiveProjectTab(null)
+      clearCodeSelection()
     };
-  }, [projectId, setFiles, clearWorkspace, setApiKey, setActiveProjectTab])
+  }, [projectId, setFiles, clearWorkspace, setApiKey, setActiveProjectTab, clearCodeSelection])
 
   useEffect(() => {
     setActiveProjectTab(activeTab)
@@ -162,22 +164,20 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   return (
     <ErrorBoundary>
       <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-main relative">
-        <ProjectHeader
-          projectTitle={projectTitle}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          isSidebarCollapsed={isDashboardSidebarCollapsed}
-          onToggleSidebar={() => setIsDashboardSidebarCollapsed(!isDashboardSidebarCollapsed)}
-          isLoading={isLoading}
-          hasNoFiles={hasNoFiles}
-          onSave={handleSaveChanges}
-          isChatCollapsed={isChatCollapsed}
-          onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
-          device={device}
-          onDeviceChange={setDevice}
-          isPreviewMaximized={isPreviewMaximized}
-          onTogglePreviewMaximize={handleTogglePreviewMaximize}
-        />
+        {!isPreviewMaximized && (
+          <ProjectHeader
+            projectTitle={projectTitle}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            isSidebarCollapsed={isDashboardSidebarCollapsed}
+            onToggleSidebar={() => setIsDashboardSidebarCollapsed(!isDashboardSidebarCollapsed)}
+            isLoading={isLoading}
+            hasNoFiles={hasNoFiles}
+            onSave={handleSaveChanges}
+            isChatCollapsed={isChatCollapsed}
+            onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
+          />
+        )}
 
         <div className="flex flex-1 overflow-hidden">
           <WorkspaceChat
@@ -217,6 +217,9 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
                 device={device}
                 isMaximized={isPreviewMaximized}
                 microfrontendFiles={microfrontendPreviewFiles}
+                projectId={projectId}
+                onDeviceChange={setDevice}
+                onToggleMaximize={handleTogglePreviewMaximize}
               />
             )}
           </div>
