@@ -160,7 +160,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
 
   const handleSend = () => {
     if ((value.trim() || uploadedFiles.length > 0 || selectedElements.length > 0) && !isSending) {
-      let messageText = value;
+      const messageText = value;
       let context: MessageContext | undefined;
 
       if (selectedElements.length > 0) {
