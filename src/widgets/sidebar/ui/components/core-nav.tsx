@@ -7,19 +7,19 @@ import { usePathname } from "@/shared/lib/i18n/navigation"
 interface CoreNavProps {
   isCollapsed: boolean;
   onSearchClick: () => void;
+  isUgen?: boolean;
 }
 
-export const CoreNav = ({ isCollapsed, onSearchClick }: CoreNavProps) => {
+export const CoreNav = ({ isCollapsed, onSearchClick, isUgen = true }: CoreNavProps) => {
   const t = useTranslations('Navigation')
   const pathname = usePathname()
 
-  const items = [
+  const allItems = [
     { key: "home", href: "/", icon: Home },
     { key: "search", href: "/search", icon: Search },
-    // { key: "templates", href: "/dashboard/templates", icon: Layers },
-    // Adding Analytics to Sidebar core nav
-    // { key: "analytics", href: "/dashboard/analytics", icon: BarChart2 },
   ]
+
+  const items = allItems.filter(item => isUgen || item.key !== "home")
 
   return (
     <nav className="space-y-0.5">

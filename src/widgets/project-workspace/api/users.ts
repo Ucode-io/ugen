@@ -7,6 +7,7 @@ export interface ClientTypeOption {
   label: string
   value: string
   table_slug?: string
+  client_type_id?: string
 }
 
 /**
@@ -29,17 +30,18 @@ export const useClientTypes = (projectId?: string) => {
   })
 }
 
-export const useRoles = ({ id, projectId }: { id: string, projectId: string }) => {
+export const useRoles = ({ id, projectId }: { id?: string, projectId: string }) => {
   return useQuery({
     queryKey: ['roles-workspace', id, projectId],
     queryFn: async () => {
-      const items = await roleApi.getRoles(projectId, id)
+      const items = await roleApi.getRoles(projectId, id || undefined)
       return items.map((item: any) => ({
         label: item.name || item.label || 'Unknown',
         value: item.guid || item.value || item.id,
+        client_type_id: item.client_type_id || '',
       })) as ClientTypeOption[]
     },
-    enabled: !!id && !!projectId,
+    enabled: !!projectId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }

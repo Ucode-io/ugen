@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { useProjectsList } from "@/entities/project"
 import { useProjectFolders, useProjectFolder, useCreateProjectFolder, ProjectFolder } from "@/entities/project-folder"
+import { useAuthStore } from "@/entities/session"
 import { ProjectsToolbar } from "./projects-toolbar"
 import { ProjectsGrid } from "./projects-grid"
 import { ProjectsList } from "./projects-list"
@@ -17,6 +18,8 @@ export const ProjectsBoard = () => {
   const tNav = useTranslations('Navigation')
   const tWidgets = useTranslations('widgets.projects')
   const tCommon = useTranslations('widgets.common')
+  const { project } = useAuthStore()
+  const isUgen = project?.is_ugen ?? false
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -157,14 +160,16 @@ export const ProjectsBoard = () => {
           )}
         </h1>
 
-        <button
-          onClick={() => setIsCreatePopoverOpen(!isCreatePopoverOpen)}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors ml-1"
-        >
-          <MoreHorizontal size={20} />
-        </button>
+        {isUgen && (
+          <button
+            onClick={() => setIsCreatePopoverOpen(!isCreatePopoverOpen)}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors ml-1"
+          >
+            <MoreHorizontal size={20} />
+          </button>
+        )}
 
-        {isCreatePopoverOpen && (
+        {(isCreatePopoverOpen && isUgen) && (
           <div className="absolute left-[130px] top-full z-[100] mt-1 w-48 overflow-hidden rounded-lg border border-border-subtle bg-bg-card shadow-lg">
             <button
               onClick={() => {
@@ -183,7 +188,7 @@ export const ProjectsBoard = () => {
       {foldersDisplay.length > 0 && (
         <div className="flex flex-wrap gap-4 mb-6">
           {foldersDisplay.map(folder => (
-            <FolderCard key={folder.id} folder={folder} />
+            <FolderCard key={folder.id} folder={folder} readOnly={!isUgen} />
           ))}
         </div>
       )}

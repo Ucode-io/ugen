@@ -2,6 +2,7 @@ import { Plus, Star, Link as LinkIcon, Folder, FolderPlus } from "lucide-react"
 import { Link } from "@/shared/lib/i18n/navigation"
 import { ProjectCardActions } from "./project-card-actions"
 import { useTranslations } from "next-intl"
+import { useAuthStore } from "@/entities/session";
 
 interface ProjectsGridProps {
   projects: any[];
@@ -10,6 +11,8 @@ interface ProjectsGridProps {
 
 export const ProjectsGrid = ({ projects, variant = "projects" }: ProjectsGridProps) => {
   const t = useTranslations('widgets.projects')
+  const { project } = useAuthStore()
+    const isUgen = project?.is_ugen ?? false
 
   return (
     <div className={
@@ -17,7 +20,7 @@ export const ProjectsGrid = ({ projects, variant = "projects" }: ProjectsGridPro
     }>
       {/* Create new */}
       {
-        variant === "projects" && (
+        (variant === "projects" && isUgen) && (
           <Link href="/?focus=prompt" className="group cursor-pointer block">
             <div className="aspect-[16/9] w-full rounded-2xl border-2 border-dashed border-border-subtle bg-transparent flex flex-col items-center justify-center transition-colors hover:border-text-muted hover:bg-hover-bg/30">
               <Plus size={24} className="text-text-muted transition-colors group-hover:text-text-main" />

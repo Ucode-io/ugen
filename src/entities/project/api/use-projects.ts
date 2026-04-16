@@ -1,6 +1,58 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 
+export interface UserProject {
+  id: string
+  title: string
+  logo: string
+  is_ugen: boolean
+  environment_id: string
+}
+
+export interface UserCompany {
+  id: string
+  name: string
+  logo: string
+  has_personal_fork: boolean
+  projects: UserProject[]
+}
+
+export const fetchUserProjects = async (): Promise<UserCompany[]> => {
+  const { data } = await api.get('/v1/ugen/user-projects')
+  return data?.data?.companies ?? []
+}
+
+export const useUserProjects = () => {
+  return useQuery({
+    queryKey: ['user-projects'],
+    queryFn: fetchUserProjects,
+  })
+}
+
+export interface SwitchProjectParams {
+  refresh_token: string
+  role_id: string
+  client_type_id: string
+  env_id: string
+  project_id: string
+}
+
+export const switchProject = async (params: SwitchProjectParams) => {
+  const { authApi } = await import('@/shared/api')
+  const { data } = await authApi.put('/v2/refresh', params)
+  return data?.data
+}
+
+export const useSwitchProject = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: switchProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries()
+    },
+  })
+}
+
 export interface FetchProjectsListParams {
   title?: string;
   order_by?: string;

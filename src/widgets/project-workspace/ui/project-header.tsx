@@ -3,6 +3,7 @@ import { PanelLeftClose, PanelRightClose, CodeXml, Globe, LayoutDashboard, House
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { ReusableTabs } from "@/shared/ui"
+import { PublishPopover } from "./publish-popover"
 
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
@@ -17,6 +18,7 @@ interface ProjectHeaderProps {
   onSave?: () => void
   isChatCollapsed: boolean
   onToggleChat: () => void
+  projectUrl?: string
 }
 
 export const ProjectHeader = ({
@@ -30,6 +32,7 @@ export const ProjectHeader = ({
   onSave,
   isChatCollapsed,
   onToggleChat,
+  projectUrl,
 }: ProjectHeaderProps) => {
   const router = useRouter()
   const t = useTranslations('features.project')
@@ -87,9 +90,7 @@ export const ProjectHeader = ({
 
       <div className="flex items-center gap-1.5">
         <div className="bg-border-subtle w-[1px] h-4 mx-2" />
-        <button className="bg-primary text-white hover:bg-primary-hover px-4 py-1.5 rounded-lg text-[13px] font-medium transition-colors">
-          {t('publish', { fallback: 'Publish' })}
-        </button>
+        <PublishPopover projectTitle={projectTitle} projectUrl={projectUrl} />
       </div>
     </header>
   )

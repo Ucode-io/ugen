@@ -46,6 +46,8 @@ export interface ProjectData {
   subscription_type: string;
   title: string;
   fare_id: string;
+  is_ugen: boolean;
+  environment_id: string;
 }
 
 export interface AuthState {
@@ -60,11 +62,13 @@ export interface AuthState {
   activeView: "home" | "dashboard";
   apiKey: string | null;
   ucodeProjectId: string | null;
+  projectEnvId: string | null;
   activeProjectTab: 'dashboard' | 'code' | 'preview' | null;
   codeEditorTarget: CodeEditorTarget | null;
   languages: Language[];
   setApiKey: (key: string | null) => void;
   setUcodeProjectId: (key: string | null) => void;
+  setProjectEnvId: (key: string | null) => void;
   setActiveProjectTab: (tab: 'dashboard' | 'code' | 'preview' | null) => void;
   setCodeEditorTarget: (target: CodeEditorTarget | null) => void;
   setLanguages: (languages: Language[]) => void;
@@ -74,6 +78,11 @@ export interface AuthState {
     permissions: Permission[],
     appPermissions: Permission[],
     globalPermission: Permission | null,
+    accessToken: string,
+    refreshToken: string,
+  ) => void;
+  switchProjectAuth: (
+    project: Pick<ProjectData, 'project_id' | 'title' | 'environment_id' | 'is_ugen'>,
     accessToken: string,
     refreshToken: string,
   ) => void;
@@ -95,11 +104,13 @@ export const useAuthStore = create<AuthState>()(
       activeView: 'home',
       apiKey: null,
       ucodeProjectId: null,
+      projectEnvId: null,
       activeProjectTab: null,
       codeEditorTarget: null,
       languages: [],
       setApiKey: (key) => set({ apiKey: key }),
       setUcodeProjectId: (key) => set({ ucodeProjectId: key }),
+      setProjectEnvId: (key) => set({ projectEnvId: key }),
       setActiveProjectTab: (tab) => set({ activeProjectTab: tab }),
       setCodeEditorTarget: (target) => set({ codeEditorTarget: target }),
       setLanguages: (languages: Language[]) => set({ languages }),
@@ -115,6 +126,20 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           activeView: 'dashboard'
         }),
+      switchProjectAuth: (projectPatch, accessToken, refreshToken) =>
+        set((state) => ({
+          accessToken,
+          refreshToken,
+          project: state.project
+            ? {
+                ...state.project,
+                project_id: projectPatch.project_id,
+                title: projectPatch.title,
+                environment_id: projectPatch.environment_id,
+                is_ugen: projectPatch.is_ugen,
+              }
+            : state.project,
+        })),
       logout: () => {
         queryClient.clear()
         set({

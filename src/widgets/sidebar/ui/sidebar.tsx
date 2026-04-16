@@ -10,6 +10,7 @@ import { SearchModal } from "@/features/search";
 import { useClickOutside } from "../lib/use-click-outside";
 import { CoreNav } from "./components/core-nav";
 import { ProjectsNav } from "./components/projects-nav";
+import { ProjectsNavReadOnly } from "./components/projects-nav-readonly";
 import { RecentsNav } from "./components/recents-nav";
 import { ProjectDropdown } from "./components/project-dropdown";
 import { ProfileFooter } from "./components/profile-footer";
@@ -18,6 +19,7 @@ import { ProfileModal } from "./components/profile-modal";
 export const Sidebar = () => {
   const router = useRouter();
   const { user, project, logout, setActiveView } = useAuthStore();
+  const isUgen = project?.is_ugen ?? false;
   const { theme, setTheme } = useUIStore();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -94,13 +96,22 @@ export const Sidebar = () => {
         <CoreNav
           isCollapsed={isCollapsed}
           onSearchClick={() => setIsSearchOpen(true)}
+          isUgen={isUgen}
         />
 
-        <ProjectsNav
-          isCollapsed={isCollapsed}
-          isAllProjectsOpen={isAllProjectsOpen}
-          setIsAllProjectsOpen={setIsAllProjectsOpen}
-        />
+        {isUgen ? (
+          <ProjectsNav
+            isCollapsed={isCollapsed}
+            isAllProjectsOpen={isAllProjectsOpen}
+            setIsAllProjectsOpen={setIsAllProjectsOpen}
+          />
+        ) : (
+          <ProjectsNavReadOnly
+            isCollapsed={isCollapsed}
+            isAllProjectsOpen={isAllProjectsOpen}
+            setIsAllProjectsOpen={setIsAllProjectsOpen}
+          />
+        )}
 
         <RecentsNav isCollapsed={isCollapsed} />
       </div>

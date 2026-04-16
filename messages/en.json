@@ -67,6 +67,15 @@
   "features": {
     "project": {
       "publish": "Publish",
+      "publishTitle": "Publish Your App",
+      "appVisibility": "App Visibility",
+      "publishApp": "Publish App",
+      "visibilityPublic": "Public (no login)",
+      "visibilityWorkspace": "Private",
+      "userType": "User type",
+      "role": "Role",
+      "copy": "Copy",
+      "copied": "Copied",
       "loading": "Loading project workspace...",
       "createProject": "Create your project",
       "emptyProjectDesc": "Your workspace is currently empty. Describe what you want to build in the chat, and the AI will generate the files and architecture for you in seconds.",
@@ -366,6 +375,7 @@
       "delete": "Delete",
       "untitledProject": "Untitled Project",
       "loading": "Loading...",
+      "personal": "Personal",
       "noRecentProjects": "No recent projects"
     },
     "landingPage": {

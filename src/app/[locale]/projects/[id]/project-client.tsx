@@ -62,11 +62,15 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const { files, updatedFiles, setFiles, clearWorkspace } = useFilesStore()
   const setApiKey = useAuthStore(state => state.setApiKey)
   const setUcodeProjectId = useAuthStore(state => state.setUcodeProjectId)
+  const setProjectEnvId = useAuthStore(state => state.setProjectEnvId)
   const setActiveProjectTab = useAuthStore(state => state.setActiveProjectTab)
   const setCodeEditorTarget = useAuthStore(state => state.setCodeEditorTarget)
   const clearCodeSelection = useCodeSelectionStore(state => state.clearCodeSelection)
   const hasNoFiles = files.length === 0;
   const t = useTranslations('features.project')
+
+  const { project } = useAuthStore()
+  const isUgen = project?.is_ugen ?? false
 
   const activeTab = searchParams.get('tab') as 'dashboard' | 'code' | 'preview' || 'preview'
 
@@ -112,6 +116,10 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
         if (projectData.ucode_project_id) {
           setUcodeProjectId(projectData.ucode_project_id)
+        }
+
+        if (projectData.environment_id) {
+          setProjectEnvId(projectData.environment_id)
         }
 
         if (projectData.title) {
@@ -160,6 +168,25 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   }, [activeTab, setActiveProjectTab])
 
 
+  if (!isUgen) {
+    return (
+      <ErrorBoundary>
+        <div className="relative h-screen w-full">
+          <button
+            onClick={() => router.push('/')}
+            className="absolute top-4 left-4 z-50 flex items-center gap-2 rounded-lg bg-black/40 px-3 py-2 text-sm font-medium text-white opacity-20 backdrop-blur-sm transition-opacity duration-200 hover:opacity-100"
+          >
+            <ChevronLeft size={16} strokeWidth={2} />
+          </button>
+          <iframe
+            src="https://kun.uz"
+            className="h-full w-full border-none"
+            title={projectTitle}
+          />
+        </div>
+      </ErrorBoundary>
+    )
+  }
 
   return (
     <ErrorBoundary>
@@ -176,6 +203,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             onSave={handleSaveChanges}
             isChatCollapsed={isChatCollapsed}
             onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
+            projectUrl={projectInfo?.url || projectInfo?.project_url || ''}
           />
         )}
 
