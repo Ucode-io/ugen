@@ -40,16 +40,29 @@ export interface SwitchProjectParams {
 export const switchProject = async (params: SwitchProjectParams) => {
   const { authApi } = await import('@/shared/api')
   const { data } = await authApi.put('/v2/refresh', params)
-  return data?.data
+  // normalize: response may be nested under .response or flat
+  const inner = data?.data
+  return inner?.response ?? inner
 }
 
 export const useSwitchProject = () => {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: switchProject,
-    onSuccess: () => {
-      queryClient.invalidateQueries()
-    },
+  })
+}
+
+export const fetchCompanyProjects = async (companyId: string, projectId: string) => {
+  const { data } = await api.get('/v1/company-project', {
+    params: { company_id: companyId, 'project-id': projectId },
+  })
+  return data?.data ?? []
+}
+
+export const useCompanyProjects = (companyId: string, projectId: string) => {
+  return useQuery({
+    queryKey: ['company-projects', companyId, projectId],
+    queryFn: () => fetchCompanyProjects(companyId, projectId),
+    enabled: !!companyId && !!projectId,
   })
 }
 

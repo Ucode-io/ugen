@@ -1,4 +1,5 @@
 'use client'
+import { useAuthStore } from "@/entities/session"
 import { Link, usePathname, useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { LayoutGrid, FolderPlus, Folder, ChevronRight, Plus, Trash2, Edit2, FileIcon } from "lucide-react"
@@ -343,6 +344,7 @@ interface ProjectsNavProps {
 export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOpen }: ProjectsNavProps) => {
   const tNav = useTranslations('Navigation')
   const tWidgets = useTranslations('widgets.sidebar')
+  const { activeCompanyId } = useAuthStore()
   const { data: rootFolders } = useProjectFolders(undefined, undefined, !isCollapsed && isAllProjectsOpen)
   const { data: recentProjectsResponse } = useProjectsList(
     { order_by: 'updated_at', order_direction: 'desc', limit: 4 },
@@ -648,7 +650,7 @@ export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOp
                 </button>
               )}
               <Link
-                href="/projects"
+                href={activeCompanyId ? `/projects?company_id=${activeCompanyId}` : "/projects"}
                 className="flex flex-1 items-center gap-2 overflow-hidden"
               >
                 <LayoutGrid size={16} strokeWidth={2} className="shrink-0" />

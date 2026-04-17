@@ -64,6 +64,7 @@ export interface AuthState {
   ucodeProjectId: string | null;
   projectEnvId: string | null;
   activeProjectTab: 'dashboard' | 'code' | 'preview' | null;
+  activeCompanyId: string | null;
   codeEditorTarget: CodeEditorTarget | null;
   languages: Language[];
   setApiKey: (key: string | null) => void;
@@ -82,7 +83,7 @@ export interface AuthState {
     refreshToken: string,
   ) => void;
   switchProjectAuth: (
-    project: Pick<ProjectData, 'project_id' | 'title' | 'environment_id' | 'is_ugen'>,
+    project: Pick<ProjectData, 'project_id' | 'title' | 'environment_id' | 'is_ugen'> & { company_id?: string | null },
     accessToken: string,
     refreshToken: string,
   ) => void;
@@ -106,6 +107,7 @@ export const useAuthStore = create<AuthState>()(
       ucodeProjectId: null,
       projectEnvId: null,
       activeProjectTab: null,
+      activeCompanyId: null,
       codeEditorTarget: null,
       languages: [],
       setApiKey: (key) => set({ apiKey: key }),
@@ -130,6 +132,7 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           accessToken,
           refreshToken,
+          activeCompanyId: projectPatch.is_ugen ? null : (projectPatch.company_id ?? state.activeCompanyId),
           project: state.project
             ? {
                 ...state.project,

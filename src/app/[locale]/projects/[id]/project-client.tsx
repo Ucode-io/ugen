@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from "react"
 import { WorkspaceChat } from "@/widgets/workspace-chat"
-import { PanelLeftClose, PanelRightClose, ChevronLeft, CodeXml, Globe, Loader2, Play } from "lucide-react"
+import { PanelLeftClose, PanelRightClose, CodeXml, Globe, Loader2, Play } from "lucide-react"
 import { ProjectCodeViewer } from "@/widgets/project-workspace/ui/project-code-viewer"
 import { ProjectPreviewViewer } from "@/widgets/project-workspace/ui/project-preview-viewer"
 import { useRouter } from "@/shared/lib/i18n/navigation"
@@ -59,6 +59,9 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const [projectTitle, setProjectTitle] = useState('Loading...')
   const [isLoading, setIsLoading] = useState(true)
   const [projectInfo, setProjectInfo] = useState<any>(null)
+  const [microfrontends, setMicrofrontends] = useState<Array<{ id: string; name: string; url: string }>>([])
+  const [selectedMicrofrontend, setSelectedMicrofrontend] = useState<{ id: string; name: string; url: string } | null>(null)
+  const [isMicrofrontendLoading, setIsMicrofrontendLoading] = useState(false)
   const { files, updatedFiles, setFiles, clearWorkspace } = useFilesStore()
   const setApiKey = useAuthStore(state => state.setApiKey)
   const setUcodeProjectId = useAuthStore(state => state.setUcodeProjectId)
@@ -100,6 +103,8 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   }, [setActiveTab])
 
   useEffect(() => {
+    if (!projectId) return
+
     setIsLoading(true);
     // Fetch project details and files
     api.get(`/v1/mcp_project/${projectId}`)
@@ -143,12 +148,12 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         setIsLoading(false);
       })
 
-    // Fetch additional company project info
-    api.get(`/v1/company-project/${projectId}`)
+    // Fetch additional company project info using query param API
+    api.get('/v1/company-project', { params: { 'project-id': projectId } })
       .then(res => {
         const info = res.data?.data;
         if (info) {
-          setProjectInfo(info);
+          setProjectInfo(Array.isArray(info) ? info[0] : info);
         }
       })
       .catch((err) => {
@@ -167,26 +172,27 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setActiveProjectTab(activeTab)
   }, [activeTab, setActiveProjectTab])
 
+  useEffect(() => {
+    if (!projectId || isUgen) return
+    setIsMicrofrontendLoading(true)
+    api.get('/v2/functions/micro-frontend', {
+      params: { search: '', offset: 0, limit: 50, 'project-id': projectId },
+    })
+      .then(res => {
+        const list: Array<{ id: string; name: string; url: string }> = res.data?.data?.functions ?? []
+        const normalized = list
+          .map(mf => ({
+            ...mf,
+            url: mf.url?.startsWith('http') ? mf.url : `https://${mf.url}`,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+        setMicrofrontends(normalized)
+        setSelectedMicrofrontend(normalized[0] ?? null)
+      })
+      .catch(err => console.error('Failed to load microfrontends', err))
+      .finally(() => setIsMicrofrontendLoading(false))
+  }, [projectId, isUgen])
 
-  if (!isUgen) {
-    return (
-      <ErrorBoundary>
-        <div className="relative h-screen w-full">
-          <button
-            onClick={() => router.push('/')}
-            className="absolute top-4 left-4 z-50 flex items-center gap-2 rounded-lg bg-black/40 px-3 py-2 text-sm font-medium text-white opacity-20 backdrop-blur-sm transition-opacity duration-200 hover:opacity-100"
-          >
-            <ChevronLeft size={16} strokeWidth={2} />
-          </button>
-          <iframe
-            src="https://kun.uz"
-            className="h-full w-full border-none"
-            title={projectTitle}
-          />
-        </div>
-      </ErrorBoundary>
-    )
-  }
 
   return (
     <ErrorBoundary>
@@ -204,21 +210,62 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             isChatCollapsed={isChatCollapsed}
             onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
             projectUrl={projectInfo?.url || projectInfo?.project_url || ''}
+            isUgen={isUgen}
           />
         )}
 
         <div className="flex flex-1 overflow-hidden">
-          <WorkspaceChat
-            projectId={projectId}
-            isChatCollapsed={isChatCollapsed}
-            setIsChatCollapsed={setIsChatCollapsed}
-            onSelectFunction={handleEditCode}
-            onSelectMicrofrontend={handlePreviewMicrofrontend}
-          />
+          {isUgen && (
+            <WorkspaceChat
+              projectId={projectId}
+              isChatCollapsed={isChatCollapsed}
+              setIsChatCollapsed={setIsChatCollapsed}
+              onSelectFunction={handleEditCode}
+              onSelectMicrofrontend={handlePreviewMicrofrontend}
+            />
+          )}
 
           {/* Content Area */}
           <div className="flex-1 flex overflow-hidden">
-            {isLoading ? (
+            {!isUgen ? (
+              isMicrofrontendLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center bg-bg-main text-text-muted">
+                  <Loader2 className="animate-spin mb-4" size={32} />
+                  <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {microfrontends.length > 0 && (
+                    <div className="flex items-center gap-2 px-4 py-2 border-b border-border-subtle bg-bg-card shrink-0">
+                      <select
+                        value={selectedMicrofrontend?.id ?? ''}
+                        onChange={e => {
+                          const mf = microfrontends.find(m => m.id === e.target.value)
+                          if (mf) setSelectedMicrofrontend(mf)
+                        }}
+                        className="rounded-lg border border-border-subtle bg-bg-sidebar text-text-main text-sm px-3 py-1.5 outline-none focus:border-primary transition-colors cursor-pointer"
+                      >
+                        {microfrontends.map(mf => (
+                          <option key={mf.id} value={mf.id}>{mf.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {selectedMicrofrontend?.url ? (
+                    <iframe
+                      key={selectedMicrofrontend.id}
+                      src={selectedMicrofrontend.url}
+                      className="flex-1 w-full border-none"
+                      title={selectedMicrofrontend.name}
+                    />
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center bg-bg-main text-text-muted">
+                      <p className="text-sm font-medium">No preview available</p>
+                    </div>
+                  )}
+                </div>
+              )
+            ) : isLoading ? (
               <div className="flex-1 flex flex-col items-center justify-center bg-bg-main text-text-muted">
                 <Loader2 className="animate-spin mb-4" size={32} />
                 <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
@@ -235,7 +282,6 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               <EmptyProjectView
                 onStartChatting={() => {
                   setActiveTab('preview')
-                  // if (isChatCollapsed) setIsChatCollapsed(false);
                 }}
               />
             ) : activeTab === 'code' ? (

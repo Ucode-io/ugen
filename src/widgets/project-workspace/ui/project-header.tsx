@@ -19,6 +19,7 @@ interface ProjectHeaderProps {
   isChatCollapsed: boolean
   onToggleChat: () => void
   projectUrl?: string
+  isUgen?: boolean
 }
 
 export const ProjectHeader = ({
@@ -33,6 +34,7 @@ export const ProjectHeader = ({
   isChatCollapsed,
   onToggleChat,
   projectUrl,
+  isUgen = true,
 }: ProjectHeaderProps) => {
   const router = useRouter()
   const t = useTranslations('features.project')
@@ -44,7 +46,7 @@ export const ProjectHeader = ({
     setActiveTab(tab)
   }
 
-  const tabOptions = [
+  const allTabOptions = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
     {
       id: 'preview',
@@ -58,6 +60,10 @@ export const ProjectHeader = ({
       icon: <CodeXml size={16} />,
     }
   ]
+
+  const tabOptions = isUgen
+    ? allTabOptions
+    : allTabOptions.filter(t => t.id === 'preview')
 
   return (
     <header className="h-[48px] border-b border-border-subtle bg-bg-card flex items-center justify-between px-4 shrink-0 z-10 transition-all duration-300">
@@ -73,13 +79,15 @@ export const ProjectHeader = ({
           {projectTitle}
         </h1>
 
-        <button
-          onClick={onToggleChat}
-          className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0 ml-[40px]"
-          title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
-        >
-          {isChatCollapsed ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
-        </button>
+        {isUgen && (
+          <button
+            onClick={onToggleChat}
+            className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0 ml-[40px]"
+            title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
+          >
+            {isChatCollapsed ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+        )}
       </div>
 
       <ReusableTabs
@@ -89,8 +97,12 @@ export const ProjectHeader = ({
       />
 
       <div className="flex items-center gap-1.5">
-        <div className="bg-border-subtle w-[1px] h-4 mx-2" />
-        <PublishPopover projectTitle={projectTitle} projectUrl={projectUrl} />
+        {isUgen && (
+          <>
+            <div className="bg-border-subtle w-[1px] h-4 mx-2" />
+            <PublishPopover projectTitle={projectTitle} projectUrl={projectUrl} />
+          </>
+        )}
       </div>
     </header>
   )

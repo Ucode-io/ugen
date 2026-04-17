@@ -52,7 +52,7 @@ export const Sidebar = () => {
         }`}
     >
       {/* Header Area */}
-      <div className="space-y-4 p-3">
+      <div className="p-3">
         {/* Top bar with Logo & Collapse Icon */}
         <div
           className={`flex h-8 items-center ${isCollapsed ? "justify-center" : "justify-between px-1"}`}

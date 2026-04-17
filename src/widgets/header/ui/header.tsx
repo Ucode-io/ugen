@@ -31,6 +31,14 @@ export const Header = () => {
     return () => window.removeEventListener('open-auth', handleOpenAuth)
   }, [])
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('open-register') === 'true') {
+      openAuth('register')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
   return (
     <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-border-subtle bg-bg-card/85 backdrop-blur-md px-6">
       <div className="flex items-center gap-8">

@@ -1,128 +1,391 @@
-'use client'
-import { useState, useMemo } from 'react'
-import { Copy, Check } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+"use client";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
-  Popover, PopoverContent, PopoverTrigger,
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/shared/ui'
-import { useRoles } from '../api/users'
-import { useAuthStore } from '@/entities/session'
+  Copy,
+  Check,
+  Pencil,
+  Gem,
+  Eye,
+  Globe,
+  Users,
+  Lock,
+  ChevronDown,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui";
+import { useRoles, useClientTypes, useUsers } from "../api/users";
+import { useAuthStore } from "@/entities/session";
+import { api } from "@/shared/api";
+import { useQuery } from "@tanstack/react-query";
 
 interface PublishPopoverProps {
-  projectTitle: string
-  projectUrl?: string
+  projectTitle: string;
+  projectUrl?: string;
 }
 
-export const PublishPopover = ({ projectTitle }: PublishPopoverProps) => {
-  const t = useTranslations('features.project')
-  const { project } = useAuthStore()
-  const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
+type Visibility = "public" | "public-login" | "workspace" | "private";
 
-  const projectId = project?.project_id || ''
-  const envId = project?.environment_id || ''
-  const companyName = project?.title || ''
+export const PublishPopover = ({
+  projectTitle,
+  projectUrl,
+}: PublishPopoverProps) => {
+  const t = useTranslations("features.project");
+  const { project } = useAuthStore();
+  const ucodeProjectId = useAuthStore((s) => s.ucodeProjectId);
+  const projectEnvId = useAuthStore((s) => s.projectEnvId);
+  const projectId = project?.project_id || "";
+  const companyName = project?.title || "";
 
-  const [visibility, setVisibility] = useState<'public' | 'workspace'>('public')
-  const [role, setRole] = useState<{ label: string; value: string; client_type_id: string } | null>(null)
-  const [isCopied, setIsCopied] = useState(false)
+  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [role, setRole] = useState<{
+    value: string;
+    label: string;
+    client_type_id: string;
+  } | null>(null);
+  const [userId, setUserId] = useState<string>("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data: roleOptions = [] } = useRoles({ projectId })
+  const apiKey = useAuthStore((s) => s.apiKey);
+
+  const { data: microfrontends = [] } = useQuery({
+    queryKey: ["publish-microfrontends", projectId],
+    queryFn: async () => {
+      const headers = apiKey
+        ? { Authorization: "API-KEY", "x-api-key": apiKey }
+        : {};
+      const { data } = await api.get("/v2/functions/micro-frontend", {
+        params: { search: "", offset: 0, limit: 50, "project-id": projectId },
+        headers,
+      });
+      return (data.data?.functions ?? []) as Array<{
+        id: string;
+        name: string;
+        path?: string;
+        branch?: string;
+        type?: string;
+        project_id?: string;
+      }>;
+    },
+    enabled: !!projectId,
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    if (microfrontends.length > 0) {
+      console.log("First microfrontend:", microfrontends[0]);
+    }
+  }, [microfrontends]);
+
+  const { data: roleOptions = [] } = useRoles({ projectId });
+  const { data: clientTypes = [] } = useClientTypes(projectId);
+  const firstClientTypeId = clientTypes[0]?.value || "";
+  const firstClientTypeSlug = clientTypes[0]?.table_slug || "";
+  const { data: usersData } = useUsers({
+    clientTypeId: firstClientTypeId,
+    projectId,
+    limit: 100,
+    offset: 0,
+    search: "",
+    tableSlug: firstClientTypeSlug,
+  });
+
+  const userOptions: { value: string; label: string }[] = useMemo(() => {
+    if (!usersData) return [];
+    const rows =
+      (usersData as any)?.data?.data?.data ||
+      (usersData as any)?.data?.data ||
+      (usersData as any)?.data ||
+      [];
+    return Array.isArray(rows)
+      ? rows.map((u: any) => ({
+          value: u.guid || u.id || u._id || "",
+          label: u.name || u.login || u.email || u.username || u.guid || "—",
+        }))
+      : [];
+  }, [usersData]);
+
+  useEffect(() => {
+    if (roleOptions.length > 0 && !role) {
+      const admin = roleOptions.find((r) =>
+        r.label.toLowerCase().includes("admin"),
+      );
+      const opt = admin || roleOptions[0];
+      setRole({
+        value: opt.value,
+        label: opt.label,
+        client_type_id: opt.client_type_id || "",
+      });
+    }
+  }, [roleOptions, role]);
+
+  useEffect(() => {
+    if (userOptions.length > 0 && !userId) {
+      setUserId(userOptions[0].value);
+    }
+  }, [userOptions, userId]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const appUrl = projectUrl || "";
+  const displayHost = appUrl.replace(/^https?:\/\//, "");
 
   const inviteLink = useMemo(() => {
-    if (visibility !== 'workspace' || !role || !role.client_type_id) return ''
-    const domain = typeof window !== 'undefined' ? window.location.origin : ''
+    if (
+      (visibility !== "workspace" && visibility !== "private") ||
+      !role?.client_type_id
+    )
+      return "";
+    const domain = typeof window !== "undefined" ? window.location.origin : "";
     const params = new URLSearchParams({
-      'project-id': ucodeProjectId || projectId,
-      'env_id': envId,
-      'role_id': role.value,
-      'client_type_id': role.client_type_id,
-      'name': projectTitle,
-      'companyName': companyName,
-    })
-    return `${domain}/workspace?${params.toString()}`
-  }, [visibility, ucodeProjectId, projectId, envId, role, projectTitle, companyName])
+      "project-id": ucodeProjectId || projectId,
+      env_id: projectEnvId || "",
+      role_id: role.value,
+      client_type_id: role.client_type_id,
+      name: projectTitle,
+      companyName,
+    });
+    return `${domain}/workspace?${params.toString()}`;
+  }, [
+    visibility,
+    ucodeProjectId,
+    projectId,
+    projectEnvId,
+    role,
+    projectTitle,
+    companyName,
+  ]);
+
+  const copyUrl = () => {
+    if (!appUrl) return;
+    navigator.clipboard.writeText(appUrl);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   const copyLink = () => {
-    if (!inviteLink) return
-    navigator.clipboard.writeText(inviteLink)
-    setIsCopied(true)
-    setTimeout(() => setIsCopied(false), 2000)
-  }
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink);
+    setIsLinkCopied(true);
+    setTimeout(() => setIsLinkCopied(false), 2000);
+  };
+
+  const visibilityOptions: {
+    value: Visibility;
+    icon: React.ReactNode;
+    label: string;
+    disabled?: boolean;
+  }[] = [
+    {
+      value: "public",
+      icon: <Globe size={15} />,
+      label: t("visibilityPublic"),
+    },
+    {
+      value: "private",
+      icon: <Lock size={15} />,
+      label: t("visibilityPrivate"),
+    },
+  ];
+
+  const allOptions = visibilityOptions;
+  const selected =
+    allOptions.find((o) => o.value === visibility) ?? allOptions[0];
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="bg-primary text-white hover:bg-primary-hover px-4 py-1.5 rounded-lg text-[13px] font-medium transition-colors">
-          {t('publish')}
+        <button className="bg-primary hover:bg-primary-hover rounded-lg px-4 py-1.5 text-[13px] font-medium text-white transition-colors">
+          {t("publish")}
         </button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-[340px] p-0 bg-bg-card border border-border-subtle rounded-xl shadow-xl">
-        <div className="p-5 space-y-4">
-          <h2 className="text-base font-semibold text-text-main">{t('publishTitle')}</h2>
+      <PopoverContent
+        align="end"
+        className="bg-bg-card border-border-subtle w-100 rounded-xl border p-0 shadow-xl"
+      >
+        {/* Header + URL + custom domain */}
+        <div className="space-y-3 p-5">
+          <h2 className="text-text-main text-base font-semibold">
+            {t("publishTitle")}
+          </h2>
 
-          {/* Visibility select */}
-          <Select
-            value={visibility}
-            onValueChange={(v) => {
-              setVisibility(v as 'public' | 'workspace')
-              setRole(null)
-            }}
-          >
-            <SelectTrigger className="w-full h-9 text-sm bg-bg-main">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="public">{t('visibilityPublic')}</SelectItem>
-              <SelectItem value="workspace">{t('visibilityWorkspace')}</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Invite link — always visible, copy only */}
+          <div className="space-y-1">
+            <span className="text-text-muted text-xs font-medium">
+              Invite link
+            </span>
+            <div className="border-border-subtle bg-bg-main flex items-center gap-1 rounded-lg border px-3 py-2">
+              {inviteLink ? (
+                <span className="text-text-main flex-1 truncate font-mono text-xs">
+                  {inviteLink}
+                </span>
+              ) : (
+                <span className="text-text-muted flex-1 truncate text-sm">
+                  —
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={copyLink}
+                disabled={!inviteLink}
+                className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors disabled:opacity-40"
+              >
+                {isLinkCopied ? <Check size={15} /> : <Copy size={15} />}
+              </button>
+            </div>
+          </div>
+        </div>
 
-          {/* Workspace — role select + invite link */}
-          {visibility === 'workspace' && (
-            <div className="space-y-3">
+        <div className="border-border-subtle border-t" />
+
+        {/* App Visibility */}
+        <div className="flex items-center justify-between gap-3 px-5 py-2">
+          <div className="text-text-main flex items-center gap-2 text-sm">
+            <Eye size={16} className="text-text-muted" />
+            {t("appVisibility")}
+          </div>
+
+          <div ref={dropdownRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setDropdownOpen((o) => !o)}
+              className="border-border-subtle bg-bg-main text-text-main hover:bg-hover-bg flex h-9 w-52 items-center gap-2 rounded-lg border px-3 text-sm transition-colors"
+            >
+              <span className="text-text-muted shrink-0">{selected.icon}</span>
+              <span className="flex-1 truncate text-left">
+                {selected.label}
+              </span>
+              <ChevronDown
+                size={14}
+                className={`text-text-muted shrink-0 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {dropdownOpen && (
+              <div className="border-border-subtle bg-bg-card absolute top-full right-0 z-50 mt-1 w-64 rounded-xl border shadow-xl">
+                <div className="p-1.5">
+                  {allOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={opt.disabled}
+                      onClick={() => {
+                        if (!opt.disabled) {
+                          setVisibility(opt.value);
+                          setDropdownOpen(false);
+                        }
+                      }}
+                      className={[
+                        "flex w-full items-center gap-2.5 rounded-lg px-3 py-[6px] text-sm transition-colors",
+                        opt.disabled
+                          ? "cursor-not-allowed"
+                          : "hover:bg-hover-bg cursor-pointer",
+                      ].join(" ")}
+                    >
+                      <span
+                        className={
+                          opt.disabled
+                            ? "text-text-muted shrink-0 opacity-40"
+                            : "text-text-muted shrink-0"
+                        }
+                      >
+                        {opt.icon}
+                      </span>
+                      <span
+                        className={
+                          opt.disabled
+                            ? "text-text-muted flex-1 text-left opacity-40"
+                            : "text-text-main flex-1 text-left"
+                        }
+                      >
+                        {opt.label}
+                      </span>
+                      {opt.disabled ? (
+                        <span className="text-text-muted ml-auto flex items-center gap-1 text-xs">
+                          {t("availableFor")}
+                          <span className="rounded-full border border-orange-300 px-1.5 py-0.5 text-[10px] font-medium text-orange-500">
+                            {t("starterPlus")}
+                          </span>
+                        </span>
+                      ) : opt.value === visibility ? (
+                        <Check
+                          size={14}
+                          className="text-primary ml-auto shrink-0"
+                        />
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Private: role select only (invite link shown above) */}
+        {visibility === "private" && roleOptions.length > 0 && (
+          <>
+            <div className="border-border-subtle border-t" />
+            <div className="flex items-center justify-between gap-3 px-5 py-[6px]">
+              <span className="text-text-main text-sm">{t("role")}</span>
               <Select
-                value={role?.value || ''}
+                value={role?.value || ""}
                 onValueChange={(v) => {
-                  const opt = roleOptions.find(o => o.value === v)
-                  if (opt) setRole({ label: opt.label, value: opt.value, client_type_id: opt.client_type_id || '' })
+                  const opt = roleOptions.find((o) => o.value === v);
+                  if (opt)
+                    setRole({
+                      value: opt.value,
+                      label: opt.label,
+                      client_type_id: opt.client_type_id || "",
+                    });
                 }}
               >
-                <SelectTrigger className="w-full h-9 text-sm bg-bg-main">
-                  <SelectValue placeholder={t('role')} />
+                <SelectTrigger className="bg-bg-main h-9 w-52 text-sm">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {roleOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
-              {inviteLink && (
-                <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-main px-3 py-2">
-                  <span className="flex-1 truncate font-mono text-xs text-text-muted">
-                    {inviteLink}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={copyLink}
-                    className="shrink-0 flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-hover transition-colors"
-                  >
-                    {isCopied ? <Check size={13} /> : <Copy size={13} />}
-                    {isCopied ? t('copied') : t('copy')}
-                  </button>
-                </div>
-              )}
             </div>
-          )}
+          </>
+        )}
 
-          {/* Publish button */}
-          <button className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-hover transition-colors">
-            {t('publishApp')}
+        <div className="border-border-subtle border-t" />
+
+        {/* Publish button */}
+        <div className="p-5 pt-4">
+          <button className="bg-primary hover:bg-primary-hover w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-colors">
+            {t("publishApp")}
           </button>
         </div>
       </PopoverContent>
     </Popover>
-  )
-}
+  );
+};
