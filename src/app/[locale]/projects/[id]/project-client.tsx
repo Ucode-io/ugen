@@ -172,6 +172,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setActiveProjectTab(activeTab)
   }, [activeTab, setActiveProjectTab])
 
+  
   useEffect(() => {
     if (!projectId || isUgen) return
     setIsMicrofrontendLoading(true)
