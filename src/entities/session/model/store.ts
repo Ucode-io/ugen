@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { queryClient } from '@/shared/api/query-client'
 
 export interface CodeEditorTarget {
-  kind: 'frontend' | 'microfrontend' | 'function'
+  kind: 'frontend' | 'microfrontend' | 'function' | 'new_project'
   path?: string
   branch?: string
   name?: string

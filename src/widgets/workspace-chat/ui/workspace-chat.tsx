@@ -7,6 +7,9 @@ import { useChatStore, Message } from "@/entities/chat";
 import { Checkbox } from "@/shared/ui";
 import { api } from "@/shared/api";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
+import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
+import { useAuthStore } from "@/entities/session";
+import { queryClient } from "@/shared/api/query-client";
 import React from 'react';
 import { BpmnViewer } from "@/shared/ui";
 import { bpmnXmlContnet } from "./bpmn";
@@ -212,6 +215,9 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
   }
 
   const setFiles = useFilesStore((state) => state.setFiles);
+  const activeCodeSelection = useCodeSelectionStore((state) => state.activeCodeSelection);
+  const setActiveCodeSelection = useCodeSelectionStore((state) => state.setActiveCodeSelection);
+  const apiKey = useAuthStore((state) => state.apiKey);
 
   const displayMessages = messages.length > 0 ? messages : (!isLoadingHistory && offset === 0 ? MOCK_CHAT : []);
 
@@ -398,6 +404,8 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
       }, 2000);
 
       try {
+        const isMicrofrontendSelected = activeCodeSelection?.kind === 'microfrontend'
+        const isNewProjectSelected = activeCodeSelection?.kind === 'new_project'
         const { data: messageData } = await api.post(
           `/v1/ai-chat/new-messages/${activeChatId}`,
           {
@@ -406,6 +414,11 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
             has_files: (files?.length || 0) > 0,
             tokens_used: 100,
             model: model,
+            new_project: !isMicrofrontendSelected && !isNewProjectSelected,
+            ...(isMicrofrontendSelected ? {
+              microfrontend_id: activeCodeSelection.id,
+              microfrontend_repo_id: activeCodeSelection.repoId,
+            } : {}),
             ...(context?.length ? {
               context: context.map(({ element, ...rest }) => ({
                 ...rest,
@@ -415,6 +428,31 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
             ...(pendingActionPayload ? { pending_action: pendingActionPayload } : {})
           },
         );
+
+        // If the response created a new microfrontend, fetch its files and activate it
+        const newMicrofrontendId = messageData?.data?.microfrontend_id
+        const newMicrofrontendRepoId = messageData?.data?.microfrontend_repo_id
+        if (newMicrofrontendId) {
+          const target = {
+            kind: 'microfrontend' as const,
+            id: newMicrofrontendId,
+            repoId: newMicrofrontendRepoId,
+          }
+          const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+          api.get(`/v2/function/${newMicrofrontendId}/codebase`, { params: { 'project-id': projectId }, headers })
+            .then(({ data: codebaseData }) => {
+              const codebaseFiles = (codebaseData?.data?.files ?? []) as { path: string; content: string }[]
+              setActiveCodeSelection(target, codebaseFiles)
+              onSelectMicrofrontend?.(codebaseFiles)
+            })
+            .catch(() => {
+              setActiveCodeSelection(target)
+            })
+        }
+
+        // Refetch microfrontends list so the popover and preview header stay in sync
+        queryClient.invalidateQueries({ queryKey: ['attach-microfrontends', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['preview-microfrontends', projectId] });
 
         if (messageData?.data?.project?.project_files) {
           const mappedFiles: IFile[] = messageData.data.project.project_files.map((file: any) => ({

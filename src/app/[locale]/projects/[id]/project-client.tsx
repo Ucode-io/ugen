@@ -69,9 +69,9 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const setActiveProjectTab = useAuthStore(state => state.setActiveProjectTab)
   const setCodeEditorTarget = useAuthStore(state => state.setCodeEditorTarget)
   const clearCodeSelection = useCodeSelectionStore(state => state.clearCodeSelection)
-  const hasNoFiles = files.length === 0;
+  const activeCodeFiles = useCodeSelectionStore(state => state.activeCodeFiles)
+  const hasNoFiles = files.length === 0 && !activeCodeFiles?.length;
   const t = useTranslations('features.project')
-
   const { project } = useAuthStore()
   const isUgen = project?.is_ugen ?? false
 
@@ -172,7 +172,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setActiveProjectTab(activeTab)
   }, [activeTab, setActiveProjectTab])
 
-  
+
   useEffect(() => {
     if (!projectId || isUgen) return
     setIsMicrofrontendLoading(true)

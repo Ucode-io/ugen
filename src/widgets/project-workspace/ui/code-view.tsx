@@ -96,7 +96,7 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
               path: mf.path,
               branch: mf.branch,
               type: mf.type,
-              repoId: mf.project_id,
+              repoId: mf.repo_id,
             }) : undefined}
           />
         )}

@@ -37,15 +37,15 @@ export const WorkspaceInviteClient = () => {
   useEffect(() => {
     if (!isMounted) return;
 
-    if (projectId) {
-      sessionStorage.setItem(
-        "pendingInvite",
-        JSON.stringify({ projectId, envId, roleId, clientTypeId, name: projectName, companyName }),
-      );
-      window.dispatchEvent(new Event("pendingInviteSet"));
-    }
-
     if (isAuthenticated) {
+      // Already logged in when arriving at the invite link — store invite so the modal picks it up
+      if (projectId) {
+        sessionStorage.setItem(
+          "pendingInvite",
+          JSON.stringify({ projectId, envId, roleId, clientTypeId, name: projectName, companyName }),
+        );
+        window.dispatchEvent(new Event("pendingInviteSet"));
+      }
       router.push("/");
     }
   }, [isMounted, isAuthenticated]);
@@ -100,7 +100,7 @@ export const WorkspaceInviteClient = () => {
   }
 
   return (
-    <div className="bg-bg-main flex h-screen items-center justify-center px-4">
+    <div className="bg-bg-main flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
       <div className="border-border-subtle bg-bg-card w-full max-w-md rounded-2xl border p-8 shadow-xl">
         <div className="mb-6 space-y-1.5">
           <h2 className="text-text-main text-xl font-semibold">Join {projectName}</h2>

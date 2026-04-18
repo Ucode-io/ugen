@@ -56,6 +56,7 @@ interface Microfrontend {
   resource_id?: string
   project_id?: string
   environment_id?: string
+  repo_id?: string
 }
 
 interface GitResource {

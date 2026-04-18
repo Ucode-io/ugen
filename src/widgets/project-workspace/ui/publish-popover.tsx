@@ -10,6 +10,7 @@ import {
   Users,
   Lock,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
@@ -24,8 +25,8 @@ import {
 } from "@/shared/ui";
 import { useRoles, useClientTypes, useUsers } from "../api/users";
 import { useAuthStore } from "@/entities/session";
+import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
 import { api } from "@/shared/api";
-import { useQuery } from "@tanstack/react-query";
 
 interface PublishPopoverProps {
   projectTitle: string;
@@ -58,35 +59,29 @@ export const PublishPopover = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const apiKey = useAuthStore((s) => s.apiKey);
+  const activeCodeSelection = useCodeSelectionStore((s) => s.activeCodeSelection);
 
-  const { data: microfrontends = [] } = useQuery({
-    queryKey: ["publish-microfrontends", projectId],
-    queryFn: async () => {
-      const headers = apiKey
-        ? { Authorization: "API-KEY", "x-api-key": apiKey }
-        : {};
-      const { data } = await api.get("/v2/functions/micro-frontend", {
-        params: { search: "", offset: 0, limit: 50, "project-id": projectId },
-        headers,
-      });
-      return (data.data?.functions ?? []) as Array<{
-        id: string;
-        name: string;
-        path?: string;
-        branch?: string;
-        type?: string;
-        project_id?: string;
-      }>;
-    },
-    enabled: !!projectId,
-    staleTime: 0,
-  });
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishDone, setPublishDone] = useState(false);
 
-  useEffect(() => {
-    if (microfrontends.length > 0) {
-      console.log("First microfrontend:", microfrontends[0]);
+  const handlePublish = async () => {
+    const repoId = activeCodeSelection?.repoId
+    if (!repoId) return
+    setIsPublishing(true)
+    setPublishDone(false)
+    try {
+      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      await api.post('/v2/functions/micro-frontend/promote', { repo_id: Number(repoId) }, { headers })
+      setPublishDone(true)
+      setTimeout(() => setPublishDone(false), 3000)
+    } catch (err) {
+      console.error('Failed to publish', err)
+    } finally {
+      setIsPublishing(false)
     }
-  }, [microfrontends]);
+  }
+
+
 
   const { data: roleOptions = [] } = useRoles({ projectId });
   const { data: clientTypes = [] } = useClientTypes(projectId);
@@ -381,8 +376,24 @@ export const PublishPopover = ({
 
         {/* Publish button */}
         <div className="p-5 pt-4">
-          <button className="bg-primary hover:bg-primary-hover w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-colors">
-            {t("publishApp")}
+          <button
+            onClick={handlePublish}
+            disabled={isPublishing || !activeCodeSelection?.repoId}
+            className="bg-primary hover:bg-primary-hover w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isPublishing ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Publishing...
+              </>
+            ) : publishDone ? (
+              <>
+                <Check size={14} />
+                Published!
+              </>
+            ) : (
+              t("publishApp")
+            )}
           </button>
         </div>
       </PopoverContent>

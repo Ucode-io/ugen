@@ -73,7 +73,7 @@ export const ProjectCodeViewer = ({
       });
       return (data.data?.functions ?? []) as Array<{
         id: string; name: string; path: string; branch?: string;
-        type: string; project_id?: string;
+        type: string; project_id?: string; repo_id?: string;
       }>;
     },
     enabled: !!projectId,
@@ -101,12 +101,6 @@ export const ProjectCodeViewer = ({
 
   // Build the full option list
   const dropdownOptions = useMemo<DropdownOption[]>(() => [
-    {
-      value: FRONTEND_VALUE,
-      label: 'Generated Frontend',
-      group: 'frontend',
-      target: { kind: 'frontend' },
-    },
     ...microfrontendsData.map((mf) => ({
       value: `mf__${mf.id}`,
       label: mf.name,
@@ -118,7 +112,7 @@ export const ProjectCodeViewer = ({
         path: mf.path,
         branch: mf.branch ?? 'master',
         type: mf.type,
-        repoId: mf.project_id,
+        repoId: mf.repo_id,
       },
     })),
     ...functionsData.map((fn) => ({

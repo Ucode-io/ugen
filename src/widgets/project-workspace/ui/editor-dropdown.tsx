@@ -40,7 +40,6 @@ export const EditorDropdown = ({
   isGitlabMode,
 }: EditorDropdownProps) => {
 
-  console.log({ selectedValue })
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle bg-bg-card shrink-0 z-10">
       <Select value={selectedValue} onValueChange={setSelectedValue}>
@@ -48,7 +47,7 @@ export const EditorDropdown = ({
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="text-xs">
-          <SelectGroup>
+          {/* <SelectGroup>
             <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
               <span className="flex items-center gap-1">
                 <Sparkles size={10} /> Frontend
@@ -60,7 +59,7 @@ export const EditorDropdown = ({
                 Generated Frontend
               </span>
             </SelectItem>
-          </SelectGroup>
+          </SelectGroup> */}
 
           {hasMicrofrontends && (
             <SelectGroup>

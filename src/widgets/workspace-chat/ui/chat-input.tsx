@@ -1,4 +1,4 @@
-import { Paperclip, MousePointerClick, ArrowUp, X, FileIcon, Loader2, Plus, Zap, Layers2, Sparkles, Check } from "lucide-react"
+import { Paperclip, MousePointerClick, ArrowUp, X, FileIcon, Loader2, Plus, Zap, Layers2, Sparkles, Check, FolderPlus, Folder } from "lucide-react"
 import { useState, useRef, KeyboardEvent, ClipboardEvent, DragEvent, useEffect } from "react"
 import { AudioRecorder, Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
 import { useFileUpload } from "@/shared/hooks/useFileUpload"
@@ -90,8 +90,51 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
       })
       return (data.data?.functions ?? []) as AttachItem[]
     },
-    enabled: attachOpen && !!projectId,
+    enabled: !!projectId,
   })
+
+  const activeCodeFiles = useCodeSelectionStore((s) => s.activeCodeFiles)
+
+  // Auto-select (or restore after refresh) the active microfrontend's codebase files.
+  // Runs when microfrontendsList or apiKey changes so that a race condition on page
+  // load (apiKey arrives after the list) doesn't leave the preview empty.
+  useEffect(() => {
+    if (!microfrontendsList || microfrontendsList.length === 0) return
+    if (activeCodeSelection?.kind === 'new_project') return
+    // Only skip when files are already loaded — don't skip on apiKey-race failures
+    if (activeCodeSelection?.kind === 'microfrontend' && activeCodeFiles && activeCodeFiles.length > 0) return
+    // Wait for apiKey so the codebase request doesn't 401
+    if (!apiKey) return
+
+    const targetMf = activeCodeSelection?.kind === 'microfrontend'
+      ? (microfrontendsList.find(m => m.id === activeCodeSelection.id) ?? microfrontendsList[0])
+      : microfrontendsList[0]
+
+    const target = {
+      kind: 'microfrontend' as const,
+      id: targetMf.id,
+      name: targetMf.name,
+      path: targetMf.path,
+      branch: targetMf.branch ?? 'master',
+      type: targetMf.type,
+      repoId: targetMf.repo_id,
+    }
+    api.get(`/v2/function/${targetMf.id}/codebase`, {
+      params: { 'project-id': projectId },
+      headers: { Authorization: 'API-KEY', 'x-api-key': apiKey },
+    })
+      .then(({ data }) => {
+        const files = (data?.data?.files ?? []) as { path: string; content: string }[]
+        setActiveCodeSelection(target, files)
+        onSelectMicrofrontend?.(files)
+      })
+      .catch(() => setActiveCodeSelection(target))
+  }, [microfrontendsList, apiKey])
+
+  const handleSelectNewProject = () => {
+    setActiveCodeSelection({ kind: 'new_project' })
+    setAttachOpen(false)
+  }
 
   const handleSelectGeneratedFrontend = () => {
     setActiveCodeSelection({ kind: 'frontend' })
@@ -125,7 +168,6 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
       setPendingItemId(mf.id)
       const { data } = await api.get(`/v2/function/${mf.id}/codebase`, { params: { 'project-id': projectId }, headers: getApiKeyHeaders() })
       const files = (data?.data?.files ?? []) as { path: string; content: string }[]
-      // Store files in the global store so preview can read them without forcing a tab switch
       setActiveCodeSelection({
         kind: 'microfrontend',
         id: mf.id,
@@ -133,8 +175,9 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
         path: mf.path,
         branch: mf.branch ?? 'master',
         type: mf.type,
-        repoId: mf.project_id,
+        repoId: mf.repo_id,
       }, files)
+      onSelectMicrofrontend?.(files)
     } catch (err) {
       console.error('Failed to load microfrontend', err)
     } finally {
@@ -338,7 +381,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
                 className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 w-7 items-center justify-center rounded-full transition-colors"
                 title={t('input.attach', { fallback: 'Attach' })}
               >
-                <Plus size={15} />
+                <Folder size={15} />
               </button>
             </PopoverTrigger>
             <PopoverContent side="top" align="start" sideOffset={6} className="p-0.5 w-48 max-h-60 overflow-y-auto">
@@ -350,8 +393,53 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
                 </div>
               ) : (
                 <>
-                  {/* Generated Frontend */}
+                  {/* New Project */}
                   <div>
+                    <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
+                      <FolderPlus size={8} /> Project
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSelectNewProject}
+                      className="w-full flex items-center justify-between gap-1.5 rounded px-2 py-1 text-xs text-text-main hover:bg-hover-bg text-left"
+                    >
+                      <span className="flex items-center gap-1.5 truncate">
+                        <FolderPlus size={10} className="text-primary shrink-0" />
+                        New project
+                      </span>
+                      {activeCodeSelection?.kind === 'new_project' && (
+                        <Check size={10} className="text-primary shrink-0" />
+                      )}
+                    </button>
+                  </div>
+
+                  {(microfrontendsList?.length ?? 0) > 0 && (
+                    <div>
+                      {/* <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
+                        <Layers2 size={8} /> Microfrontends
+                      </div> */}
+                      {microfrontendsList!.map((mf) => (
+                        <button
+                          key={mf.id}
+                          type="button"
+                          disabled={pendingItemId === mf.id}
+                          onClick={() => handleSelectMicrofrontend(mf)}
+                          className="w-full flex items-center justify-between gap-1.5 rounded px-2 py-1 text-xs text-text-main hover:bg-hover-bg text-left disabled:opacity-60"
+                        >
+                          <span className="truncate">{mf.name}</span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            {activeCodeSelection?.kind === 'microfrontend' && activeCodeSelection.id === mf.id && (
+                              <Check size={10} className="text-primary" />
+                            )}
+                            {pendingItemId === mf.id && <Loader2 size={10} className="animate-spin" />}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Generated Frontend */}
+                  {/* <div>
                     <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
                       <Sparkles size={8} /> Frontend
                     </div>
@@ -368,7 +456,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
                         <Check size={10} className="text-primary shrink-0" />
                       )}
                     </button>
-                  </div>
+                  </div> */}
 
                   {(functionsList?.length ?? 0) > 0 && (
                     <div>
@@ -389,31 +477,6 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
                               <Check size={10} className="text-primary" />
                             )}
                             {pendingItemId === fn.id && <Loader2 size={10} className="animate-spin" />}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {(microfrontendsList?.length ?? 0) > 0 && (
-                    <div>
-                      <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
-                        <Layers2 size={8} /> Microfrontends
-                      </div>
-                      {microfrontendsList!.map((mf) => (
-                        <button
-                          key={mf.id}
-                          type="button"
-                          disabled={pendingItemId === mf.id}
-                          onClick={() => handleSelectMicrofrontend(mf)}
-                          className="w-full flex items-center justify-between gap-1.5 rounded px-2 py-1 text-xs text-text-main hover:bg-hover-bg text-left disabled:opacity-60"
-                        >
-                          <span className="truncate">{mf.name}</span>
-                          <span className="flex items-center gap-1 shrink-0">
-                            {activeCodeSelection?.kind === 'microfrontend' && activeCodeSelection.id === mf.id && (
-                              <Check size={10} className="text-primary" />
-                            )}
-                            {pendingItemId === mf.id && <Loader2 size={10} className="animate-spin" />}
                           </span>
                         </button>
                       ))}

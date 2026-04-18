@@ -8,7 +8,7 @@ import { generatePreviewHtml } from "../lib/preview-html"
 import {
   AlertTriangle, Loader2, Sparkles, Layers2, Zap,
   MousePointerClick, Monitor, Tablet, Smartphone,
-  ChevronDown, Minimize, Maximize, RotateCw,
+  ChevronDown, Minimize, Maximize, RotateCw, Check,
 } from "lucide-react"
 import type { DeviceType } from "./project-header"
 import { useAuthStore } from "@/entities/session"
@@ -83,7 +83,6 @@ export const ProjectPreviewViewer = ({
 
   const isFunction = activeCodeSelection?.kind === 'function'
 
-  // Fetch microfrontend list only when function mode is active
   const { data: microfrontendsList = [] } = useQuery({
     queryKey: ['preview-microfrontends', projectId],
     queryFn: async () => {
@@ -94,7 +93,7 @@ export const ProjectPreviewViewer = ({
       })
       return (data.data?.functions ?? []) as Array<{ id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string }>
     },
-    enabled: isFunction && !!projectId,
+    enabled: !!projectId,
     staleTime: 0,
   })
 
@@ -108,7 +107,7 @@ export const ProjectPreviewViewer = ({
     [previewSource, storeFiles]
   )
 
-  const handlePickMicrofrontend = async (mf: { id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string }) => {
+  const handlePickMicrofrontend = async (mf: { id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string, repo_id?: string }) => {
     try {
       setLoadingPreviewId(mf.id)
       const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
@@ -118,7 +117,7 @@ export const ProjectPreviewViewer = ({
       })
       const fetched = (data?.data?.files ?? []) as CodeSelectionFile[]
       setLocalPreviewFiles(fetched)
-      setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.project_id }, fetched)
+      setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.repo_id }, fetched)
     } catch (err) {
       console.error('Failed to load microfrontend for preview', err)
     } finally {
@@ -140,6 +139,7 @@ export const ProjectPreviewViewer = ({
   const [currentUrl, setCurrentUrl] = useState('/')
   const [urlInput, setUrlInput] = useState('/')
   const [deviceOpen, setDeviceOpen] = useState(false)
+  const [microfrontendOpen, setMicrofrontendOpen] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -321,26 +321,51 @@ export const ProjectPreviewViewer = ({
         </button>
       </div>
 
-      {/* Center: URL Bar */}
-      <div className="flex-1 max-w-md flex items-center gap-1">
-        {/* <button
-          type="button"
-          onClick={handleRefresh}
-          title="Refresh"
-          className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-6 w-6 items-center justify-center rounded-md transition-colors shrink-0"
-        >
-          <RotateCw size={12} />
-        </button> */}
-        {/* <div className="flex-1 flex items-center bg-bg-main border border-border-subtle rounded-lg h-6 px-2.5 overflow-hidden">
-          <input
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleUrlNavigate() }}
-            onFocus={(e) => e.target.select()}
-            className="w-full bg-transparent text-[12px] text-text-main outline-none placeholder:text-text-muted"
-            placeholder="/"
-          />
-        </div> */}
+      {/* Center: Microfrontend Picker */}
+      <div className="flex-1 flex items-center justify-center gap-1">
+        {microfrontendsList.length > 0 && (
+          <Popover open={microfrontendOpen} onOpenChange={setMicrofrontendOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="flex h-7 items-center gap-1.5 px-2.5 rounded-lg border border-border-subtle bg-bg-sidebar text-text-main text-[12px] hover:border-primary/40 hover:bg-primary/5 transition-colors"
+              >
+                <Layers2 size={12} className="text-blue-500 shrink-0" />
+                <span className="max-w-[160px] truncate">
+                  {activeCodeSelection?.kind === 'microfrontend' ? activeCodeSelection.name : microfrontendsList[0].name}
+                </span>
+                {loadingPreviewId && <Loader2 size={10} className="animate-spin text-text-muted shrink-0" />}
+                {!loadingPreviewId && <ChevronDown size={11} className={cn("transition-transform duration-200 text-text-muted", microfrontendOpen && "rotate-180")} />}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="center" sideOffset={6} className="w-44 p-1">
+              {microfrontendsList.map((mf) => {
+                const isActive = activeCodeSelection?.kind === 'microfrontend' && activeCodeSelection.id === mf.id
+                return (
+                  <button
+                    key={mf.id}
+                    type="button"
+                    disabled={loadingPreviewId === mf.id}
+                    onClick={() => { handlePickMicrofrontend(mf); setMicrofrontendOpen(false) }}
+                    className={cn(
+                      "w-full flex items-center justify-between gap-1.5 px-2 py-1 rounded-md text-[11px] transition-colors text-left disabled:opacity-60",
+                      isActive ? "bg-primary/10 text-primary font-medium" : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+                    )}
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <Layers2 size={11} className="text-blue-500 shrink-0" />
+                      <span className="truncate">{mf.name}</span>
+                    </span>
+                    {loadingPreviewId === mf.id
+                      ? <Loader2 size={10} className="animate-spin text-text-muted shrink-0" />
+                      : isActive && <Check size={10} className="shrink-0" />
+                    }
+                  </button>
+                )
+              })}
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {/* Right: Device Picker + Fullscreen */}
