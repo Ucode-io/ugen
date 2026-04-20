@@ -88,7 +88,13 @@ export const WorkspaceInviteClient = () => {
   };
 
   const handleRegisterClick = () => {
-    router.push("/?open-register=true");
+    if (projectId) {
+      sessionStorage.setItem(
+        "pendingInvite",
+        JSON.stringify({ projectId, envId, roleId, clientTypeId, name: projectName, companyName }),
+      );
+    }
+    window.dispatchEvent(new CustomEvent("open-auth", { detail: "register" }));
   };
 
   if (!isMounted || isAuthenticated) {

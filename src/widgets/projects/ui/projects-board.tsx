@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import {
   useProjectsList,
   useCompanyProjects,
-  useUserProjects,
   useSwitchProject,
 } from "@/entities/project";
 import {
@@ -28,7 +27,7 @@ export const ProjectsBoard = () => {
   const tNav = useTranslations("Navigation");
   const tWidgets = useTranslations("widgets.projects");
   const tCommon = useTranslations("widgets.common");
-  const { project, refreshToken, user, switchProjectAuth } = useAuthStore();
+  const { project, refreshToken, user, switchProjectAuth, activeCompanyId } = useAuthStore();
   const { mutateAsync: switchProject } = useSwitchProject();
   const isUgen = project?.is_ugen ?? false;
   const [switchingProjectId, setSwitchingProjectId] = useState<string | null>(
@@ -46,7 +45,7 @@ export const ProjectsBoard = () => {
 
   // Current folder
   const folderId = searchParams.get("folder_id") || undefined;
-  const companyId = searchParams.get("company_id") || undefined;
+  const companyId = activeCompanyId || undefined;
 
   // Fetch folders and projects
   const { data: currentFolder } = useProjectFolder(folderId || "");
@@ -81,8 +80,7 @@ export const ProjectsBoard = () => {
     return params;
   }, [debouncedSearchQuery, folderId, projectIdsInFolder]);
 
-  // is_ugen=true → old logic (mcp_project list); is_ugen=false + company_id → company projects API
-  const useCompanyLogic = !isUgen && !!companyId;
+  const useCompanyLogic = !isUgen;
 
   const { data: projectsResponse, isLoading: isProjectsLoading } =
     useProjectsList(fetchParams, {
@@ -90,12 +88,7 @@ export const ProjectsBoard = () => {
     });
 
   const { data: companyProjectsData, isLoading: isCompanyProjectsLoading } =
-    useCompanyProjects(companyId ?? "", project?.project_id ?? "");
-
-  const { data: companies = [] } = useUserProjects();
-  const activeCompany = companyId
-    ? companies.find((c) => c.id === companyId)
-    : undefined;
+    useCompanyProjects(companyId ?? "");
 
   const createFolder = useCreateProjectFolder();
   const [isCreatePopoverOpen, setIsCreatePopoverOpen] = useState(false);
@@ -181,11 +174,7 @@ export const ProjectsBoard = () => {
     if (useCompanyLogic) {
       setSwitchingProjectId(id);
       try {
-        const projectFromCompany = companies
-          .flatMap((c: any) => c.projects ?? [])
-          .find((p: any) => p.id === id)
-        const envId =
-          proj.environment_id || proj.rawProject?.environment_id || projectFromCompany?.environment_id || "";
+        const envId = proj.environment_id || proj.rawProject?.environment_id || "";
         const responseData = await switchProject({
           refresh_token: refreshToken ?? "",
           role_id: user?.role?.id ?? "",
@@ -246,18 +235,7 @@ export const ProjectsBoard = () => {
     <div className="bg-bg-card flex h-full w-full flex-col rounded-2xl p-6 shadow-sm">
       <div className="relative mb-6 flex items-center gap-4" ref={popoverRef}>
         <h1 className="text-text-main flex items-center gap-2 text-2xl font-semibold">
-          {companyId ? (
-            <>
-              <button
-                onClick={() => router.push(pathname as any)}
-                className="hover:text-primary transition-colors"
-              >
-                {tNav("projects")}
-              </button>
-              <ChevronRight size={20} className="text-text-muted" />
-              <span>{activeCompany?.name || tWidgets("loading")}</span>
-            </>
-          ) : folderId ? (
+          {folderId ? (
             <>
               <button
                 onClick={() => router.push(pathname as any)}

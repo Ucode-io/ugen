@@ -90,7 +90,8 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
       })
       return (data.data?.functions ?? []) as AttachItem[]
     },
-    enabled: !!projectId,
+    enabled: !!projectId && !!apiKey,
+    staleTime: 0,
   })
 
   const activeCodeFiles = useCodeSelectionStore((s) => s.activeCodeFiles)
@@ -396,7 +397,8 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
                   {/* New Project */}
                   <div>
                     <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
-                      <FolderPlus size={8} /> Project
+                      {/* <FolderPlus size={8} /> */}
+                       Project
                     </div>
                     <button
                       type="button"
@@ -461,7 +463,8 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
                   {(functionsList?.length ?? 0) > 0 && (
                     <div>
                       <div className="text-[9px] uppercase tracking-wider text-text-muted px-2 pt-1.5 pb-0.5 flex items-center gap-1">
-                        <Zap size={8} /> Functions
+                        {/* <Zap size={8} />  */}
+                        Functions
                       </div>
                       {functionsList!.map((fn) => (
                         <button

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from "react"
 import { WorkspaceChat } from "@/widgets/workspace-chat"
-import { PanelLeftClose, PanelRightClose, CodeXml, Globe, Loader2, Play } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { ProjectCodeViewer } from "@/widgets/project-workspace/ui/project-code-viewer"
 import { ProjectPreviewViewer } from "@/widgets/project-workspace/ui/project-preview-viewer"
 import { useRouter } from "@/shared/lib/i18n/navigation"
@@ -15,7 +15,7 @@ import { useFilesStore, IFile } from "@/entities/project/model/files-store"
 import { ProjectHeader, DeviceType } from "@/widgets/project-workspace/ui/project-header"
 import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard"
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view"
-import { ErrorBoundary } from "@/shared/ui"
+import { ErrorBoundary, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui"
 import { usePathname, useSearchParams } from "next/navigation"
 
 const getLanguageByPath = (path: string) => {
@@ -194,6 +194,61 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
       .finally(() => setIsMicrofrontendLoading(false))
   }, [projectId, isUgen])
 
+  if (!isUgen) {
+    return (
+      <ErrorBoundary>
+        <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-main">
+          {isMicrofrontendLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-text-muted">
+              <Loader2 className="animate-spin mb-4" size={32} />
+              <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2.5 px-4 border-b border-border-subtle bg-bg-card shrink-0 h-[48px]">
+                <button
+                  onClick={() => router.push('/projects')}
+                  className="flex items-center gap-2.5 text-text-muted hover:text-text-main transition-colors"
+                >
+                  <img src="/logo.svg" alt={projectTitle} className="h-6 w-6 rounded object-contain" />
+                </button>
+                {microfrontends.length > 0 && (
+                  <Select
+                    value={selectedMicrofrontend?.id ?? ''}
+                    onValueChange={id => {
+                      const mf = microfrontends.find(m => m.id === id)
+                      if (mf) setSelectedMicrofrontend(mf)
+                    }}
+                  >
+                    <SelectTrigger className="w-auto min-w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {microfrontends.map(mf => (
+                        <SelectItem key={mf.id} value={mf.id}>{mf.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              {selectedMicrofrontend?.url ? (
+                <iframe
+                  key={selectedMicrofrontend.id}
+                  src={selectedMicrofrontend.url}
+                  className="flex-1 w-full border-none"
+                  title={selectedMicrofrontend.name}
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-text-muted">
+                  <p className="text-sm font-medium">No preview available</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </ErrorBoundary>
+    )
+  }
 
   return (
     <ErrorBoundary>
@@ -216,57 +271,17 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         )}
 
         <div className="flex flex-1 overflow-hidden">
-          {isUgen && (
-            <WorkspaceChat
-              projectId={projectId}
-              isChatCollapsed={isChatCollapsed}
-              setIsChatCollapsed={setIsChatCollapsed}
-              onSelectFunction={handleEditCode}
-              onSelectMicrofrontend={handlePreviewMicrofrontend}
-            />
-          )}
+          <WorkspaceChat
+            projectId={projectId}
+            isChatCollapsed={isChatCollapsed}
+            setIsChatCollapsed={setIsChatCollapsed}
+            onSelectFunction={handleEditCode}
+            onSelectMicrofrontend={handlePreviewMicrofrontend}
+          />
 
           {/* Content Area */}
           <div className="flex-1 flex overflow-hidden">
-            {!isUgen ? (
-              isMicrofrontendLoading ? (
-                <div className="flex-1 flex flex-col items-center justify-center bg-bg-main text-text-muted">
-                  <Loader2 className="animate-spin mb-4" size={32} />
-                  <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
-                </div>
-              ) : (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  {microfrontends.length > 0 && (
-                    <div className="flex items-center gap-2 px-4 py-2 border-b border-border-subtle bg-bg-card shrink-0">
-                      <select
-                        value={selectedMicrofrontend?.id ?? ''}
-                        onChange={e => {
-                          const mf = microfrontends.find(m => m.id === e.target.value)
-                          if (mf) setSelectedMicrofrontend(mf)
-                        }}
-                        className="rounded-lg border border-border-subtle bg-bg-sidebar text-text-main text-sm px-3 py-1.5 outline-none focus:border-primary transition-colors cursor-pointer"
-                      >
-                        {microfrontends.map(mf => (
-                          <option key={mf.id} value={mf.id}>{mf.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  {selectedMicrofrontend?.url ? (
-                    <iframe
-                      key={selectedMicrofrontend.id}
-                      src={selectedMicrofrontend.url}
-                      className="flex-1 w-full border-none"
-                      title={selectedMicrofrontend.name}
-                    />
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center bg-bg-main text-text-muted">
-                      <p className="text-sm font-medium">No preview available</p>
-                    </div>
-                  )}
-                </div>
-              )
-            ) : isLoading ? (
+            {isLoading ? (
               <div className="flex-1 flex flex-col items-center justify-center bg-bg-main text-text-muted">
                 <Loader2 className="animate-spin mb-4" size={32} />
                 <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>

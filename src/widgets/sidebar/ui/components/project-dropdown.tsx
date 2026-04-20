@@ -78,11 +78,7 @@ export const ProjectDropdown = ({
       )
 
       setIsProjectPopupOpen(false)
-      if (is_ugen) {
-        router.push('/projects' as any)
-      } else {
-        router.push(`/projects?company_id=${company.id}` as any)
-      }
+      router.push('/projects' as any)
     } catch (err) {
       console.error('Company switch failed', err)
     } finally {

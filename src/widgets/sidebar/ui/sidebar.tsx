@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from "@/shared/lib/i18n/navigation";
 import { PanelLeftClose, PanelLeft } from "lucide-react";
 import { useAuthStore } from "@/entities/session";
@@ -38,8 +39,11 @@ export const Sidebar = () => {
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  const queryClient = useQueryClient()
+
   const handleLogout = () => {
     logout();
+    queryClient.clear();
     router.push("/");
   };
 

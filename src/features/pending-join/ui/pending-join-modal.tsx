@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { CheckCircle2, Loader2, X } from "lucide-react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/entities/session";
 
 const inviteApi = axios.create({
@@ -21,6 +22,7 @@ interface PendingInvite {
 
 export const PendingJoinModal = () => {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
@@ -68,6 +70,7 @@ export const PendingJoinModal = () => {
         },
       );
       sessionStorage.removeItem("pendingInvite");
+      queryClient.invalidateQueries({ queryKey: ["user-projects"] });
       setJoinSuccess(true);
     } catch (err: any) {
       const data = err?.response?.data?.data ?? ''

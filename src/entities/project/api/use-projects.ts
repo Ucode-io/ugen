@@ -51,18 +51,18 @@ export const useSwitchProject = () => {
   })
 }
 
-export const fetchCompanyProjects = async (companyId: string, projectId: string) => {
-  const { data } = await api.get('/v1/company-project', {
-    params: { company_id: companyId, 'project-id': projectId },
+export const fetchCompanyProjects = async (companyId: string) => {
+  const { data } = await api.get('/v1/ugen/company-projects', {
+    params: { company_id: companyId },
   })
   return data?.data ?? []
 }
 
-export const useCompanyProjects = (companyId: string, projectId: string) => {
+export const useCompanyProjects = (companyId: string) => {
   return useQuery({
-    queryKey: ['company-projects', companyId, projectId],
-    queryFn: () => fetchCompanyProjects(companyId, projectId),
-    enabled: !!companyId && !!projectId,
+    queryKey: ['company-projects', companyId],
+    queryFn: () => fetchCompanyProjects(companyId),
+    enabled: !!companyId,
   })
 }
 
