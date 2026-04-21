@@ -105,7 +105,14 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   useEffect(() => {
     if (!projectId) return
 
+    // ⚡ Immediately clear previous project's apiKey & tab BEFORE any async requests.
+    // Without this, requests fired during loading would still carry the stale apiKey
+    // from the previous project (race condition between cleanup and new effect start).
+    setApiKey(null)
+    setActiveProjectTab(null)
+
     setIsLoading(true);
+    setProjectInfo(null);
     // Fetch project details and files
     api.get(`/v1/mcp_project/${projectId}`)
       .then(res => {
@@ -256,6 +263,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         {!isPreviewMaximized && (
           <ProjectHeader
             projectTitle={projectTitle}
+            projectId={projectId}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             isSidebarCollapsed={isDashboardSidebarCollapsed}

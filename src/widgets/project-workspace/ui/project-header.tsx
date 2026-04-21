@@ -10,6 +10,7 @@ export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
 interface ProjectHeaderProps {
   projectTitle: string
+  projectId?: string
   activeTab: 'dashboard' | 'code' | 'preview'
   setActiveTab: (tab: 'dashboard' | 'code' | 'preview') => void
   isSidebarCollapsed: boolean
@@ -25,6 +26,7 @@ interface ProjectHeaderProps {
 
 export const ProjectHeader = ({
   projectTitle,
+  projectId,
   activeTab,
   setActiveTab,
   isSidebarCollapsed,
@@ -98,7 +100,7 @@ export const ProjectHeader = ({
       />
 
       <div className="flex items-center gap-1.5">
-        <GithubPopover />
+        <GithubPopover projectId={projectId} />
         {isUgen && (
           <>
             <div className="bg-border-subtle w-[1px] h-4 mx-2" />

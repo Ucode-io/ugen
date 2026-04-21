@@ -24,20 +24,26 @@ const GithubIcon = ({ size = 16, className }: { size?: number; className?: strin
   </svg>
 )
 
-export const GithubPopover = () => {
+interface GithubPopoverProps {
+  projectId?: string
+}
+
+export const GithubPopover = ({ projectId }: GithubPopoverProps) => {
   const queryClient = useQueryClient()
 
   const { data: githubStatus, isLoading } = useQuery({
-    queryKey: ['github-integration-status'],
+    queryKey: ['github-integration-status', projectId],
     queryFn: githubIntegrationApi.validate,
     retry: false,
+    staleTime: 0,
   })
 
   const { data: githubIntegration } = useQuery({
-    queryKey: ['github-integration'],
+    queryKey: ['github-integration', projectId],
     queryFn: githubIntegrationApi.getIntegration,
     enabled: githubStatus?.connected === true,
     retry: false,
+    staleTime: 0,
   })
 
   const { mutate: connectGithub, isPending: isConnecting } = useMutation({
@@ -52,8 +58,8 @@ export const GithubPopover = () => {
   const { mutate: disconnectGithub, isPending: isDisconnecting } = useMutation({
     mutationFn: (id: string) => githubIntegrationApi.disconnect(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
-      queryClient.invalidateQueries({ queryKey: ['github-integration'] })
+      queryClient.invalidateQueries({ queryKey: ['github-integration-status', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['github-integration', projectId] })
     },
   })
 
