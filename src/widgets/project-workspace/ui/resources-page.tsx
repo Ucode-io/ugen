@@ -805,25 +805,24 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
+    <div className="@container space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
       <div>
         <h1 className="text-2xl font-bold text-text-main tracking-tight">Integrations</h1>
         <p className="text-text-muted text-sm mt-1">Connect third-party services and extend your application</p>
       </div>
 
-      <div className="flex items-center gap-4 py-3 border-b border-border-subtle bg-bg-main sticky top-0 z-10">
-        <div className="flex items-center bg-bg-sidebar border border-border-subtle rounded-xl px-3 py-2 w-full max-w-sm">
-          <Search className="w-4 h-4 text-text-muted mr-2" />
-          <input 
+      <div className="flex flex-wrap items-center gap-3 py-3 border-b border-border-subtle bg-bg-main sticky top-0 z-10">
+        <div className="flex items-center bg-bg-sidebar border border-border-subtle rounded-xl px-3 py-2 flex-1 min-w-[160px]">
+          <Search className="w-4 h-4 text-text-muted mr-2 shrink-0" />
+          <input
             className="bg-transparent border-none outline-none text-sm w-full placeholder:text-text-muted text-text-main"
             placeholder="Search integrations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex-1" />
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[180px] bg-bg-sidebar border-border-subtle rounded-xl h-10">
+          <SelectTrigger className="w-full @[480px]:w-45 bg-bg-sidebar border-border-subtle rounded-xl h-10">
             <SelectValue placeholder="All Categories" />
           </SelectTrigger>
           <SelectContent>
@@ -837,7 +836,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
         {/* GitHub Integration Status Card */}
-        {(githubStatus?.connected || githubStatus?.reason === 'token_expired') && (
+        {(githubStatus?.connected === true || (githubStatus?.connected === false && githubStatus?.reason === 'token_expired')) && (
           <div className="mb-8">
             <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em] mb-3">
               GitHub Integration
@@ -898,7 +897,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
             <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em] mb-3">
               Connected
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4 gap-4">
               {filteredConnectedResources.map((resource: any) => {
                 const typeInfo = resourceTypes.find(t => t.value === resource.resource_type)
                 const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === resource.resource_type)
@@ -909,13 +908,13 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 group relative overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-all"
                     style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <ResourceIcon type={categoryItem?.icon ?? 'mongodb'} />
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-sm text-text-main truncate group-hover:text-primary transition-colors">{resource.name}</div>
                         <div className="text-[11px] text-text-muted font-medium">{typeInfo?.label}</div>
                       </div>
-                      <span className="bg-green-500/10 text-green-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border border-green-500/20">
+                      <span className="bg-green-500/10 text-green-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border border-green-500/20 ml-auto">
                         {resource.is_configured ? 'Connected' : 'Pending'}
                       </span>
                     </div>
@@ -934,50 +933,110 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em] mb-3">
             Available
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredAvailableResources.map(item => (
-              <div
-                key={item.typeValue}
-                className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 hover:border-primary/40 hover:shadow-md transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <ResourceIcon type={item.icon} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm text-text-main truncate">{item.label}</div>
-                    <div className="text-[11px] text-text-muted">{item.categoryLabel}</div>
+          <div className="grid grid-cols-1 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4 gap-4">
+            {filteredAvailableResources.map(item => {
+              const isGithub = item.typeValue === 5
+              const githubConnected = isGithub && githubStatus?.connected === true
+              const githubExpired = isGithub && githubStatus?.connected === false && githubStatus?.reason === 'token_expired'
+
+              return (
+                <div
+                  key={item.typeValue}
+                  className={cn(
+                    "bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-all group",
+                    githubConnected
+                      ? "hover:border-green-500/40"
+                      : githubExpired
+                        ? "hover:border-destructive/40"
+                        : "hover:border-primary/40"
+                  )}
+                  style={githubConnected
+                    ? { borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }
+                    : githubExpired
+                      ? { borderLeftWidth: '3px', borderLeftColor: 'var(--destructive, #ef4444)' }
+                      : undefined
+                  }
+                >
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <ResourceIcon type={item.icon} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm text-text-main truncate">{item.label}</div>
+                      <div className="text-[11px] text-text-muted">{item.categoryLabel}</div>
+                    </div>
+                    {githubConnected && (
+                      <span className="bg-green-500/10 text-green-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border border-green-500/20 ml-auto">
+                        Connected
+                      </span>
+                    )}
+                    {githubExpired && (
+                      <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border border-destructive/20 ml-auto">
+                        Expired
+                      </span>
+                    )}
                   </div>
+
+                  {githubConnected && githubStatus.user ? (
+                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-bg-sidebar border border-border-subtle">
+                      {githubStatus.user.avatar_url && (
+                        <img src={githubStatus.user.avatar_url} alt={githubStatus.user.login} className="w-5 h-5 rounded-full" />
+                      )}
+                      <span className="text-xs text-text-main font-medium truncate">@{githubStatus.user.login}</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-text-muted leading-relaxed mb-1 flex-1">
+                      {githubExpired
+                        ? 'Token expired — reconnect to restore access.'
+                        : `Connect ${item.label} to configure your infrastructure integration.`
+                      }
+                    </div>
+                  )}
+
+                  {isGithub ? (
+                    <div className="flex flex-wrap gap-2">
+                      {githubConnected && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-27.5 justify-center gap-2 rounded-lg font-semibold text-destructive hover:bg-destructive/5 hover:text-destructive border-border-subtle bg-bg-main"
+                          onClick={() => githubIntegration && disconnectGithub(githubIntegration.id)}
+                          disabled={isDisconnectingGithub || !githubIntegration}
+                        >
+                          {isDisconnectingGithub ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          Disconnect
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "justify-center gap-2 rounded-lg font-semibold border-border-subtle bg-bg-main min-w-27.5",
+                          githubConnected
+                            ? "flex-1 text-text-muted hover:bg-primary/5 hover:text-primary"
+                            : "flex-1 text-text-main hover:bg-primary/5 hover:text-primary"
+                        )}
+                        onClick={() => connectGithub()}
+                        disabled={isConnectingGithub || isGithubStatusLoading}
+                      >
+                        {isConnectingGithub
+                          ? <Loader2 size={14} className="animate-spin" />
+                          : githubConnected ? <RefreshCw size={14} /> : <Plug size={14} />
+                        }
+                        {isConnectingGithub ? 'Connecting…' : githubConnected ? 'Reconnect' : 'Connect'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main"
+                      onClick={() => handleSelectResource(item)}
+                    >
+                      <Plug size={14} /> Connect
+                    </Button>
+                  )}
                 </div>
-                <div className="text-xs text-text-muted leading-relaxed mb-1 flex-1">
-                  Connect {item.label} to configure your infrastructure integration.
-                </div>
-                {item.typeValue === 5 ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main"
-                    onClick={() => handleSelectResource(item)}
-                    disabled={isConnectingGithub || isGithubStatusLoading}
-                  >
-                    {isConnectingGithub
-                      ? <Loader2 size={14} className="animate-spin" />
-                      : githubStatus?.connected
-                        ? <RefreshCw size={14} />
-                        : <Plug size={14} />
-                    }
-                    {isConnectingGithub ? 'Connecting…' : githubStatus?.connected ? 'Reconnect' : 'Connect'}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main"
-                    onClick={() => handleSelectResource(item)}
-                  >
-                    <Plug size={14} /> Connect
-                  </Button>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
