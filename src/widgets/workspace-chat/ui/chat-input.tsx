@@ -20,6 +20,7 @@ interface AttachItem {
   type?: string
   project_id?: string
   repo_id?: string
+  url?: string
 }
 
 export interface MessageContextItem {
@@ -119,6 +120,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
       branch: targetMf.branch ?? 'master',
       type: targetMf.type,
       repoId: targetMf.repo_id,
+      url: targetMf.url,
     }
     api.get(`/v2/function/${targetMf.id}/codebase`, {
       params: { 'project-id': projectId },
@@ -177,6 +179,7 @@ export const ChatInput = ({ onSendMessage, isSending, disabled, className, proje
         branch: mf.branch ?? 'master',
         type: mf.type,
         repoId: mf.repo_id,
+        url: mf.url
       }, files)
       onSelectMicrofrontend?.(files)
     } catch (err) {

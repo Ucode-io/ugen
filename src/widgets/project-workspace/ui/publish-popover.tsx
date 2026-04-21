@@ -56,6 +56,7 @@ export const PublishPopover = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
+  const [isUrlCopied, setIsUrlCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const apiKey = useAuthStore((s) => s.apiKey);
@@ -180,6 +181,16 @@ export const PublishPopover = ({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  const mfUrl = activeCodeSelection?.kind === 'microfrontend' ? activeCodeSelection.url : undefined;
+  const finalUrl = mfUrl?.startsWith('http') ? mfUrl : `https://${mfUrl}`;
+
+  const copyMfUrl = () => {
+    if (!mfUrl) return;
+    navigator.clipboard.writeText(mfUrl);
+    setIsUrlCopied(true);
+    setTimeout(() => setIsUrlCopied(false), 2000);
+  };
+
   const copyLink = () => {
     if (!inviteLink) return;
     navigator.clipboard.writeText(inviteLink);
@@ -227,31 +238,32 @@ export const PublishPopover = ({
             {t("publishTitle")}
           </h2>
 
-          {/* Invite link — always visible, copy only */}
-          <div className="space-y-1">
-            <span className="text-text-muted text-xs font-medium">
-              Invite link
-            </span>
-            <div className="border-border-subtle bg-bg-main flex items-center gap-1 rounded-lg border px-3 py-2">
-              {inviteLink ? (
-                <span className="text-text-main flex-1 truncate font-mono text-xs">
-                  {inviteLink}
-                </span>
-              ) : (
-                <span className="text-text-muted flex-1 truncate text-sm">
-                  —
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={copyLink}
-                disabled={!inviteLink}
-                className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors disabled:opacity-40"
-              >
-                {isLinkCopied ? <Check size={15} /> : <Copy size={15} />}
-              </button>
+          {/* Microfrontend URL */}
+          {mfUrl && (
+            <div className="space-y-1">
+              <span className="text-text-muted text-xs font-medium">
+                URL
+              </span>
+              <div className="border-border-subtle bg-bg-main flex items-center gap-1 rounded-lg border px-3 py-2">
+                <a
+                  href={finalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary flex-1 truncate font-mono text-xs hover:underline"
+                >
+                  {mfUrl}
+                </a>
+                <button
+                  type="button"
+                  onClick={copyMfUrl}
+                  className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors"
+                >
+                  {isUrlCopied ? <Check size={15} /> : <Copy size={15} />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
         </div>
 
         <div className="border-border-subtle border-t" />

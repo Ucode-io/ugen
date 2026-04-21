@@ -91,7 +91,7 @@ export const ProjectPreviewViewer = ({
         params: { search: '', offset: 0, limit: 50, 'project-id': projectId },
         headers,
       })
-      return (data.data?.functions ?? []) as Array<{ id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string }>
+      return (data.data?.functions ?? []) as Array<{ id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string; url?: string }>
     },
     enabled: !!projectId,
     staleTime: 0,
@@ -107,7 +107,7 @@ export const ProjectPreviewViewer = ({
     [previewSource, storeFiles]
   )
 
-  const handlePickMicrofrontend = async (mf: { id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string, repo_id?: string }) => {
+  const handlePickMicrofrontend = async (mf: { id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string; repo_id?: string; url?: string }) => {
     try {
       setLoadingPreviewId(mf.id)
       const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
@@ -117,7 +117,7 @@ export const ProjectPreviewViewer = ({
       })
       const fetched = (data?.data?.files ?? []) as CodeSelectionFile[]
       setLocalPreviewFiles(fetched)
-      setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.repo_id }, fetched)
+      setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.repo_id, url: mf.url }, fetched)
     } catch (err) {
       console.error('Failed to load microfrontend for preview', err)
     } finally {

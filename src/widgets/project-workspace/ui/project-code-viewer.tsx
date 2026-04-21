@@ -73,7 +73,7 @@ export const ProjectCodeViewer = ({
       });
       return (data.data?.functions ?? []) as Array<{
         id: string; name: string; path: string; branch?: string;
-        type: string; project_id?: string; repo_id?: string;
+        type: string; project_id?: string; repo_id?: string; url?: string;
       }>;
     },
     enabled: !!projectId,
@@ -113,6 +113,7 @@ export const ProjectCodeViewer = ({
         branch: mf.branch ?? 'master',
         type: mf.type,
         repoId: mf.repo_id,
+        url: mf.url,
       },
     })),
     ...functionsData.map((fn) => ({

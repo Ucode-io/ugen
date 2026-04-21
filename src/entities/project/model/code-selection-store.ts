@@ -4,6 +4,7 @@ import type { CodeEditorTarget } from '@/entities/session'
 export interface CodeSelectionFile {
   path: string
   content: string
+  url?: string
 }
 
 interface CodeSelectionState {

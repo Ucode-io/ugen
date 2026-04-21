@@ -4,6 +4,7 @@ import { useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { ReusableTabs } from "@/shared/ui"
 import { PublishPopover } from "./publish-popover"
+import { GithubPopover } from "./github-popover"
 
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
@@ -97,6 +98,7 @@ export const ProjectHeader = ({
       />
 
       <div className="flex items-center gap-1.5">
+        <GithubPopover />
         {isUgen && (
           <>
             <div className="bg-border-subtle w-[1px] h-4 mx-2" />
