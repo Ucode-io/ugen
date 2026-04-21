@@ -1,1 +1,1 @@
-export { api, authApi } from './instance'
+export { api, authApi, githubApi } from './instance'

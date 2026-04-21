@@ -4,6 +4,7 @@ import { useAuthStore } from '@/entities/session'
 // Ensure we have fallback URLs if env vars are missing during build/dev
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.admin.u-code.io'
 const AUTH_BASE_URL = process.env.NEXT_PUBLIC_AUTH_BASE_URL || 'https://api.auth.u-code.io'
+const GITHUB_API_BASE_URL = process.env.NEXT_PUBLIC_GITHUB_API_BASE_URL || 'https://admin-api.ucode.run'
 
 /**
  * Main API instance for general application requests
@@ -20,6 +21,17 @@ export const api = axios.create({
  */
 export const authApi = axios.create({
   baseURL: AUTH_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+/**
+ * GitHub Integration API instance — base URL: https://admin-api.ucode.run
+ * project_id and environment_id are extracted from the JWT by the server.
+ */
+export const githubApi = axios.create({
+  baseURL: GITHUB_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -59,6 +71,18 @@ authApi.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
 
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Request interceptor: inject token for GitHub API (no 401 retry — 401 means reconnect needed)
+githubApi.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().accessToken
+    if (token && config.headers && !config.headers['Authorization']) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => Promise.reject(error)

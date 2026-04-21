@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronLeft, Loader2, Trash2, RefreshCw, Box, Search, Plug } from 'lucide-react'
+import { ChevronLeft, Loader2, Trash2, RefreshCw, Box, Search, Plug, Github, AlertCircle } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi, api } from '@/shared/api'
+import { githubIntegrationApi } from '@/features/github-integration'
+import type { GithubIntegration } from '@/features/github-integration'
 import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
 import { Switch } from '@/shared/ui'
@@ -224,6 +226,37 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
+
+  // GitHub integration via new API (https://admin-api.ucode.run)
+  const { data: githubStatus, isLoading: isGithubStatusLoading } = useQuery({
+    queryKey: ['github-integration-status'],
+    queryFn: githubIntegrationApi.validate,
+    retry: false,
+  })
+
+  const { data: githubIntegration } = useQuery({
+    queryKey: ['github-integration'],
+    queryFn: githubIntegrationApi.getIntegration,
+    enabled: githubStatus?.connected === true,
+    retry: false,
+  })
+
+  const { mutate: connectGithub, isPending: isConnectingGithub } = useMutation({
+    mutationFn: async () => {
+      const returnPath = window.location.pathname
+      sessionStorage.setItem('github_oauth_return_path', returnPath)
+      const url = await githubIntegrationApi.getConnectUrl()
+      window.location.href = url
+    },
+  })
+
+  const { mutate: disconnectGithub, isPending: isDisconnectingGithub } = useMutation({
+    mutationFn: (id: string) => githubIntegrationApi.disconnect(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
+      queryClient.invalidateQueries({ queryKey: ['github-integration'] })
+    },
+  })
 
   // Source 1: V2 resources list
   const { data: resourcesV2 = [], isLoading: isLoadingV2 } = useQuery({
@@ -454,15 +487,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   const handleSelectResource = (item: ResourceItem) => {
-    // GitHub — OAuth immediately, no detail view
+    // GitHub — connect via backend OAuth flow
     if (item.typeValue === 5) {
-      const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ?? ''
-      const domainDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? (typeof window !== 'undefined' ? window.location.origin : '')
-      window.open(
-        `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=repo&redirect_uri=${domainDomain}`,
-        '_blank',
-        'noopener,noreferrer'
-      )
+      connectGithub()
       return
     }
 
@@ -809,6 +836,62 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
+        {/* GitHub Integration Status Card */}
+        {(githubStatus?.connected || githubStatus?.reason === 'token_expired') && (
+          <div className="mb-8">
+            <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em] mb-3">
+              GitHub Integration
+            </div>
+            <div className="bg-bg-card border border-border-subtle rounded-xl p-4 flex items-center gap-4 max-w-sm shadow-sm"
+              style={{ borderLeftWidth: '3px', borderLeftColor: githubStatus.connected ? 'var(--green, #22c55e)' : 'var(--destructive, #ef4444)' }}
+            >
+              {githubStatus.connected && githubStatus.user ? (
+                <>
+                  {githubStatus.user.avatar_url ? (
+                    <img src={githubStatus.user.avatar_url} alt={githubStatus.user.login} className="w-10 h-10 rounded-full border border-border-subtle shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-bg-sidebar border border-border-subtle flex items-center justify-center shrink-0">
+                      <Github className="w-5 h-5 text-text-muted" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-text-main truncate">@{githubStatus.user.login}</div>
+                    <div className="text-[11px] text-text-muted">GitHub · Connected</div>
+                  </div>
+                  <button
+                    onClick={() => githubIntegration && disconnectGithub(githubIntegration.id)}
+                    disabled={isDisconnectingGithub || !githubIntegration}
+                    className="text-destructive hover:bg-destructive/10 rounded-lg p-1.5 transition-colors disabled:opacity-50"
+                    title="Disconnect GitHub"
+                  >
+                    {isDisconnectingGithub ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-bg-sidebar border border-border-subtle flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-5 h-5 text-destructive" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-text-main">GitHub token expired</div>
+                    <div className="text-[11px] text-text-muted">Reconnect to restore access</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => connectGithub()}
+                    disabled={isConnectingGithub}
+                    className="rounded-lg text-xs shrink-0"
+                  >
+                    {isConnectingGithub ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                    Reconnect
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Connected Resources Section */}
         {filteredConnectedResources.length > 0 && (
           <div className="mb-8">
@@ -867,14 +950,32 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                 <div className="text-xs text-text-muted leading-relaxed mb-1 flex-1">
                   Connect {item.label} to configure your infrastructure integration.
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main" 
-                  onClick={() => handleSelectResource(item)}
-                >
-                  <Plug size={14} /> Connect
-                </Button>
+                {item.typeValue === 5 ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main"
+                    onClick={() => handleSelectResource(item)}
+                    disabled={isConnectingGithub || isGithubStatusLoading}
+                  >
+                    {isConnectingGithub
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : githubStatus?.connected
+                        ? <RefreshCw size={14} />
+                        : <Plug size={14} />
+                    }
+                    {isConnectingGithub ? 'Connecting…' : githubStatus?.connected ? 'Reconnect' : 'Connect'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main"
+                    onClick={() => handleSelectResource(item)}
+                  >
+                    <Plug size={14} /> Connect
+                  </Button>
+                )}
               </div>
             ))}
           </div>
