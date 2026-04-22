@@ -132,6 +132,8 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         // Save API key for dashboard requests
         if (projectData.api_key) {
           setApiKey(projectData.api_key)
+        } else {
+          setApiKey(null)
         }
 
         if (projectData.ucode_project_id) {
@@ -299,7 +301,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           <div className="flex-1 relative flex overflow-hidden">
             {isLoading ? (
               <WorkspaceLoader message="Loading project workspace..." />
-            ) : activeTab === 'preview' ? (
+            ) : (activeTab === 'preview' && !hasNoFiles) ? (
               <ProjectPreviewViewer
                 device={device}
                 isMaximized={isPreviewMaximized}
