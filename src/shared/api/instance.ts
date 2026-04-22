@@ -37,6 +37,9 @@ export const githubApi = axios.create({
   },
 })
 
+const isOnProjectPage = () =>
+  typeof window !== 'undefined' && /\/projects\/[^/]+/.test(window.location.pathname)
+
 // Request interceptor: inject token for main API
 api.interceptors.request.use(
   (config) => {
@@ -44,7 +47,7 @@ api.interceptors.request.use(
     const token = state.accessToken
     const apiKey = state.apiKey
 
-    if (apiKey && state.activeProjectTab === 'dashboard' && config.headers && !config.headers['Authorization']) {
+    if (apiKey && state.activeProjectTab === 'dashboard' && isOnProjectPage() && config.headers && !config.headers['Authorization']) {
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
     } else if (token && config.headers && !config.headers['Authorization']) {
@@ -64,7 +67,7 @@ authApi.interceptors.request.use(
     const token = state.accessToken
     const apiKey = state.apiKey
 
-    if (apiKey && state.activeProjectTab === 'dashboard' && config.headers && !config.headers['Authorization']) {
+    if (apiKey && state.activeProjectTab === 'dashboard' && isOnProjectPage() && config.headers && !config.headers['Authorization']) {
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
     } else if (token && config.headers && !config.headers['Authorization']) {

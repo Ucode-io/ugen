@@ -13,6 +13,7 @@ import { useCodeSelectionStore } from "@/entities/project/model/code-selection-s
 import { useFilesStore, IFile } from "@/entities/project/model/files-store"
 
 import { ProjectHeader, DeviceType } from "@/widgets/project-workspace/ui/project-header"
+import { WorkspaceLoader } from "@/widgets/project-workspace/ui/workspace-loader"
 import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard"
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view"
 import { ErrorBoundary, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui"
@@ -58,6 +59,13 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   }, [])
   const [projectTitle, setProjectTitle] = useState('Loading...')
   const [isLoading, setIsLoading] = useState(true)
+  const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null)
+
+  // Synchronously reset loading state when projectId changes (before cleanup runs).
+  // This prevents EmptyProjectView from flashing when navigating between projects.
+  if (loadedProjectId !== null && loadedProjectId !== projectId && !isLoading) {
+    setIsLoading(true)
+  }
   const [projectInfo, setProjectInfo] = useState<any>(null)
   const [microfrontends, setMicrofrontends] = useState<Array<{ id: string; name: string; url: string }>>([])
   const [selectedMicrofrontend, setSelectedMicrofrontend] = useState<{ id: string; name: string; url: string } | null>(null)
@@ -153,6 +161,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
       })
       .finally(() => {
         setIsLoading(false);
+        setLoadedProjectId(projectId);
       })
 
     // Fetch additional company project info using query param API
@@ -168,6 +177,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
       });
 
     return () => {
+      setIsLoading(true);
       clearWorkspace();
       setApiKey(null)
       setActiveProjectTab(null)
@@ -178,7 +188,6 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   useEffect(() => {
     setActiveProjectTab(activeTab)
   }, [activeTab, setActiveProjectTab])
-
 
   useEffect(() => {
     if (!projectId || isUgen) return
@@ -206,9 +215,8 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
       <ErrorBoundary>
         <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-main">
           {isMicrofrontendLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-text-muted">
-              <Loader2 className="animate-spin mb-4" size={32} />
-              <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
+            <div className="flex-1 relative overflow-hidden">
+              <WorkspaceLoader message="Loading microfrontends..." subMessage="Fetching project workspace" />
             </div>
           ) : (
             <>
@@ -288,12 +296,18 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           />
 
           {/* Content Area */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 relative flex overflow-hidden">
             {isLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center bg-bg-main text-text-muted">
-                <Loader2 className="animate-spin mb-4" size={32} />
-                <p className="text-sm font-medium">{t('loading', { fallback: 'Loading project workspace...' })}</p>
-              </div>
+              <WorkspaceLoader message="Loading project workspace..." />
+            ) : activeTab === 'preview' ? (
+              <ProjectPreviewViewer
+                device={device}
+                isMaximized={isPreviewMaximized}
+                microfrontendFiles={microfrontendPreviewFiles}
+                projectId={projectId}
+                onDeviceChange={setDevice}
+                onToggleMaximize={handleTogglePreviewMaximize}
+              />
             ) : activeTab === 'dashboard' ? (
               <ProjectDashboard
                 isSidebarCollapsed={isDashboardSidebarCollapsed}
@@ -303,22 +317,9 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
                 onEditCode={handleEditCode}
               />
             ) : hasNoFiles ? (
-              <EmptyProjectView
-                onStartChatting={() => {
-                  setActiveTab('preview')
-                }}
-              />
-            ) : activeTab === 'code' ? (
-              <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
+              <EmptyProjectView onStartChatting={() => setActiveTab('preview')} />
             ) : (
-              <ProjectPreviewViewer
-                device={device}
-                isMaximized={isPreviewMaximized}
-                microfrontendFiles={microfrontendPreviewFiles}
-                projectId={projectId}
-                onDeviceChange={setDevice}
-                onToggleMaximize={handleTogglePreviewMaximize}
-              />
+              <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
             )}
           </div>
         </div>

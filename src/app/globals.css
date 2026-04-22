@@ -46,6 +46,11 @@
       background-position: -200% 0;
     }
   }
+
+  @keyframes loader-slide {
+    0% { transform: translateX(-150%); }
+    100% { transform: translateX(450%); }
+  }
 }
 
 @layer base {

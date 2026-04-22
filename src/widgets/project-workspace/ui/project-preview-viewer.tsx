@@ -18,6 +18,7 @@ import { api } from "@/shared/api"
 import { useQuery } from "@tanstack/react-query"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
 import { cn } from "@/shared/lib/utils/cn"
+import { WorkspaceLoader } from "./workspace-loader"
 
 interface PreviewRuntimeError {
   message: string
@@ -424,14 +425,14 @@ export const ProjectPreviewViewer = ({
         isInspectMode && "cursor-crosshair"
       )}
     >
-      {/* Loading overlay */}
+      {/* Build loading overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4 text-slate-500">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="font-medium animate-pulse">Building project preview...</p>
-          </div>
-        </div>
+        <WorkspaceLoader message="Building preview..." subMessage="Running esbuild" />
+      )}
+
+      {/* Switch microfrontend overlay */}
+      {!isLoading && !!loadingPreviewId && (
+        <WorkspaceLoader message="Switching microfrontend..." subMessage="Fetching codebase" />
       )}
 
       {/* Error overlay */}
