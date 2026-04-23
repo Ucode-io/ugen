@@ -59,6 +59,7 @@ export const useUsers = ({
   offset,
   search,
   tableSlug,
+  enabled = true,
 }: {
   clientTypeId: string;
   projectId: string;
@@ -66,6 +67,7 @@ export const useUsers = ({
   offset: number;
   search: string;
   tableSlug?: string;
+  enabled?: boolean;
 }) => {
   return useQuery({
     queryKey: [
@@ -86,7 +88,7 @@ export const useUsers = ({
         search,
         tableSlug,
       }),
-    enabled: !!projectId,
+    enabled: !!projectId && enabled,
     staleTime: 0, // 5 minutes
   });
 };

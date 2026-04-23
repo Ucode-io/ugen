@@ -79,11 +79,17 @@ authApi.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Request interceptor: inject token for GitHub API (no 401 retry — 401 means reconnect needed)
+// Request interceptor: inject API-KEY for GitHub API (no 401 retry — 401 means reconnect needed)
 githubApi.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().accessToken
-    if (token && config.headers && !config.headers['Authorization']) {
+    const state = useAuthStore.getState()
+    const apiKey = state.apiKey
+    const token = state.accessToken
+
+    if (apiKey && config.headers && !config.headers['Authorization']) {
+      config.headers['Authorization'] = 'API-KEY'
+      config.headers['x-api-key'] = apiKey
+    } else if (token && config.headers && !config.headers['Authorization']) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config

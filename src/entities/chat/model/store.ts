@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export type ChatPosition = 'left' | 'right'
+
 export type Message = {
   id: string
   role: 'user' | 'ai' | 'assistant'
@@ -19,8 +21,10 @@ interface ChatState {
   projectId: string | null
   messages: Message[]
   chatWidth: number
+  chatPosition: ChatPosition
   pendingPrompt: { content: string, images?: string[], model?: string } | null
   setPendingPrompt: (prompt: { content: string, images?: string[], model?: string } | null) => void
+  setChatPosition: (position: ChatPosition) => void
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void
   addMessage: (message: Message) => void
@@ -39,9 +43,11 @@ export const useChatStore = create<ChatState>()(
       messages: [],
       chatWidth: 360,
       pendingPrompt: null,
-      setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
+      chatPosition: 'left',
       setChatId: (id) => set({ chatId: id }),
       setProjectId: (id) => set({ projectId: id }),
+      setChatPosition: (position) => set({ chatPosition: position }),
+      setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
       addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
       unshiftMessages: (newMessages) => set((state) => {
         const existingIds = new Set(state.messages.map(m => m.id))

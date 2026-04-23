@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react";
-import { CircleChevronLeft, Loader2 } from "lucide-react";
+import { Loader2, PanelLeft, PanelRight } from "lucide-react";
+import { LogoPopover } from "./logo-popover";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
@@ -41,7 +42,9 @@ import type { CodeEditorTarget } from "@/entities/session";
 
 interface WorkspaceChatProps {
   projectId: string
+  projectTitle?: string
   isChatCollapsed: boolean
+  isPreviewMaximized: boolean
   setIsChatCollapsed: (isChatCollapsed: boolean) => void
   onSelectFunction?: (target: CodeEditorTarget) => void
   onSelectMicrofrontend?: (files: { path: string; content: string }[]) => void
@@ -127,7 +130,7 @@ const PendingActionConfirm = ({
   )
 }
 
-export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, onSelectFunction, onSelectMicrofrontend }: WorkspaceChatProps) => {
+export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, onSelectFunction, onSelectMicrofrontend }: WorkspaceChatProps) => {
   const t = useTranslations('widgets.workspaceChat');
 
   const MOCK_CHAT: Message[] = [
@@ -163,6 +166,8 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
   const clearChat = useChatStore((state) => state.clearChat);
   const pendingPrompt = useChatStore((state) => state.pendingPrompt);
   const setPendingPrompt = useChatStore((state) => state.setPendingPrompt);
+  const chatPosition = useChatStore((state) => state.chatPosition);
+  const setChatPosition = useChatStore((state) => state.setChatPosition);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -517,12 +522,17 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
   const showBpmnConfirm = !!lastMessage?.bpmnXml;
 
   return (
-    <>
+    <div className={cn(
+      "h-full transition-width duration-300 ease-in-out",
+      {
+        "w-0 overflow-hidden": isChatCollapsed,
+      }
+    )}>
       {isResizing && (
-        <div className="fixed inset-0 z-[9999] cursor-col-resize select-none pointer-events-auto" />
+        <div className="fixed inset-0 z-9999 cursor-col-resize select-none pointer-events-auto" />
       )}
       <div
-        className={`bg-bg-main group border-border-subtle relative flex h-full shrink-0 flex-col ${isChatCollapsed ? "w-0 border-r-0" : "border-r"}`}
+        className={cn(`bg-bg-main group relative flex border-none h-full shrink-0 flex-col`, {"w-0": isChatCollapsed})}
         style={{
           width: isChatCollapsed ? 0 : `${width}px`,
           transition: isResizing ? 'none' : 'width 300ms cubic-bezier(0.4, 0, 0.2, 1), border 300ms opacity 300ms'
@@ -531,18 +541,24 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
         {/* Resize Handle */}
         <div
           onPointerDown={startResizing}
-          className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 transition-colors group z-50 flex items-center justify-center translate-x-1/2"
+          className={cn("absolute top-0 h-full w-0.5 cursor-col-resize hover:bg-primary/20 transition-colors group z-50 flex items-center justify-center", {"left-0 translate-x-[-1/2]": chatPosition === "right", "right-0 translate-x-[1/2]": chatPosition === "left"})}
         >
           <div className="w-1 h-12 bg-border-subtle group-hover:bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm" />
         </div>
+        {/* Header — logo + project title, aligned with ProjectHeader height */}
+        <div className="flex items-center gap-2 px-4 py-3 shrink-0">
+          <LogoPopover projectTitle={projectTitle} />
+          <span className="text-[15px] font-medium text-text-main truncate">
+            {projectTitle}
+          </span>
+          {/* <button
+            onClick={() => setChatPosition(chatPosition === "left" ? "right" : "left")}
+            className="ml-auto text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
+          >
+            {chatPosition === "left" ? <PanelLeft size={14} /> : <PanelRight size={14} />}
+          </button> */}
+        </div>
 
-        {/* <button
-          onClick={() => setIsChatCollapsed(!isChatCollapsed)}
-          className={`opacity-0 group-hover:opacity-100 text-white outline-none rounded-full flex items-center justify-center shrink-0  absolute top-1/2 right-[${isChatCollapsed ? "-20px" : "-12px"}] z-50 p-0.5 bg-primary/40 ${isChatCollapsed ? "rotate-180" : ""}`}
-          title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
-        >
-          <CircleChevronLeft size={16} />
-        </button> */}
         <div
           className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isChatCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
         >
@@ -550,7 +566,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex-1 space-y-4 overflow-y-auto p-4"
+            className="flex-1 space-y-4 overflow-y-auto py-4"
           >
             {isLoadingHistory && (
               <div className="flex justify-center p-2">
@@ -742,6 +758,6 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, setIsChatCollapsed, 
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
