@@ -43,6 +43,7 @@ const DEVICES: { id: DeviceType; label: string; icon: React.ReactNode }[] = [
 interface ProjectPreviewViewerProps {
   device?: DeviceType
   isMaximized?: boolean
+  isChatCollapsed?: boolean
   microfrontendFiles?: { path: string; content: string }[] | null
   projectId?: string
   onDeviceChange?: (device: DeviceType) => void
@@ -70,6 +71,7 @@ export const ProjectPreviewViewer = ({
   projectId,
   onDeviceChange,
   onToggleMaximize,
+  isChatCollapsed,
 }: ProjectPreviewViewerProps) => {
   const { isInspectMode, addSelectedElement, setInspectMode } = useVisualEditorStore()
   const { files: storeFiles } = useFilesStore()
@@ -497,7 +499,7 @@ export const ProjectPreviewViewer = ({
       {isFunction && !localPreviewFiles ? (
         <div className={cn(
           "flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300",
-          isMaximized ? "p-0" : "py-4 px-4"
+          isMaximized ? "p-0" : "px-4",
         )}>
           <div
             className="flex flex-col flex-shrink-0 overflow-hidden border border-border-subtle shadow-md transition-all duration-300 bg-bg-main"
@@ -558,7 +560,9 @@ export const ProjectPreviewViewer = ({
         /* Normal preview — browser card with header + iframe as one unit */
         <div className={cn(
           "flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300",
-          isMaximized ? "p-0" : "py-4 px-4"
+          // isMaximized ? "p-0" : "py-4 px-4"
+          isMaximized ? "p-0" : "pr-4 pb-2",
+          isChatCollapsed ? "pl-4" : "pl-0"
         )}>
           <div
             className="flex flex-col flex-shrink-0 overflow-hidden border border-border-subtle shadow-md transition-all duration-300"

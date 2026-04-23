@@ -556,7 +556,7 @@ const styles: Record<string, React.CSSProperties | Record<string, string>> = {
     display: "inline-flex",
     alignItems: "center",
     gap: 7,
-    background: "var(--bg-secondary)",
+    background: "var(--bg-primary)",
     color: "var(--primary-foreground)",
     padding: "4px 12px 4px 8px",
     borderRadius: 20,

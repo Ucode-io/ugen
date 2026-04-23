@@ -52,8 +52,8 @@ export const PublishPopover = ({
     label: string;
     client_type_id: string;
   } | null>(null);
-  const [userId, setUserId] = useState<string>("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isUrlCopied, setIsUrlCopied] = useState(false);
@@ -85,32 +85,6 @@ export const PublishPopover = ({
 
 
   const { data: roleOptions = [] } = useRoles({ projectId });
-  const { data: clientTypes = [] } = useClientTypes(projectId);
-  const firstClientTypeId = clientTypes[0]?.value || "";
-  const firstClientTypeSlug = clientTypes[0]?.table_slug || "";
-  const { data: usersData } = useUsers({
-    clientTypeId: firstClientTypeId,
-    projectId,
-    limit: 100,
-    offset: 0,
-    search: "",
-    tableSlug: firstClientTypeSlug,
-  });
-
-  const userOptions: { value: string; label: string }[] = useMemo(() => {
-    if (!usersData) return [];
-    const rows =
-      (usersData as any)?.data?.data?.data ||
-      (usersData as any)?.data?.data ||
-      (usersData as any)?.data ||
-      [];
-    return Array.isArray(rows)
-      ? rows.map((u: any) => ({
-          value: u.guid || u.id || u._id || "",
-          label: u.name || u.login || u.email || u.username || u.guid || "—",
-        }))
-      : [];
-  }, [usersData]);
 
   useEffect(() => {
     if (roleOptions.length > 0 && !role) {
@@ -125,12 +99,6 @@ export const PublishPopover = ({
       });
     }
   }, [roleOptions, role]);
-
-  useEffect(() => {
-    if (userOptions.length > 0 && !userId) {
-      setUserId(userOptions[0].value);
-    }
-  }, [userOptions, userId]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -221,8 +189,8 @@ export const PublishPopover = ({
     allOptions.find((o) => o.value === visibility) ?? allOptions[0];
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild >
         <button className="bg-primary hover:bg-primary-hover rounded-lg px-4 py-1.5 text-[13px] font-medium text-white transition-colors">
           {t("publish")}
         </button>

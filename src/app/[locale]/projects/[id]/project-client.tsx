@@ -18,6 +18,8 @@ import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboa
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view"
 import { ErrorBoundary, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui"
 import { usePathname, useSearchParams } from "next/navigation"
+import { useChatStore } from "@/entities/chat"
+import { cn } from "@/shared/lib/utils/cn"
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -78,6 +80,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const setCodeEditorTarget = useAuthStore(state => state.setCodeEditorTarget)
   const clearCodeSelection = useCodeSelectionStore(state => state.clearCodeSelection)
   const activeCodeFiles = useCodeSelectionStore(state => state.activeCodeFiles)
+  const chatPosition = useChatStore(state => state.chatPosition)
   const hasNoFiles = files.length === 0 && !activeCodeFiles?.length;
   const t = useTranslations('features.project')
   const { project } = useAuthStore()
@@ -267,61 +270,78 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen w-full flex-col overflow-hidden bg-bg-main relative">
-        {!isPreviewMaximized && (
-          <ProjectHeader
-            projectTitle={projectTitle}
-            projectId={projectId}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            isSidebarCollapsed={isDashboardSidebarCollapsed}
-            onToggleSidebar={() => setIsDashboardSidebarCollapsed(!isDashboardSidebarCollapsed)}
-            isLoading={isLoading}
-            hasNoFiles={hasNoFiles}
-            onSave={handleSaveChanges}
-            isChatCollapsed={isChatCollapsed}
-            onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
-            projectUrl={projectInfo?.url || projectInfo?.project_url || ''}
-            isUgen={isUgen}
-          />
-        )}
-
-        <div className="flex flex-1 overflow-hidden">
+      <div
+        className="h-screen w-full overflow-hidden bg-bg-main relative"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isChatCollapsed || isPreviewMaximized ? '0 1fr' : `${chatPosition === 'right' ? '1fr auto' : 'auto 1fr'}`,
+          gridTemplateRows: 'auto 1fr',
+          gridTemplateAreas: chatPosition === 'right'
+            ? '"header chat" "preview chat"'
+            : '"chat header" "chat preview"',
+        }}
+      >
+        {/* Chat — spans full height */}
+        <div style={{ gridArea: 'chat', minWidth: 0, overflow: 'hidden', height: '100%' }}>
           <WorkspaceChat
             projectId={projectId}
+            projectTitle={projectTitle}
             isChatCollapsed={isChatCollapsed}
             setIsChatCollapsed={setIsChatCollapsed}
             onSelectFunction={handleEditCode}
             onSelectMicrofrontend={handlePreviewMicrofrontend}
+            isPreviewMaximized={isPreviewMaximized}
           />
+        </div>
 
-          {/* Content Area */}
-          <div className="flex-1 relative flex overflow-hidden">
-            {isLoading ? (
-              <WorkspaceLoader message="Loading project workspace..." />
-            ) : activeTab === 'preview' ? (
-              <ProjectPreviewViewer
-                device={device}
-                isMaximized={isPreviewMaximized}
-                microfrontendFiles={microfrontendPreviewFiles}
-                projectId={projectId}
-                onDeviceChange={setDevice}
-                onToggleMaximize={handleTogglePreviewMaximize}
-              />
-            ) : activeTab === 'dashboard' ? (
-              <ProjectDashboard
-                isSidebarCollapsed={isDashboardSidebarCollapsed}
-                setIsSidebarCollapsed={setIsDashboardSidebarCollapsed}
-                projectInfo={projectInfo}
-                projectId={projectId}
-                onEditCode={handleEditCode}
-              />
-            ) : hasNoFiles ? (
-              <EmptyProjectView onStartChatting={() => setActiveTab('preview')} />
-            ) : (
-              <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
-            )}
+        {/* Header */}
+        {!isPreviewMaximized && (
+          <div style={{ gridArea: 'header' }} className="min-w-0 py-2">
+            <ProjectHeader
+              projectTitle={projectTitle}
+              projectId={projectId}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              isSidebarCollapsed={isDashboardSidebarCollapsed}
+              onToggleSidebar={() => setIsDashboardSidebarCollapsed(!isDashboardSidebarCollapsed)}
+              isLoading={isLoading}
+              hasNoFiles={hasNoFiles}
+              onSave={handleSaveChanges}
+              isChatCollapsed={isChatCollapsed}
+              onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
+              projectUrl={projectInfo?.url || projectInfo?.project_url || ''}
+              isUgen={isUgen}
+            />
           </div>
+        )}
+
+        {/* Content Area */}
+        <div style={{ gridArea: 'preview' }} className="relative flex overflow-hidden min-w-0">
+          {isLoading ? (
+            <WorkspaceLoader message="Loading project workspace..." />
+          ) : activeTab === 'preview' ? (
+            <ProjectPreviewViewer
+              device={device}
+              isMaximized={isPreviewMaximized}
+              microfrontendFiles={microfrontendPreviewFiles}
+              projectId={projectId}
+              onDeviceChange={setDevice}
+              onToggleMaximize={handleTogglePreviewMaximize}
+              isChatCollapsed={isChatCollapsed}
+            />
+          ) : activeTab === 'dashboard' ? (
+            <ProjectDashboard
+              isSidebarCollapsed={isDashboardSidebarCollapsed}
+              setIsSidebarCollapsed={setIsDashboardSidebarCollapsed}
+              projectInfo={projectInfo}
+              projectId={projectId}
+              onEditCode={handleEditCode}
+            />
+          ) : hasNoFiles ? (
+            <EmptyProjectView onStartChatting={() => setActiveTab('preview')} />
+          ) : (
+            <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
+          )}
         </div>
       </div>
     </ErrorBoundary>

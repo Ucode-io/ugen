@@ -40,7 +40,7 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
               <audio src={audioUrl} controls className="h-9 w-[220px]" />
             </div>
           ) : null}
-          {content && <span className="leading-relaxed whitespace-pre-wrap">{content}</span>}
+          {content && <span className="leading-relaxed whitespace-pre-wrap break-words">{content}</span>}
         </div>
       </div>
     )
