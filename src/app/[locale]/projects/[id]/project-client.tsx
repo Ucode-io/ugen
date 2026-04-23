@@ -298,7 +298,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
         {/* Header */}
         {!isPreviewMaximized && (
-          <div style={{ gridArea: 'header' }} className="min-w-0">
+          <div style={{ gridArea: 'header' }} className="min-w-0 py-2">
             <ProjectHeader
               projectTitle={projectTitle}
               projectId={projectId}
