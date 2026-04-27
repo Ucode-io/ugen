@@ -117,11 +117,7 @@ export const PublishPopover = ({
   const displayHost = appUrl.replace(/^https?:\/\//, "");
 
   const inviteLink = useMemo(() => {
-    if (
-      (visibility !== "workspace" && visibility !== "private") ||
-      !role?.client_type_id
-    )
-      return "";
+    if (!role?.client_type_id) return "";
     const domain = typeof window !== "undefined" ? window.location.origin : "";
     const params = new URLSearchParams({
       "project-id": ucodeProjectId || projectId,
@@ -133,7 +129,6 @@ export const PublishPopover = ({
     });
     return `${domain}/workspace?${params.toString()}`;
   }, [
-    visibility,
     ucodeProjectId,
     projectId,
     projectEnvId,
@@ -206,11 +201,12 @@ export const PublishPopover = ({
             {t("publishTitle")}
           </h2>
 
-          {/* Microfrontend URL */}
-          {mfUrl && (
+          {/* Public URL */}
+          {visibility === "public" && mfUrl && (
             <div className="space-y-1">
-              <span className="text-text-muted text-xs font-medium">
-                URL
+              <span className="text-text-muted text-xs font-medium flex items-center gap-1">
+                <Globe size={12} />
+                {t("visibilityPublic")}
               </span>
               <div className="border-border-subtle bg-bg-main flex items-center gap-1 rounded-lg border px-3 py-2">
                 <a
@@ -227,6 +223,28 @@ export const PublishPopover = ({
                   className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors"
                 >
                   {isUrlCopied ? <Check size={15} /> : <Copy size={15} />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Private invite link */}
+          {visibility === "private" && inviteLink && (
+            <div className="space-y-1">
+              <span className="text-text-muted text-xs font-medium flex items-center gap-1">
+                <Lock size={12} />
+                {t("visibilityPrivate")}
+              </span>
+              <div className="border-border-subtle bg-bg-main flex items-center gap-1 rounded-lg border px-3 py-2">
+                <span className="text-text-main flex-1 truncate font-mono text-xs">
+                  {inviteLink}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors"
+                >
+                  {isLinkCopied ? <Check size={15} /> : <Copy size={15} />}
                 </button>
               </div>
             </div>
