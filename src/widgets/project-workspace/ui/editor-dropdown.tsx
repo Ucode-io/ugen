@@ -2,6 +2,7 @@
 
 import React from "react";
 import {
+  Button,
   Select,
   SelectContent,
   SelectGroup,
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui";
-import { Layers2, Zap, Sparkles } from "lucide-react";
+import { Layers2, Zap, Sparkles, Download, Loader2 } from "lucide-react";
 import type { CodeEditorTarget } from "@/entities/session";
 
 export type DropdownOption = {
@@ -29,6 +30,9 @@ interface EditorDropdownProps {
   hasMicrofrontends: boolean;
   hasFunctions: boolean;
   isGitlabMode: boolean;
+  onImportZip: () => void;
+  isImporting?: boolean;
+  canImport?: boolean;
 }
 
 export const EditorDropdown = ({
@@ -38,8 +42,10 @@ export const EditorDropdown = ({
   hasMicrofrontends,
   hasFunctions,
   isGitlabMode,
+  onImportZip,
+  isImporting = false,
+  canImport = true,
 }: EditorDropdownProps) => {
-
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle bg-bg-card shrink-0 z-10">
       <Select value={selectedValue} onValueChange={setSelectedValue}>
@@ -99,6 +105,22 @@ export const EditorDropdown = ({
       <span className="text-[11px] text-text-muted">
         {isGitlabMode ? 'GitLab Repository' : 'AI Generated'}
       </span>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onImportZip}
+        disabled={isImporting || !canImport}
+        className="ml-auto h-7 text-xs gap-1.5 px-2.5"
+      >
+        {isImporting ? (
+          <Loader2 size={12} className="animate-spin" />
+        ) : (
+          <Download size={12} />
+        )}
+        Import ZIP
+      </Button>
     </div>
   );
 };

@@ -16,9 +16,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui'
@@ -342,10 +340,12 @@ export const LogsView = () => {
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId)
   const projectId = useAuthStore((state) => state.project?.project_id)
 
-  const [selectedAction, setSelectedAction] = useState<string>('activity:all')
-  const source: 'activity' | 'function' = selectedAction.startsWith('function:') ? 'function' : 'activity'
-  const activityActionType = source === 'activity' ? selectedAction.slice('activity:'.length) : ''
-  const selectedFunctionId = source === 'function' ? selectedAction.slice('function:'.length) : ''
+  const [logType, setLogType] = useState<'activity' | 'function'>('activity')
+  const [activityAction, setActivityAction] = useState<string>('all')
+  const [functionAction, setFunctionAction] = useState<string>('all')
+  const source = logType
+  const activityActionType = source === 'activity' ? activityAction : ''
+  const selectedFunctionId = source === 'function' ? functionAction : ''
 
   const getFirstDayOfMonthDate = () => {
     const now = new Date()
@@ -429,8 +429,20 @@ export const LogsView = () => {
     ? (activityLogsData?.total || 0)
     : (functionLogsData?.total_count || 0)
 
+  const handleLogTypeChange = (val: 'activity' | 'function') => {
+    setLogType(val)
+    setActivityAction('all')
+    setFunctionAction('all')
+    setPage(1)
+    setExpandedId(null)
+  }
+
   const handleActionChange = (val: string) => {
-    setSelectedAction(val)
+    if (logType === 'activity') {
+      setActivityAction(val)
+    } else {
+      setFunctionAction(val)
+    }
     setPage(1)
     setExpandedId(null)
   }
@@ -447,26 +459,41 @@ export const LogsView = () => {
 
       <div className="ai-card overflow-hidden flex flex-col flex-1 min-h-[400px]">
         <div className="flex flex-wrap gap-3 p-4 border-b border-border-subtle bg-bg-card/30 items-end shrink-0">
+          <div className="space-y-1.5 w-[180px] flex-none">
+            <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Log Type</label>
+            <Select value={logType} onValueChange={(v) => handleLogTypeChange(v as 'activity' | 'function')}>
+              <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-bg-card border-border-subtle">
+                <SelectItem value="activity">Activity Logs</SelectItem>
+                <SelectItem value="function">Function Logs</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-1.5 w-[240px] flex-none">
             <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Action</label>
-            <Select value={selectedAction} onValueChange={handleActionChange}>
+            <Select
+              value={logType === 'activity' ? activityAction : functionAction}
+              onValueChange={handleActionChange}
+            >
               <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
-                <SelectValue placeholder={t('logs.allActions')} />
+                <SelectValue placeholder={logType === 'activity' ? t('logs.allActions') : t('logs.allFunctions')} />
               </SelectTrigger>
               <SelectContent className="max-h-[320px] overflow-y-auto bg-bg-card border-border-subtle">
-                <SelectGroup>
-                  <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 py-1.5">Function Logs</SelectLabel>
-                  <SelectItem value="function:all">{t('logs.allFunctions')}</SelectItem>
-                  {functionsListData?.map((f: any) => (
-                    <SelectItem key={`function:${f.id}`} value={`function:${f.id}`}>{f.name}</SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2 py-1.5">Activity Logs</SelectLabel>
-                  {ACTIVITY_ITEMS.map(opt => (
-                    <SelectItem key={`activity:${opt.value}`} value={`activity:${opt.value}`}>{opt.label}</SelectItem>
-                  ))}
-                </SelectGroup>
+                {logType === 'activity'
+                  ? ACTIVITY_ITEMS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))
+                  : (
+                    <>
+                      <SelectItem value="all">{t('logs.allFunctions')}</SelectItem>
+                      {functionsListData?.map((f: any) => (
+                        <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                      ))}
+                    </>
+                  )}
               </SelectContent>
             </Select>
           </div>

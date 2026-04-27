@@ -14,6 +14,8 @@ import {
 import prettier from "prettier/standalone";
 import babelPlugin from "prettier/plugins/babel";
 import estreePlugin from "prettier/plugins/estree";
+import JSZip from "jszip";
+import { toast } from "sonner";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import { useUIStore } from "@/shared/model/theme/use-ui-store";
 import { api } from "@/shared/api";
@@ -521,6 +523,51 @@ export const ProjectCodeViewer = ({
 
   const fileTree = useMemo(() => buildFileTree(files), [files]);
 
+  // ── Import ZIP (download project code as a .zip to user's PC) ─────────────
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleImportZip = async () => {
+    const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9._-]+/g, "_") || "project";
+
+    const sourceFiles: { path: string; content: string }[] = isGitlabMode
+      ? codebaseFiles
+      : files.map((f) => ({ path: f.path, content: f.content ?? "" }));
+
+    if (sourceFiles.length === 0) {
+      toast.error("No files to download");
+      return;
+    }
+
+    const archiveName = isGitlabMode
+      ? sanitize(activeOption?.target?.name ?? "codebase")
+      : sanitize(`project-${projectId}`);
+
+    setIsImporting(true);
+    try {
+      const zip = new JSZip();
+      sourceFiles.forEach(({ path, content }) => {
+        zip.file(path, content ?? "");
+      });
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${archiveName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${archiveName}.zip`);
+    } catch (err) {
+      console.error("[ImportZIP] Failed to build archive:", err);
+      toast.error("Failed to build ZIP archive");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const canImport = isGitlabMode ? codebaseFiles.length > 0 : files.length > 0;
+
 
   // Perform Search
   const globalSearchResults = useMemo(() => {
@@ -561,6 +608,9 @@ export const ProjectCodeViewer = ({
         hasMicrofrontends={microfrontendsData.length > 0}
         hasFunctions={functionsData.length > 0}
         isGitlabMode={isGitlabMode}
+        onImportZip={handleImportZip}
+        isImporting={isImporting}
+        canImport={canImport}
       />
 
       {isGitlabMode ? (

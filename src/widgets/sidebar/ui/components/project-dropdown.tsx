@@ -1,6 +1,6 @@
 'use client'
 import { useState } from "react"
-import { Settings, ChevronDown, Loader2, Lock } from "lucide-react"
+import { Settings, ChevronDown, Loader2, Lock, Check, User } from "lucide-react"
 import { useUserProjects, UserCompany, useSwitchProject } from "@/entities/project"
 import { useAuthStore } from "@/entities/session"
 import { useRouter } from "@/shared/lib/i18n/navigation"
@@ -155,25 +155,48 @@ export const ProjectDropdown = ({
               <div className="text-text-muted px-2 py-2 text-xs">{t("loading")}</div>
             )}
 
-            {[...companies].sort((a, b) => a.name.localeCompare(b.name)).map((company) => (
-              <button
-                key={company.id}
-                disabled={!!switchingId}
-                onClick={() => handleSelectCompany(company)}
-                className="hover:bg-hover-bg text-text-main flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors disabled:opacity-60 disabled:cursor-default"
-              >
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-[#d946ef]/10 font-mono text-xs font-bold text-[#d946ef]">
-                  <CompanyLogo logo={company.logo} title={company.name} />
-                </div>
-                <span className="flex-1 truncate text-sm">{company.name}</span>
-                {company.id !== user?.company_id && (
-                  <Lock size={12} className="text-text-muted shrink-0" />
-                )}
-                {switchingId === company.id && (
-                  <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
-                )}
-              </button>
-            ))}
+            {[...companies]
+              .sort((a, b) => {
+                if (a.has_personal_fork !== b.has_personal_fork) return a.has_personal_fork ? -1 : 1
+                return a.name.localeCompare(b.name)
+              })
+              .map((company) => {
+                const isCurrent = company.id === currentCompanyId
+                const isOwn = company.has_personal_fork
+                return (
+                  <button
+                    key={company.id}
+                    disabled={!!switchingId}
+                    onClick={() => handleSelectCompany(company)}
+                    className={`text-text-main flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors disabled:opacity-60 disabled:cursor-default ${
+                      isCurrent ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-hover-bg"
+                    }`}
+                  >
+                    <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-[#d946ef]/10 font-mono text-xs font-bold text-[#d946ef]">
+                      <CompanyLogo logo={company.logo} title={company.name} />
+                    </div>
+                    <span className={`flex-1 truncate text-sm ${isCurrent ? "font-semibold" : ""}`}>
+                      {company.name}
+                    </span>
+                    {isOwn ? (
+                      <span
+                        className="text-primary bg-primary/10 flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium uppercase"
+                        title={t("yourWorkspace") ?? "Your workspace"}
+                      >
+                        <User size={10} />
+                      </span>
+                    ) : (
+                      <Lock size={12} className="text-text-muted shrink-0" />
+                    )}
+                    {isCurrent && (
+                      <Check size={14} className="text-primary shrink-0" />
+                    )}
+                    {switchingId === company.id && (
+                      <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
+                    )}
+                  </button>
+                )
+              })}
           </div>
 
           {/* Footer */}

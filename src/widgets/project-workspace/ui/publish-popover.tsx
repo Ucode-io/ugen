@@ -146,10 +146,119 @@ export const PublishPopover = ({
 
   const mfUrl = activeCodeSelection?.kind === 'microfrontend' ? activeCodeSelection.url : undefined;
   const finalUrl = mfUrl?.startsWith('http') ? mfUrl : `https://${mfUrl}`;
+  const displayMfUrl = mfUrl?.replace(
+    /^(?:https?:\/\/)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i,
+    (m) => (m.startsWith('http') ? m.split('//')[0] + '//' : '')
+  );
 
-  const copyMfUrl = () => {
+  const shortUrlCacheRef = useRef<Map<string, string>>(new Map());
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
+  const [isShortening, setIsShortening] = useState(false);
+
+  const SHORT_URL_STORAGE_PREFIX = 'ugen:tinyurl:';
+
+  const readShortFromStorage = (key: string): string | null => {
+    try {
+      return typeof window !== 'undefined'
+        ? window.localStorage.getItem(SHORT_URL_STORAGE_PREFIX + key)
+        : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const writeShortToStorage = (key: string, value: string) => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(SHORT_URL_STORAGE_PREFIX + key, value);
+      }
+    } catch {
+      // storage full / blocked — ignore
+    }
+  };
+
+  const tinyurl = async (url: string): Promise<string | null> => {
+    try {
+      const params = new URLSearchParams({ url });
+      const res = await fetch(`https://tinyurl.com/api-create.php?${params.toString()}`);
+      if (!res.ok) return null;
+      const text = (await res.text()).trim();
+      return text.startsWith('http') ? text : null;
+    } catch {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (!mfUrl) {
+      setShortUrl(null);
+      return;
+    }
+    const cached =
+      shortUrlCacheRef.current.get(mfUrl) ?? readShortFromStorage(mfUrl);
+    if (cached) {
+      shortUrlCacheRef.current.set(mfUrl, cached);
+      setShortUrl(cached);
+    } else {
+      setShortUrl(null);
+    }
+  }, [mfUrl]);
+
+  useEffect(() => {
+    if (!isOpen || !mfUrl || visibility !== 'public') return;
+    if (shortUrlCacheRef.current.has(mfUrl)) return;
+    const stored = readShortFromStorage(mfUrl);
+    if (stored) {
+      shortUrlCacheRef.current.set(mfUrl, stored);
+      setShortUrl(stored);
+      return;
+    }
+
+    let cancelled = false;
+    setIsShortening(true);
+    (async () => {
+      const target = mfUrl.startsWith('http') ? mfUrl : `https://${mfUrl}`;
+      const short = await tinyurl(target);
+      if (cancelled) return;
+      if (short) {
+        shortUrlCacheRef.current.set(mfUrl, short);
+        writeShortToStorage(mfUrl, short);
+        setShortUrl(short);
+      }
+      setIsShortening(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, mfUrl, visibility]);
+
+  const copyMfUrl = async () => {
     if (!mfUrl) return;
-    navigator.clipboard.writeText(mfUrl);
+
+    const cached =
+      shortUrlCacheRef.current.get(mfUrl) ?? readShortFromStorage(mfUrl);
+    let toCopy = cached ?? mfUrl;
+
+    if (!cached) {
+      setIsShortening(true);
+      const target = finalUrl || mfUrl;
+      const short = await tinyurl(target);
+      setIsShortening(false);
+      if (short) {
+        shortUrlCacheRef.current.set(mfUrl, short);
+        writeShortToStorage(mfUrl, short);
+        setShortUrl(short);
+        toCopy = short;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(toCopy);
+    } catch {
+      navigator.clipboard.writeText(mfUrl);
+    }
     setIsUrlCopied(true);
     setTimeout(() => setIsUrlCopied(false), 2000);
   };
@@ -210,19 +319,27 @@ export const PublishPopover = ({
               </span>
               <div className="border-border-subtle bg-bg-main flex items-center gap-1 rounded-lg border px-3 py-2">
                 <a
-                  href={finalUrl}
+                  href={shortUrl ?? finalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  title={mfUrl}
                   className="text-primary flex-1 truncate font-mono text-xs hover:underline"
                 >
-                  {mfUrl}
+                  {shortUrl ?? displayMfUrl}
                 </a>
                 <button
                   type="button"
                   onClick={copyMfUrl}
-                  className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors"
+                  disabled={isShortening}
+                  className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors disabled:opacity-50"
                 >
-                  {isUrlCopied ? <Check size={15} /> : <Copy size={15} />}
+                  {isShortening ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : isUrlCopied ? (
+                    <Check size={15} />
+                  ) : (
+                    <Copy size={15} />
+                  )}
                 </button>
               </div>
             </div>
