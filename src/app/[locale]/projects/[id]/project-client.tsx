@@ -20,6 +20,7 @@ import { ErrorBoundary, Select, SelectContent, SelectItem, SelectTrigger, Select
 import { usePathname, useSearchParams } from "next/navigation"
 import { useChatStore } from "@/entities/chat"
 import { cn } from "@/shared/lib/utils/cn"
+import { queryClient } from "@/shared/api/query-client"
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -122,6 +123,10 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setApiKey(null)
     setActiveProjectTab(null)
 
+    // Drop all cached queries so we don't flash data from the previous project
+    // (e.g. github integration status, pricing, resources, microfrontends).
+    queryClient.clear()
+
     setIsLoading(true);
     setProjectInfo(null);
     // Fetch project details and files
@@ -134,7 +139,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
         // Save API key for dashboard requests
         if (projectData.api_key) {
-          setApiKey(projectData.api_key)
+          setApiKey(projectData.api_key, projectId)
         } else {
           setApiKey(null)
         }

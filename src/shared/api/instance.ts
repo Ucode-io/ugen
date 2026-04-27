@@ -37,21 +37,62 @@ export const githubApi = axios.create({
   },
 })
 
-const isOnProjectPage = () =>
-  typeof window !== 'undefined' && /\/projects\/[^/]+/.test(window.location.pathname)
+const getProjectIdFromUrl = (): string | null => {
+  if (typeof window === 'undefined') return null
+  const match = window.location.pathname.match(/\/projects\/([^/?#]+)/)
+  return match ? match[1] : null
+}
+
+// These endpoints always use Bearer token even on the project page
+const BEARER_ONLY_ENDPOINTS = [
+  /^\/v1\/ai-chat(\/|$)/,
+  /^\/v1\/mcp_project(\/|$)/,
+]
+
+const requiresBearerToken = (url: string = '') => {
+  const path = url.startsWith('http') ? new URL(url).pathname : url
+  return BEARER_ONLY_ENDPOINTS.some((pattern) => pattern.test(path))
+}
+
+// Wait until apiKey matches the current URL project id (or timeout).
+// Prevents race where requests fire before `/v1/mcp_project/:id` response
+// populates the project-scoped api key.
+const waitForMatchingApiKey = async (urlProjectId: string, timeoutMs = 5000): Promise<string | null> => {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const { apiKey, apiKeyProjectId } = useAuthStore.getState()
+    if (apiKey && apiKeyProjectId === urlProjectId) return apiKey
+    await new Promise((r) => setTimeout(r, 30))
+  }
+  const { apiKey, apiKeyProjectId } = useAuthStore.getState()
+  return apiKey && apiKeyProjectId === urlProjectId ? apiKey : null
+}
 
 // Request interceptor: inject token for main API
 api.interceptors.request.use(
-  (config) => {
-    const state = useAuthStore.getState()
-    const token = state.accessToken
-    const apiKey = state.apiKey
+  async (config) => {
+    if (config.headers?.['Authorization']) return config
 
-    if (apiKey && state.activeProjectTab === 'dashboard' && isOnProjectPage() && config.headers && !config.headers['Authorization']) {
+    const urlProjectId = getProjectIdFromUrl()
+
+    // On project page: non-bearer-only endpoints MUST use API-KEY. Never fall back to Bearer.
+    if (urlProjectId && !requiresBearerToken(config.url)) {
+      const apiKey = await waitForMatchingApiKey(urlProjectId)
+      if (!apiKey) {
+        const err: any = new Error(`API key unavailable for project ${urlProjectId}`)
+        err.config = config
+        err.code = 'ERR_NO_API_KEY'
+        throw err
+      }
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
-    } else if (token && config.headers && !config.headers['Authorization']) {
-      config.headers.Authorization = `Bearer ${token}`
+      return config
+    }
+
+    // Bearer-only endpoints OR outside project page
+    const token = useAuthStore.getState().accessToken
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
     }
 
     return config
@@ -60,18 +101,14 @@ api.interceptors.request.use(
 )
 
 
-// Request interceptor: inject token for auth API (optional, if auth requires token)
+// Request interceptor: auth API always uses Bearer token (refresh, login, etc.)
 authApi.interceptors.request.use(
   (config) => {
-    const state = useAuthStore.getState()
-    const token = state.accessToken
-    const apiKey = state.apiKey
+    if (config.headers?.['Authorization']) return config
 
-    if (apiKey && state.activeProjectTab === 'dashboard' && isOnProjectPage() && config.headers && !config.headers['Authorization']) {
-      config.headers['Authorization'] = 'API-KEY'
-      config.headers['x-api-key'] = apiKey
-    } else if (token && config.headers && !config.headers['Authorization']) {
-      config.headers.Authorization = `Bearer ${token}`
+    const token = useAuthStore.getState().accessToken
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
     }
 
     return config
@@ -79,18 +116,28 @@ authApi.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Request interceptor: inject API-KEY for GitHub API (no 401 retry — 401 means reconnect needed)
+// Request interceptor: GitHub API always uses API-KEY on project page, never Bearer fallback.
 githubApi.interceptors.request.use(
-  (config) => {
-    const state = useAuthStore.getState()
-    const apiKey = state.apiKey
-    const token = state.accessToken
+  async (config) => {
+    if (config.headers?.['Authorization']) return config
 
-    if (apiKey && config.headers && !config.headers['Authorization']) {
+    const urlProjectId = getProjectIdFromUrl()
+    if (urlProjectId) {
+      const apiKey = await waitForMatchingApiKey(urlProjectId)
+      if (!apiKey) {
+        const err: any = new Error(`API key unavailable for project ${urlProjectId}`)
+        err.config = config
+        err.code = 'ERR_NO_API_KEY'
+        throw err
+      }
       config.headers['Authorization'] = 'API-KEY'
       config.headers['x-api-key'] = apiKey
-    } else if (token && config.headers && !config.headers['Authorization']) {
-      config.headers.Authorization = `Bearer ${token}`
+      return config
+    }
+
+    const token = useAuthStore.getState().accessToken
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
     }
     return config
   },
