@@ -3,6 +3,7 @@ import { Link } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import { File } from "lucide-react"
 import { useProjectsList } from "@/entities/project";
+import { useAuthStore } from "@/entities/session";
 
 interface RecentsNavProps {
   isCollapsed: boolean;
@@ -11,11 +12,15 @@ interface RecentsNavProps {
 export const RecentsNav = ({ isCollapsed }: RecentsNavProps) => {
   const tNav = useTranslations('Navigation')
   const tWidgets = useTranslations('widgets.sidebar')
-  const { data: projectsResponse, isLoading } = useProjectsList({
-    order_by: "updated_at",
-    order_direction: "desc",
-    limit: 4,
-  });
+  const isUgen = useAuthStore((s) => s.project?.is_ugen ?? false)
+  const { data: projectsResponse, isLoading } = useProjectsList(
+    {
+      order_by: "updated_at",
+      order_direction: "desc",
+      limit: 4,
+    },
+    { enabled: isUgen }
+  );
 
   const rawData =
     projectsResponse?.response || projectsResponse?.data || projectsResponse;
@@ -27,6 +32,8 @@ export const RecentsNav = ({ isCollapsed }: RecentsNavProps) => {
     id: p.id,
     name: p.name || p.title || tWidgets("untitledProject"),
   }));
+
+  if (!isUgen) return null;
 
   return (
     <div>

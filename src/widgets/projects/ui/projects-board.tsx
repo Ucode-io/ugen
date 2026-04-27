@@ -84,7 +84,7 @@ export const ProjectsBoard = () => {
 
   const { data: projectsResponse, isLoading: isProjectsLoading } =
     useProjectsList(fetchParams, {
-      enabled: !!shouldFetchProjects && !useCompanyLogic,
+      enabled: !!shouldFetchProjects && !useCompanyLogic && isUgen,
     });
 
   const { data: companyProjectsData, isLoading: isCompanyProjectsLoading } =

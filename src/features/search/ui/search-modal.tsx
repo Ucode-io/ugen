@@ -4,6 +4,7 @@ import { Search, X, Folder, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useProjectsList } from "@/entities/project"
+import { useAuthStore } from "@/entities/session"
 import { useDebounce } from "@/shared/hooks/useDebounce"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 
@@ -17,6 +18,7 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
   const router = useRouter()
+  const isUgen = useAuthStore((s) => s.project?.is_ugen ?? false)
 
   // Clear search on open/close
   useEffect(() => {
@@ -32,7 +34,8 @@ export const SearchModal = ({ isOpen, onOpenChange }: SearchModalProps) => {
       order_by: "updated_at",
       order_direction: "desc",
       limit: 10,
-    } : {} as any
+    } : {} as any,
+    { enabled: isOpen && isUgen }
   )
 
   const rawData = projectsResponse?.response || projectsResponse?.data || projectsResponse

@@ -4,6 +4,7 @@ import { MoreHorizontal, Trash2, Edit, MoveRight, FolderMinus } from "lucide-rea
 import * as Dialog from "@radix-ui/react-dialog"
 import { useDeleteProject, useUpdateProject } from "@/entities/project"
 import { useProjectFolders, useCreateProjectFolder, useDeleteProjectFolder, ProjectFolder } from "@/entities/project-folder"
+import { useAuthStore } from "@/entities/session"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 
@@ -31,10 +32,12 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
 
   const queryClient = useQueryClient()
 
+  const isUgen = useAuthStore((s) => s.project?.is_ugen ?? false)
+
   const deleteProject = useDeleteProject()
   const updateProject = useUpdateProject()
 
-  const { data: allFoldersData } = useProjectFolders()
+  const { data: allFoldersData } = useProjectFolders(undefined, undefined, isUgen)
   const createFolder = useCreateProjectFolder()
   const deleteFolder = useDeleteProjectFolder()
 

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from "react"
-import { Settings, ChevronDown, Loader2 } from "lucide-react"
+import { Settings, ChevronDown, Loader2, Lock } from "lucide-react"
 import { useUserProjects, UserCompany, useSwitchProject } from "@/entities/project"
 import { useAuthStore } from "@/entities/session"
 import { useRouter } from "@/shared/lib/i18n/navigation"
@@ -41,10 +41,17 @@ export const ProjectDropdown = ({
 }: ProjectPopupProps) => {
   const t = useTranslations('widgets.sidebar')
   const { data: companies = [], isLoading: isCompaniesLoading } = useUserProjects()
-  const { refreshToken, user, switchProjectAuth } = useAuthStore()
+  const { refreshToken, user, switchProjectAuth, activeCompanyId } = useAuthStore()
   const { mutateAsync: switchProject } = useSwitchProject()
   const router = useRouter()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+
+  const currentCompanyId = activeCompanyId ?? user?.company_id ?? null
+  const currentCompany = companies.find((c) => c.id === currentCompanyId)
+  const displayName = currentCompany?.name || project?.title || t("myWorkspace")
+  const displayInitial = currentCompany?.name
+    ? getInitial(currentCompany.name)
+    : projectInitial
 
   const handleSelectCompany = async (company: UserCompany) => {
     const firstProject = company.projects[0]
@@ -99,12 +106,12 @@ export const ProjectDropdown = ({
             isCollapsed ? "h-7 w-7 text-xs" : "h-5 w-5 text-[10px]"
           }`}
         >
-          {projectInitial}
+          {displayInitial}
         </div>
         {!isCollapsed && (
           <>
             <span className="text-text-main flex-1 truncate text-left text-sm whitespace-nowrap">
-              {project?.title || t("myWorkspace")}
+              {displayName}
             </span>
             <ChevronDown
               size={14}
@@ -159,6 +166,9 @@ export const ProjectDropdown = ({
                   <CompanyLogo logo={company.logo} title={company.name} />
                 </div>
                 <span className="flex-1 truncate text-sm">{company.name}</span>
+                {company.id !== user?.company_id && (
+                  <Lock size={12} className="text-text-muted shrink-0" />
+                )}
                 {switchingId === company.id && (
                   <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
                 )}
