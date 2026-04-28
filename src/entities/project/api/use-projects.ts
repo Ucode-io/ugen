@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/shared/api'
+import { api, githubApi } from '@/shared/api'
+import { useAuthStore } from '@/entities/session'
 
 export interface UserProject {
   id: string
@@ -137,5 +138,26 @@ export const useDeleteProject = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     }
+  })
+}
+
+export const useCreateCompany = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const token = useAuthStore.getState().accessToken
+      const { data } = await githubApi.post(
+        '/v1/company',
+        { name },
+        {
+          params: { is_ugen: true },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      return data?.data ?? data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-projects'] })
+    },
   })
 }

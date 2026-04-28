@@ -283,7 +283,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
       cell: ({ row }) => (
         row.original.url ? (
           <a
-            href={row.original.url}
+            href={`https://${row.original.url}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
@@ -455,6 +455,16 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               />
             </div>
             <div className="space-y-1.5">
+              <label className="text-sm font-medium text-text-main">Path / URL</label>
+              <Input
+                placeholder="Repository path"
+                value={createForm.path}
+                onChange={(e) => setCreateForm(p => ({ ...p, path: e.target.value }))}
+                className="bg-bg-sidebar border-border-subtle"
+              />
+            </div>
+            {/*
+            <div className="space-y-1.5">
               <label className="text-sm font-medium text-text-main">Framework</label>
               <Select
                 value={createForm.framework_type}
@@ -487,21 +497,30 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Path / URL</label>
-              <Input
-                placeholder="Repository path"
-                value={createForm.path}
-                onChange={(e) => setCreateForm(p => ({ ...p, path: e.target.value }))}
-                className="bg-bg-sidebar border-border-subtle"
-              />
-            </div>
+            */}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle/50">
               <Button variant="ghost" onClick={() => setView('list')} className="rounded-xl px-4">Cancel</Button>
               <Button
                 disabled={!createForm.name || createMutation.isPending || createWebhookMutation.isPending}
-                onClick={handleCreateSubmit}
+                onClick={() => {
+                  const formData = {
+                    ...createForm,
+                    framework_type: 'REACT',
+                    resource_id: gitResources[0]?.value || 'ucode_gitlab'
+                  }
+                  const selectedResource = gitResources.find(r => r.value === formData.resource_id)
+                  if (!selectedResource || selectedResource.value === 'ucode_gitlab') {
+                    createMutation.mutate(formData)
+                  } else {
+                    createWebhookMutation.mutate({
+                      ...formData,
+                      github_token: selectedResource.token ?? '',
+                      username: selectedResource.username ?? '',
+                      type: 'MICRO_FRONTEND',
+                    })
+                  }
+                }}
                 className="bg-primary hover:bg-primary/90 text-white rounded-xl px-8 shadow-sm"
               >
                 {(createMutation.isPending || createWebhookMutation.isPending) && <Loader2 size={16} className="animate-spin mr-2" />}

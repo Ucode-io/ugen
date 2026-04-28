@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, X, Download, RefreshCw, Check, ShieldOff } from 'lucide-react'
+import { Pencil, Trash2, X, Check, ShieldOff } from 'lucide-react'
 import {
   useDatabaseStore,
   useTableSchemaV2,
@@ -153,7 +153,7 @@ const DeleteConfirmDialog = ({ fieldName, isLoading, onConfirm, onCancel }: Dele
 // CSV export
 // ─────────────────────────────────────────────────────────────────────────────
 
-function exportSchemaToCSV(tableName: string, columns: SchemaColumn[]) {
+export function exportSchemaToCSV(tableName: string, columns: SchemaColumn[]) {
   const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`
   const headers = ['Name', 'Type', 'Nullable', 'Constraints', 'Default']
   const rows = columns.map(col => [
@@ -415,11 +415,16 @@ const FieldRow = ({
 // Main SchemaView
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const SchemaView = () => {
+interface SchemaViewProps {
+  isAddingField: boolean
+  setIsAddingField: (v: boolean) => void
+}
+
+export const SchemaView = ({ isAddingField, setIsAddingField }: SchemaViewProps) => {
   const { selectedTable } = useDatabaseStore()
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
 
-  const { data: columns = [], isLoading, refetch } = useTableSchemaV2(
+  const { data: columns = [], isLoading } = useTableSchemaV2(
     selectedTable,
     ucodeProjectId || ''
   )
@@ -427,7 +432,6 @@ export const SchemaView = () => {
   const updateFieldMutation = useUpdateSchemaField()
   const deleteFieldMutation = useDeleteSchemaField()
 
-  const [isAddingField, setIsAddingField] = useState(false)
   const [editingName, setEditingName] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
 
@@ -499,47 +503,6 @@ export const SchemaView = () => {
   return (
     <>
       <div className="flex flex-col h-full overflow-hidden">
-
-        {/* ── Toolbar ── */}
-        <div className="flex items-center gap-2 px-4 py-[10px] border-b border-border-subtle bg-bg-main/50 shrink-0">
-          <svg className="text-primary shrink-0" width="13" height="13" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M3 9h18M3 15h18M9 3v18" />
-          </svg>
-          <span className="text-[14px] font-semibold text-text-main">{selectedTable}</span>
-          <span className="text-[12px] text-text-muted/60">{columns.length} fields</span>
-          <span className="flex-1" />
-
-          <button
-            onClick={() => { setIsAddingField(v => !v); setEditingName(null) }}
-            className={cn(
-              'flex items-center gap-1.5 px-2.5 py-[5px] rounded border text-[12px] font-medium transition-colors',
-              isAddingField
-                ? 'bg-primary/10 border-primary/30 text-primary'
-                : 'border-border-subtle bg-bg-card text-text-muted hover:text-text-main hover:border-border-main'
-            )}
-          >
-            <Plus size={12} /> Add Field
-          </button>
-
-          <div className="h-5 w-px bg-border-subtle/60 mx-0.5" />
-
-          <button
-            onClick={() => exportSchemaToCSV(selectedTable, columns)}
-            className="flex items-center gap-1.5 px-2.5 py-[5px] rounded border border-border-subtle bg-bg-card text-[12px] font-medium text-text-muted hover:text-text-main hover:border-border-main transition-colors"
-          >
-            <Download size={12} /> Export DDL
-          </button>
-
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-2.5 py-[5px] rounded border border-border-subtle bg-bg-card text-[12px] font-medium text-text-muted hover:text-text-main hover:border-border-main transition-colors"
-          >
-            <RefreshCw size={12} className={cn(isLoading && 'animate-spin')} /> Refresh
-          </button>
-        </div>
-
         {/* ── Fields list ── */}
         <div className="flex-1 overflow-y-auto">
           <div className="px-4 py-[10px] text-[10px] font-semibold uppercase tracking-[0.6px] text-text-muted/50 bg-bg-card border-b border-border-subtle sticky top-0 z-10">

@@ -385,6 +385,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                 className="bg-bg-sidebar border-border-subtle"
               />
             </div>
+            {/*
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-text-main">Type</label>
@@ -432,12 +433,21 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                 </SelectContent>
               </Select>
             </div>
+            */}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle/50">
               <Button variant="ghost" onClick={() => setView('list')} className="rounded-xl px-4">Cancel</Button>
               <Button
                 disabled={!createForm.name || createMutation.isPending}
-                onClick={() => createMutation.mutate(createForm)}
+                onClick={() => {
+                  const formData = {
+                    ...createForm,
+                    type: 'WORKFLOW',
+                    max_scale: 1,
+                    resource_id: gitResources[0]?.value || ''
+                  }
+                  createMutation.mutate(formData)
+                }}
                 className="bg-primary hover:bg-primary/90 text-white rounded-xl px-8 shadow-sm"
               >
                 {createMutation.isPending && <Loader2 size={16} className="animate-spin mr-2" />}

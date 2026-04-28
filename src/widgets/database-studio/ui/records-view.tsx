@@ -20,12 +20,13 @@ import {
   LayoutList,
   GitFork
 } from 'lucide-react'
-import { SchemaView } from './schema-view'
+import { SchemaView, exportSchemaToCSV } from './schema-view'
 import { toast } from 'sonner'
 import {
   useDatabaseStore,
   useTableRecords,
   useTableDetail,
+  useTableSchemaV2,
   useAddRecord,
   useUpdateRecord,
   Column
@@ -52,6 +53,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
   const { selectedTable, setCurrentView, resetToTables, setFilters } = useDatabaseStore()
   const { data: tableDetail, isLoading: isDetailLoading } = useTableDetail(selectedTable, ucodeProjectId || "")
+  const { data: schemaColumns = [], isLoading: isSchemaColumnsLoading, refetch: refetchSchema } = useTableSchemaV2(selectedTable, ucodeProjectId || "")
   const [filterQuery, setFilterQuery] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
@@ -62,6 +64,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
   const [offset, setOffset] = useState(0)
 
   const [isInlineAdding, setIsInlineAdding] = useState(false)
+  const [isAddingField, setIsAddingField] = useState(false)
   const [inlineRowData, setInlineRowData] = useState<Record<string, any>>({})
   const [editingCell, setEditingCell] = useState<{ id: string; key: string } | null>(null)
   const [editValue, setEditValue] = useState<any>(null)
@@ -415,7 +418,12 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
   useEffect(() => {
     // Reset column selection whenever the user switches to a different table
     setSelectedColumns([])
+    setIsAddingField(false)
   }, [selectedTable])
+
+  useEffect(() => {
+    if (activeTab !== 'schema') setIsAddingField(false)
+  }, [activeTab])
 
   if (!selectedTable) {
     return (
@@ -479,212 +487,250 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
             </button>
           </div>
 
-          {isInlineAdding ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                className="px-2.5 py-1.5 text-[11px] font-medium gap-1.5 bg-primary hover:bg-primary/90 text-white"
-                onClick={handleSaveInline}
-                loading={addRecordMutation.isPending}
-              >
-                <Save size={14} />
-                Save changes
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="px-2.5 py-1.5 text-[11px] font-medium gap-1.5 border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg shadow-none"
+          {activeTab === 'records' && (
+            <>
+              {isInlineAdding ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="px-2.5 py-1.5 text-[11px] font-medium gap-1.5 bg-primary hover:bg-primary/90 text-white"
+                    onClick={handleSaveInline}
+                    loading={addRecordMutation.isPending}
+                  >
+                    <Save size={14} />
+                    Save changes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-2.5 py-1.5 text-[11px] font-medium gap-1.5 border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg shadow-none"
+                    onClick={() => {
+                      setIsInlineAdding(false)
+                      setInlineRowData({})
+                    }}
+                  >
+                    <Ban size={14} />
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsInlineAdding(true)
+                    setInlineRowData({})
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+                >
+                  <Plus size={14} />
+                  {t('records.addRow')}
+                </button>
+              )}
+
+              <button
                 onClick={() => {
-                  setIsInlineAdding(false)
-                  setInlineRowData({})
+                  if (!isFilterOpen && localFilters.length === 0) {
+                    const defaultCol = schema?.[0]?.slug || '';
+                    setLocalFilters([{ id: Math.random().toString(36).substring(7), column: defaultCol, operator: 'eq', value: '' }])
+                  }
+                  setIsFilterOpen(!isFilterOpen)
                 }}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors",
+                  isFilterOpen
+                    ? "bg-primary/10 border-primary/30 text-primary"
+                    : "border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg"
+                )}
               >
-                <Ban size={14} />
-                Cancel
-              </Button>
+                <Filter size={14} />
+                {t('records.filter')}
+              </button>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors">
+                    <SlidersHorizontal size={14} />
+                    Columns
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-0 bg-bg-card border-border-subtle shadow-md rounded-md" align="start">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
+                    <span className="text-xs font-medium text-text-main">Toggle columns</span>
+                    <button
+                      onClick={() => setSelectedColumns([])}
+                      className="text-[11px] text-text-muted hover:text-text-main"
+                    >
+                      Deselect all
+                    </button>
+                  </div>
+                  <div className="p-1 max-h-[300px] overflow-y-auto">
+                    {allColumns.map(col => {
+                      const isSelected = selectedColumns.includes(col);
+                      return (
+                        <div
+                          key={col}
+                          className="flex items-center gap-2 px-2 py-1.5 hover:bg-hover-bg rounded-sm cursor-pointer text-xs group"
+                          onClick={() => {
+                            setSelectedColumns(prev =>
+                              isSelected ? prev.filter(c => c !== col) : [...prev, col]
+                            )
+                          }}
+                        >
+                          <div className="w-4 h-4 flex items-center justify-center shrink-0">
+                            {isSelected && <Check size={14} className="text-primary" />}
+                          </div>
+                          <span className="text-text-main group-hover:text-text-main transition-colors truncate">{col}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
+        </div>
+
+        {activeTab === 'schema' && (
+          <div className="flex items-center gap-2 shrink-0 ml-4">
+            <div className="flex items-center gap-1.5 px-1 text-[11px] font-medium text-text-muted/60">
+              <span>{schemaColumns.length}</span>
+              <span>fields</span>
             </div>
-          ) : (
             <button
-              onClick={() => {
-                setIsInlineAdding(true)
-                setInlineRowData({})
-              }}
+              onClick={() => setIsAddingField(!isAddingField)}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors',
+                isAddingField
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg'
+              )}
+            >
+              <Plus size={14} /> Add field
+            </button>
+            <button
+              onClick={() => exportSchemaToCSV(selectedTable || '', schemaColumns)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
             >
-              <Plus size={14} />
-              {t('records.addRow')}
+              <Download size={14} /> Export DDL
             </button>
-          )}
-
-          <button
-            onClick={() => {
-              if (!isFilterOpen && localFilters.length === 0) {
-                const defaultCol = schema?.[0]?.slug || '';
-                setLocalFilters([{ id: Math.random().toString(36).substring(7), column: defaultCol, operator: 'eq', value: '' }])
-              }
-              setIsFilterOpen(!isFilterOpen)
-            }}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors",
-              isFilterOpen
-                ? "bg-primary/10 border-primary/30 text-primary"
-                : "border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg"
-            )}
-          >
-            <Filter size={14} />
-            {t('records.filter')}
-          </button>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors">
-                <SlidersHorizontal size={14} />
-                Columns
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-0 bg-bg-card border-border-subtle shadow-md rounded-md" align="start">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
-                <span className="text-xs font-medium text-text-main">Toggle columns</span>
-                <button
-                  onClick={() => setSelectedColumns([])}
-                  className="text-[11px] text-text-muted hover:text-text-main"
-                >
-                  Deselect all
-                </button>
-              </div>
-              <div className="p-1 max-h-[300px] overflow-y-auto">
-                {allColumns.map(col => {
-                  const isSelected = selectedColumns.includes(col);
-                  return (
-                    <div
-                      key={col}
-                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-hover-bg rounded-sm cursor-pointer text-xs group"
-                      onClick={() => {
-                        setSelectedColumns(prev =>
-                          isSelected ? prev.filter(c => c !== col) : [...prev, col]
-                        )
-                      }}
-                    >
-                      <div className="w-4 h-4 flex items-center justify-center shrink-0">
-                        {isSelected && <Check size={14} className="text-primary" />}
-                      </div>
-                      <span className="text-text-main group-hover:text-text-main transition-colors truncate">{col}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0 ml-4">
-          {/* <div className="h-4 w-px bg-border-subtle/50 mx-1" /> */}
-          <div className="ml-auto flex items-center gap-1.5 px-1 text-[11px] font-medium text-text-muted/60">
-            <span>{records.length}</span>
-            <span>rows</span>
-            <span className="opacity-40">•</span>
-            <span>{fetchDuration}ms</span>
-          </div>
-          <div className="flex items-center h-8 rounded-md border border-border-subtle bg-bg-main overflow-hidden text-[11px] font-medium text-text-muted shadow-sm hover:border-border-main transition-colors">
             <button
-              className="h-full px-2 border-r border-border-subtle hover:bg-hover-bg hover:text-text-main disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-              disabled={offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - limit))}
-              title="Previous Page"
+              onClick={() => refetchSchema()}
+              className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
+              title="Refresh"
             >
-              <ChevronLeft size={14} />
-            </button>
-            <div className="flex items-center border-r border-border-subtle bg-bg-card/50 px-2 h-full gap-1">
-              {/* <span className="text-[10px] text-text-muted uppercase opacity-40 font-bold tracking-tighter">{t('records.limit')}</span> */}
-              <input
-                type="text"
-                value={tempLimit}
-                onChange={(e) => setTempLimit(e.target.value)}
-                onBlur={handleLimitBlur}
-                onKeyDown={(e) => e.key === 'Enter' && handleLimitBlur()}
-                className="w-8 bg-transparent text-center outline-none text-text-main font-mono focus:text-primary transition-colors"
-                title="Rows per page"
-              />
-            </div>
-            <div className="flex items-center border-r border-border-subtle bg-bg-card/50 px-2 h-full gap-1">
-              {/* <span className="text-[10px] text-text-muted uppercase opacity-40 font-bold tracking-tighter">{t('records.page')}</span> */}
-              <input
-                type="text"
-                value={tempPage}
-                onChange={(e) => setTempPage(e.target.value)}
-                onBlur={handlePageBlur}
-                onKeyDown={(e) => e.key === 'Enter' && handlePageBlur()}
-                className="w-8 bg-transparent text-center outline-none text-text-main font-mono focus:text-primary transition-colors"
-                title="Current page"
-              />
-            </div>
-            <button
-              className="h-full px-2 hover:bg-hover-bg hover:text-text-main disabled:opacity-50 transition-colors shrink-0"
-              disabled={!records || records.length < limit}
-              onClick={() => setOffset(offset + limit)}
-              title="Next Page"
-            >
-              <ChevronRight size={14} />
+              <RefreshCw size={14} className={cn(isSchemaColumnsLoading && 'animate-spin')} />
             </button>
           </div>
+        )}
 
-          <button
-            onClick={() => refetch()}
-            className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
-            title="Refresh"
-          >
-            <RefreshCw size={14} className={cn(isRecordsLoading && "animate-spin")} />
-          </button>
-
-          <Popover>
-            <PopoverTrigger asChild>
+        {activeTab === 'records' && (
+          <div className="flex items-center gap-3 shrink-0 ml-4">
+            <div className="ml-auto flex items-center gap-1.5 px-1 text-[11px] font-medium text-text-muted/60">
+              <span>{records.length}</span>
+              <span>rows</span>
+              <span className="opacity-40">•</span>
+              <span>{fetchDuration}ms</span>
+            </div>
+            <div className="flex items-center h-8 rounded-md border border-border-subtle bg-bg-main overflow-hidden text-[11px] font-medium text-text-muted shadow-sm hover:border-border-main transition-colors">
               <button
-                className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
-                title="Options"
+                className="h-full px-2 border-r border-border-subtle hover:bg-hover-bg hover:text-text-main disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                disabled={offset === 0}
+                onClick={() => setOffset(Math.max(0, offset - limit))}
+                title="Previous Page"
               >
-                <MoreHorizontal size={14} />
+                <ChevronLeft size={14} />
               </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-[180px] p-1 bg-bg-card border-border-subtle shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95 duration-200">
-              <div className="flex flex-col gap-0.5">
-                <button
-                  onClick={() => refetch()}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
-                >
-                  <RefreshCw size={14} className={cn("text-text-muted group-hover:text-primary transition-colors", isRecordsLoading && "animate-spin")} />
-                  Refresh rows
-                </button>
-                <div className="h-px bg-border-subtle my-1 mx-1" />
-                <button
-                  onClick={() => handleExport('json')}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
-                >
-                  <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
-                  Export all to .json
-                </button>
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
-                >
-                  <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
-                  Export all to .csv
-                </button>
-                <button
-                  onClick={() => handleExport('xlsx')}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
-                >
-                  <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
-                  Export all to .xlsx
-                </button>
+              <div className="flex items-center border-r border-border-subtle bg-bg-card/50 px-2 h-full gap-1">
+                <input
+                  type="text"
+                  value={tempLimit}
+                  onChange={(e) => setTempLimit(e.target.value)}
+                  onBlur={handleLimitBlur}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLimitBlur()}
+                  className="w-8 bg-transparent text-center outline-none text-text-main font-mono focus:text-primary transition-colors"
+                  title="Rows per page"
+                />
               </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+              <div className="flex items-center border-r border-border-subtle bg-bg-card/50 px-2 h-full gap-1">
+                <input
+                  type="text"
+                  value={tempPage}
+                  onChange={(e) => setTempPage(e.target.value)}
+                  onBlur={handlePageBlur}
+                  onKeyDown={(e) => e.key === 'Enter' && handlePageBlur()}
+                  className="w-8 bg-transparent text-center outline-none text-text-main font-mono focus:text-primary transition-colors"
+                  title="Current page"
+                />
+              </div>
+              <button
+                className="h-full px-2 hover:bg-hover-bg hover:text-text-main disabled:opacity-50 transition-colors shrink-0"
+                disabled={!records || records.length < limit}
+                onClick={() => setOffset(offset + limit)}
+                title="Next Page"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            <button
+              onClick={() => refetch()}
+              className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
+              title="Refresh"
+            >
+              <RefreshCw size={14} className={cn(isRecordsLoading && "animate-spin")} />
+            </button>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
+                  title="Options"
+                >
+                  <MoreHorizontal size={14} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[180px] p-1 bg-bg-card border-border-subtle shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95 duration-200">
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() => refetch()}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                  >
+                    <RefreshCw size={14} className={cn("text-text-muted group-hover:text-primary transition-colors", isRecordsLoading && "animate-spin")} />
+                    Refresh rows
+                  </button>
+                  <div className="h-px bg-border-subtle my-1 mx-1" />
+                  <button
+                    onClick={() => handleExport('json')}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                  >
+                    <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                    Export all to .json
+                  </button>
+                  <button
+                    onClick={() => handleExport('csv')}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                  >
+                    <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                    Export all to .csv
+                  </button>
+                  <button
+                    onClick={() => handleExport('xlsx')}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                  >
+                    <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                    Export all to .xlsx
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
       </div>
 
       {/* Schema tab renders full SchemaView, bypassing records UI */}
-      {activeTab === 'schema' && <SchemaView />}
+      {activeTab === 'schema' && (
+        <SchemaView isAddingField={isAddingField} setIsAddingField={setIsAddingField} />
+      )}
 
       {activeTab === 'records' && isFilterOpen && (
         <div className={cn("p-3 bg-bg-main/30 border-b border-border-subtle flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-200 shrink-0", localFilters.length > 0 ? "items-start" : "items-center self-stretch")}>

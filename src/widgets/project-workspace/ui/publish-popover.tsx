@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useParams } from "next/navigation";
 import {
   Copy,
   Check,
@@ -40,10 +41,11 @@ export const PublishPopover = ({
   projectUrl,
 }: PublishPopoverProps) => {
   const t = useTranslations("features.project");
+  const params = useParams();
+  const projectId = Array.isArray(params.id) ? params.id[0] : params.id || "";
   const { project } = useAuthStore();
   const ucodeProjectId = useAuthStore((s) => s.ucodeProjectId);
   const projectEnvId = useAuthStore((s) => s.projectEnvId);
-  const projectId = project?.project_id || "";
   const companyName = project?.title || "";
 
   const [visibility, setVisibility] = useState<Visibility>("public");
@@ -64,6 +66,44 @@ export const PublishPopover = ({
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishDone, setPublishDone] = useState(false);
+  const [isLoadingVisibility, setIsLoadingVisibility] = useState(false);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
+
+  const loadVisibility = async () => {
+    if (!projectId) return
+    setIsLoadingVisibility(true)
+    try {
+      const token = useAuthStore.getState().accessToken
+      const { data } = await api.get(`/v1/mcp_project/${projectId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      })
+      const appVisibility = data?.data?.app_visibility || 'public'
+      setVisibility(appVisibility === 'private' ? 'private' : 'public')
+    } catch (err) {
+      console.error('Failed to load visibility', err)
+    } finally {
+      setIsLoadingVisibility(false)
+    }
+  }
+
+  const handleVisibilityChange = async (newVisibility: Visibility) => {
+    if (!projectId) return
+    setVisibility(newVisibility)
+    setIsUpdatingVisibility(true)
+    try {
+      const token = useAuthStore.getState().accessToken
+      await api.put(`/v1/mcp_project/${projectId}`, {
+        app_visibility: newVisibility
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      })
+    } catch (err) {
+      console.error('Failed to update visibility', err)
+      await loadVisibility()
+    } finally {
+      setIsUpdatingVisibility(false)
+    }
+  }
 
   const handlePublish = async () => {
     const repoId = activeCodeSelection?.repoId
@@ -99,6 +139,12 @@ export const PublishPopover = ({
       });
     }
   }, [roleOptions, role]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadVisibility()
+    }
+  }, [isOpen, projectId])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -401,16 +447,16 @@ export const PublishPopover = ({
                     <button
                       key={opt.value}
                       type="button"
-                      disabled={opt.disabled}
+                      disabled={opt.disabled || isUpdatingVisibility}
                       onClick={() => {
-                        if (!opt.disabled) {
-                          setVisibility(opt.value);
+                        if (!opt.disabled && !isUpdatingVisibility) {
+                          handleVisibilityChange(opt.value);
                           setDropdownOpen(false);
                         }
                       }}
                       className={[
                         "flex w-full items-center gap-2.5 rounded-lg px-3 py-[6px] text-sm transition-colors",
-                        opt.disabled
+                        opt.disabled || isUpdatingVisibility
                           ? "cursor-not-allowed"
                           : "hover:bg-hover-bg cursor-pointer",
                       ].join(" ")}

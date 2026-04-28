@@ -130,7 +130,8 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setIsLoading(true);
     setProjectInfo(null);
     // Fetch project details and files
-    api.get(`/v1/mcp_project/${projectId}`)
+    if(isUgen) {
+      api.get(`/v1/mcp_project/${projectId}`)
       .then(res => {
         const projectData = res.data?.data;
         if (!projectData) {
@@ -173,9 +174,18 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         setIsLoading(false);
         setLoadedProjectId(projectId);
       })
+    }
 
-    // Fetch additional company project info using query param API
-    api.get('/v1/company-project', { params: { 'project-id': projectId } })
+    // Fetch additional company project info using query param API.
+    // Non-ugen projects have no api_key so we must use Bearer to bypass the
+    // interceptor's waitForMatchingApiKey which would otherwise time out.
+    const companyProjectHeaders = !isUgen
+      ? { Authorization: `Bearer ${useAuthStore.getState().accessToken}` }
+      : undefined
+    api.get('/v1/company-project', {
+      params: { 'project-id': projectId },
+      headers: companyProjectHeaders,
+    })
       .then(res => {
         const info = res.data?.data;
         if (info) {
@@ -204,6 +214,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setIsMicrofrontendLoading(true)
     api.get('/v2/functions/micro-frontend', {
       params: { search: '', offset: 0, limit: 50, 'project-id': projectId },
+      headers: { Authorization: `Bearer ${useAuthStore.getState().accessToken}` },
     })
       .then(res => {
         const list: Array<{ id: string; name: string; url: string }> = res.data?.data?.functions ?? []
@@ -343,6 +354,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               projectInfo={projectInfo}
               projectId={projectId}
               onEditCode={handleEditCode}
+              isChatCollapsed={isChatCollapsed}
             />
           ) : hasNoFiles ? (
             <EmptyProjectView onStartChatting={() => setActiveTab('preview')} />

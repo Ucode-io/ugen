@@ -69,6 +69,7 @@ interface ProjectDashboardProps {
   projectInfo?: any
   projectId?: string
   onEditCode?: (target: CodeEditorTarget) => void
+  isChatCollapsed?: boolean
 }
 
 export const ProjectDashboard = ({
@@ -77,6 +78,7 @@ export const ProjectDashboard = ({
   projectInfo,
   projectId,
   onEditCode,
+  isChatCollapsed = false,
 }: ProjectDashboardProps) => {
   const router = useRouter()
   const pathname = usePathname()
@@ -216,23 +218,43 @@ export const ProjectDashboard = ({
   };
 
   return (
-    <div className="bg-bg-main relative flex h-full flex-1 overflow-hidden">
-      {/* Sidebar Component */}
-      <DashboardSidebar
-        items={navigationItems}
-        activeSection={activeSection}
-        onSelectSection={setActiveSection}
-        isCollapsed={isSidebarCollapsed}
-        expandedGroups={expandedGroups}
-        onToggleGroup={handleGroupClick}
-      />
-
-      {/* Main Content */}
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        <div className={cn("mx-auto w-full", !['database_studio', 'api_integrations'].includes(activeSection) ? "p-8" : "h-full")}>
-          <div className={cn("grid gap-6", !['database_studio', 'api_integrations'].includes(activeSection) ? '' : 'h-full')}>{renderActiveSection()}</div>
+    <div className={cn(
+      "flex-1 flex justify-center items-start h-full overflow-hidden transition-all duration-300",
+      "pr-4 pb-2",
+      isChatCollapsed ? "pl-4" : "pl-0"
+    )}>
+      <div
+        className="flex flex-col w-full h-full overflow-hidden border border-border-subtle shadow-md transition-all duration-300"
+        style={{ borderRadius: '12px' }}
+      >
+        {/* Dashboard header */}
+        <div className="h-10 shrink-0 flex items-center px-3 border-b border-border-subtle bg-bg-card gap-2">
+          <div className="flex items-center gap-1.5">
+            {activeItem?.icon && <activeItem.icon size={13} className="text-text-muted" />}
+            <span className="text-[13px] font-medium text-text-main">{activeItem?.label ?? 'Dashboard'}</span>
+          </div>
         </div>
-      </main>
+
+        {/* Content */}
+        <div className="bg-bg-main relative flex h-full flex-1 overflow-hidden">
+          {/* Sidebar Component */}
+          <DashboardSidebar
+            items={navigationItems}
+            activeSection={activeSection}
+            onSelectSection={setActiveSection}
+            isCollapsed={isSidebarCollapsed}
+            expandedGroups={expandedGroups}
+            onToggleGroup={handleGroupClick}
+          />
+
+          {/* Main Content */}
+          <main className="min-w-0 flex-1 overflow-y-auto">
+            <div className={cn("mx-auto w-full", !['database_studio', 'api_integrations'].includes(activeSection) ? "p-8" : "h-full")}>
+              <div className={cn("grid gap-6", !['database_studio', 'api_integrations'].includes(activeSection) ? '' : 'h-full')}>{renderActiveSection()}</div>
+            </div>
+          </main>
+        </div>
+      </div>
     </div>
   );
 }

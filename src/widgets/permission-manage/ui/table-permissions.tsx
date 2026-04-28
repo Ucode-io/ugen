@@ -112,6 +112,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId, control, set
   const [isScrolled, setIsScrolled] = useState(false)
 
   const tables = watch('tables') || []
+  console.log({tables})
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setIsScrolled(e.currentTarget.scrollLeft > 0)

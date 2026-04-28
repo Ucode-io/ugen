@@ -103,15 +103,39 @@ api.interceptors.request.use(
 
 // Request interceptor: auth API always uses Bearer token (refresh, login, etc.)
 authApi.interceptors.request.use(
-  (config) => {
+  async (config) => {
     if (config.headers?.['Authorization']) return config
 
+    const urlProjectId = getProjectIdFromUrl()
+
+    // On project page: non-bearer-only endpoints MUST use API-KEY. Never fall back to Bearer.
+    if (urlProjectId && !requiresBearerToken(config.url)) {
+      const apiKey = await waitForMatchingApiKey(urlProjectId)
+      if (!apiKey) {
+        const err: any = new Error(`API key unavailable for project ${urlProjectId}`)
+        err.config = config
+        err.code = 'ERR_NO_API_KEY'
+        throw err
+      }
+      config.headers['Authorization'] = 'API-KEY'
+      config.headers['x-api-key'] = apiKey
+      return config
+    }
+
+    // Bearer-only endpoints OR outside project page
     const token = useAuthStore.getState().accessToken
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
 
     return config
+
+    // const token = useAuthStore.getState().accessToken
+    // if (token) {
+    //   config.headers['Authorization'] = `Bearer ${token}`
+    // }
+
+    // return config
   },
   (error) => Promise.reject(error)
 )

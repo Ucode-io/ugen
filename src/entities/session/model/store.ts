@@ -135,7 +135,7 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           accessToken,
           refreshToken,
-          activeCompanyId: projectPatch.is_ugen ? null : (projectPatch.company_id ?? state.activeCompanyId),
+          activeCompanyId: projectPatch.company_id ?? state.activeCompanyId,
           project: state.project
             ? {
                 ...state.project,

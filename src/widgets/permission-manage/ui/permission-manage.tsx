@@ -171,27 +171,25 @@ export const PermissionManage = ({ projectId }: Props) => {
   })
 
   useEffect(() => {
-    if (permissionDetail && rootMenus && customPermissions) {
       reset({
         ...permissionDetail,
-        tables: permissionDetail.tables.map((t: any) => ({
-          ...t,
+        tables: permissionDetail?.tables?.map((t: any) => ({
+          ...(t || {}),
           automatic_filters: {
-            read: t.automatic_filters?.read || [],
-            write: t.automatic_filters?.write || [],
+            read: t?.automatic_filters?.read || [],
+            write: t?.automatic_filters?.write || [],
           },
           record_permissions: {
-            ...t.record_permissions,
-            read: t.record_permissions.read === 'Yes',
-            write: t.record_permissions.write === 'Yes',
-            update: t.record_permissions.update === 'Yes',
-            delete: t.record_permissions.delete === 'Yes',
+            ...t?.record_permissions,
+            read: t?.record_permissions?.read === 'Yes',
+            write: t?.record_permissions?.write === 'Yes',
+            update: t?.record_permissions?.update === 'Yes',
+            delete: t?.record_permissions?.delete === 'Yes',
           }
         })),
-        menus: rootMenus,
-        custom: customPermissions
+        menus: rootMenus || [],
+        custom: customPermissions || []
       })
-    }
   }, [permissionDetail, rootMenus, customPermissions, reset])
 
   const saveAllMutation = useMutation({

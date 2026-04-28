@@ -1,11 +1,12 @@
 'use client'
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Settings, ChevronDown, Loader2, Lock, Check, User } from "lucide-react"
-import { useUserProjects, UserCompany, useSwitchProject } from "@/entities/project"
+import { useUserProjects, UserCompany, useSwitchProject, useCreateCompany } from "@/entities/project"
 import { useAuthStore } from "@/entities/session"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
+import { useQueryClient } from "@tanstack/react-query"
 
 interface ProjectPopupProps {
   isCollapsed: boolean
@@ -43,8 +44,13 @@ export const ProjectDropdown = ({
   const { data: companies = [], isLoading: isCompaniesLoading } = useUserProjects()
   const { refreshToken, user, switchProjectAuth, activeCompanyId } = useAuthStore()
   const { mutateAsync: switchProject } = useSwitchProject()
+  const queryClient = useQueryClient()
   const router = useRouter()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false)
+  const [newWorkspaceName, setNewWorkspaceName] = useState('')
+  const { mutateAsync: createCompany, isPending: isCreating } = useCreateCompany()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const currentCompanyId = activeCompanyId ?? user?.company_id ?? null
   const currentCompany = companies.find((c) => c.id === currentCompanyId)
@@ -52,6 +58,19 @@ export const ProjectDropdown = ({
   const displayInitial = currentCompany?.name
     ? getInitial(currentCompany.name)
     : projectInitial
+
+  const handleCreateWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const name = newWorkspaceName.trim()
+    if (!name || isCreating) return
+    try {
+      await createCompany(name)
+      setNewWorkspaceName('')
+      setIsCreatingWorkspace(false)
+    } catch (err) {
+      console.error('Create workspace failed', err)
+    }
+  }
 
   const handleSelectCompany = async (company: UserCompany) => {
     const firstProject = company.projects[0]
@@ -85,6 +104,8 @@ export const ProjectDropdown = ({
       )
 
       setIsProjectPopupOpen(false)
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['company-projects'] })
       router.push('/projects' as any)
     } catch (err) {
       console.error('Company switch failed', err)
@@ -188,9 +209,9 @@ export const ProjectDropdown = ({
                     ) : (
                       <Lock size={12} className="text-text-muted shrink-0" />
                     )}
-                    {isCurrent && (
+                    {/* {isCurrent && (
                       <Check size={14} className="text-primary shrink-0" />
-                    )}
+                    )} */}
                     {switchingId === company.id && (
                       <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
                     )}
@@ -201,12 +222,47 @@ export const ProjectDropdown = ({
 
           {/* Footer */}
           <div className="border-border-subtle border-t p-1.5">
-            <button className="hover:bg-hover-bg text-text-main flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left">
-              <div className="border-text-muted relative flex h-5 w-5 shrink-0 items-center justify-center rounded border border-dashed">
-                <span className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] text-lg leading-none">+</span>
-              </div>
-              <span className="text-sm font-medium">{t("createWorkspace")}</span>
-            </button>
+            {isCreatingWorkspace ? (
+              <form onSubmit={handleCreateWorkspace} className="flex flex-col gap-1.5">
+                <input
+                  ref={inputRef}
+                  autoFocus
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                  placeholder={t("workspaceNamePlaceholder")}
+                  className="border-border-subtle bg-bg-sidebar text-text-main placeholder:text-text-muted w-full rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary/50"
+                  disabled={isCreating}
+                />
+                <div className="flex gap-1">
+                  <button
+                    type="submit"
+                    disabled={!newWorkspaceName.trim() || isCreating}
+                    className="bg-primary hover:bg-primary/90 flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+                  >
+                    {isCreating ? (
+                      <><Loader2 size={11} className="animate-spin" />{t("creating")}</>
+                    ) : t("createWorkspace")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsCreatingWorkspace(false); setNewWorkspaceName('') }}
+                    className="hover:bg-hover-bg text-text-muted rounded-md px-2 py-1 text-xs"
+                  >
+                    {t("cancel")}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                onClick={() => setIsCreatingWorkspace(true)}
+                className="hover:bg-hover-bg text-text-main flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left"
+              >
+                <div className="border-text-muted relative flex h-5 w-5 shrink-0 items-center justify-center rounded border border-dashed">
+                  <span className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] text-lg leading-none">+</span>
+                </div>
+                <span className="text-sm font-medium">{t("createWorkspace")}</span>
+              </button>
+            )}
           </div>
         </div>
       )}

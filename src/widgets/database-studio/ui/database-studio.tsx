@@ -45,16 +45,6 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
     setIsPannelOpen(!isPannelOpen)
   }
 
-  const renderContent = () => {
-    switch (currentView) {
-      case 'tables': return <TablesView />
-      case 'records': return <RecordsView projectId={projectId} isPannelOpen={isPannelOpen} onTogglePannel={onTogglePannel} />
-      case 'query': return <QueryView />
-      case 'sql-console': return <SqlConsole />
-      default: return <TablesView />
-    }
-  }
-
   return (
     <div className="flex flex-col h-full overflow-hidden flex-1">
       <div className="flex items-center border-b border-border-subtle bg-bg-main px-5 gap-1 shrink-0 h-10">
