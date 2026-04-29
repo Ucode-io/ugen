@@ -497,7 +497,7 @@ export const ChatInput = ({
                 className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 w-7 items-center justify-center rounded-full transition-colors"
                 title={t("input.attach", { fallback: "Attach" })}
               >
-                <Folder size={15} />
+                <Folder size={15} fill={activeCodeSelection?.kind === "new_project" ? "#3b82f6" : "currentColor"} />
               </button>
             </PopoverTrigger>
             <PopoverContent
@@ -531,7 +531,7 @@ export const ChatInput = ({
                           size={10}
                           className="text-primary shrink-0"
                         />
-                        New project
+                        New frontend
                       </span>
                       {activeCodeSelection?.kind === "new_project" && (
                         <Check size={10} className="text-primary shrink-0" />
