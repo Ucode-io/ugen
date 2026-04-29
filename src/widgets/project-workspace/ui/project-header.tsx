@@ -69,7 +69,7 @@ export const ProjectHeader = ({
 
   return (
     <header className={cn("bg-bg-main flex items-center justify-between px-4 shrink-0 z-10 transition-all duration-300", {"pl-0": !isChatCollapsed})}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-[135px]">
         {isUgen && (
           <button
             onClick={onToggleChat}
@@ -87,7 +87,7 @@ export const ProjectHeader = ({
         onTabChange={(id) => handleChangeTab(id as 'dashboard' | 'code' | 'preview')}
       />
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 min-w-[135px]">
         <GithubPopover projectId={projectId} />
         {isUgen && (
           <>

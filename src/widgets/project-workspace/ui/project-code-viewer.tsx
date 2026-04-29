@@ -32,9 +32,11 @@ import type { DropdownOption } from "./editor-dropdown";
 export const ProjectCodeViewer = ({
   projectId,
   getLanguageByPath,
+  versionFiles,
 }: {
   projectId: string;
   getLanguageByPath: (path: string) => string;
+  versionFiles?: { path: string; content: string }[] | null;
 }) => {
   // ── Files store ────────────────────────────────────────────────────────────
   const files = useFilesStore((state) => state.files);
@@ -616,9 +618,9 @@ export const ProjectCodeViewer = ({
       {isGitlabMode ? (
         <div className="flex-1 overflow-hidden flex">
           <CodebaseEditor
-            key={selectedValue}
-            files={codebaseFiles}
-            isLoading={isLoadingCodebase}
+            key={versionFiles ? 'version' : selectedValue}
+            files={versionFiles ?? codebaseFiles}
+            isLoading={isLoadingCodebase && !versionFiles}
             name={activeOption?.target?.name}
             branch={activeOption?.target?.branch}
             className="h-full"

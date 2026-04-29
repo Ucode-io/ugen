@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Loader2, PanelLeft, PanelRight } from "lucide-react";
+import { History, Loader2 } from "lucide-react";
 import { LogoPopover } from "./logo-popover";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
@@ -13,10 +13,9 @@ import { useAuthStore } from "@/entities/session";
 import { queryClient } from "@/shared/api/query-client";
 import React from 'react';
 import { BpmnViewer } from "@/shared/ui";
-import { bpmnXmlContnet } from "./bpmn";
-import { FlowDiagram } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
 import { useTranslations } from "next-intl";
+import { VersionHistoryPanel, VersionPreviewFile } from "@/widgets/project-workspace/ui/version-history-panel";
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -45,7 +44,12 @@ interface WorkspaceChatProps {
   projectTitle?: string
   isChatCollapsed: boolean
   isPreviewMaximized: boolean
+  isVersionHistory: boolean
   setIsChatCollapsed: (isChatCollapsed: boolean) => void
+  onToggleVersionHistory: () => void
+  onSelectVersion: (files: VersionPreviewFile[] | null) => void
+  onViewVersionCode: () => void
+  onVersionReverted: () => void | Promise<void>
   onSelectFunction?: (target: CodeEditorTarget) => void
   onSelectMicrofrontend?: (files: { path: string; content: string }[]) => void
 }
@@ -130,7 +134,7 @@ const PendingActionConfirm = ({
   )
 }
 
-export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, onSelectFunction, onSelectMicrofrontend }: WorkspaceChatProps) => {
+export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVersionHistory, onToggleVersionHistory, onSelectVersion, onViewVersionCode, onVersionReverted, onSelectFunction, onSelectMicrofrontend }: WorkspaceChatProps) => {
   const t = useTranslations('widgets.workspaceChat');
 
   const MOCK_CHAT: Message[] = [
@@ -548,25 +552,42 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, onSele
         {/* Header — logo + project title, aligned with ProjectHeader height */}
         <div className="flex items-center gap-2 px-4 py-3 shrink-0">
           <LogoPopover projectTitle={projectTitle} />
-          <span className="text-[15px] font-medium text-text-main truncate">
+          <span className="text-[15px] font-medium text-text-main truncate flex-1">
             {projectTitle}
           </span>
-          {/* <button
-            onClick={() => setChatPosition(chatPosition === "left" ? "right" : "left")}
-            className="ml-auto text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
+          <button
+            type="button"
+            onClick={onToggleVersionHistory}
+            title="Version History"
+            className={cn(
+              "flex items-center justify-center w-7 h-7 rounded-lg transition-colors shrink-0",
+              isVersionHistory
+                ? "bg-bg-sidebar text-text-muted"
+                : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+            )}
           >
-            {chatPosition === "left" ? <PanelLeft size={14} /> : <PanelRight size={14} />}
-          </button> */}
+            <History size={15} />
+          </button>
         </div>
 
         <div
           className={`flex h-full w-full flex-col overflow-hidden transition-opacity duration-300 ${isChatCollapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
         >
+          {/* Version History Panel */}
+          {isVersionHistory && (
+            <VersionHistoryPanel
+              onClose={onToggleVersionHistory}
+              onSelectCommit={onSelectVersion}
+              onViewCode={onViewVersionCode}
+              onReverted={onVersionReverted}
+            />
+          )}
+
           {/* Messages list */}
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex-1 space-y-4 overflow-y-auto py-4"
+            className={cn("flex-1 space-y-4 overflow-y-auto py-4", isVersionHistory && "hidden")}
           >
             {isLoadingHistory && (
               <div className="flex justify-center p-2">
@@ -641,7 +662,7 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, onSele
           </div>
 
           {/* Fixed bottom input container */}
-          <div className="shrink-0 bg-transparent px-4 pt-2 pb-4">
+          <div className={cn("shrink-0 bg-transparent px-4 pt-2 pb-4", isVersionHistory && "hidden")}>
             {/* Questionnaire Container (Glued to Input) */}
             {showQuestionnaire && (
               <div className="bg-bg-card border border-border-subtle border-b-0 rounded-t-[20px] p-4 flex flex-col gap-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">

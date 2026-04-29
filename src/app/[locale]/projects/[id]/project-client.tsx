@@ -52,6 +52,36 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const [device, setDevice] = useState<DeviceType>('desktop')
   const [isPreviewMaximized, setIsPreviewMaximized] = useState(false)
   const [microfrontendPreviewFiles, setMicrofrontendPreviewFiles] = useState<{ path: string; content: string }[] | null>(null)
+  const [isVersionHistory, setIsVersionHistory] = useState(false)
+  const [versionPreviewFiles, setVersionPreviewFiles] = useState<{ path: string; content: string }[] | null>(null)
+
+  const handleToggleVersionHistory = useCallback(() => {
+    setIsVersionHistory((prev) => {
+      if (prev) setVersionPreviewFiles(null)
+      return !prev
+    })
+  }, [])
+
+  const handleVersionReverted = useCallback(async () => {
+    // Drop the panel-side preview override so the viewer falls back to live codebase
+    setVersionPreviewFiles(null)
+
+    const target = useCodeSelectionStore.getState().activeCodeSelection
+    if (target?.kind !== 'microfrontend') return
+
+    try {
+      const apiKey = useAuthStore.getState().apiKey
+      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const { data } = await api.get(`/v2/function/${target.id}/codebase`, {
+        params: { 'project-id': projectId },
+        headers,
+      })
+      const files = (data?.data?.files ?? []) as { path: string; content: string }[]
+      useCodeSelectionStore.getState().setActiveCodeSelection(target, files)
+    } catch (err) {
+      console.error('Failed to refresh codebase after revert', err)
+    }
+  }, [projectId])
 
   const handleTogglePreviewMaximize = useCallback(() => {
     setIsPreviewMaximized((prev) => {
@@ -309,6 +339,11 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             onSelectFunction={handleEditCode}
             onSelectMicrofrontend={handlePreviewMicrofrontend}
             isPreviewMaximized={isPreviewMaximized}
+            isVersionHistory={isVersionHistory}
+            onToggleVersionHistory={handleToggleVersionHistory}
+            onSelectVersion={setVersionPreviewFiles}
+            onViewVersionCode={() => setActiveTab('code')}
+            onVersionReverted={handleVersionReverted}
           />
         </div>
 
@@ -342,10 +377,12 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               device={device}
               isMaximized={isPreviewMaximized}
               microfrontendFiles={microfrontendPreviewFiles}
+              versionPreviewFiles={versionPreviewFiles}
               projectId={projectId}
               onDeviceChange={setDevice}
               onToggleMaximize={handleTogglePreviewMaximize}
               isChatCollapsed={isChatCollapsed}
+              isVersionHistory={isVersionHistory}
             />
           ) : activeTab === 'dashboard' ? (
             <ProjectDashboard
@@ -359,7 +396,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           ) : hasNoFiles ? (
             <EmptyProjectView onStartChatting={() => setActiveTab('preview')} />
           ) : (
-            <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} />
+            <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} versionFiles={versionPreviewFiles} />
           )}
         </div>
       </div>

@@ -45,9 +45,11 @@ interface ProjectPreviewViewerProps {
   isMaximized?: boolean
   isChatCollapsed?: boolean
   microfrontendFiles?: { path: string; content: string }[] | null
+  versionPreviewFiles?: { path: string; content: string }[] | null
   projectId?: string
   onDeviceChange?: (device: DeviceType) => void
   onToggleMaximize?: () => void
+  isVersionHistory?: boolean
 }
 
 const getLanguageByPath = (path: string) => {
@@ -68,10 +70,12 @@ export const ProjectPreviewViewer = ({
   device = 'desktop',
   isMaximized = false,
   microfrontendFiles,
+  versionPreviewFiles,
   projectId,
   onDeviceChange,
   onToggleMaximize,
   isChatCollapsed,
+  isVersionHistory = false,
 }: ProjectPreviewViewerProps) => {
   const { isInspectMode, addSelectedElement, setInspectMode } = useVisualEditorStore()
   const { files: storeFiles } = useFilesStore()
@@ -101,8 +105,8 @@ export const ProjectPreviewViewer = ({
   })
 
   // Resolve which files to use for the preview:
-  // priority: localPreviewFiles > activeCodeFiles > microfrontendFiles > storeFiles
-  const previewSource = localPreviewFiles ?? activeCodeFiles ?? microfrontendFiles
+  // priority: versionPreviewFiles > localPreviewFiles > activeCodeFiles > microfrontendFiles > storeFiles
+  const previewSource = versionPreviewFiles ?? localPreviewFiles ?? activeCodeFiles ?? microfrontendFiles
   const files = useMemo(
     () => previewSource && previewSource.length > 0
       ? previewSource.map(f => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
@@ -309,24 +313,26 @@ export const ProjectPreviewViewer = ({
             <div className="w-px h-4 bg-border-subtle mx-0.5" />
           </>
         )}
-        <button
-          type="button"
-          onClick={() => setInspectMode(!isInspectMode)}
-          title="Visual Edit"
-          className={cn(
-            "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
-            isInspectMode
-              ? "bg-text-main text-bg-main"
-              : "text-text-muted hover:bg-hover-bg hover:text-text-main"
-          )}
-        >
-          <MousePointerClick size={13} />
-        </button>
+        {!isVersionHistory && (
+          <button
+            type="button"
+            onClick={() => setInspectMode(!isInspectMode)}
+            title="Visual Edit"
+            className={cn(
+              "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+              isInspectMode
+                ? "bg-text-main text-bg-main"
+                : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+            )}
+          >
+            <MousePointerClick size={13} />
+          </button>
+        )}
       </div>
 
       {/* Center: Microfrontend Picker */}
       <div className="flex-1 flex items-center justify-center gap-1">
-        {microfrontendsList.length > 0 && (
+        {!isVersionHistory && microfrontendsList.length > 0 && (
           <Popover open={microfrontendOpen} onOpenChange={setMicrofrontendOpen}>
             <PopoverTrigger asChild>
               <button
@@ -407,14 +413,16 @@ export const ProjectPreviewViewer = ({
           </PopoverContent>
         </Popover>
 
-        <button
-          type="button"
-          onClick={onToggleMaximize}
-          title={isMaximized ? 'Exit fullscreen' : 'Fullscreen'}
-          className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
-        >
-          {isMaximized ? <Minimize size={14} /> : <Maximize size={14} />}
-        </button>
+        {!isVersionHistory && (
+          <button
+            type="button"
+            onClick={onToggleMaximize}
+            title={isMaximized ? 'Exit fullscreen' : 'Fullscreen'}
+            className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
+          >
+            {isMaximized ? <Minimize size={14} /> : <Maximize size={14} />}
+          </button>
+        )}
       </div>
     </div>
   )
