@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/shared/api';
+import { api, githubApi } from '@/shared/api';
 import { Table, Column, TableRecord, TableDetail, SchemaColumn } from '../model/types';
 
 // Mock DB Tables
@@ -199,12 +199,46 @@ export const databaseApi = {
   },
 
   deleteTable: async (tableId: string, projectId: string): Promise<any> => {
-    return api.delete(`/v1/table/${tableId}`, {
-      params: {
-        project_id: projectId,
-        'project-id': projectId
-      }
+    return githubApi.delete(`/v1/table/${tableId}`, {
+      params: { 'project-id': projectId }
     });
+  },
+
+  createTable: async (
+    projectId: string,
+    payload: {
+      label: string;
+      slug: string;
+      description?: string;
+      menu_id?: string;
+      icon?: string;
+    }
+  ): Promise<any> => {
+    const body = {
+      show_in_menu: true,
+      fields: [],
+      menu_id: payload.menu_id ?? '',
+      summary_section: {
+        id: crypto.randomUUID(),
+        label: 'Summary',
+        fields: [],
+        icon: '',
+        order: 1,
+        column: 'SINGLE',
+        is_summary_section: true,
+      },
+      label: payload.label,
+      description: payload.description ?? '',
+      slug: payload.slug,
+      icon: payload.icon ?? '',
+      attributes: {
+        label_undefined: payload.label,
+      },
+    };
+    const { data } = await api.post('/v1/table', body, {
+      params: { 'project-id': projectId },
+    });
+    return data;
   }
 };
 
@@ -290,6 +324,28 @@ export const useDeleteTable = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['db-tables'] });
     }
+  });
+};
+
+export const useCreateTable = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      payload,
+    }: {
+      projectId: string;
+      payload: {
+        label: string;
+        slug: string;
+        description?: string;
+        menu_id?: string;
+        icon?: string;
+      };
+    }) => databaseApi.createTable(projectId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['db-tables'] });
+    },
   });
 };
 
