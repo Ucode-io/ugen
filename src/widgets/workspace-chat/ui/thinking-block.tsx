@@ -1,14 +1,83 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { ChevronDown, Brain, CheckCircle2, AlertTriangle } from "lucide-react";
+import {
+  ChevronDown,
+  Brain,
+  CheckCircle2,
+  AlertTriangle,
+  Sparkles,
+  Layout,
+  Database,
+  Columns3,
+  FolderPlus,
+  FolderOpen,
+  ListTree,
+  GitBranch,
+  Layers,
+  Palette,
+  Zap,
+  Cpu,
+  Package,
+  Code2,
+  ShieldCheck,
+  Wrench,
+  UploadCloud,
+  Upload,
+  FileCode,
+  FileEdit,
+  FilePlus,
+  Component,
+  Paintbrush,
+  ScanSearch,
+  FileDiff,
+  MousePointerClick,
+  AlertCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
+
+// ─── Icon name → Lucide component map ─────────────────────────────────────────
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  sparkles: Sparkles,
+  brain: Brain,
+  layout: Layout,
+  database: Database,
+  columns: Columns3,
+  "folder-plus": FolderPlus,
+  "folder-open": FolderOpen,
+  "list-tree": ListTree,
+  "git-branch": GitBranch,
+  layers: Layers,
+  palette: Palette,
+  zap: Zap,
+  cpu: Cpu,
+  package: Package,
+  "check-circle": CheckCircle2,
+  "code-2": Code2,
+  "shield-check": ShieldCheck,
+  wrench: Wrench,
+  "upload-cloud": UploadCloud,
+  upload: Upload,
+  "file-code": FileCode,
+  "file-edit": FileEdit,
+  "file-plus": FilePlus,
+  component: Component,
+  paintbrush: Paintbrush,
+  "scan-search": ScanSearch,
+  "file-diff": FileDiff,
+  "mouse-pointer-click": MousePointerClick,
+  "alert-circle": AlertCircle,
+};
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 export interface SseEvent<T = any> {
   type: string;
   message?: string;
+  value?: string;
+  icon?: string;
   percent?: number;
   data?: T;
 }
@@ -22,6 +91,8 @@ interface Thought {
   type: string; // raw SSE event type
   percent?: number;
   durationSec?: number | null;
+  icon?: string;
+  value?: string;
 }
 
 // ─── Event → thought transformation ───────────────────────────────────────────
@@ -43,7 +114,7 @@ function eventsToThoughts(events: SseEvent[]): {
     switch (ev.type) {
       case "progress":
         if (ev.message) {
-          thoughts.push({ id, text: ev.message, kind: "info", type: ev.type, percent: ev.percent });
+          thoughts.push({ id, text: ev.message, kind: "info", type: ev.type, percent: ev.percent, icon: ev.icon, value: ev.value });
         }
         break;
 
@@ -66,6 +137,8 @@ function eventsToThoughts(events: SseEvent[]): {
             kind: "info",
             type: ev.type,
             percent: ev.percent,
+            icon: ev.icon,
+            value: ev.value,
           });
         }
         break;
@@ -85,21 +158,23 @@ function eventsToThoughts(events: SseEvent[]): {
             kind: "info",
             type: ev.type,
             percent: ev.percent,
+            icon: ev.icon,
+            value: ev.value,
           });
         }
         break;
       }
 
       case "table_start": {
-        const label = ev.data?.label ?? ev.data?.table;
+        const label = ev.data?.label ?? ev.data?.table ?? ev.value;
         if (label) {
-          thoughts.push({ id, text: `Создаю таблицу: ${label}`, kind: "info", type: ev.type });
+          thoughts.push({ id, text: `Создаю таблицу: ${label}`, kind: "info", type: ev.type, icon: ev.icon, value: ev.value });
         }
         break;
       }
 
       case "table_done": {
-        const label = ev.data?.label ?? ev.data?.table;
+        const label = ev.data?.label ?? ev.data?.table ?? ev.value;
         if (label) {
           const fields = ev.data?.fields;
           thoughts.push({
@@ -107,26 +182,30 @@ function eventsToThoughts(events: SseEvent[]): {
             text: `Таблица ${label}${fields ? ` (${fields} полей)` : ""} готова`,
             kind: "success",
             type: ev.type,
+            icon: ev.icon,
+            value: ev.value,
           });
         }
         break;
       }
 
       case "chunk_start": {
-        const feature = ev.data?.feature;
+        const feature = ev.data?.feature ?? ev.value;
         if (feature) {
           thoughts.push({
             id,
             text: `Генерирую модуль: ${feature}`,
             kind: "info",
             type: ev.type,
+            icon: ev.icon,
+            value: ev.value,
           });
         }
         break;
       }
 
       case "chunk_done": {
-        const feature = ev.data?.feature;
+        const feature = ev.data?.feature ?? ev.value;
         const filesCount = ev.data?.files?.length ?? 0;
         if (feature) {
           thoughts.push({
@@ -135,6 +214,8 @@ function eventsToThoughts(events: SseEvent[]): {
             kind: "success",
             type: ev.type,
             percent: ev.percent,
+            icon: ev.icon,
+            value: ev.value,
           });
         }
         break;
@@ -148,13 +229,15 @@ function eventsToThoughts(events: SseEvent[]): {
           kind: "warning",
           type: ev.type,
           percent: ev.percent,
+          icon: ev.icon,
+          value: ev.value,
         });
         break;
       }
 
       case "publish":
         if (ev.message) {
-          thoughts.push({ id, text: ev.message, kind: "info", type: ev.type, percent: ev.percent });
+          thoughts.push({ id, text: ev.message, kind: "info", type: ev.type, percent: ev.percent, icon: ev.icon, value: ev.value });
         }
         break;
 
@@ -168,6 +251,8 @@ function eventsToThoughts(events: SseEvent[]): {
           type: ev.type,
           percent: 100,
           durationSec: ev.data?.duration_sec ?? null,
+          icon: ev.icon,
+          value: ev.value,
         });
         break;
 
@@ -178,12 +263,14 @@ function eventsToThoughts(events: SseEvent[]): {
           text: ev.message ?? "Ошибка генерации",
           kind: "error",
           type: ev.type,
+          icon: ev.icon,
+          value: ev.value,
         });
         break;
 
       default:
         if (ev.message) {
-          thoughts.push({ id, text: ev.message, kind: "info", type: ev.type, percent: ev.percent });
+          thoughts.push({ id, text: ev.message, kind: "info", type: ev.type, percent: ev.percent, icon: ev.icon, value: ev.value });
         }
     }
   });
@@ -289,6 +376,9 @@ function ThoughtRow({
           <span className="text-green-600 dark:text-green-400 font-medium">
             {thought.text}
           </span>
+          {thought.value && (
+            <span className="ml-1 font-semibold text-text-main">{thought.value}</span>
+          )}
           {durLabel && (
             <span className="text-text-muted/70 ml-1.5 text-[11px]">· {durLabel}</span>
           )}
@@ -306,6 +396,9 @@ function ThoughtRow({
         </div>
         <div className="text-[12.5px] leading-relaxed text-destructive flex-1 min-w-0 break-words">
           {thought.text}
+          {thought.value && (
+            <span className="ml-1 font-semibold">{thought.value}</span>
+          )}
         </div>
       </div>
     );
@@ -319,21 +412,43 @@ function ThoughtRow({
       ? "bg-amber-500"
       : "bg-primary/60";
 
+  const iconColorClass =
+    thought.kind === "success"
+      ? "text-green-500"
+      : thought.kind === "warning"
+      ? "text-amber-500"
+      : "text-primary/70";
+
+  const IconComp = thought.icon ? ICON_MAP[thought.icon] : null;
   const showProgressDots = isLatest && isStreaming && thought.type === "progress";
 
   return (
     <div className="relative flex gap-2.5 py-1 animate-in fade-in slide-in-from-left-1 duration-300">
       <div className="relative shrink-0 flex justify-center w-3">
-        <span
-          className={cn(
-            "w-1.5 h-1.5 rounded-full mt-[7px]",
-            dotClass,
-            isLatest && isStreaming && "animate-pulse"
-          )}
-        />
+        {IconComp ? (
+          <IconComp
+            size={12}
+            className={cn(
+              "mt-1",
+              iconColorClass,
+              isLatest && isStreaming && "animate-pulse"
+            )}
+          />
+        ) : (
+          <span
+            className={cn(
+              "w-1.5 h-1.5 rounded-full mt-[7px]",
+              dotClass,
+              isLatest && isStreaming && "animate-pulse"
+            )}
+          />
+        )}
       </div>
       <div className="text-[12.5px] leading-relaxed text-text-muted flex-1 min-w-0 break-words">
         <FormattedText text={thought.text} />
+        {thought.value && (
+          <span className="ml-1 font-semibold text-text-main">{thought.value}</span>
+        )}
         {showProgressDots && <ProgressDots />}
       </div>
     </div>
@@ -364,12 +479,16 @@ export function ThinkingBlock({
   const [isOpen, setIsOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll thought list to bottom while streaming
+  // Auto-scroll thought list to bottom whenever thoughts grow
   useEffect(() => {
-    if (!isOpen || !isActive) return;
+    if (!isOpen) return;
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [thoughts.length, isOpen, isActive]);
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [thoughts.length, isOpen]);
 
   // ── Header label & icon ──
   let headerLabel: React.ReactNode;

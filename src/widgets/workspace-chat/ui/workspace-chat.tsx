@@ -453,12 +453,12 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
               onSelectMicrofrontend?.(codebaseFiles);
             })
             .catch(() => { setActiveCodeSelection(target); });
-
-          queryClient.invalidateQueries({ queryKey: ['attach-microfrontends', projectId] });
-          queryClient.invalidateQueries({ queryKey: ['preview-microfrontends', projectId] });
-          queryClient.invalidateQueries({ queryKey: ['microfrontends', projectId] });
-          queryClient.invalidateQueries({ queryKey: ['microfrontends-dropdown', projectId] });
         }
+
+        queryClient.invalidateQueries({ queryKey: ['attach-microfrontends', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['preview-microfrontends', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['microfrontends', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['microfrontends-dropdown', projectId] });
 
         if (data?.project?.project_files) {
           setFiles(data.project.project_files.map((f: any) => ({
