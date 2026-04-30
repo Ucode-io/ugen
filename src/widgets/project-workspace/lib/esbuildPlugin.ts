@@ -1,5 +1,41 @@
 import * as esbuild from "esbuild-wasm"
 
+/**
+ * Find the matching closing `}` for the `{` at `braceStart`, counting nested braces.
+ * Returns the index of the closing `}`, or -1 if not found.
+ */
+function findClosingBrace(css: string, braceStart: number): number {
+  let depth = 0;
+  for (let i = braceStart; i < css.length; i++) {
+    if (css[i] === '{') depth++;
+    else if (css[i] === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Minimal CSS cleaning for browser injection.
+ * We use <style type="text/tailwindcss"> so the Tailwind CDN Play script
+ * processes @apply, @layer, etc. natively — we only need to remove things
+ * the CDN itself can't handle:
+ *  - @tailwind directives  → CDN adds its own; duplicates cause warnings
+ *  - local @import paths   → can't be resolved at runtime in the iframe
+ */
+function cleanCssForBrowser(raw: string): string {
+  let css = raw;
+
+  // Remove @tailwind directives (CDN already injects base/components/utilities)
+  css = css.replace(/@tailwind\s+\S+;/g, "");
+
+  // Remove @import for local/relative paths (leave CDN/https @imports untouched)
+  css = css.replace(/@import\s+['"](?!https?:\/\/)([^'"]+)['"]\s*;/g, "");
+
+  return css.trim();
+}
+
 function normalizePath(path: string) {
   const parts = path.split("/").filter(Boolean);
   const stack: string[] = [];
@@ -115,21 +151,23 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
             const fullPath = basePath + ext;
             if (fs[fullPath] != null) {
               if (fullPath.endsWith(".css")) {
-                // Strip PostCSS/Tailwind directives the browser can't process
-                const cleanedCss = fs[fullPath]
-                  .replace(/@tailwind\s+\S+;/g, "")
-                  .replace(/@layer\s+base\s*\{([\s\S]*?)\}/g, "$1")
-                  .replace(/@layer\s+(?:components|utilities)\s*\{[\s\S]*?\}/g, "")
-                  .trim();
+                const cleanedCss = cleanCssForBrowser(fs[fullPath]);
 
                 const js = `
                   (function() {
                     const id = 'virtual-css-${fullPath.replace(/[^a-z0-9]/g, '_')}';
                     if (!document.getElementById(id)) {
+                      // Use type="text/tailwindcss" so the Tailwind CDN Play script
+                      // processes @apply, @layer, and other Tailwind directives natively.
                       const style = document.createElement('style');
                       style.id = id;
+                      style.setAttribute('type', 'text/tailwindcss');
                       style.textContent = ${JSON.stringify(cleanedCss)};
                       document.head.appendChild(style);
+                      // Ask Tailwind CDN to re-scan after injecting new styles
+                      if (typeof window.tailwind !== 'undefined' && typeof window.tailwind.refresh === 'function') {
+                        window.tailwind.refresh();
+                      }
                     }
                   })();
                 `;

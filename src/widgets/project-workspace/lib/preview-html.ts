@@ -338,6 +338,19 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
         ${bundledCode}
       </script>
 
+      <script type="module">
+        // After React mounts, tell Tailwind CDN to re-process any
+        // <style type="text/tailwindcss"> tags injected by the bundle.
+        // The double rAF ensures we run after React's commit phase.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (typeof window.tailwind !== 'undefined' && typeof window.tailwind.refresh === 'function') {
+              window.tailwind.refresh();
+            }
+          });
+        });
+      </script>
+
       <script>
         ${INSPECTOR_SCRIPT}
       </script>
