@@ -570,7 +570,7 @@ export const ProjectPreviewViewer = ({
           "flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300",
           // isMaximized ? "p-0" : "py-4 px-4"
           isMaximized ? "p-0" : "pr-4 pb-2",
-          isChatCollapsed ? "pl-4" : "pl-0"
+          (isChatCollapsed && !isMaximized) ? "pl-4" : "pl-0"
         )}>
           <div
             className="flex flex-col flex-shrink-0 overflow-hidden border border-border-subtle shadow-md transition-all duration-300"
