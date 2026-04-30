@@ -16,6 +16,7 @@ import { BpmnViewer } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
 import { useTranslations } from "next-intl";
 import { VersionHistoryPanel, VersionPreviewFile } from "@/widgets/project-workspace/ui/version-history-panel";
+import { ThinkingBlock, type SseEvent } from "./thinking-block";
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -156,6 +157,8 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
   const [isSending, setIsSending] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const thinkingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [sseEvents, setSseEvents] = useState<SseEvent[]>([]);
+  const accumulatedFilesRef = useRef<{ path: string; content: string }[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -227,6 +230,7 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
   const activeCodeSelection = useCodeSelectionStore((state) => state.activeCodeSelection);
   const setActiveCodeSelection = useCodeSelectionStore((state) => state.setActiveCodeSelection);
   const apiKey = useAuthStore((state) => state.apiKey);
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   const displayMessages = messages.length > 0 ? messages : (!isLoadingHistory && offset === 0 ? MOCK_CHAT : []);
 
@@ -383,6 +387,8 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
   }, []);
 
   const handleSendMessage = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
+    setSseEvents([]);
+    accumulatedFilesRef.current = [];
     addMessage({ id: Date.now().toString(), role: "user", content: text, images: files?.map(f => f.url) || [] });
     handleAutoScroll();
 
@@ -410,53 +416,43 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
       thinkingTimeoutRef.current = setTimeout(() => {
         setIsThinking(true);
         handleAutoScroll();
-      }, 2000);
+      }, 500);
 
-      try {
-        const isMicrofrontendSelected = activeCodeSelection?.kind === 'microfrontend'
-        const isNewProjectSelected = activeCodeSelection?.kind === 'new_project'
-        const { data: messageData } = await api.post(
-          `/v1/ai-chat/new-messages/${activeChatId}`,
-          {
-            content: text,
-            images: files?.map(f => f.url) || [],
-            has_files: (files?.length || 0) > 0,
-            tokens_used: 100,
-            model: model,
-            new_project: !isMicrofrontendSelected && !isNewProjectSelected,
-            ...(isMicrofrontendSelected ? {
-              microfrontend_id: activeCodeSelection.id,
-              microfrontend_repo_id: activeCodeSelection.repoId,
-            } : {}),
-            ...(context?.length ? {
-              context: context.map(({ element, ...rest }) => ({
-                ...rest,
-                ...(element ? { outer_html: element } : {}),
-              }))
-            } : {}),
-            ...(pendingActionPayload ? { pending_action: pendingActionPayload } : {})
-          },
-        );
+      const isMicrofrontendSelected = activeCodeSelection?.kind === 'microfrontend';
+      const isNewProjectSelected = activeCodeSelection?.kind === 'new_project';
+      const payload = {
+        content: text,
+        images: files?.map(f => f.url) || [],
+        has_files: (files?.length || 0) > 0,
+        tokens_used: 100,
+        model,
+        new_project: !isMicrofrontendSelected && !isNewProjectSelected,
+        ...(isMicrofrontendSelected ? {
+          microfrontend_id: activeCodeSelection.id,
+          microfrontend_repo_id: activeCodeSelection.repoId,
+        } : {}),
+        ...(context?.length ? {
+          context: context.map(({ element, ...rest }) => ({
+            ...rest,
+            ...(element ? { outer_html: element } : {}),
+          }))
+        } : {}),
+        ...(pendingActionPayload ? { pending_action: pendingActionPayload } : {}),
+      };
 
-        // If the response created a new microfrontend, fetch its files and activate it
-        const newMicrofrontendId = messageData?.data?.microfrontend_id
-        const newMicrofrontendRepoId = messageData?.data?.microfrontend_repo_id
+      const processDoneData = (data: any) => {
+        const newMicrofrontendId = data?.microfrontend_id;
+        const newMicrofrontendRepoId = data?.microfrontend_repo_id;
         if (newMicrofrontendId) {
-          const target = {
-            kind: 'microfrontend' as const,
-            id: newMicrofrontendId,
-            repoId: newMicrofrontendRepoId,
-          }
-          const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+          const target = { kind: 'microfrontend' as const, id: newMicrofrontendId, repoId: newMicrofrontendRepoId };
+          const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {};
           api.get(`/v2/function/${newMicrofrontendId}/codebase`, { params: { 'project-id': projectId }, headers })
-            .then(({ data: codebaseData }) => {
-              const codebaseFiles = (codebaseData?.data?.files ?? []) as { path: string; content: string }[]
-              setActiveCodeSelection(target, codebaseFiles)
-              onSelectMicrofrontend?.(codebaseFiles)
+            .then(({ data: cb }) => {
+              const codebaseFiles = (cb?.data?.files ?? []) as { path: string; content: string }[];
+              setActiveCodeSelection(target, codebaseFiles);
+              onSelectMicrofrontend?.(codebaseFiles);
             })
-            .catch(() => {
-              setActiveCodeSelection(target)
-            })
+            .catch(() => { setActiveCodeSelection(target); });
 
           queryClient.invalidateQueries({ queryKey: ['attach-microfrontends', projectId] });
           queryClient.invalidateQueries({ queryKey: ['preview-microfrontends', projectId] });
@@ -464,35 +460,78 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
           queryClient.invalidateQueries({ queryKey: ['microfrontends-dropdown', projectId] });
         }
 
-        if (messageData?.data?.project?.project_files) {
-          const mappedFiles: IFile[] = messageData.data.project.project_files.map((file: any) => ({
-            path: file.path,
-            content: file.content,
-            language: getLanguageByPath(file.path)
-          }));
-          setFiles(mappedFiles);
+        if (data?.project?.project_files) {
+          setFiles(data.project.project_files.map((f: any) => ({
+            path: f.path, content: f.content, language: getLanguageByPath(f.path),
+          })));
         }
 
-        const responseMsg = messageData?.data?.message;
-        const pendingAction = messageData?.data?.pending_action;
-        const questions = messageData?.data?.questions;
-        const bpmnXml = messageData?.data?.plan?.bpmn_xml;
+        const responseMsg = data?.message;
+        const pendingAction = data?.pending_action;
+        const questions = data?.questions;
+        const bpmnXml = data?.plan?.bpmn_xml;
 
         if (responseMsg?.content || pendingAction || bpmnXml) {
           addMessage({
-            id: responseMsg?.id || messageData?.data?.id || (Date.now() + 1).toString(),
-            role: "ai",
-            content: responseMsg?.content || "",
+            id: responseMsg?.id || data?.id || (Date.now() + 1).toString(),
+            role: 'ai',
+            content: responseMsg?.content || '',
             pending_action: pendingAction || null,
             isFromResponse: true,
             bpmnXml,
           });
           handleAutoScroll();
         }
+        if (questions) { setShowQuestionnaire(true); setQuestionData(questions); }
+      };
 
-        if (questions) {
-          setShowQuestionnaire(true);
-          setQuestionData(questions);
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.admin.u-code.io';
+        const response = await fetch(`${baseUrl}/v1/ai-chat/new-messages/${activeChatId}?stream=true`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok || !response.body) throw new Error(`HTTP error! status: ${response.status}`);
+
+        setIsThinking(true);
+        handleAutoScroll();
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop() ?? '';
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              try {
+                const event: SseEvent = JSON.parse(line.slice(6));
+                setSseEvents(prev => [...prev, event]);
+
+                if (event.type === 'chunk_done' && event.data?.files?.length) {
+                  accumulatedFilesRef.current = [...accumulatedFilesRef.current, ...event.data.files];
+                  setFiles(accumulatedFilesRef.current.map((f: any) => ({
+                    path: f.path, content: f.content, language: getLanguageByPath(f.path),
+                  })));
+                } else if (event.type === 'done') {
+                  processDoneData(event.data?.data ?? event.data);
+                }
+              } catch {
+                // skip malformed line
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
         }
       } catch (err) {
         console.error(err);
@@ -652,12 +691,20 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
               </React.Fragment>
             ))}
 
-            {isThinking && (
-              <div className="flex w-full justify-start px-4">
-                <div className="flex items-center gap-2 text-text-muted text-sm italic py-2">
-                  <Loader2 className="animate-spin" size={16} />
-                  <span>{t('thinking')}</span>
-                </div>
+            {(isThinking || sseEvents.length > 0) && (
+              <div className="flex w-full justify-start px-4 pb-2">
+                {sseEvents.length > 0 ? (
+                  <ThinkingBlock
+                    events={sseEvents}
+                    isStreaming={isSending}
+                    className="w-full animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-text-muted text-sm italic py-2">
+                    <Loader2 className="animate-spin" size={16} />
+                    <span>{t('thinking')}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
