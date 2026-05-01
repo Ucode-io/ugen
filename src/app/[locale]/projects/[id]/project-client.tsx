@@ -20,7 +20,6 @@ import { ErrorBoundary, Select, SelectContent, SelectItem, SelectTrigger, Select
 import { usePathname, useSearchParams } from "next/navigation"
 import { useChatStore } from "@/entities/chat"
 import { cn } from "@/shared/lib/utils/cn"
-import { queryClient } from "@/shared/api/query-client"
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -51,7 +50,6 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [device, setDevice] = useState<DeviceType>('desktop')
   const [isPreviewMaximized, setIsPreviewMaximized] = useState(false)
-  const [microfrontendPreviewFiles, setMicrofrontendPreviewFiles] = useState<{ path: string; content: string }[] | null>(null)
   const [isVersionHistory, setIsVersionHistory] = useState(false)
   const [versionPreviewFiles, setVersionPreviewFiles] = useState<{ path: string; content: string }[] | null>(null)
 
@@ -139,8 +137,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     setActiveTab('code')
   }
 
-  const handlePreviewMicrofrontend = useCallback((files: { path: string; content: string }[]) => {
-    setMicrofrontendPreviewFiles(files)
+  const handlePreviewMicrofrontend = useCallback(() => {
     setActiveTab('preview')
   }, [setActiveTab])
 
@@ -152,10 +149,6 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     // from the previous project (race condition between cleanup and new effect start).
     setApiKey(null)
     setActiveProjectTab(null)
-
-    // Drop all cached queries so we don't flash data from the previous project
-    // (e.g. github integration status, pricing, resources, microfrontends).
-    queryClient.clear()
 
     setIsLoading(true);
     setProjectInfo(null);
@@ -374,9 +367,9 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             <WorkspaceLoader message="Loading project workspace..." />
           ) : (activeTab === 'preview' && !hasNoFiles) ? (
             <ProjectPreviewViewer
+              key={projectId}
               device={device}
               isMaximized={isPreviewMaximized}
-              microfrontendFiles={microfrontendPreviewFiles}
               versionPreviewFiles={versionPreviewFiles}
               projectId={projectId}
               onDeviceChange={setDevice}

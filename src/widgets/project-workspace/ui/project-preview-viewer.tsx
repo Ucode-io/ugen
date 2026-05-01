@@ -44,7 +44,6 @@ interface ProjectPreviewViewerProps {
   device?: DeviceType
   isMaximized?: boolean
   isChatCollapsed?: boolean
-  microfrontendFiles?: { path: string; content: string }[] | null
   versionPreviewFiles?: { path: string; content: string }[] | null
   projectId?: string
   onDeviceChange?: (device: DeviceType) => void
@@ -69,7 +68,6 @@ const getLanguageByPath = (path: string) => {
 export const ProjectPreviewViewer = ({
   device = 'desktop',
   isMaximized = false,
-  microfrontendFiles,
   versionPreviewFiles,
   projectId,
   onDeviceChange,
@@ -84,8 +82,6 @@ export const ProjectPreviewViewer = ({
   const setActiveCodeSelection = useCodeSelectionStore((s) => s.setActiveCodeSelection)
   const apiKey = useAuthStore((s) => s.apiKey)
 
-  // Local preview files when user picks a source from the function-mode selector
-  const [localPreviewFiles, setLocalPreviewFiles] = useState<CodeSelectionFile[] | null>(null)
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null)
 
   const isFunction = activeCodeSelection?.kind === 'function'
@@ -105,11 +101,11 @@ export const ProjectPreviewViewer = ({
   })
 
   // Resolve which files to use for the preview:
-  // priority: versionPreviewFiles > localPreviewFiles > activeCodeFiles > microfrontendFiles > storeFiles
-  const previewSource = versionPreviewFiles ?? localPreviewFiles ?? activeCodeFiles ?? microfrontendFiles
+  // priority: versionPreviewFiles > activeCodeFiles > storeFiles
+  const previewSource = versionPreviewFiles ?? activeCodeFiles
   const files = useMemo(
     () => previewSource && previewSource.length > 0
-      ? previewSource.map(f => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
+      ? previewSource.map((f: CodeSelectionFile) => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
       : storeFiles,
     [previewSource, storeFiles]
   )
@@ -123,7 +119,6 @@ export const ProjectPreviewViewer = ({
         headers,
       })
       const fetched = (data?.data?.files ?? []) as CodeSelectionFile[]
-      setLocalPreviewFiles(fetched)
       setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.repo_id, url: mf.url }, fetched)
     } catch (err) {
       console.error('Failed to load microfrontend for preview', err)
@@ -133,7 +128,6 @@ export const ProjectPreviewViewer = ({
   }
 
   const handlePickGeneratedFrontend = () => {
-    setLocalPreviewFiles(null)
     setActiveCodeSelection({ kind: 'frontend' })
   }
 
@@ -504,7 +498,7 @@ export const ProjectPreviewViewer = ({
       />
 
       {/* Function selector — browser card with header, no iframe */}
-      {isFunction && !localPreviewFiles ? (
+      {isFunction ? (
         <div className={cn(
           "flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300",
           isMaximized ? "p-0" : "px-4",
@@ -570,7 +564,7 @@ export const ProjectPreviewViewer = ({
           "flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300",
           // isMaximized ? "p-0" : "py-4 px-4"
           isMaximized ? "p-0" : "pr-4 pb-2",
-          isChatCollapsed ? "pl-4" : "pl-0"
+          (isChatCollapsed && !isMaximized) ? "pl-4" : "pl-0"
         )}>
           <div
             className="flex flex-col flex-shrink-0 overflow-hidden border border-border-subtle shadow-md transition-all duration-300"

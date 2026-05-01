@@ -296,6 +296,8 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
         html.dark body { background-color: #191919; color: #D4D4D4; }
       </style>
 
+      <style id="preview-cloak">body { visibility: hidden; }</style>
+
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     </head>
     <body>
@@ -338,17 +340,47 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
         ${bundledCode}
       </script>
 
-      <script type="module">
-        // After React mounts, tell Tailwind CDN to re-process any
-        // <style type="text/tailwindcss"> tags injected by the bundle.
-        // The double rAF ensures we run after React's commit phase.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (typeof window.tailwind !== 'undefined' && typeof window.tailwind.refresh === 'function') {
+      <script>
+        // Wait for React to populate #root (the bundle module loads esm.sh
+        // imports asynchronously, so React mount happens later than this script
+        // tag is parsed). Once #root has children, force Tailwind JIT to scan
+        // and only then reveal the body — prevents flash of unstyled content.
+        (function() {
+          var root = document.getElementById('root');
+          var revealed = false;
+
+          function reveal() {
+            if (revealed) return;
+            revealed = true;
+            var cloak = document.getElementById('preview-cloak');
+            if (cloak) cloak.remove();
+          }
+
+          function refreshAndReveal() {
+            if (window.tailwind && typeof window.tailwind.refresh === 'function') {
               window.tailwind.refresh();
             }
-          });
-        });
+            requestAnimationFrame(function() {
+              requestAnimationFrame(reveal);
+            });
+          }
+
+          if (root && root.children.length > 0) {
+            refreshAndReveal();
+          } else if (root) {
+            var obs = new MutationObserver(function() {
+              if (root.children.length > 0) {
+                obs.disconnect();
+                refreshAndReveal();
+              }
+            });
+            obs.observe(root, { childList: true });
+          }
+
+          // Safety net: never keep the body hidden longer than 3s, even if
+          // React never mounts (build error, network issue, etc.)
+          setTimeout(reveal, 3000);
+        })();
       </script>
 
       <script>

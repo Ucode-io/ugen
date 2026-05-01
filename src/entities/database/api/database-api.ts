@@ -272,7 +272,9 @@ export const useTableSchemaV2 = (tableSlug: string | null, projectId: string) =>
     queryKey: ['db-schema-v2', tableSlug, projectId],
     queryFn: () => databaseApi.fetchTableSchemaV2(tableSlug!, projectId),
     enabled: !!tableSlug && !!projectId,
-    placeholderData: (previousData) => previousData,
+    // staleTime: 0 ensures switching tables always triggers a real network fetch
+    // instead of serving a stale snapshot from a previous table's cache entry.
+    staleTime: 0,
   });
 
 export const useExecuteQuery = () => {
@@ -373,7 +375,9 @@ export const useAddSchemaField = () => {
       };
     }) => databaseApi.addSchemaField(tableSlug, projectId, payload),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug] });
+      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug, variables.projectId] });
+      // tableDetail powers the column headers in the records tab — bust it too.
+      queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableSlug] });
     },
   });
 };
@@ -391,7 +395,8 @@ export const useDeleteSchemaField = () => {
       projectId: string;
     }) => databaseApi.deleteSchemaField(tableSlug, fieldId, projectId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug] });
+      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug, variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableSlug] });
     },
   });
 };
@@ -420,7 +425,8 @@ export const useUpdateSchemaField = () => {
       };
     }) => databaseApi.updateSchemaField(tableSlug, projectId, payload),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug] });
+      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug, variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableSlug] });
     },
   });
 };

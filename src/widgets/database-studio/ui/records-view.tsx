@@ -52,7 +52,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
   const t = useTranslations('widgets.databaseStudio')
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
   const { selectedTable, setCurrentView, resetToTables, setFilters } = useDatabaseStore()
-  const { data: tableDetail, isLoading: isDetailLoading } = useTableDetail(selectedTable, ucodeProjectId || "")
+  const { data: tableDetail, isLoading: isDetailLoading, refetch: refetchTableDetail } = useTableDetail(selectedTable, ucodeProjectId || "")
   const { data: schemaColumns = [], isLoading: isSchemaColumnsLoading, refetch: refetchSchema } = useTableSchemaV2(selectedTable, ucodeProjectId || "")
   const [filterQuery, setFilterQuery] = useState('')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -108,9 +108,14 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
 
   useEffect(() => {
-    if (allColumns.length > 0 && selectedColumns.length === 0) {
-      setSelectedColumns(allColumns)
-    }
+    if (allColumns.length === 0) return
+    setSelectedColumns(prev => {
+      if (prev.length === 0) return allColumns
+      // Auto-include any columns that were added since the last snapshot
+      // so newly created fields always appear without requiring a manual refresh.
+      const brandNew = allColumns.filter(c => !prev.includes(c))
+      return brandNew.length > 0 ? [...prev, ...brandNew] : prev
+    })
   }, [allColumns])
 
   useEffect(() => {
@@ -423,6 +428,14 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
 
   useEffect(() => {
     if (activeTab !== 'schema') setIsAddingField(false)
+    // Schema is shared between both tabs, always refetch on switch.
+    refetchSchema()
+    // Records tab uses tableDetail.fields for column headers AND rows data,
+    // so both must be refetched when switching back to records.
+    if (activeTab === 'records') {
+      refetchTableDetail()
+      refetch()
+    }
   }, [activeTab])
 
   if (!selectedTable) {

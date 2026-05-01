@@ -223,13 +223,14 @@ export const PublishPopover = ({
     }
   };
 
-  const tinyurl = async (url: string): Promise<string | null> => {
+  const shortenUrl = async (url: string): Promise<string | null> => {
     try {
       const params = new URLSearchParams({ url });
-      const res = await fetch(`https://tinyurl.com/api-create.php?${params.toString()}`);
+      const res = await fetch(`/api/shorten?${params.toString()}`);
       if (!res.ok) return null;
-      const text = (await res.text()).trim();
-      return text.startsWith('http') ? text : null;
+      const data = await res.json();
+      const short = data?.short_url;
+      return typeof short === 'string' && short.startsWith('http') ? short : null;
     } catch {
       return null;
     }
@@ -264,7 +265,7 @@ export const PublishPopover = ({
     setIsShortening(true);
     (async () => {
       const target = mfUrl.startsWith('http') ? mfUrl : `https://${mfUrl}`;
-      const short = await tinyurl(target);
+      const short = await shortenUrl(target);
       if (cancelled) return;
       if (short) {
         shortUrlCacheRef.current.set(mfUrl, short);
@@ -290,7 +291,7 @@ export const PublishPopover = ({
     if (!cached) {
       setIsShortening(true);
       const target = finalUrl || mfUrl;
-      const short = await tinyurl(target);
+      const short = await shortenUrl(target);
       setIsShortening(false);
       if (short) {
         shortUrlCacheRef.current.set(mfUrl, short);
