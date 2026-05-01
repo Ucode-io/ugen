@@ -225,7 +225,7 @@ export const PublishPopover = ({
 
   const shortenUrl = async (url: string): Promise<string | null> => {
     try {
-      const res = await fetch('https://ugen-jade.vercel.app/api/shorten', {
+      const res = await fetch('/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
