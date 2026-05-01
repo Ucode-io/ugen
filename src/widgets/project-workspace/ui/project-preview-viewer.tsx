@@ -100,15 +100,22 @@ export const ProjectPreviewViewer = ({
     staleTime: 0,
   })
 
-  // Resolve which files to use for the preview:
-  // priority: versionPreviewFiles > activeCodeFiles > storeFiles
-  const previewSource = versionPreviewFiles ?? activeCodeFiles
-  const files = useMemo(
-    () => previewSource && previewSource.length > 0
-      ? previewSource.map((f: CodeSelectionFile) => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
-      : storeFiles,
-    [previewSource, storeFiles]
-  )
+  // Files priority for the preview iframe:
+  // 1. versionPreviewFiles (browsing version history)
+  // 2. If a microfrontend is selected → its activeCodeFiles only — never fall back to
+  //    storeFiles, otherwise we'd build the wrong code in the gap before MF codebase loads.
+  // 3. Otherwise (frontend / no selection) → storeFiles
+  const isMicrofrontend = activeCodeSelection?.kind === 'microfrontend'
+  const isMicrofrontendLoading = isMicrofrontend && (!activeCodeFiles || activeCodeFiles.length === 0)
+  const files = useMemo(() => {
+    if (versionPreviewFiles && versionPreviewFiles.length > 0) {
+      return versionPreviewFiles.map((f) => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
+    }
+    if (isMicrofrontend) {
+      return (activeCodeFiles ?? []).map((f: CodeSelectionFile) => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
+    }
+    return storeFiles
+  }, [versionPreviewFiles, isMicrofrontend, activeCodeFiles, storeFiles])
 
   const handlePickMicrofrontend = async (mf: { id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string; repo_id?: string; url?: string }) => {
     try {
@@ -119,7 +126,7 @@ export const ProjectPreviewViewer = ({
         headers,
       })
       const fetched = (data?.data?.files ?? []) as CodeSelectionFile[]
-      setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.repo_id, url: mf.url }, fetched)
+      setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.repo_id, url: mf.url, projectId: mf.project_id }, fetched)
     } catch (err) {
       console.error('Failed to load microfrontend for preview', err)
     } finally {
@@ -200,9 +207,11 @@ export const ProjectPreviewViewer = ({
   }, [files])
 
   useEffect(() => {
+    // Don't build with empty/wrong files while a microfrontend's codebase is still loading.
+    if (isMicrofrontendLoading) return
     const timeout = setTimeout(() => { runCode() }, 1000)
     return () => clearTimeout(timeout)
-  }, [filesHash])
+  }, [filesHash, isMicrofrontendLoading])
 
   useEffect(() => {
     if (iframeRef.current?.contentWindow) {
@@ -435,8 +444,8 @@ export const ProjectPreviewViewer = ({
       )}
 
       {/* Switch microfrontend overlay */}
-      {!isLoading && !!loadingPreviewId && (
-        <WorkspaceLoader message="Switching microfrontend..." subMessage="Fetching codebase" />
+      {!isLoading && (!!loadingPreviewId || isMicrofrontendLoading) && (
+        <WorkspaceLoader message="Loading microfrontend..." subMessage="Fetching codebase" />
       )}
 
       {/* Error overlay */}

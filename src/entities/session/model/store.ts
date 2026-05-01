@@ -10,6 +10,7 @@ export interface CodeEditorTarget {
   repoId?: string
   id?: string
   url?: string
+  projectId?: string
 }
 import { persist, createJSONStorage } from 'zustand/middleware'
 

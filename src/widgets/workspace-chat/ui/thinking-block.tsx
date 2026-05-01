@@ -377,7 +377,7 @@ function ThoughtRow({
             {thought.text}
           </span>
           {thought.value && (
-            <span className="ml-1 font-semibold text-text-main">{thought.value}</span>
+            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/25">{thought.value}</span>
           )}
           {durLabel && (
             <span className="text-text-muted/70 ml-1.5 text-[11px]">· {durLabel}</span>
@@ -397,7 +397,7 @@ function ThoughtRow({
         <div className="text-[12.5px] leading-relaxed text-destructive flex-1 min-w-0 break-words">
           {thought.text}
           {thought.value && (
-            <span className="ml-1 font-semibold ">{thought.value}</span>
+            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/25">{thought.value}</span>
           )}
         </div>
       </div>
@@ -447,7 +447,7 @@ function ThoughtRow({
       <div className="text-[12.5px] leading-relaxed text-text-muted flex-1 min-w-0 break-words">
         <FormattedText text={thought.text} />
         {thought.value && (
-          <span className="ml-1 font-semibold text-text-main">{thought.value}</span>
+          <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/25">{thought.value}</span>
         )}
         {showProgressDots && <ProgressDots />}
       </div>

@@ -426,10 +426,12 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
         has_files: (files?.length || 0) > 0,
         tokens_used: 100,
         model,
+        resource_env_id: activeCodeSelection?.projectId,
         new_project: !isMicrofrontendSelected && !isNewProjectSelected,
         ...(isMicrofrontendSelected ? {
           microfrontend_id: activeCodeSelection.id,
           microfrontend_repo_id: activeCodeSelection.repoId,
+          resource_env_id: activeCodeSelection.projectId,
         } : {}),
         ...(context?.length ? {
           context: context.map(({ element, ...rest }) => ({
@@ -443,16 +445,61 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
       const processDoneData = (data: any) => {
         const newMicrofrontendId = data?.microfrontend_id;
         const newMicrofrontendRepoId = data?.microfrontend_repo_id;
+        const newMicrofrontendProjectId = data?.project_id ?? data?.microfrontend_project_id;
         if (newMicrofrontendId) {
-          const target = { kind: 'microfrontend' as const, id: newMicrofrontendId, repoId: newMicrofrontendRepoId };
           const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {};
-          api.get(`/v2/function/${newMicrofrontendId}/codebase`, { params: { 'project-id': projectId }, headers })
-            .then(({ data: cb }) => {
-              const codebaseFiles = (cb?.data?.files ?? []) as { path: string; content: string }[];
+          const partialTarget = {
+            kind: 'microfrontend' as const,
+            id: newMicrofrontendId,
+            repoId: newMicrofrontendRepoId,
+            projectId: newMicrofrontendProjectId,
+          };
+          // Set selection synchronously so chat-input's auto-select bails out
+          // instead of racing with our codebase fetch and picking the wrong MF.
+          setActiveCodeSelection(partialTarget, null);
+
+          // BE just finished generating — codebase endpoint may briefly return
+          // empty before the repo settles. Retry a few times before giving up.
+          const fetchCodebase = async () => {
+            for (let i = 0; i < 4; i++) {
+              try {
+                const { data } = await api.get(`/v2/function/${newMicrofrontendId}/codebase`, {
+                  params: { 'project-id': projectId }, headers,
+                });
+                const fs = (data?.data?.files ?? []) as { path: string; content: string }[];
+                if (fs.length > 0) return fs;
+              } catch { /* fall through to retry */ }
+              if (i < 3) await new Promise(r => setTimeout(r, 700));
+            }
+            return [] as { path: string; content: string }[];
+          };
+
+          Promise.all([
+            fetchCodebase(),
+            api.get('/v2/functions/micro-frontend', { params: { search: '', offset: 0, limit: 50, 'project-id': projectId }, headers }),
+          ])
+            .then(([codebaseFiles, listRes]) => {
+              const list = (listRes.data?.data?.functions ?? []) as Array<{
+                id: string; name?: string; path?: string; branch?: string; type?: string;
+                project_id?: string; url?: string; repo_id?: string;
+              }>;
+              const meta = list.find((m) => m.id === newMicrofrontendId);
+              const target = meta
+                ? {
+                    ...partialTarget,
+                    name: meta.name,
+                    path: meta.path,
+                    branch: meta.branch ?? 'master',
+                    type: meta.type,
+                    url: meta.url,
+                    repoId: meta.repo_id ?? newMicrofrontendRepoId,
+                    projectId: meta.project_id ?? newMicrofrontendProjectId,
+                  }
+                : partialTarget;
               setActiveCodeSelection(target, codebaseFiles);
               onSelectMicrofrontend?.(codebaseFiles);
             })
-            .catch(() => { setActiveCodeSelection(target); });
+            .catch(() => { /* keep partialTarget set above */ });
         }
 
         queryClient.invalidateQueries({ queryKey: ['attach-microfrontends', projectId] });

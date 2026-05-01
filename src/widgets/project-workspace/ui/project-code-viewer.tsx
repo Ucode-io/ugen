@@ -118,6 +118,7 @@ export const ProjectCodeViewer = ({
         type: mf.type,
         repoId: mf.repo_id,
         url: mf.url,
+        projectId: mf.project_id,
       },
     })),
     ...functionsData.map((fn) => ({

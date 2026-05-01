@@ -8,19 +8,25 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/shared/lib/utils/cn"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
 
-interface Commit {
-  id: string
-  short_id: string
-  title: string
-  message: string
-  author_name: string
-  committed_date: string
-  web_url?: string
-}
-
 interface CommitFile {
   file_path: string
   content: string
+}
+
+interface Commit {
+  guid: string
+  microfrontend_id: string
+  commit_message: string
+  is_current: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface VersionDetail {
+  guid: string
+  microfrontend_id: string
+  commit_message: string
+  files: string
 }
 
 export interface VersionPreviewFile {
@@ -36,9 +42,7 @@ interface VersionHistoryPanelProps {
 }
 
 const timeAgo = (dateStr: string): string => {
-  // Backend returns "2026-04-29 05:06:24 +0000 UTC" — convert to ISO
-  const iso = dateStr.replace(' UTC', '').replace(' ', 'T').replace(/ ([+-]\d{4})$/, '$1')
-  const date = new Date(iso)
+  const date = new Date(dateStr)
   if (isNaN(date.getTime())) return dateStr
   const now = new Date()
   const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
@@ -50,13 +54,23 @@ const timeAgo = (dateStr: string): string => {
   return `${months} month${months !== 1 ? 's' : ''} ago`
 }
 
-const mapFiles = (files: CommitFile[]): VersionPreviewFile[] =>
-  files.map((f) => ({ path: f.file_path, content: f.content }))
+// BE returns `files` as a JSON-encoded string; tolerate trailing commas defensively.
+const parseCommitFiles = (raw: string): VersionPreviewFile[] => {
+  if (!raw) return []
+  try {
+    const cleaned = raw.replace(/,(\s*[\]}])/g, '$1')
+    const arr = JSON.parse(cleaned) as CommitFile[]
+    return arr.map((f) => ({ path: f.file_path, content: f.content }))
+  } catch {
+    return []
+  }
+}
 
 export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onReverted }: VersionHistoryPanelProps) => {
   const apiKey = useAuthStore((s) => s.apiKey)
   const activeCodeSelection = useCodeSelectionStore((s) => s.activeCodeSelection)
   const repoId = activeCodeSelection?.repoId
+  const microfrontendId = activeCodeSelection?.id
   const queryClient = useQueryClient()
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -70,40 +84,43 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
     queryKey: ['mf-commits', repoId],
     queryFn: async () => {
       const { data } = await api.get('/v2/functions/micro-frontend/commits', {
-        params: { repo_id: repoId, limit: 20, page: 1 },
+        params: {
+          microfrontend_id: microfrontendId,
+          limit: 20,
+          page: 1,
+        },
         headers,
       })
-      return (data?.data ?? []) as Commit[]
+      return (data?.data?.versions ?? []) as Commit[]
     },
     enabled: !!repoId,
     staleTime: 0,
   })
 
-  // Current = top commit. After revert, BE creates a new commit that becomes commits[0].
-  const currentSha = commits[0]?.id ?? null
+  const currentGuid = commits.find((c) => c.is_current)?.guid ?? commits[0]?.guid ?? null
 
-  // Files at the selected commit — cached forever per (repoId, sha) since commits are immutable
+  // Snapshot files are immutable — cache forever per snapshot id.
   const { data: selectedFiles, isFetching: isLoadingFiles } = useQuery<VersionPreviewFile[]>({
-    queryKey: ['mf-commit-files', repoId, selectedSha],
+    queryKey: ['mf-version', selectedSha],
     queryFn: async () => {
-      const { data } = await api.get('/v2/functions/micro-frontend/files-at-commit', {
-        params: { repo_id: repoId, commit_sha: selectedSha },
+      const { data } = await api.get('/v2/functions/micro-frontend/version', {
+        params: { snapshot_id: selectedSha },
         headers,
       })
-      return mapFiles((data?.data ?? []) as CommitFile[])
+      const detail = (data?.data ?? null) as VersionDetail | null
+      return parseCommitFiles(detail?.files ?? '')
     },
-    enabled: !!repoId && !!selectedSha,
+    enabled: !!selectedSha,
     staleTime: Infinity,
   })
 
-  // Push selected commit's files to the preview whenever they're available
   useEffect(() => {
     if (selectedFiles) onSelectCommit(selectedFiles)
   }, [selectedFiles, onSelectCommit])
 
-  const handleSelect = (sha: string) => {
+  const handleSelect = (commit: Commit) => {
     if (!repoId) return
-    setSelectedSha(sha)
+    setSelectedSha(commit.guid)
   }
 
   const handleRevert = async (sha: string) => {
@@ -113,7 +130,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
     try {
       await api.post(
         '/v2/functions/micro-frontend/revert',
-        { repo_id: String(repoId), commit_sha: sha },
+        { repo_id: String(repoId), snapshot_id: sha },
         { headers },
       )
       // BE creates a new revert-commit at HEAD — refetch so commits[0] reflects it
@@ -145,9 +162,9 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
     }
   }
 
-  const handleViewCode = (sha: string) => {
+  const handleViewCode = (commit: Commit) => {
     setOpenMenuId(null)
-    handleSelect(sha)
+    handleSelect(commit)
     onViewCode()
   }
 
@@ -181,18 +198,18 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
       ) : (
         <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
           {commits.map((c) => {
-            const isSelected = c.id === selectedSha
-            const isCurrent = c.id === currentSha
+            const isSelected = c.guid === selectedSha
+            const isCurrent = c.is_current || c.guid === currentGuid
+            const isReverting = revertingSha === c.guid
+            const isPublishing = publishingSha === c.guid
             const isLoadingThis = isLoadingFiles && isSelected
-            const isReverting = revertingSha === c.id
-            const isPublishing = publishingSha === c.id
-            const isDisable = isReverting || isPublishing || isLoadingFiles
+            const isDisable = isReverting || isPublishing
             return (
               <div
-                key={c.id}
+                key={c.guid}
                 onClick={() => {
                   if (isDisable) return
-                  handleSelect(c.id)
+                  handleSelect(c)
                 }}
                 className={cn(
                   "flex items-center justify-between gap-2 px-4 py-3 border rounded-xl transition-colors cursor-pointer",
@@ -203,9 +220,9 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                 )}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-text-main truncate">{c.title}</p>
+                  <p className="text-sm font-medium text-text-main truncate">{c.commit_message}</p>
                   <p className="text-xs text-text-muted mt-0.5 truncate">
-                    {c.author_name} · {timeAgo(c.committed_date)}
+                    {timeAgo(c.created_at)}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -218,8 +235,8 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                     </span>
                   )}
                   <Popover
-                    open={openMenuId === c.id}
-                    onOpenChange={(open) => setOpenMenuId(open ? c.id : null)}
+                    open={openMenuId === c.guid}
+                    onOpenChange={(open) => setOpenMenuId(open ? c.guid : null)}
                   >
                     <PopoverTrigger asChild>
                       <button
@@ -237,7 +254,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                     <PopoverContent align="end" sideOffset={4} className="w-52 p-1">
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handlePublish(c.id) }}
+                        onClick={(e) => { e.stopPropagation(); handlePublish(c.guid) }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors text-left"
                       >
                         <Rocket size={14} />
@@ -245,7 +262,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                       </button>
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleRevert(c.id) }}
+                        onClick={(e) => { e.stopPropagation(); handleRevert(c.guid) }}
                         disabled={isCurrent}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors text-left disabled:opacity-50 disabled:pointer-events-none"
                       >
@@ -255,7 +272,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                       </button>
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleViewCode(c.id) }}
+                        onClick={(e) => { e.stopPropagation(); handleViewCode(c) }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors text-left"
                       >
                         <Code size={14} />

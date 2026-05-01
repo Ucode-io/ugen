@@ -162,21 +162,15 @@ export const ChatInput = ({
   useEffect(() => {
     if (!microfrontendsList || microfrontendsList.length === 0) return;
     if (activeCodeSelection?.kind === "new_project") return;
-    // Only skip when files are already loaded — don't skip on apiKey-race failures
-    if (
-      activeCodeSelection?.kind === "microfrontend" &&
-      activeCodeFiles &&
-      activeCodeFiles.length > 0
-    )
-      return;
+    // If any MF is already selected, leave it alone — whoever set it (initial
+    // bootstrap, processDoneData after generation, manual pick) is responsible
+    // for loading its codebase. Without this guard we race with externally-set
+    // selections and may load the wrong MF.
+    if (activeCodeSelection?.kind === "microfrontend") return;
     // Wait for apiKey so the codebase request doesn't 401
     if (!apiKey) return;
 
-    const targetMf =
-      activeCodeSelection?.kind === "microfrontend"
-        ? (microfrontendsList.find((m) => m.id === activeCodeSelection.id) ??
-          microfrontendsList[0])
-        : microfrontendsList[0];
+    const targetMf = microfrontendsList[0];
 
     const target = {
       kind: "microfrontend" as const,
@@ -187,6 +181,7 @@ export const ChatInput = ({
       type: targetMf.type,
       repoId: targetMf.repo_id,
       url: targetMf.url,
+      projectId: targetMf.project_id,
     };
     api
       .get(`/v2/function/${targetMf.id}/codebase`, {
@@ -260,6 +255,7 @@ export const ChatInput = ({
           type: mf.type,
           repoId: mf.repo_id,
           url: mf.url,
+          projectId: mf.project_id,
         },
         files,
       );
