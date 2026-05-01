@@ -119,7 +119,7 @@ export const EditorDropdown = ({
         ) : (
           <Download size={12} />
         )}
-        Import ZIP
+        Export ZIP
       </Button>
     </div>
   );

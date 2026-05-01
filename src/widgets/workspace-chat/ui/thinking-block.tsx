@@ -397,7 +397,7 @@ function ThoughtRow({
         <div className="text-[12.5px] leading-relaxed text-destructive flex-1 min-w-0 break-words">
           {thought.text}
           {thought.value && (
-            <span className="ml-1 font-semibold">{thought.value}</span>
+            <span className="ml-1 font-semibold ">{thought.value}</span>
           )}
         </div>
       </div>
@@ -566,9 +566,9 @@ export function ThinkingBlock({
       {/* ── Expanded thought stream ── */}
       {isOpen && thoughts.length > 0 && (
         <div className="mt-1.5">
-          <div ref={scrollRef} className="relative pl-1 max-h-[280px] overflow-y-auto">
+          <div ref={scrollRef} className="relative pl-1 max-h-70 overflow-y-auto">
             {/* Vertical guide line */}
-            <div className="absolute left-[10px] top-2 bottom-2 w-px bg-border-subtle/50" />
+            <div className="absolute left-2.5 top-2 bottom-2 w-px bg-border-subtle/50" />
 
             <div className="relative flex flex-col">
               {thoughts.map((t, i) => (

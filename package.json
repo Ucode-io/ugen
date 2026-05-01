@@ -25,6 +25,7 @@
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-table": "^8.21.3",
     "@typescript/ata": "^0.9.8",
+    "@vercel/edge-config": "^1.4.3",
     "axios": "^1.13.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
