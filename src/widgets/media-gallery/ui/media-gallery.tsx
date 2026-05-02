@@ -29,6 +29,7 @@ import { useMediaGallery } from '../lib/use-media-gallery'
 import { MediaCard } from './media-card'
 import { FileUploadModal } from '@/features/file-upload'
 import { MediaViewerModal } from './media-viewer-modal'
+import { CreateFolderModal } from './create-folder-modal'
 import { Button, UsageIndicator } from "@/shared/ui";
 import { api } from "@/shared/api";
 import { cn } from '@/shared/lib/utils/cn'
@@ -48,6 +49,8 @@ interface MediaGalleryProps {
   activeMenuId?: string
   folderPath?: string
   folders?: any[]
+  parentMenuId?: string
+  onFolderCreated?: () => void
 }
 
 export const MediaGallery = ({
@@ -55,7 +58,9 @@ export const MediaGallery = ({
   isLoading: propIsLoading = false,
   activeMenuId = 'media',
   folderPath = 'media',
-  folders = []
+  folders = [],
+  parentMenuId,
+  onFolderCreated,
 }: MediaGalleryProps) => {
   const t = useTranslations('widgets.mediaGallery')
   const {
@@ -103,6 +108,7 @@ export const MediaGallery = ({
   }, [data, initialFiles]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -161,21 +167,30 @@ export const MediaGallery = ({
   }, [filteredFiles])
 
   const computedFolders = useMemo(() => {
+    if (folders && folders.length > 0) {
+      return folders
+        .filter((f: any) => f?.type === 'MINIO_FOLDER')
+        .map((f: any) => ({ id: f.id, label: f.label, type: 'FOLDER' }))
+    }
     const storages = new Set<string>()
     files.forEach((f) => {
       if (f.storage) storages.add(f.storage);
     });
-    const derived = Array.from(storages).map(s => ({ id: s, label: s, type: 'FOLDER' }))
-    return derived
-  }, [files])
+    return Array.from(storages).map(s => ({ id: s, label: s, type: 'FOLDER' }))
+  }, [folders, files])
+
+  const activeFolderLabel = useMemo(() => {
+    if (!activeFolderId) return null
+    return computedFolders.find((f) => f.id === activeFolderId)?.label ?? activeFolderId
+  }, [activeFolderId, computedFolders])
 
   const displayFiles = useMemo(() => {
     return filteredFiles.filter((f) => {
-      if (!activeFolderId)
+      if (!activeFolderLabel)
         return !f.storage || f.storage === "" || f.storage === "root";
-      return f.storage === activeFolderId;
+      return f.storage === activeFolderLabel;
     });
-  }, [filteredFiles, activeFolderId]);
+  }, [filteredFiles, activeFolderLabel]);
 
   const handleToggle = useCallback(
     (id: string, shiftKey?: boolean) => {
@@ -325,6 +340,8 @@ export const MediaGallery = ({
         <Button
           variant="outline"
           size="sm"
+          onClick={() => setIsCreateFolderOpen(true)}
+          disabled={!parentMenuId}
           className="border-border-subtle h-8 rounded-lg px-3 text-[13px]"
         >
           <FolderPlus className="mr-1.5 h-4 w-4" />
@@ -626,6 +643,17 @@ export const MediaGallery = ({
         isOpen={previewIndex !== null}
         onClose={() => setPreviewIndex(null)}
       />
+
+      {parentMenuId && (
+        <CreateFolderModal
+          isOpen={isCreateFolderOpen}
+          onClose={() => setIsCreateFolderOpen(false)}
+          parentId={activeFolderId || parentMenuId}
+          onSuccess={() => {
+            onFolderCreated?.()
+          }}
+        />
+      )}
     </div>
   );
 }

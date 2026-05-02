@@ -96,7 +96,8 @@ export const ProjectDashboard = ({
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
 
-  const { data: fileMenus, isLoading: isMenusLoading } = useMenus('8a6f913a-e3d4-4b73-9fc0-c942f343d0b9')
+  const FILES_PARENT_MENU_ID = '8a6f913a-e3d4-4b73-9fc0-c942f343d0b9'
+  const { data: fileMenus, isLoading: isMenusLoading, refetch: refetchFileMenus } = useMenus(FILES_PARENT_MENU_ID)
   const { data: clientTypes = [] } = useClientTypes(projectId)
 
   const navigationItems: NavigationItem[] = useMemo(() => [
@@ -209,6 +210,8 @@ export const ProjectDashboard = ({
             activeMenuId="files"
             folderPath="media"
             folders={fileMenus}
+            parentMenuId={FILES_PARENT_MENU_ID}
+            onFolderCreated={() => refetchFileMenus()}
           />
         </div>
       );
