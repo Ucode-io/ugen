@@ -8,8 +8,99 @@ import { generatePreviewHtml } from "../lib/preview-html"
 import {
   AlertTriangle, Loader2, Sparkles, Layers2, Zap,
   MousePointerClick, Monitor, Tablet, Smartphone,
-  ChevronDown, Minimize, Maximize, RotateCw, Check,
+  ChevronDown, Minimize, Maximize, Check,
+  Palette, Upload, ChevronUp, Search,
 } from "lucide-react"
+
+const FONT_FAMILIES = [
+  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Raleway',
+  'Ubuntu', 'Nunito', 'Playfair Display', 'Merriweather', 'Source Code Pro',
+  'Fira Code', 'DM Sans', 'Space Grotesk', 'Plus Jakarta Sans', 'Manrope',
+  'Outfit', 'Geist', 'Geist Mono', 'Josefin Sans', 'Rubik', 'Work Sans',
+  'Karla', 'Mulish', 'Jost', 'Cabin', 'Quicksand', 'Barlow', 'Archivo',
+  'Figtree', 'Lexend', 'Noto Sans', 'PT Sans', 'Source Sans 3', 'IBM Plex Sans',
+  'IBM Plex Mono', 'Inconsolata', 'DM Mono', 'Pacifico', 'Dancing Script',
+  'Bebas Neue', 'Anton', 'Oswald', 'Crimson Text', 'EB Garamond',
+  'Libre Baskerville', 'Cormorant Garamond', 'Cinzel', 'Spectral',
+]
+
+// Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper)
+function hslStringToHex(hsl: string): string {
+  const [hStr, sStr, lStr] = hsl.trim().split(/\s+/)
+  const h = parseFloat(hStr)
+  const s = parseFloat(sStr) / 100
+  const l = parseFloat(lStr) / 100
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = l - c / 2
+  let r = 0, g = 0, b = 0
+  if (h < 60)       { r = c; g = x; b = 0 }
+  else if (h < 120) { r = x; g = c; b = 0 }
+  else if (h < 180) { r = 0; g = c; b = x }
+  else if (h < 240) { r = 0; g = x; b = c }
+  else if (h < 300) { r = x; g = 0; b = c }
+  else              { r = c; g = 0; b = x }
+  const hex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0')
+  return `#${hex(r)}${hex(g)}${hex(b)}`
+}
+
+function hexToHslString(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  let h = 0, s = 0
+  if (max !== min) {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break
+      case g: h = ((b - r) / d + 2) / 6; break
+      case b: h = ((r - g) / d + 4) / 6; break
+    }
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
+}
+
+function parseCssTheme(css: string) {
+  const readVar = (name: string) => css.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].trim() ?? null
+  const fontBodyRaw = css.match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1].trim().replace(/^['"]|['"]$/g, '') ?? 'Inter'
+  return {
+    background: readVar('background') ? hslStringToHex(readVar('background')!) : '#F6F7F9',
+    primary:    readVar('primary')    ? hslStringToHex(readVar('primary')!)    : '#493CDD',
+    foreground: readVar('foreground') ? hslStringToHex(readVar('foreground')!) : '#151A28',
+    fontFamily: fontBodyRaw,
+  }
+}
+
+function applyThemeToCss(css: string, colors: { background: string; primary: string; foreground: string }, font: string): string {
+  let result = css
+
+  const replaceVar = (name: string, hslStr: string) => {
+    result = result.replace(
+      new RegExp(`(--${name}:\\s*)[\\d.]+\\s+[\\d.]+%\\s+[\\d.]+%`),
+      `$1${hslStr}`
+    )
+  }
+  replaceVar('background', hexToHslString(colors.background))
+  replaceVar('primary',    hexToHslString(colors.primary))
+  replaceVar('foreground', hexToHslString(colors.foreground))
+
+  // Update font-body variable and its Google Fonts import
+  const currentFont = css.match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1].trim().replace(/^['"]|['"]$/g, '')
+  if (currentFont && currentFont !== font) {
+    result = result.replace(/--font-body:\s*[^;]+;/, `--font-body: '${font}', sans-serif;`)
+    const encodedCurrent = currentFont.replace(/\s+/g, '+')
+    const encodedNew = font.replace(/\s+/g, '+')
+    result = result.replace(
+      new RegExp(`@import url\\(['"]https://fonts\\.googleapis\\.com/css2\\?family=${encodedCurrent}[^'"]*['"]\\);`),
+      `@import url('https://fonts.googleapis.com/css2?family=${encodedNew}:wght@300;400;500;600;700&display=swap');`
+    )
+  }
+
+  return result
+}
 import type { DeviceType } from "./project-header"
 import { useAuthStore } from "@/entities/session"
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store"
@@ -44,6 +135,7 @@ interface ProjectPreviewViewerProps {
   device?: DeviceType
   isMaximized?: boolean
   isChatCollapsed?: boolean
+  chatPosition?: 'left' | 'right'
   versionPreviewFiles?: { path: string; content: string }[] | null
   projectId?: string
   onDeviceChange?: (device: DeviceType) => void
@@ -73,10 +165,11 @@ export const ProjectPreviewViewer = ({
   onDeviceChange,
   onToggleMaximize,
   isChatCollapsed,
+  chatPosition = 'left',
   isVersionHistory = false,
 }: ProjectPreviewViewerProps) => {
   const { isInspectMode, addSelectedElement, setInspectMode } = useVisualEditorStore()
-  const { files: storeFiles } = useFilesStore()
+  const { files: storeFiles, updateFile } = useFilesStore()
   const activeCodeSelection = useCodeSelectionStore((s) => s.activeCodeSelection)
   const activeCodeFiles = useCodeSelectionStore((s) => s.activeCodeFiles)
   const setActiveCodeSelection = useCodeSelectionStore((s) => s.setActiveCodeSelection)
@@ -149,6 +242,25 @@ export const ProjectPreviewViewer = ({
   const [deviceOpen, setDeviceOpen] = useState(false)
   const [microfrontendOpen, setMicrofrontendOpen] = useState(false)
 
+  // Theme popover state
+  const [themeOpen, setThemeOpen] = useState(false)
+  const [themeSettings, setThemeSettings] = useState({
+    background: '#F6F7F9',
+    primary: '#493CDD',
+    foreground: '#151A28',
+    logoUrl: '',
+  })
+  const [fontFamily, setFontFamily] = useState('Inter')
+  const [fontSearch, setFontSearch] = useState('')
+  const [fontDropdownOpen, setFontDropdownOpen] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  // Snapshot of theme at the moment the popover opens — used to restore on Cancel
+  const themeSnapshotRef = useRef({ ...{ background: '#F6F7F9', primary: '#493CDD', foreground: '#151A28', logoUrl: '' }, fontFamily: 'Inter' })
+
+  const filteredFonts = FONT_FAMILIES.filter((f) =>
+    f.toLowerCase().includes(fontSearch.toLowerCase())
+  )
+
   const containerRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const isBuilding = useRef(false)
@@ -156,6 +268,76 @@ export const ProjectPreviewViewer = ({
   // Keep a ref to files so message handler always sees the latest value
   const filesRef = useRef(files)
   useEffect(() => { filesRef.current = files }, [files])
+
+  // Sync theme state from src/index.css — skip while the popover is open so user edits are not overwritten
+  useEffect(() => {
+    if (themeOpen) return
+    const cssFile = files.find((f) => f.path === 'src/index.css')
+    if (!cssFile?.content) return
+    const parsed = parseCssTheme(cssFile.content)
+    setThemeSettings((prev) => ({ ...prev, background: parsed.background, primary: parsed.primary, foreground: parsed.foreground }))
+    setFontFamily(parsed.fontFamily)
+  }, [files, themeOpen])
+
+  // Live preview: inject CSS overrides directly into the iframe whenever colors/font change while popover is open
+  useEffect(() => {
+    if (!themeOpen) return
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.head) return
+
+    let styleEl = doc.getElementById('ugen-theme-override') as HTMLStyleElement | null
+    if (!styleEl) {
+      styleEl = doc.createElement('style')
+      styleEl.id = 'ugen-theme-override'
+      doc.head.appendChild(styleEl)
+    }
+    styleEl.textContent = `:root {
+      --background: ${hexToHslString(themeSettings.background)};
+      --foreground: ${hexToHslString(themeSettings.foreground)};
+      --primary: ${hexToHslString(themeSettings.primary)};
+      --font-body: '${fontFamily}', sans-serif;
+    }
+    body { font-family: '${fontFamily}', sans-serif; }`
+
+    let linkEl = doc.getElementById('ugen-font-override') as HTMLLinkElement | null
+    if (!linkEl) {
+      linkEl = doc.createElement('link')
+      linkEl.id = 'ugen-font-override'
+      linkEl.rel = 'stylesheet'
+      doc.head.appendChild(linkEl)
+    }
+    linkEl.href = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`
+  }, [themeSettings, fontFamily, themeOpen, srcDoc])
+
+  const handleThemeOpenChange = (open: boolean) => {
+    if (open) {
+      // Snapshot current state so Cancel can restore it
+      themeSnapshotRef.current = { ...themeSettings, fontFamily }
+    }
+    setThemeOpen(open)
+  }
+
+  const handleCancelTheme = () => {
+    const snap = themeSnapshotRef.current
+    setThemeSettings((prev) => ({ ...prev, background: snap.background, primary: snap.primary, foreground: snap.foreground, logoUrl: snap.logoUrl }))
+    setFontFamily(snap.fontFamily)
+    setThemeOpen(false)
+  }
+
+  const handleSaveTheme = () => {
+    const cssFile = files.find((f) => f.path === 'src/index.css')
+    if (!cssFile) { setThemeOpen(false); return }
+    const newContent = applyThemeToCss(cssFile.content, themeSettings, fontFamily)
+    if (isMicrofrontend && activeCodeSelection && activeCodeFiles) {
+      setActiveCodeSelection(
+        activeCodeSelection,
+        activeCodeFiles.map((f) => f.path === 'src/index.css' ? { ...f, content: newContent } : f)
+      )
+    } else {
+      updateFile('src/index.css', newContent)
+    }
+    setThemeOpen(false)
+  }
 
   // Floating Prompt States
   const [isPromptVisible, setIsPromptVisible] = useState(false)
@@ -330,6 +512,172 @@ export const ProjectPreviewViewer = ({
           >
             <MousePointerClick size={13} />
           </button>
+        )}
+        {!isVersionHistory && (
+          <Popover open={themeOpen} onOpenChange={handleThemeOpenChange}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                title="Theme"
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                  themeOpen
+                    ? "bg-text-main text-bg-main"
+                    : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+                )}
+              >
+                <Palette size={13} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" sideOffset={8} className="w-72 p-0">
+              {/* Header */}
+              <div className="px-4 pt-4 pb-3 border-b border-border-subtle">
+                <h3 className="text-sm font-semibold text-text-main">Theme</h3>
+                <p className="text-[11px] text-text-muted mt-0.5">Colors and fonts for your project.</p>
+              </div>
+
+              <div className="px-4 py-3 space-y-4">
+                {/* Colors */}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Colors</p>
+                  {(
+                    [
+                      { key: 'background', label: 'Background' },
+                      { key: 'primary',    label: 'Primary' },
+                      { key: 'foreground', label: 'Foreground' },
+                    ] as const
+                  ).map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-[13px] text-text-main">{label}</span>
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <span className="text-[12px] text-text-muted font-mono group-hover:text-text-main transition-colors">
+                          {themeSettings[key].toUpperCase()}
+                        </span>
+                        <div
+                          className="w-6 h-6 rounded border border-border-subtle shadow-sm overflow-hidden relative"
+                          style={{ backgroundColor: themeSettings[key] }}
+                        >
+                          <input
+                            type="color"
+                            value={themeSettings[key]}
+                            onChange={(e) => setThemeSettings((prev) => ({ ...prev, [key]: e.target.value }))}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Logo */}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Logo</p>
+                  <div className="flex items-center gap-2">
+                    {themeSettings.logoUrl ? (
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <img src={themeSettings.logoUrl} alt="Logo" className="h-7 w-auto max-w-20 object-contain rounded border border-border-subtle" />
+                        <button
+                          type="button"
+                          onClick={() => setThemeSettings((prev) => ({ ...prev, logoUrl: '' }))}
+                          className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-auto shrink-0"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-border-subtle hover:border-primary/50 hover:bg-primary/5 text-text-muted hover:text-primary transition-colors text-[12px] w-full justify-center"
+                      >
+                        <Upload size={12} />
+                        Upload logo
+                      </button>
+                    )}
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const reader = new FileReader()
+                        reader.onload = (ev) => setThemeSettings((prev) => ({ ...prev, logoUrl: ev.target?.result as string }))
+                        reader.readAsDataURL(file)
+                        e.target.value = ''
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Font Family */}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Font Family</p>
+                  <button
+                    type="button"
+                    onClick={() => { setFontDropdownOpen((o) => !o); setFontSearch('') }}
+                    className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-sidebar text-[13px] text-text-main hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                  >
+                    <span>{fontFamily}</span>
+                    {fontDropdownOpen ? <ChevronUp size={12} className="text-text-muted" /> : <ChevronDown size={12} className="text-text-muted" />}
+                  </button>
+                  {fontDropdownOpen && (
+                    <div className="border border-border-subtle rounded-lg overflow-hidden">
+                      <div className="flex items-center gap-2 px-2.5 py-1.5 border-b border-border-subtle bg-bg-sidebar">
+                        <Search size={11} className="text-text-muted shrink-0" />
+                        <input
+                          autoFocus
+                          type="text"
+                          value={fontSearch}
+                          onChange={(e) => setFontSearch(e.target.value)}
+                          placeholder="Search fonts..."
+                          className="flex-1 bg-transparent text-[12px] text-text-main placeholder:text-text-muted outline-none"
+                        />
+                      </div>
+                      <div className="max-h-36 overflow-y-auto">
+                        {filteredFonts.length === 0 ? (
+                          <p className="px-3 py-2 text-[12px] text-text-muted">No fonts found</p>
+                        ) : filteredFonts.map((f) => (
+                          <button
+                            key={f}
+                            type="button"
+                            onClick={() => { setFontFamily(f); setFontDropdownOpen(false) }}
+                            className={cn(
+                              "w-full text-left px-3 py-1.5 text-[12px] transition-colors",
+                              f === fontFamily
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-text-main hover:bg-hover-bg"
+                            )}
+                          >
+                            {f}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border-subtle bg-bg-sidebar/50">
+                <button
+                  type="button"
+                  onClick={handleCancelTheme}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveTheme}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-primary text-white hover:bg-primary/90 transition-colors"
+                >
+                  Save & Apply
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
         )}
       </div>
 
@@ -571,9 +919,9 @@ export const ProjectPreviewViewer = ({
         /* Normal preview — browser card with header + iframe as one unit */
         <div className={cn(
           "flex-1 flex justify-center items-start h-full overflow-auto transition-all duration-300",
-          // isMaximized ? "p-0" : "py-4 px-4"
-          isMaximized ? "p-0" : "pr-4 pb-2",
-          (isChatCollapsed && !isMaximized) ? "pl-4" : "pl-0"
+          isMaximized ? "p-0" : "pb-2",
+          !isMaximized && chatPosition === 'left' && (isChatCollapsed ? "px-4" : "pr-4 pl-0"),
+          !isMaximized && chatPosition === 'right' && (isChatCollapsed ? "px-4" : "pl-4 pr-0"),
         )}>
           <div
             className="flex flex-col flex-shrink-0 overflow-hidden border border-border-subtle shadow-md transition-all duration-300"

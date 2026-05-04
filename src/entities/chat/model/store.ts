@@ -63,7 +63,7 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: 'chat-storage',
-      partialize: (state) => ({ chatWidth: state.chatWidth }),
+      partialize: (state) => ({ chatWidth: state.chatWidth, chatPosition: state.chatPosition }),
     }
   )
 )

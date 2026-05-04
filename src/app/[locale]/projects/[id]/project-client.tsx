@@ -117,6 +117,8 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
   const activeTab = searchParams.get('tab') as 'dashboard' | 'code' | 'preview' || 'preview'
 
+  console.log({activeCodeFiles})
+
   const setActiveTab = useCallback((tab: 'dashboard' | 'code' | 'preview') => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', tab)
@@ -315,7 +317,9 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         className="h-screen w-full overflow-hidden bg-bg-main relative"
         style={{
           display: 'grid',
-          gridTemplateColumns: isChatCollapsed || isPreviewMaximized ? '0 1fr' : `${chatPosition === 'right' ? '1fr auto' : 'auto 1fr'}`,
+          gridTemplateColumns: isChatCollapsed
+            ? chatPosition === 'right' ? '1fr 0' : '0 1fr'
+            : chatPosition === 'right' ? '1fr auto' : 'auto 1fr',
           gridTemplateRows: 'auto 1fr',
           gridTemplateAreas: chatPosition === 'right'
             ? '"header chat" "preview chat"'
@@ -355,6 +359,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               onSave={handleSaveChanges}
               isChatCollapsed={isChatCollapsed}
               onToggleChat={() => setIsChatCollapsed(!isChatCollapsed)}
+              chatPosition={chatPosition}
               projectUrl={projectInfo?.url || projectInfo?.project_url || ''}
               isUgen={isUgen}
             />
@@ -362,7 +367,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
         )}
 
         {/* Content Area */}
-        <div style={{ gridArea: 'preview' }} className="relative flex overflow-hidden min-w-0">
+        <div style={{ gridArea: 'preview' }} className={cn("relative flex overflow-hidden min-w-0", isPreviewMaximized && "absolute inset-0 z-50")}>
           {isLoading ? (
             <WorkspaceLoader message="Loading project workspace..." />
           ) : (activeTab === 'preview' && !hasNoFiles) ? (
@@ -375,6 +380,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               onDeviceChange={setDevice}
               onToggleMaximize={handleTogglePreviewMaximize}
               isChatCollapsed={isChatCollapsed}
+              chatPosition={chatPosition}
               isVersionHistory={isVersionHistory}
             />
           ) : activeTab === 'dashboard' ? (

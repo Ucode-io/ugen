@@ -1,10 +1,12 @@
 'use client'
-import { ArrowLeftToLine, ArrowRightToLine, CodeXml, Globe, LayoutDashboard } from "lucide-react"
+import { MessageSquare, CodeXml, Globe, LayoutDashboard } from "lucide-react"
+import type { ChatPosition } from "@/entities/chat"
 import { useTranslations } from "next-intl"
 import { ReusableTabs } from "@/shared/ui"
 import { PublishPopover } from "./publish-popover"
 import { GithubPopover } from "./github-popover"
 import { cn } from "@/shared/lib/utils/cn"
+import { LogoPopover } from "@/widgets/workspace-chat/ui/logo-popover"
 
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
@@ -20,6 +22,7 @@ interface ProjectHeaderProps {
   onSave?: () => void
   isChatCollapsed: boolean
   onToggleChat: () => void
+  chatPosition?: ChatPosition
   projectUrl?: string
   isUgen?: boolean
 }
@@ -36,6 +39,7 @@ export const ProjectHeader = ({
   onSave,
   isChatCollapsed,
   onToggleChat,
+  chatPosition = 'left',
   projectUrl,
   isUgen = true,
 }: ProjectHeaderProps) => {
@@ -67,17 +71,35 @@ export const ProjectHeader = ({
     ? allTabOptions
     : allTabOptions.filter(t => t.id === 'preview')
 
+  const toggleButton = isUgen && (
+    <button
+      onClick={onToggleChat}
+      className="flex items-center justify-center w-7 h-7 rounded-lg border border-border-subtle transition-all shrink-0"
+      title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
+    >
+      <MessageSquare size={16} className="text-text-muted" />
+    </button>
+  )
+
   return (
-    <header className={cn("bg-bg-main flex items-center justify-between px-4 shrink-0 z-10 transition-all duration-300", {"pl-0": !isChatCollapsed})}>
+    <header className={cn(
+      "bg-bg-main flex items-center justify-between px-4 shrink-0 z-10 transition-all duration-300",
+      !isChatCollapsed && chatPosition === 'left' && "pl-0",
+    )}>
       <div className="flex items-center gap-2 min-w-[135px]">
-        {isUgen && (
-          <button
-            onClick={onToggleChat}
-            className="flex items-center justify-center w-7 h-7 rounded-lg border border-border-subtle transition-all"
-            title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
-          >
-            {isChatCollapsed ? <ArrowRightToLine size={16} /> : <ArrowLeftToLine size={16} />}
-          </button>
+        {chatPosition === 'left' && toggleButton}
+        {chatPosition === 'right' && (
+          <>
+            {!isChatCollapsed && (
+              <>
+                <LogoPopover projectTitle={projectTitle} />
+                <span className="text-[15px] font-medium text-text-main truncate max-w-[120px]">
+                  {projectTitle}
+                </span>
+              </>
+            )}
+            {toggleButton}
+          </>
         )}
       </div>
 
@@ -87,7 +109,7 @@ export const ProjectHeader = ({
         onTabChange={(id) => handleChangeTab(id as 'dashboard' | 'code' | 'preview')}
       />
 
-      <div className="flex items-center gap-1.5 min-w-[135px]">
+      <div className="flex items-center gap-1.5 justify-end min-w-[135px]">
         <GithubPopover projectId={projectId} />
         {isUgen && (
           <>

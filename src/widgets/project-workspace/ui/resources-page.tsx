@@ -42,6 +42,39 @@ const resourceTypes = [
   { label: "Transcode", value: 13 },
 ]
 
+// Map server-side string type → numeric typeValue used across the UI
+const RESOURCE_TYPE_STRING_TO_VALUE: Record<string, number> = {
+  MONGO: 1,
+  MONGODB: 1,
+  CLICK_HOUSE: 2,
+  CLICKHOUSE: 2,
+  POSTGRES: 3,
+  POSTGRESQL: 3,
+  REST: 4,
+  GITHUB: 5,
+  SMS: 6,
+  SMTP: 7,
+  GITLAB: 8,
+  SUPERSET: 11,
+  METABASE: 12,
+  TRANSCODE: 13,
+  TRANSCODER: 13,
+}
+
+const normalizeApiResource = (item: any) => {
+  const numericType =
+    typeof item.resource_type === 'number'
+      ? item.resource_type
+      : RESOURCE_TYPE_STRING_TO_VALUE[String(item.type ?? '').toUpperCase()] ?? null
+  const typeLabel = resourceTypes.find(t => t.value === numericType)?.label
+  return {
+    ...item,
+    resource_type: numericType,
+    name: item.name || typeLabel || item.type || 'Resource',
+    is_configured: item.is_configured ?? true,
+  }
+}
+
 // Resource categories with their items (static config)
 const resourceCategories = [
   {
@@ -267,7 +300,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       const { data } = await api.get('/v2/company/project/resource', {
         params: { project_id: projectId }
       })
-      return data.data?.resources || []
+      const resources = data.data?.resources || []
+      return resources.map(normalizeApiResource)
     },
     enabled: !!projectId
   })
@@ -279,7 +313,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       const { data } = await api.get('/v2/company/project/resource', {
         params: { project_id: projectId }
       })
-      return data.data?.resources || []
+      const resources = data.data?.resources || []
+      return resources.map(normalizeApiResource)
     },
     enabled: !!projectId
   })
@@ -303,11 +338,13 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   const resourcesList = useMemo(() => {
-    return [
-      ...resourcesV2,
-      ...clickHouseList,
-      ...resourcesV1,
-    ]
+    const all = [...resourcesV2, ...clickHouseList, ...resourcesV1]
+    const seen = new Set<string>()
+    return all.filter((r: any) => {
+      if (!r?.id || seen.has(r.id)) return false
+      seen.add(r.id)
+      return true
+    })
   }, [resourcesV2, resourcesV1, clickHouseList])
 
   const isListLoading = isLoadingV2

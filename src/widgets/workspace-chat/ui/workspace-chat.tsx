@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react";
-import { History, Loader2 } from "lucide-react";
+import { History, Loader2, PanelLeft, PanelRight, MoreVertical } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
 import { LogoPopover } from "./logo-popover";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
@@ -230,6 +231,7 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
   const activeCodeSelection = useCodeSelectionStore((state) => state.activeCodeSelection);
   const setActiveCodeSelection = useCodeSelectionStore((state) => state.setActiveCodeSelection);
   const apiKey = useAuthStore((state) => state.apiKey);
+  const setApiKey = useAuthStore((state) => state.setApiKey);
   const accessToken = useAuthStore((state) => state.accessToken);
 
   const displayMessages = messages.length > 0 ? messages : (!isLoadingHistory && offset === 0 ? MOCK_CHAT : []);
@@ -302,7 +304,8 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
     (e: PointerEvent) => {
       if (isResizing) {
         const deltaX = e.clientX - dragStartXRef.current;
-        const newWidth = dragStartWidthRef.current + deltaX;
+        const signedDelta = chatPosition === 'right' ? -deltaX : deltaX;
+        const newWidth = dragStartWidthRef.current + signedDelta;
 
         if (newWidth >= 360 && newWidth <= 580) {
           setChatWidth(newWidth);
@@ -313,7 +316,7 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
         }
       }
     },
-    [isResizing]
+    [isResizing, chatPosition]
   );
 
   useEffect(() => {
@@ -483,6 +486,16 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
                 id: string; name?: string; path?: string; branch?: string; type?: string;
                 project_id?: string; url?: string; repo_id?: string;
               }>;
+
+              // First generation: preview viewer hasn't mounted, so the queries don't exist
+              // in cache yet — invalidate/refetch are no-ops. Seed the cache directly so the
+              // viewer sees the fresh list as soon as it mounts.
+              if (!isMicrofrontendSelected) {
+                queryClient.setQueryData(['preview-microfrontends', projectId], list);
+                queryClient.setQueryData(['attach-microfrontends', projectId], list);
+                queryClient.setQueryData(['microfrontends-dropdown', projectId], list);
+              }
+
               const meta = list.find((m) => m.id === newMicrofrontendId);
               const target = meta
                 ? {
@@ -506,6 +519,25 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
         queryClient.invalidateQueries({ queryKey: ['preview-microfrontends', projectId] });
         queryClient.invalidateQueries({ queryKey: ['microfrontends', projectId] });
         queryClient.invalidateQueries({ queryKey: ['microfrontends-dropdown', projectId] });
+
+        // First generation: BE may have just minted the project's api_key and project_files.
+        // Without these, attach-microfrontends query stays disabled and the preview viewer
+        // never mounts (hasNoFiles=true), so subsequent invalidates are no-ops. Refresh project
+        // state explicitly so the UI behaves like after a page reload.
+        if (!isMicrofrontendSelected) {
+          api.get(`/v1/mcp_project/${projectId}`)
+            .then((res) => {
+              const projectData = res.data?.data;
+              if (!projectData) return;
+              if (projectData.api_key) setApiKey(projectData.api_key, projectId);
+              if (projectData.project_files?.length > 0) {
+                setFiles(projectData.project_files.map((f: any) => ({
+                  path: f.path, content: f.content, language: getLanguageByPath(f.path),
+                })));
+              }
+            })
+            .catch((err) => console.error('Failed to refresh project after first generation', err));
+        }
 
         if (data?.project?.project_files) {
           setFiles(data.project.project_files.map((f: any) => ({
@@ -548,11 +580,15 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buf = '';
+        let finalDoneData: any = null;
 
         try {
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              if (finalDoneData) processDoneData(finalDoneData);
+              break;
+            }
 
             buf += decoder.decode(value, { stream: true });
             const lines = buf.split('\n');
@@ -570,7 +606,7 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
                     path: f.path, content: f.content, language: getLanguageByPath(f.path),
                   })));
                 } else if (event.type === 'done') {
-                  processDoneData(event.data?.data ?? event.data);
+                  finalDoneData = event.data?.data ?? event.data;
                 }
               } catch {
                 // skip malformed line
@@ -638,23 +674,47 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
         </div>
         {/* Header — logo + project title, aligned with ProjectHeader height */}
         <div className="flex items-center gap-2 px-4 py-3 shrink-0">
-          <LogoPopover projectTitle={projectTitle} />
-          <span className="text-[15px] font-medium text-text-main truncate flex-1">
-            {projectTitle}
-          </span>
-          <button
-            type="button"
-            onClick={onToggleVersionHistory}
-            title="Version History"
-            className={cn(
-              "flex items-center justify-center w-7 h-7 rounded-lg transition-colors shrink-0",
-              isVersionHistory
-                ? "bg-bg-sidebar text-text-muted"
-                : "text-text-muted hover:bg-hover-bg hover:text-text-main"
-            )}
-          >
-            <History size={15} />
-          </button>
+          {chatPosition === 'left' && (
+            <>
+              <LogoPopover projectTitle={projectTitle} />
+              <span className="text-[15px] font-medium text-text-main truncate flex-1">
+                {projectTitle}
+              </span>
+            </>
+          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors shrink-0 text-text-muted hover:bg-hover-bg hover:text-text-main"
+              >
+                <MoreVertical size={15} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-44 p-1">
+              <button
+                type="button"
+                onClick={onToggleVersionHistory}
+                className={cn(
+                  "flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-colors",
+                  isVersionHistory
+                    ? "bg-bg-sidebar text-text-main"
+                    : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+                )}
+              >
+                <History size={14} />
+                Version History
+              </button>
+              <button
+                type="button"
+                onClick={() => setChatPosition(chatPosition === 'left' ? 'right' : 'left')}
+                className="flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-colors text-text-muted hover:bg-hover-bg hover:text-text-main"
+              >
+                {chatPosition === 'left' ? <PanelRight size={14} /> : <PanelLeft size={14} />}
+                {chatPosition === 'left' ? 'Move to right' : 'Move to left'}
+              </button>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div

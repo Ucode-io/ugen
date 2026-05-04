@@ -633,7 +633,7 @@ export const MediaGallery = ({
       <FileUploadModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        folderName={folderPath}
+        folderName={activeFolderLabel || folderPath || 'media'}
         onSuccess={() => { refetch(); refetchPricing() }}
       />
 
