@@ -585,13 +585,13 @@ export const ChatInput = ({
         </div>
 
         <div className="flex items-center gap-1">
-          <button
+          {/* <button
             className={`border-border-subtle text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 items-center justify-center gap-1.5 rounded-full border px-2 text-xs font-medium transition-colors ${isInspectMode ? "bg-text-main text-bg-main" : ""} `}
             onClick={handleToggleVisualEdit}
           >
             <MousePointerClick size={13} />
-            {/* <span>{t('input.visualEdits')}</span> */}
-          </button>
+            <span>{t('input.visualEdits')}</span>
+          </button> */}
           {/* <button
             className={
               `

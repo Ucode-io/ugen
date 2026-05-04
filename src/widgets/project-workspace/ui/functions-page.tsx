@@ -311,7 +311,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
         ) : (
           <WorkspaceDataTable
             columns={columns}
-            data={functionsData?.functions ?? []}
+            data={(functionsData?.functions ?? []).filter(fn => fn.id !== 'b90d8ad8-553a-4494-8031-660b85a79b45')}
             totalCount={functionsData?.total}
             page={page}
             onPageChange={setPage}

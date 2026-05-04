@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useVisualEditorStore } from "@/entities/visual-editor"
 import { MoveablePrompt } from "./moveable-prompt"
+import { ElementStyleToolbar } from "./element-style-toolbar"
 import { useFilesStore } from "@/entities/project/model/files-store"
 import { useChatStore } from "@/entities/chat"
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler"
@@ -343,6 +344,11 @@ export const ProjectPreviewViewer = ({
   const [isPromptVisible, setIsPromptVisible] = useState(false)
   const [promptPosition, setPromptPosition] = useState({ x: 0, y: 0 })
 
+  // Element Style Toolbar States
+  const [isStyleToolbarVisible, setIsStyleToolbarVisible] = useState(false)
+  const [styleToolbarPosition, setStyleToolbarPosition] = useState({ x: 0, y: 0 })
+  const [selectedDomPath, setSelectedDomPath] = useState<string | undefined>(undefined)
+
   const runCode = async () => {
     if (isBuilding.current) return
     isBuilding.current = true
@@ -458,12 +464,23 @@ export const ProjectPreviewViewer = ({
           sourceLine,
           outerHTML: outerHTML || null,
         })
+        setSelectedDomPath(domPath || undefined)
         if (rect && containerRef.current) {
-          setIsPromptVisible(true)
+          // Style toolbar — above the element (fall back to below if no room)
+          const toolbarHeight = 48
+          const aboveY = rect.top - toolbarHeight - 12
+          const belowY = rect.top + rect.height + 12
+          setIsStyleToolbarVisible(true)
+          setStyleToolbarPosition({
+            x: Math.max(20, rect.left + (rect.width / 2) - 200),
+            y: Math.max(20, aboveY > 20 ? aboveY : belowY),
+          })
+          // AI prompt position pre-computed for when user opens it
           setPromptPosition({
             x: Math.max(20, rect.left + (rect.width / 2) - 300),
             y: Math.max(20, rect.top + rect.height + 20)
           })
+          setIsPromptVisible(false)
         }
       }
     }
@@ -846,7 +863,18 @@ export const ProjectPreviewViewer = ({
         </div>
       )}
 
-      {/* Floating Prompt Bar */}
+      {/* Element Style Toolbar — direct visual editing */}
+      <ElementStyleToolbar
+        isVisible={isStyleToolbarVisible && isInspectMode}
+        position={styleToolbarPosition}
+        containerRef={containerRef}
+        iframeRef={iframeRef}
+        domPath={selectedDomPath}
+        onClose={() => { setIsStyleToolbarVisible(false); setIsPromptVisible(false) }}
+        onOpenAiPrompt={() => setIsPromptVisible(true)}
+      />
+
+      {/* Floating Prompt Bar — AI editing */}
       <MoveablePrompt
         isVisible={isPromptVisible && isInspectMode}
         initialPosition={promptPosition}

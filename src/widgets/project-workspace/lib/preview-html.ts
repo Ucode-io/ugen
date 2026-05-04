@@ -8,6 +8,8 @@ export const INSPECTOR_SCRIPT = `
   let overlay = null;
   let overlayTag = null;
   let enabled = false;
+  let lastSelected = null;
+  const originalStyles = new WeakMap();
 
   function ensureOverlay() {
     if (!overlay) {
@@ -141,6 +143,8 @@ export const INSPECTOR_SCRIPT = `
       outerHTML = firstTag.slice(0, 300) || null;
     } catch (_) {}
 
+    lastSelected = target;
+
     window.parent.postMessage({
       type: "INSPECT_SELECT",
 
@@ -166,6 +170,22 @@ export const INSPECTOR_SCRIPT = `
     }, "*");
   }, true);
 
+  function resolveTarget(domPath) {
+    if (domPath) {
+      try {
+        var found = document.querySelector(domPath);
+        if (found) return found;
+      } catch (_) {}
+    }
+    return lastSelected;
+  }
+
+  function snapshotIfNeeded(el) {
+    if (!originalStyles.has(el)) {
+      originalStyles.set(el, el.getAttribute('style') || '');
+    }
+  }
+
   window.addEventListener("message", (e) => {
     if (e.data?.type === "INSPECT_ON") {
       enabled = true;
@@ -176,6 +196,31 @@ export const INSPECTOR_SCRIPT = `
       enabled = false;
       document.body.style.cursor = "default";
       clear();
+    }
+
+    if (e.data?.type === "STYLE_APPLY") {
+      var el = resolveTarget(e.data.domPath);
+      if (!el) return;
+      snapshotIfNeeded(el);
+      var styles = e.data.styles || {};
+      Object.keys(styles).forEach(function (prop) {
+        var val = styles[prop];
+        var kebab = prop.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); });
+        if (val == null || val === '') {
+          el.style.removeProperty(kebab);
+        } else {
+          el.style.setProperty(kebab, String(val));
+        }
+      });
+    }
+
+    if (e.data?.type === "STYLE_RESET") {
+      var el2 = resolveTarget(e.data.domPath);
+      if (!el2 || !originalStyles.has(el2)) return;
+      var orig = originalStyles.get(el2);
+      if (orig) el2.setAttribute('style', orig);
+      else el2.removeAttribute('style');
+      originalStyles.delete(el2);
     }
   });
 `

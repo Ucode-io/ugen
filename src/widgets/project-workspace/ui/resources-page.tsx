@@ -389,6 +389,15 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     enabled: Number(formData.type) === 13 && view === 'detail'
   })
 
+  // Auto-set environment default for postgres/clickhouse create flow
+  useEffect(() => {
+    const rt = Number(formData.type)
+    if (view !== 'detail' || isEditMode) return
+    if (rt !== 2 && rt !== 3) return
+    if (formData.environment || environments.length === 0) return
+    setFormData(prev => ({ ...prev, environment: environments[0].value }))
+  }, [view, isEditMode, formData.type, formData.environment, environments])
+
   // Sync edit data
   useEffect(() => {
     if (resourceDetail) {
@@ -548,7 +557,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     setEditingResourceId(null)
     setEditingResourceType(null)
     setFormData({
-      name: '',
+      name: (item.typeValue === 2 || item.typeValue === 3) ? item.label : '',
       type: String(item.typeValue),
       environment: '',
     })
@@ -592,6 +601,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
   if (view === 'detail' && selectedResource) {
     const rType = Number(formData.type)
+    const isPostgresLike = rType === 3 || rType === 2
 
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -613,7 +623,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               </div>
             </div>
           </div>
-          {isEditMode && (
+          {isEditMode && !isPostgresLike && (
             <div className="flex gap-2">
               <Button
                 variant="ghost"
@@ -637,56 +647,63 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           )}
         </div>
 
-        <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 max-w-lg shadow-sm">
+        <div className={cn(
+          "bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm",
+          isPostgresLike ? "w-full" : "max-w-lg"
+        )}>
           <div className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Name</label>
-              <Input
-                placeholder="E.g. Production Database"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="bg-bg-sidebar border-border-subtle focus:ring-1 focus:ring-primary/20"
-              />
-            </div>
+            {!isPostgresLike && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-text-main">Name</label>
+                  <Input
+                    placeholder="E.g. Production Database"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="bg-bg-sidebar border-border-subtle focus:ring-1 focus:ring-primary/20"
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Type</label>
-              <Select
-                value={formData.type}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, type: v }))}
-              >
-                <SelectTrigger className="bg-bg-sidebar border-border-subtle">
-                  <SelectValue placeholder="Select resource type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {resourceTypes.map(rt => (
-                    <SelectItem key={rt.value} value={String(rt.value)}>
-                      {rt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-text-main">Type</label>
+                  <Select
+                    value={formData.type}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, type: v }))}
+                  >
+                    <SelectTrigger className="bg-bg-sidebar border-border-subtle">
+                      <SelectValue placeholder="Select resource type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {resourceTypes.map(rt => (
+                        <SelectItem key={rt.value} value={String(rt.value)}>
+                          {rt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Environment</label>
-              <Select
-                value={formData.environment}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, environment: v }))}
-                disabled={isLoadingEnvs}
-              >
-                <SelectTrigger className="bg-bg-sidebar border-border-subtle">
-                  <SelectValue placeholder={isLoadingEnvs ? "Loading environment..." : "Select environment"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {environments.map((env: any) => (
-                    <SelectItem key={env.value} value={env.value}>
-                      {env.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-text-main">Environment</label>
+                  <Select
+                    value={formData.environment}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, environment: v }))}
+                    disabled={isLoadingEnvs}
+                  >
+                    <SelectTrigger className="bg-bg-sidebar border-border-subtle">
+                      <SelectValue placeholder={isLoadingEnvs ? "Loading environment..." : "Select environment"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {environments.map((env: any) => (
+                        <SelectItem key={env.value} value={env.value}>
+                          {env.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
 
             {/* Dynamic Extra Fields */}
             {rType === 7 && (
@@ -710,26 +727,37 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
             {rType === 3 && (
               <>
-                <ExtraField label="Host" name="settings.postgres.host" placeholder="Host" />
-                <ExtraField label="Port" name="settings.postgres.port" placeholder="Port" />
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <ExtraField label="Host" name="settings.postgres.host" placeholder="Host" />
+                  </div>
+                  <div className="w-28">
+                    <ExtraField label="Port" name="settings.postgres.port" placeholder="Port" />
+                  </div>
+                </div>
                 <ExtraField label="Database" name="settings.postgres.database" placeholder="Database name" />
-                <ExtraField label="Username" name="settings.postgres.username" placeholder="Username" />
-                <ExtraField label="Password" name="settings.postgres.password" placeholder="Password" type="password" />
-                <ExtraField label="Display Name" name="settings.postgres.connection_name" placeholder="Display name" />
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-bg-sidebar border border-border-subtle">
-                  <span className="text-sm font-medium text-text-main">SSL Mode</span>
-                  <Switch checked={!!extraFields['settings.postgres.ssl_mode']} onCheckedChange={(v) => setExtraFields(prev => ({ ...prev, 'settings.postgres.ssl_mode': v }))} />
+                <div className="grid grid-cols-2 gap-3">
+                  <ExtraField label="Username" name="settings.postgres.username" placeholder="Username" />
+                  <ExtraField label="Password" name="settings.postgres.password" placeholder="Password" type="password" />
                 </div>
               </>
             )}
 
             {rType === 2 && (
               <>
-                <ExtraField label="Host" name="host" placeholder="Host" disabled={isEditMode} />
-                <ExtraField label="Port" name="port" placeholder="Port" disabled={isEditMode} />
-                <ExtraField label="Username" name="username" placeholder="Username" disabled={isEditMode} />
-                <ExtraField label="Password" name="password" placeholder="Password" type="password" disabled={isEditMode} />
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <ExtraField label="Host" name="host" placeholder="Host" disabled={isEditMode} />
+                  </div>
+                  <div className="w-28">
+                    <ExtraField label="Port" name="port" placeholder="Port" disabled={isEditMode} />
+                  </div>
+                </div>
                 <ExtraField label="Database" name="database" placeholder="Database" disabled={isEditMode} />
+                <div className="grid grid-cols-2 gap-3">
+                  <ExtraField label="Username" name="username" placeholder="Username" disabled={isEditMode} />
+                  <ExtraField label="Password" name="password" placeholder="Password" type="password" disabled={isEditMode} />
+                </div>
               </>
             )}
 

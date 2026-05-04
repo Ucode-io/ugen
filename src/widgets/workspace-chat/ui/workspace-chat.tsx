@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react";
-import { History, Loader2, PanelLeft, PanelRight, MoreVertical } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
+import { History, Loader2, PanelLeft, PanelRight } from "lucide-react";
 import { LogoPopover } from "./logo-popover";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
@@ -682,39 +681,25 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
               </span>
             </>
           )}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors shrink-0 text-text-muted hover:bg-hover-bg hover:text-text-main"
-              >
-                <MoreVertical size={15} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-44 p-1">
-              <button
-                type="button"
-                onClick={onToggleVersionHistory}
-                className={cn(
-                  "flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-colors",
-                  isVersionHistory
-                    ? "bg-bg-sidebar text-text-main"
-                    : "text-text-muted hover:bg-hover-bg hover:text-text-main"
-                )}
-              >
-                <History size={14} />
-                Version History
-              </button>
-              <button
-                type="button"
-                onClick={() => setChatPosition(chatPosition === 'left' ? 'right' : 'left')}
-                className="flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-colors text-text-muted hover:bg-hover-bg hover:text-text-main"
-              >
-                {chatPosition === 'left' ? <PanelRight size={14} /> : <PanelLeft size={14} />}
-                {chatPosition === 'left' ? 'Move to right' : 'Move to left'}
-              </button>
-            </PopoverContent>
-          </Popover>
+          <button
+            type="button"
+            onClick={onToggleVersionHistory}
+            className={cn(
+              "flex items-center justify-center w-7 h-7 rounded-lg transition-colors shrink-0",
+              isVersionHistory
+                ? "bg-bg-sidebar text-text-main"
+                : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+            )}
+          >
+            <History size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setChatPosition(chatPosition === 'left' ? 'right' : 'left')}
+            className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors shrink-0 text-text-muted hover:bg-hover-bg hover:text-text-main"
+          >
+            {chatPosition === 'left' ? <PanelRight size={15} /> : <PanelLeft size={15} />}
+          </button>
         </div>
 
         <div
