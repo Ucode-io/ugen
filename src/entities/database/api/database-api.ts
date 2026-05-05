@@ -134,6 +134,10 @@ export const databaseApi = {
     return api.put(`/v2/items/${tableName}`, { data });
   },
 
+  deleteRecord: async (tableName: string, guid: string): Promise<any> => {
+    return api.delete(`/v2/items/${tableName}/${guid}`, { data: { data: {} } });
+  },
+
   addSchemaField: async (
     tableSlug: string,
     projectId: string,
@@ -304,6 +308,17 @@ export const useUpdateRecord = () => {
       databaseApi.updateRecord(tableName, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["table-records"] });
+    },
+  });
+};
+
+export const useDeleteRecord = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tableName, guid }: { tableName: string; guid: string }) =>
+      databaseApi.deleteRecord(tableName, guid),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["db-records", variables.tableName] });
     },
   });
 };

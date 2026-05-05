@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from "react";
 import {
   Plus,
   Filter,
@@ -18,10 +18,14 @@ import {
   MoreHorizontal,
   Download,
   LayoutList,
-  GitFork
-} from 'lucide-react'
-import { SchemaView, exportSchemaToCSV } from './schema-view'
-import { toast } from 'sonner'
+  GitFork,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { SchemaView, exportSchemaToCSV } from "./schema-view";
+import { RecordEditModal } from "./record-edit-modal";
+import { RecordDeleteDialog } from "./record-delete-dialog";
+import { toast } from "sonner";
 import {
   useDatabaseStore,
   useTableRecords,
@@ -29,110 +33,150 @@ import {
   useTableSchemaV2,
   useAddRecord,
   useUpdateRecord,
-  Column
-} from '@/entities/database'
-import { DataTable } from '@/shared/ui'
-import { Button } from '@/shared/ui'
+  useDeleteRecord,
+  Column,
+} from "@/entities/database";
+import { DataTable } from "@/shared/ui";
+import { Button } from "@/shared/ui";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
+import { cn } from "@/shared/lib/utils/cn";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/shared/ui'
-import { cn } from '@/shared/lib/utils/cn'
-import { exportToCSV, exportToJSON, exportToXLSX } from '@/shared/lib/utils/export-utils'
+  exportToCSV,
+  exportToJSON,
+  exportToXLSX,
+} from "@/shared/lib/utils/export-utils";
 
-import { Skeleton } from '@/shared/ui'
-import { useTranslations } from 'next-intl'
-import { useAuthStore } from '@/entities/session'
+import { Skeleton } from "@/shared/ui";
+import { useTranslations } from "next-intl";
+import { useAuthStore } from "@/entities/session";
 
-type ActiveTab = 'records' | 'schema'
+type ActiveTab = "records" | "schema";
 
-export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { projectId: string, isPannelOpen: boolean, onTogglePannel: () => void }) => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('records')
-  const t = useTranslations('widgets.databaseStudio')
-  const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
-  const { selectedTable, setCurrentView, resetToTables, setFilters } = useDatabaseStore()
-  const { data: tableDetail, isLoading: isDetailLoading, refetch: refetchTableDetail } = useTableDetail(selectedTable, ucodeProjectId || "")
-  const { data: schemaColumns = [], isLoading: isSchemaColumnsLoading, refetch: refetchSchema } = useTableSchemaV2(selectedTable, ucodeProjectId || "")
-  const [filterQuery, setFilterQuery] = useState('')
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
+export const RecordsView = ({
+  projectId,
+  isPannelOpen,
+  onTogglePannel,
+}: {
+  projectId: string;
+  isPannelOpen: boolean;
+  onTogglePannel: () => void;
+}) => {
+  const [activeTab, setActiveTab] = useState<ActiveTab>("records");
+  const t = useTranslations("widgets.databaseStudio");
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
+  const { selectedTable, setCurrentView, resetToTables, setFilters } =
+    useDatabaseStore();
+  const {
+    data: tableDetail,
+    isLoading: isDetailLoading,
+    refetch: refetchTableDetail,
+  } = useTableDetail(selectedTable, ucodeProjectId || "");
+  const {
+    data: schemaColumns = [],
+    isLoading: isSchemaColumnsLoading,
+    refetch: refetchSchema,
+  } = useTableSchemaV2(selectedTable, ucodeProjectId || "");
+  const [filterQuery, setFilterQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const [localFilters, setLocalFilters] = useState<{ id: string; column: string; operator: string; value: string }[]>([])
-  const [appliedFilters, setAppliedFilters] = useState<any[]>([])
+  const [localFilters, setLocalFilters] = useState<
+    { id: string; column: string; operator: string; value: string }[]
+  >([]);
+  const [appliedFilters, setAppliedFilters] = useState<any[]>([]);
 
-  const [limit, setLimit] = useState(50)
-  const [offset, setOffset] = useState(0)
+  const [limit, setLimit] = useState(50);
+  const [offset, setOffset] = useState(0);
 
-  const [isInlineAdding, setIsInlineAdding] = useState(false)
-  const [isAddingField, setIsAddingField] = useState(false)
-  const [inlineRowData, setInlineRowData] = useState<Record<string, any>>({})
-  const [editingCell, setEditingCell] = useState<{ id: string; key: string } | null>(null)
-  const [editValue, setEditValue] = useState<any>(null)
+  const [isInlineAdding, setIsInlineAdding] = useState(false);
+  const [isAddingField, setIsAddingField] = useState(false);
+  const [inlineRowData, setInlineRowData] = useState<Record<string, any>>({});
+  const [editingCell, setEditingCell] = useState<{
+    id: string;
+    key: string;
+  } | null>(null);
+  const [editValue, setEditValue] = useState<any>(null);
 
-  const addRecordMutation = useAddRecord()
-  const updateRecordMutation = useUpdateRecord()
+  const addRecordMutation = useAddRecord();
+  const updateRecordMutation = useUpdateRecord();
+  const deleteRecordMutation = useDeleteRecord();
 
-  const currentPage = Math.floor(offset / limit) + 1
-  const [tempPage, setTempPage] = useState(String(currentPage))
-  const [tempLimit, setTempLimit] = useState(String(limit))
+  const [editingRecord, setEditingRecord] = useState<Record<string, any> | null>(
+    null,
+  );
+  const [deleteTarget, setDeleteTarget] = useState<Record<string, any> | null>(
+    null,
+  );
+
+  const currentPage = Math.floor(offset / limit) + 1;
+  const [tempPage, setTempPage] = useState(String(currentPage));
+  const [tempLimit, setTempLimit] = useState(String(limit));
 
   useEffect(() => {
-    setTempPage(String(currentPage))
-  }, [currentPage])
+    setTempPage(String(currentPage));
+  }, [currentPage]);
 
   useEffect(() => {
-    setTempLimit(String(limit))
-  }, [limit])
+    setTempLimit(String(limit));
+  }, [limit]);
 
   const handlePageBlur = () => {
-    const val = parseInt(tempPage)
+    const val = parseInt(tempPage);
     if (!isNaN(val) && val > 0) {
-      setOffset((val - 1) * limit)
+      setOffset((val - 1) * limit);
     } else {
-      setTempPage(String(currentPage))
+      setTempPage(String(currentPage));
     }
-  }
+  };
 
   const handleLimitBlur = () => {
-    const val = parseInt(tempLimit)
+    const val = parseInt(tempLimit);
     if (!isNaN(val) && val > 0) {
-      setLimit(val)
-      setOffset(0)
+      setLimit(val);
+      setOffset(0);
     } else {
-      setTempLimit(String(limit))
+      setTempLimit(String(limit));
     }
-  }
+  };
 
-  const schema: Column[] = tableDetail?.fields || (tableDetail as any)?.data?.fields || []
-  const allColumns = useMemo(() => schema.map(c => c.slug), [schema])
-  const [selectedColumns, setSelectedColumns] = useState<string[]>([])
+  const schema: Column[] =
+    tableDetail?.fields || (tableDetail as any)?.data?.fields || [];
+  const allColumns = useMemo(() => schema.map((c) => c.slug), [schema]);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
 
   useEffect(() => {
-    if (allColumns.length === 0) return
-    setSelectedColumns(prev => {
-      if (prev.length === 0) return allColumns
+    if (allColumns.length === 0) return;
+    setSelectedColumns((prev) => {
+      if (prev.length === 0) return allColumns;
       // Auto-include any columns that were added since the last snapshot
       // so newly created fields always appear without requiring a manual refresh.
-      const brandNew = allColumns.filter(c => !prev.includes(c))
-      return brandNew.length > 0 ? [...prev, ...brandNew] : prev
-    })
-  }, [allColumns])
+      const brandNew = allColumns.filter((c) => !prev.includes(c));
+      return brandNew.length > 0 ? [...prev, ...brandNew] : prev;
+    });
+  }, [allColumns]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      const cleanedFilters = localFilters.map(f => {
-        let val: any = f.value;
-        if (f.operator === 'in') {
-          val = val.split(',').map((s: string) => s.trim()).filter(Boolean);
-        } else if (f.value === 'true') {
-          val = true;
-        } else if (f.value === 'false') {
-          val = false;
-        } else if (!isNaN(Number(f.value)) && f.value.trim() !== '') {
-          val = Number(f.value);
-        }
-        return { column: f.column, operator: f.operator, value: val };
-      }).filter(f => ['is_null', 'is_not_null'].includes(f.operator) || f.value !== '');
+      const cleanedFilters = localFilters
+        .map((f) => {
+          let val: any = f.value;
+          if (f.operator === "in") {
+            val = val
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean);
+          } else if (f.value === "true") {
+            val = true;
+          } else if (f.value === "false") {
+            val = false;
+          } else if (!isNaN(Number(f.value)) && f.value.trim() !== "") {
+            val = Number(f.value);
+          }
+          return { column: f.column, operator: f.operator, value: val };
+        })
+        .filter(
+          (f) =>
+            ["is_null", "is_not_null"].includes(f.operator) || f.value !== "",
+        );
       setAppliedFilters(cleanedFilters);
     }, 400);
     return () => clearTimeout(handler);
@@ -143,312 +187,445 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
     setOffset(0);
   }, [limit, appliedFilters]);
 
-  const { data, isLoading: isRecordsLoading, refetch } = useTableRecords(
+  const {
+    data,
+    isLoading: isRecordsLoading,
+    refetch,
+  } = useTableRecords(
     selectedTable,
     projectId,
     ucodeProjectId || "",
     limit,
     offset,
     appliedFilters,
-    selectedColumns
-  )
+    selectedColumns,
+  );
 
-  const records = data?.items || []
-  const fetchDuration = data?.duration || 0
-  const types = data?.types || {}
+  const records = data?.items || [];
+  const fetchDuration = data?.duration || 0;
+  const types = data?.types || {};
 
   const transformValue = (val: any, col: Column) => {
-    if (val === '' || val === undefined || val === null) return null
+    if (val === "" || val === undefined || val === null) return null;
 
-    const type = (col.type || '').toUpperCase()
+    const type = (col.type || "").toUpperCase();
 
     // Provided Types Mapping Categories
-    const floatTypes = ["NUMBER", "FLOAT", "FLOAT_NOLIMIT", "FORMULA"]
-    const boolTypes = ["CHECKBOX", "SWITCH"]
-    const arrayTypes = ["MULTISELECT", "LOOKUPS", "DYNAMIC", "LANGUAGE_TYPE", "MULTI_IMAGE", "MULTI_FILE", "MONEY", "ARRAY"]
-    const serialTypes = ["INCREMENT_NUMBER"]
+    const floatTypes = ["NUMBER", "FLOAT", "FLOAT_NOLIMIT", "FORMULA"];
+    const boolTypes = ["CHECKBOX", "SWITCH"];
+    const arrayTypes = [
+      "MULTISELECT",
+      "LOOKUPS",
+      "DYNAMIC",
+      "LANGUAGE_TYPE",
+      "MULTI_IMAGE",
+      "MULTI_FILE",
+      "MONEY",
+      "ARRAY",
+    ];
+    const serialTypes = ["INCREMENT_NUMBER"];
 
     if (floatTypes.includes(type) || serialTypes.includes(type)) {
-      const num = Number(val)
-      if (isNaN(num)) return { error: `${col.label} must be a number` }
-      return num
+      const num = Number(val);
+      if (isNaN(num)) return { error: `${col.label} must be a number` };
+      return num;
     } else if (boolTypes.includes(type)) {
-      return val === 'true' || val === true || val === '1'
+      return val === "true" || val === true || val === "1";
     } else if (arrayTypes.includes(type)) {
-      return typeof val === 'string'
-        ? val.split(',').map(s => s.trim()).filter(Boolean)
-        : val
+      return typeof val === "string"
+        ? val
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : val;
     }
-    return val
-  }
+    return val;
+  };
 
   const handleSaveInline = async () => {
-    if (!selectedTable) return
+    if (!selectedTable) return;
 
-    const dataToSave: Record<string, any> = {}
+    const dataToSave: Record<string, any> = {};
     for (const col of schema) {
-      if (col.isPrimaryKey && col.type === 'uuid') continue
+      if (col.isPrimaryKey && col.type === "uuid") continue;
 
-      const rawVal = inlineRowData[col.slug]
-      if (col.required && (rawVal === undefined || rawVal === '' || rawVal === null)) {
-        toast.error(`${col.label} is required`)
-        return
+      const rawVal = inlineRowData[col.slug];
+      if (
+        col.required &&
+        (rawVal === undefined || rawVal === "" || rawVal === null)
+      ) {
+        toast.error(`${col.label} is required`);
+        return;
       }
 
-      const result = transformValue(rawVal, col)
-      if (result && typeof result === 'object' && 'error' in result) {
-        toast.error(result.error as string)
-        return
+      const result = transformValue(rawVal, col);
+      if (result && typeof result === "object" && "error" in result) {
+        toast.error(result.error as string);
+        return;
       }
-      dataToSave[col.slug] = result
+      dataToSave[col.slug] = result;
     }
 
     try {
-      await addRecordMutation.mutateAsync({ tableName: selectedTable, data: dataToSave })
-      setIsInlineAdding(false)
-      setInlineRowData({})
-      toast.success('Record added successfully')
-      refetch()
+      await addRecordMutation.mutateAsync({
+        tableName: selectedTable,
+        data: dataToSave,
+      });
+      setIsInlineAdding(false);
+      setInlineRowData({});
+      toast.success("Record added successfully");
+      refetch();
     } catch (err) {
-      console.error(err)
-      toast.error('Failed to add record')
+      console.error(err);
+      toast.error("Failed to add record");
     }
-  }
+  };
 
   const handleUpdateRecord = async (row: any, key: string, newVal: any) => {
-    if (!selectedTable || editingCell === null) return
+    if (!selectedTable || editingCell === null) return;
 
     // If value hasn't changed, just close
     if (newVal === row[key]) {
-      setEditingCell(null)
-      setEditValue(null)
-      return
+      setEditingCell(null);
+      setEditValue(null);
+      return;
     }
 
-    const col = schema?.find(s => s.slug === key)
-    if (!col) return
+    const col = schema?.find((s) => s.slug === key);
+    if (!col) return;
 
-    const result = transformValue(newVal, col)
-    if (result && typeof result === 'object' && 'error' in result) {
-      toast.error(result.error as string)
-      return
+    const result = transformValue(newVal, col);
+    if (result && typeof result === "object" && "error" in result) {
+      toast.error(result.error as string);
+      return;
     }
 
-    const updatedData = { ...row, [key]: result }
+    const updatedData = { ...row, [key]: result };
 
     try {
-      await updateRecordMutation.mutateAsync({ tableName: selectedTable, data: updatedData })
-      toast.success('Record updated')
-      refetch()
+      await updateRecordMutation.mutateAsync({
+        tableName: selectedTable,
+        data: updatedData,
+      });
+      toast.success("Record updated");
+      refetch();
     } catch (err) {
-      console.error(err)
-      toast.error('Failed to update record')
+      console.error(err);
+      toast.error("Failed to update record");
     } finally {
-      setEditingCell(null)
-      setEditValue(null)
+      setEditingCell(null);
+      setEditValue(null);
     }
-  }
+  };
 
-  const handleExport = (format: 'json' | 'csv' | 'xlsx') => {
+  const handleExport = (format: "json" | "csv" | "xlsx") => {
     if (!records.length) {
-      toast.error('No records to export')
-      return
+      toast.error("No records to export");
+      return;
     }
 
-    const filename = `${selectedTable}_export_${new Date().getTime()}`
+    const filename = `${selectedTable}_export_${new Date().getTime()}`;
 
     try {
-      if (format === 'json') {
-        exportToJSON(records, filename)
-        toast.success('Successfully exported to JSON')
-      } else if (format === 'csv') {
-        exportToCSV(records, filename)
-        toast.success('Successfully exported to CSV')
-      } else if (format === 'xlsx') {
-        exportToXLSX(records, filename)
-        toast.success('Successfully exported to XLSX')
+      if (format === "json") {
+        exportToJSON(records, filename);
+        toast.success("Successfully exported to JSON");
+      } else if (format === "csv") {
+        exportToCSV(records, filename);
+        toast.success("Successfully exported to CSV");
+      } else if (format === "xlsx") {
+        exportToXLSX(records, filename);
+        toast.success("Successfully exported to XLSX");
       }
     } catch (error) {
-      console.error('Export failed:', error)
-      toast.error('Failed to export data')
+      console.error("Export failed:", error);
+      toast.error("Failed to export data");
     }
-  }
+  };
 
   const displayRecords = useMemo(() => {
-    if (!isInlineAdding) return records
-    return [{ __isDraft: true, ...inlineRowData }, ...records]
-  }, [records, isInlineAdding, inlineRowData])
+    if (!isInlineAdding) return records;
+    return [{ __isDraft: true, ...inlineRowData }, ...records];
+  }, [records, isInlineAdding, inlineRowData]);
 
-  const isSchemaLoading = isDetailLoading
+  const isSchemaLoading = isDetailLoading;
 
   const columns = useMemo(() => {
-    let baseKeys: string[] = []
+    let baseKeys: string[] = [];
     if (records && records.length > 0) {
-      baseKeys = Object.keys(records[0])
+      baseKeys = Object.keys(records[0]);
     } else if (schema && schema.length > 0) {
-      baseKeys = schema.map((c) => c.slug)
+      baseKeys = schema.map((c) => c.slug);
     }
 
     if (selectedColumns.length > 0) {
-      baseKeys = baseKeys.filter((k) => selectedColumns.includes(k))
+      baseKeys = baseKeys.filter((k) => selectedColumns.includes(k));
     }
 
-    return baseKeys.map((key) => {
-      const schemaField = schema?.find((s) => s.slug === key)
-      const label = schemaField?.label || key
-      const pgType = types[key] || ''
+    const actionsColumn = {
+      accessorKey: "__actions",
+      header: () => (
+        <div className="flex w-20 items-center justify-center py-1">
+          <span className="text-text-main text-[11px] font-bold tracking-wider uppercase">
+            Actions
+          </span>
+        </div>
+      ),
+      cell: ({ row }: { row: { original: any } }) => {
+        if (row.original.__isDraft) {
+          return <div className="w-20" />;
+        }
+        return (
+          <div className="flex w-20 items-center justify-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingRecord(row.original);
+              }}
+              className="text-text-muted hover:text-primary hover:bg-primary/10 flex h-6 w-6 items-center justify-center rounded transition-colors"
+              title="Edit record"
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(row.original);
+              }}
+              className="text-text-muted hover:text-destructive hover:bg-destructive/10 flex h-6 w-6 items-center justify-center rounded transition-colors"
+              title="Delete record"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        );
+      },
+    };
+
+    const dataColumns = baseKeys.map((key) => {
+      const schemaField = schema?.find((s) => s.slug === key);
+      const label = schemaField?.label || key;
+      const pgType = types[key] || "";
 
       return {
         accessorKey: key,
         header: () => (
-          <div className="min-w-[200px] py-1 flex items-center gap-0.5">
-            <div className="font-bold text-text-main text-[11px] uppercase tracking-wider truncate" title={label}>
+          <div className="flex min-w-[200px] items-center gap-0.5 py-1">
+            <div
+              className="text-text-main truncate text-[11px] font-bold tracking-wider uppercase"
+              title={label}
+            >
               {label}
             </div>
             {pgType && (
-              <div className="text-[9px] text-text-muted/60 font-mono font-medium bg-bg-sidebar w-fit px-1 rounded border border-border-subtle/50 uppercase">
+              <div className="text-text-muted/60 bg-bg-sidebar border-border-subtle/50 w-fit rounded border px-1 font-mono text-[9px] font-medium uppercase">
                 {pgType}
               </div>
             )}
           </div>
         ),
-        cell: ({ row }: { row: { getValue: (key: string) => unknown; original: any; id: string } }) => {
-          const isEditing = editingCell?.id === row.id && editingCell?.key === key
+        cell: ({
+          row,
+        }: {
+          row: {
+            getValue: (key: string) => unknown;
+            original: any;
+            id: string;
+          };
+        }) => {
+          const isEditing =
+            editingCell?.id === row.id && editingCell?.key === key;
 
           if (isEditing) {
             return (
-              <div className="min-w-[200px] max-w-[400px] text-[13px] leading-tight py-0 px-0">
+              <div className="max-w-[400px] min-w-[200px] px-0 py-0 text-[13px] leading-tight">
                 <input
                   autoFocus
                   type="text"
-                  value={editValue ?? ''}
+                  value={editValue ?? ""}
                   onChange={(e) => setEditValue(e.target.value)}
-                  onBlur={() => handleUpdateRecord(row.original, key, editValue)}
+                  onBlur={() =>
+                    handleUpdateRecord(row.original, key, editValue)
+                  }
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleUpdateRecord(row.original, key, editValue)
-                    if (e.key === 'Escape') {
-                      setEditingCell(null)
-                      setEditValue(null)
+                    if (e.key === "Enter")
+                      handleUpdateRecord(row.original, key, editValue);
+                    if (e.key === "Escape") {
+                      setEditingCell(null);
+                      setEditValue(null);
                     }
                   }}
-                  className="w-full bg-transparent border-none p-0 text-[13px] outline-none placeholder:text-text-muted/30 font-medium"
+                  className="placeholder:text-text-muted/30 w-full border-none bg-transparent p-0 text-[13px] font-medium outline-none"
                 />
               </div>
-            )
+            );
           }
 
           if (row.original.__isDraft) {
-            const schemaField = schema?.find((s) => s.slug === key)
-            const isAutoUuid = schemaField?.isPrimaryKey && schemaField?.type === 'uuid'
+            const schemaField = schema?.find((s) => s.slug === key);
+            const isAutoUuid =
+              schemaField?.isPrimaryKey && schemaField?.type === "uuid";
 
             if (isAutoUuid) {
-              return <div className="text-[11px] text-text-muted/40 italic px-2">Auto-gen</div>
+              return (
+                <div className="text-text-muted/40 px-2 text-[11px] italic">
+                  Auto-gen
+                </div>
+              );
             }
 
             return (
-              <div className="min-w-[200px] max-w-[400px] text-[13px] leading-tight py-0 px-0">
+              <div className="max-w-[400px] min-w-[200px] px-0 py-0 text-[13px] leading-tight">
                 <input
                   type="text"
-                  value={row.original[key] ?? ''}
-                  onChange={(e) => setInlineRowData(prev => ({ ...prev, [key]: e.target.value }))}
-                  placeholder={`Enter ${schemaField?.type || 'value'}...`}
-                  className="w-full bg-transparent border-none p-0 text-[13px] outline-none placeholder:text-text-muted/30 placeholder:text-sm"
+                  value={row.original[key] ?? ""}
+                  onChange={(e) =>
+                    setInlineRowData((prev) => ({
+                      ...prev,
+                      [key]: e.target.value,
+                    }))
+                  }
+                  placeholder={`Enter ${schemaField?.type || "value"}...`}
+                  className="placeholder:text-text-muted/30 w-full border-none bg-transparent p-0 text-[13px] outline-none placeholder:text-sm"
                 />
               </div>
-            )
+            );
           }
 
-          const val = row.getValue(key)
-          let content: React.ReactNode = null
+          const val = row.getValue(key);
+          let content: React.ReactNode = null;
 
           // Enhanced rendering based on PG Type
-          const isArrayType = pgType.startsWith('_')
-          const isUuid = pgType === 'uuid'
-          const isBool = pgType === 'bool'
-          const isTimestamp = pgType === 'timestamp' || pgType === 'timestamptz'
+          const isArrayType = pgType.startsWith("_");
+          const isUuid = pgType === "uuid";
+          const isBool = pgType === "bool";
+          const isTimestamp =
+            pgType === "timestamp" || pgType === "timestamptz";
 
-          if (typeof val === 'number') {
-            content = <span className="text-blue-500 font-mono text-[12px] font-semibold">{val}</span>
-          } else if (isBool || typeof val === 'boolean') {
-            const boolVal = val === true || val === 'true' || val === '1'
+          if (typeof val === "number") {
             content = (
-              <span className={cn(
-                "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center justify-center min-w-[50px]",
-                boolVal
-                  ? "bg-primary/10 text-primary border border-primary/20"
-                  : "bg-text-muted/10 text-text-muted border border-text-muted/20"
-              )}>
-                {boolVal ? 'TRUE' : 'FALSE'}
+              <span className="font-mono text-[12px] font-semibold text-blue-500">
+                {val}
               </span>
-            )
-          } else if (val === null) {
-            content = <span className="text-text-muted/40 italic text-[11px] px-1">null</span>
-          } else if (isUuid || (typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val))) {
-            content = <span className="text-amber-600/80 font-mono text-[11px] truncate block w-[200px]" title={String(val)}>{String(val)}</span>
-          } else if (isArrayType || (typeof val === 'object' && val !== null)) {
-            const displayObj = typeof val === 'string' ? val : JSON.stringify(val);
+            );
+          } else if (isBool || typeof val === "boolean") {
+            const boolVal = val === true || val === "true" || val === "1";
             content = (
-              <div className="flex items-center gap-1 overflow-hidden max-w-[300px]">
-                <span className="text-teal-600 font-mono text-[10px] bg-teal-50 px-1 rounded border border-teal-100/50 truncate">
+              <span
+                className={cn(
+                  "inline-flex min-w-[50px] items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase",
+                  boolVal
+                    ? "bg-primary/10 text-primary border-primary/20 border"
+                    : "bg-text-muted/10 text-text-muted border-text-muted/20 border",
+                )}
+              >
+                {boolVal ? "TRUE" : "FALSE"}
+              </span>
+            );
+          } else if (val === null) {
+            content = (
+              <span className="text-text-muted/40 px-1 text-[11px] italic">
+                null
+              </span>
+            );
+          } else if (
+            isUuid ||
+            (typeof val === "string" &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                val,
+              ))
+          ) {
+            content = (
+              <span
+                className="block w-[200px] truncate font-mono text-[11px] text-amber-600/80"
+                title={String(val)}
+              >
+                {String(val)}
+              </span>
+            );
+          } else if (isArrayType || (typeof val === "object" && val !== null)) {
+            const displayObj =
+              typeof val === "string" ? val : JSON.stringify(val);
+            content = (
+              <div className="flex max-w-[300px] items-center gap-1 overflow-hidden">
+                <span className="truncate rounded border border-teal-100/50 bg-teal-50 px-1 font-mono text-[10px] text-teal-600">
                   {displayObj}
                 </span>
               </div>
-            )
+            );
           } else {
-            const isDate = isTimestamp || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))
-            const displayVal = String(val ?? '')
+            const isDate =
+              isTimestamp ||
+              (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val));
+            const displayVal = String(val ?? "");
             content = (
-              <span className={cn(isDate ? "text-text-muted/70 font-mono text-[12px]" : "text-text-main")} title={displayVal}>
+              <span
+                className={cn(
+                  isDate
+                    ? "text-text-muted/70 font-mono text-[12px]"
+                    : "text-text-main",
+                )}
+                title={displayVal}
+              >
                 {displayVal}
               </span>
-            )
+            );
           }
 
           return (
             <div
-              className="min-w-[200px] max-w-[400px] truncate text-[13px] leading-tight py-0 cursor-text hover:bg-primary/[0.04] transition-colors rounded px-1 -mx-1"
+              className="hover:bg-primary/[0.04] -mx-1 max-w-[400px] min-w-[200px] cursor-text truncate rounded px-1 py-0 text-[13px] leading-tight transition-colors"
               onClick={() => {
-                setEditingCell({ id: row.id, key })
-                setEditValue(val)
+                setEditingCell({ id: row.id, key });
+                setEditValue(val);
               }}
             >
               {content}
             </div>
-          )
-        }
-      }
-    })
-  }, [schema, records, selectedColumns, isInlineAdding, editingCell, editValue])
+          );
+        },
+      };
+    });
+
+    return [...dataColumns, actionsColumn];
+  }, [
+    schema,
+    records,
+    selectedColumns,
+    isInlineAdding,
+    editingCell,
+    editValue,
+  ]);
 
   useEffect(() => {
     // Reset column selection whenever the user switches to a different table
-    setSelectedColumns([])
-    setIsAddingField(false)
-  }, [selectedTable])
+    setSelectedColumns([]);
+    setIsAddingField(false);
+  }, [selectedTable]);
 
   useEffect(() => {
-    if (activeTab !== 'schema') setIsAddingField(false)
+    if (activeTab !== "schema") setIsAddingField(false);
     // Schema is shared between both tabs, always refetch on switch.
-    refetchSchema()
+    refetchSchema();
     // Records tab uses tableDetail.fields for column headers AND rows data,
     // so both must be refetched when switching back to records.
-    if (activeTab === 'records') {
-      refetchTableDetail()
-      refetch()
+    if (activeTab === "records") {
+      refetchTableDetail();
+      refetch();
     }
-  }, [activeTab])
+  }, [activeTab]);
 
   if (!selectedTable) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-text-muted">
+      <div className="text-text-muted flex h-full flex-col items-center justify-center">
         <Database size={32} className="mb-4 opacity-50" />
         <p className="text-sm">Select a table to view its records</p>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden w-full max-w-[100%]">
+    <div className="flex h-full w-full max-w-[100%] flex-col overflow-hidden">
       {/* <div className="flex items-center justify-between p-4 border-b border-border-subtle shrink-0">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold text-text-main">
@@ -460,54 +637,58 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
         </div>
       </div> */}
 
-      <div className="flex items-center justify-between p-3 bg-bg-main/50 border-b border-border-subtle overflow-x-auto whitespace-nowrap min-h-[47px] shrink-0">
+      <div className="bg-bg-main/50 border-border-subtle flex min-h-[47px] shrink-0 items-center justify-between overflow-x-auto border-b p-3 whitespace-nowrap">
         <div className="flex items-center gap-2">
           <button
             onClick={onTogglePannel}
-            className="text-text-muted hover:text-text-main hover:bg-hover-bg p-1 rounded-lg transition-colors flex items-center justify-center shrink-0"
+            className="text-text-muted hover:text-text-main hover:bg-hover-bg flex shrink-0 items-center justify-center rounded-lg p-1 transition-colors"
             title={isPannelOpen ? `Open AI Chat` : `Collapse AI Chat`}
           >
-            {!isPannelOpen ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
+            {!isPannelOpen ? (
+              <PanelRightClose size={16} />
+            ) : (
+              <PanelLeftClose size={16} />
+            )}
           </button>
 
           {/* View mode toggle: Table | Schema */}
-          <div className="flex items-center bg-bg-card border border-border-subtle rounded-lg p-0.5 gap-0.5 shrink-0">
+          <div className="bg-bg-card border-border-subtle flex shrink-0 items-center gap-0.5 rounded-lg border p-0.5">
             <button
               id="db-view-tab-records"
-              onClick={() => setActiveTab('records')}
+              onClick={() => setActiveTab("records")}
               title="Table view"
               className={cn(
-                "p-1 rounded-[4px] transition-all duration-150 flex items-center justify-center",
-                activeTab === 'records'
+                "flex items-center justify-center rounded-[4px] p-1 transition-all duration-150",
+                activeTab === "records"
                   ? "bg-bg-main text-primary shadow-sm"
-                  : "text-text-muted/60 hover:text-text-muted"
+                  : "text-text-muted/60 hover:text-text-muted",
               )}
             >
               <LayoutList size={16} />
             </button>
             <button
               id="db-view-tab-schema"
-              onClick={() => setActiveTab('schema')}
+              onClick={() => setActiveTab("schema")}
               title="Schema view"
               className={cn(
-                "p-1 rounded-[4px] transition-all duration-150 flex items-center justify-center",
-                activeTab === 'schema'
+                "flex items-center justify-center rounded-[4px] p-1 transition-all duration-150",
+                activeTab === "schema"
                   ? "bg-bg-main text-primary shadow-sm"
-                  : "text-text-muted/60 hover:text-text-muted"
+                  : "text-text-muted/60 hover:text-text-muted",
               )}
             >
               <GitFork size={16} />
             </button>
           </div>
 
-          {activeTab === 'records' && (
+          {activeTab === "records" && (
             <>
               {isInlineAdding ? (
                 <div className="flex items-center gap-2">
                   <Button
                     variant="primary"
                     size="sm"
-                    className="px-2.5 py-1.5 text-[11px] font-medium gap-1.5 bg-primary hover:bg-primary/90 text-white"
+                    className="bg-primary hover:bg-primary/90 gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-white"
                     onClick={handleSaveInline}
                     loading={addRecordMutation.isPending}
                   >
@@ -517,10 +698,10 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
                   <Button
                     variant="outline"
                     size="sm"
-                    className="px-2.5 py-1.5 text-[11px] font-medium gap-1.5 border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg shadow-none"
+                    className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg gap-1.5 px-2.5 py-1.5 text-[11px] font-medium shadow-none"
                     onClick={() => {
-                      setIsInlineAdding(false)
-                      setInlineRowData({})
+                      setIsInlineAdding(false);
+                      setInlineRowData({});
                     }}
                   >
                     <Ban size={14} />
@@ -530,71 +711,89 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
               ) : (
                 <button
                   onClick={() => {
-                    setIsInlineAdding(true)
-                    setInlineRowData({})
+                    setIsInlineAdding(true);
+                    setInlineRowData({});
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+                  className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
                 >
                   <Plus size={14} />
-                  {t('records.addRow')}
+                  {t("records.addRow")}
                 </button>
               )}
 
               <button
                 onClick={() => {
                   if (!isFilterOpen && localFilters.length === 0) {
-                    const defaultCol = schema?.[0]?.slug || '';
-                    setLocalFilters([{ id: Math.random().toString(36).substring(7), column: defaultCol, operator: 'eq', value: '' }])
+                    const defaultCol = schema?.[0]?.slug || "";
+                    setLocalFilters([
+                      {
+                        id: Math.random().toString(36).substring(7),
+                        column: defaultCol,
+                        operator: "eq",
+                        value: "",
+                      },
+                    ]);
                   }
-                  setIsFilterOpen(!isFilterOpen)
+                  setIsFilterOpen(!isFilterOpen);
                 }}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors",
+                  "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
                   isFilterOpen
                     ? "bg-primary/10 border-primary/30 text-primary"
-                    : "border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg"
+                    : "border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg",
                 )}
               >
                 <Filter size={14} />
-                {t('records.filter')}
+                {t("records.filter")}
               </button>
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors">
+                  <button className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors">
                     <SlidersHorizontal size={14} />
                     Columns
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-56 p-0 bg-bg-card border-border-subtle shadow-md rounded-md" align="start">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
-                    <span className="text-xs font-medium text-text-main">Toggle columns</span>
+                <PopoverContent
+                  className="bg-bg-card border-border-subtle w-56 rounded-md p-0 shadow-md"
+                  align="start"
+                >
+                  <div className="border-border-subtle flex items-center justify-between border-b px-3 py-2">
+                    <span className="text-text-main text-xs font-medium">
+                      Toggle columns
+                    </span>
                     <button
                       onClick={() => setSelectedColumns([])}
-                      className="text-[11px] text-text-muted hover:text-text-main"
+                      className="text-text-muted hover:text-text-main text-[11px]"
                     >
                       Deselect all
                     </button>
                   </div>
-                  <div className="p-1 max-h-[300px] overflow-y-auto">
-                    {allColumns.map(col => {
+                  <div className="max-h-[300px] overflow-y-auto p-1">
+                    {allColumns.map((col) => {
                       const isSelected = selectedColumns.includes(col);
                       return (
                         <div
                           key={col}
-                          className="flex items-center gap-2 px-2 py-1.5 hover:bg-hover-bg rounded-sm cursor-pointer text-xs group"
+                          className="hover:bg-hover-bg group flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs"
                           onClick={() => {
-                            setSelectedColumns(prev =>
-                              isSelected ? prev.filter(c => c !== col) : [...prev, col]
-                            )
+                            setSelectedColumns((prev) =>
+                              isSelected
+                                ? prev.filter((c) => c !== col)
+                                : [...prev, col],
+                            );
                           }}
                         >
-                          <div className="w-4 h-4 flex items-center justify-center shrink-0">
-                            {isSelected && <Check size={14} className="text-primary" />}
+                          <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                            {isSelected && (
+                              <Check size={14} className="text-primary" />
+                            )}
                           </div>
-                          <span className="text-text-main group-hover:text-text-main transition-colors truncate">{col}</span>
+                          <span className="text-text-main group-hover:text-text-main truncate transition-colors">
+                            {col}
+                          </span>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 </PopoverContent>
@@ -603,80 +802,85 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
           )}
         </div>
 
-        {activeTab === 'schema' && (
-          <div className="flex items-center gap-2 shrink-0 ml-4">
-            <div className="flex items-center gap-1.5 px-1 text-[11px] font-medium text-text-muted/60">
+        {activeTab === "schema" && (
+          <div className="ml-4 flex shrink-0 items-center gap-2">
+            <div className="text-text-muted/60 flex items-center gap-1.5 px-1 text-[11px] font-medium">
               <span>{schemaColumns.length}</span>
               <span>fields</span>
             </div>
             <button
               onClick={() => setIsAddingField(!isAddingField)}
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors',
+                "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
                 isAddingField
-                  ? 'bg-primary/10 border-primary/30 text-primary'
-                  : 'border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg'
+                  ? "bg-primary/10 border-primary/30 text-primary"
+                  : "border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg",
               )}
             >
               <Plus size={14} /> Add field
             </button>
             <button
-              onClick={() => exportSchemaToCSV(selectedTable || '', schemaColumns)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border-subtle text-xs font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+              onClick={() =>
+                exportSchemaToCSV(selectedTable || "", schemaColumns)
+              }
+              className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
             >
               <Download size={14} /> Export DDL
             </button>
             <button
               onClick={() => refetchSchema()}
-              className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
+              className="border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main rounded-md border p-1.5 shadow-sm transition-colors"
               title="Refresh"
             >
-              <RefreshCw size={14} className={cn(isSchemaColumnsLoading && 'animate-spin')} />
+              <RefreshCw
+                size={14}
+                className={cn(isSchemaColumnsLoading && "animate-spin")}
+              />
             </button>
           </div>
         )}
 
-        {activeTab === 'records' && (
-          <div className="flex items-center gap-3 shrink-0 ml-4">
-            <div className="ml-auto flex items-center gap-1.5 px-1 text-[11px] font-medium text-text-muted/60">
+        {activeTab === "records" && (
+          <div className="ml-4 flex shrink-0 items-center gap-3">
+            <div className="text-text-muted/60 ml-auto flex items-center gap-1.5 px-1 text-[11px] font-medium">
               <span>{records.length}</span>
               <span>rows</span>
               <span className="opacity-40">•</span>
               <span>{fetchDuration}ms</span>
             </div>
-            <div className="flex items-center h-8 rounded-md border border-border-subtle bg-bg-main overflow-hidden text-[11px] font-medium text-text-muted shadow-sm hover:border-border-main transition-colors">
+            <div className="border-border-subtle bg-bg-main text-text-muted hover:border-border-main flex h-8 items-center overflow-hidden rounded-md border text-[11px] font-medium shadow-sm transition-colors">
               <button
-                className="h-full px-2 border-r border-border-subtle hover:bg-hover-bg hover:text-text-main disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                className="border-border-subtle hover:bg-hover-bg hover:text-text-main h-full shrink-0 border-r px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={offset === 0}
                 onClick={() => setOffset(Math.max(0, offset - limit))}
                 title="Previous Page"
               >
                 <ChevronLeft size={14} />
               </button>
-              <div className="flex items-center border-r border-border-subtle bg-bg-card/50 px-2 h-full gap-1">
+              <div className="border-border-subtle bg-bg-card/50 flex h-full items-center gap-1 border-r px-2">
                 <input
                   type="text"
                   value={tempLimit}
                   onChange={(e) => setTempLimit(e.target.value)}
                   onBlur={handleLimitBlur}
-                  onKeyDown={(e) => e.key === 'Enter' && handleLimitBlur()}
-                  className="w-8 bg-transparent text-center outline-none text-text-main font-mono focus:text-primary transition-colors"
+                  onKeyDown={(e) => e.key === "Enter" && handleLimitBlur()}
+                  className="text-text-main focus:text-primary w-8 bg-transparent text-center font-mono transition-colors outline-none"
                   title="Rows per page"
                 />
               </div>
-              <div className="flex items-center border-r border-border-subtle bg-bg-card/50 px-2 h-full gap-1">
+              <div className="border-border-subtle bg-bg-card/50 flex h-full items-center gap-1 border-r px-2">
                 <input
                   type="text"
                   value={tempPage}
                   onChange={(e) => setTempPage(e.target.value)}
                   onBlur={handlePageBlur}
-                  onKeyDown={(e) => e.key === 'Enter' && handlePageBlur()}
-                  className="w-8 bg-transparent text-center outline-none text-text-main font-mono focus:text-primary transition-colors"
+                  onKeyDown={(e) => e.key === "Enter" && handlePageBlur()}
+                  className="text-text-main focus:text-primary w-8 bg-transparent text-center font-mono transition-colors outline-none"
                   title="Current page"
                 />
               </div>
               <button
-                className="h-full px-2 hover:bg-hover-bg hover:text-text-main disabled:opacity-50 transition-colors shrink-0"
+                className="hover:bg-hover-bg hover:text-text-main h-full shrink-0 px-2 transition-colors disabled:opacity-50"
                 disabled={!records || records.length < limit}
                 onClick={() => setOffset(offset + limit)}
                 title="Next Page"
@@ -687,50 +891,71 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
 
             <button
               onClick={() => refetch()}
-              className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
+              className="border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main rounded-md border p-1.5 shadow-sm transition-colors"
               title="Refresh"
             >
-              <RefreshCw size={14} className={cn(isRecordsLoading && "animate-spin")} />
+              <RefreshCw
+                size={14}
+                className={cn(isRecordsLoading && "animate-spin")}
+              />
             </button>
 
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  className="p-1.5 rounded-md border border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main transition-colors shadow-sm"
+                  className="border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main rounded-md border p-1.5 shadow-sm transition-colors"
                   title="Options"
                 >
                   <MoreHorizontal size={14} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-[180px] p-1 bg-bg-card border-border-subtle shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95 duration-200">
+              <PopoverContent
+                align="end"
+                className="bg-bg-card border-border-subtle animate-in fade-in-0 zoom-in-95 w-[180px] rounded-xl p-1 shadow-xl duration-200"
+              >
                 <div className="flex flex-col gap-0.5">
                   <button
                     onClick={() => refetch()}
-                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                    className="text-text-main hover:bg-hover-bg group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors"
                   >
-                    <RefreshCw size={14} className={cn("text-text-muted group-hover:text-primary transition-colors", isRecordsLoading && "animate-spin")} />
+                    <RefreshCw
+                      size={14}
+                      className={cn(
+                        "text-text-muted group-hover:text-primary transition-colors",
+                        isRecordsLoading && "animate-spin",
+                      )}
+                    />
                     Refresh rows
                   </button>
-                  <div className="h-px bg-border-subtle my-1 mx-1" />
+                  <div className="bg-border-subtle mx-1 my-1 h-px" />
                   <button
-                    onClick={() => handleExport('json')}
-                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                    onClick={() => handleExport("json")}
+                    className="text-text-main hover:bg-hover-bg group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors"
                   >
-                    <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                    <Download
+                      size={14}
+                      className="text-text-muted group-hover:text-primary transition-colors"
+                    />
                     Export all to .json
                   </button>
                   <button
-                    onClick={() => handleExport('csv')}
-                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                    onClick={() => handleExport("csv")}
+                    className="text-text-main hover:bg-hover-bg group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors"
                   >
-                    <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                    <Download
+                      size={14}
+                      className="text-text-muted group-hover:text-primary transition-colors"
+                    />
                     Export all to .csv
                   </button>
                   <button
-                    onClick={() => handleExport('xlsx')}
-                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium text-text-main hover:bg-hover-bg rounded-lg transition-colors w-full text-left group"
+                    onClick={() => handleExport("xlsx")}
+                    className="text-text-main hover:bg-hover-bg group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors"
                   >
-                    <Download size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                    <Download
+                      size={14}
+                      className="text-text-muted group-hover:text-primary transition-colors"
+                    />
                     Export all to .xlsx
                   </button>
                 </div>
@@ -741,41 +966,77 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
       </div>
 
       {/* Schema tab renders full SchemaView, bypassing records UI */}
-      {activeTab === 'schema' && (
-        <SchemaView isAddingField={isAddingField} setIsAddingField={setIsAddingField} />
+      {activeTab === "schema" && (
+        <SchemaView
+          isAddingField={isAddingField}
+          setIsAddingField={setIsAddingField}
+        />
       )}
 
-      {activeTab === 'records' && isFilterOpen && (
-        <div className={cn("p-3 bg-bg-main/30 border-b border-border-subtle flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-200 shrink-0", localFilters.length > 0 ? "items-start" : "items-center self-stretch")}>
+      {activeTab === "records" && isFilterOpen && (
+        <div
+          className={cn(
+            "bg-bg-main/30 border-border-subtle animate-in fade-in slide-in-from-top-2 flex shrink-0 items-start gap-2 border-b p-3 duration-200",
+            localFilters.length > 0
+              ? "items-start"
+              : "items-center self-stretch",
+          )}
+        >
           {localFilters.length === 0 ? (
-            <div className="text-xs text-text-muted px-3 py-2 font-medium">No active filters. Click Add filter.</div>
+            <div className="text-text-muted px-3 py-2 text-xs font-medium">
+              No active filters. Click Add filter.
+            </div>
           ) : (
             <div className="flex flex-col gap-2">
               {localFilters.map((filter, index) => (
                 <div key={filter.id} className="flex items-center gap-2">
                   <button
-                    onClick={() => setLocalFilters(prev => prev.filter(f => f.id !== filter.id))}
-                    className="w-5 h-5 flex items-center justify-center text-text-muted hover:text-destructive bg-bg-card border border-border-subtle rounded-md hover:border-destructive/30 transition-colors shrink-0"
+                    onClick={() =>
+                      setLocalFilters((prev) =>
+                        prev.filter((f) => f.id !== filter.id),
+                      )
+                    }
+                    className="text-text-muted hover:text-destructive bg-bg-card border-border-subtle hover:border-destructive/30 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors"
                     title="Remove filter"
                   >
                     <X size={12} />
                   </button>
-                  <span className="text-[13px] font-medium text-text-muted shrink-0 w-12 flex justify-center px-2 py-1 bg-bg-card rounded-md">
-                    {index === 0 ? 'where' : 'and'}
+                  <span className="text-text-muted bg-bg-card flex w-12 shrink-0 justify-center rounded-md px-2 py-1 text-[13px] font-medium">
+                    {index === 0 ? "where" : "and"}
                   </span>
 
                   <select
                     value={filter.column}
-                    onChange={(e) => setLocalFilters(prev => prev.map(f => f.id === filter.id ? { ...f, column: e.target.value } : f))}
-                    className="bg-bg-card border border-border-subtle rounded-md text-[13px] font-medium outline-none text-text-main px-3 py-1 h-8 focus:border-primary/50 w-[180px] shrink-0"
+                    onChange={(e) =>
+                      setLocalFilters((prev) =>
+                        prev.map((f) =>
+                          f.id === filter.id
+                            ? { ...f, column: e.target.value }
+                            : f,
+                        ),
+                      )
+                    }
+                    className="bg-bg-card border-border-subtle text-text-main focus:border-primary/50 h-8 w-[180px] shrink-0 rounded-md border px-3 py-1 text-[13px] font-medium outline-none"
                   >
-                    {schema?.map(c => <option key={c.slug} value={c.slug}>{c.label}</option>)}
+                    {schema?.map((c) => (
+                      <option key={c.slug} value={c.slug}>
+                        {c.label}
+                      </option>
+                    ))}
                   </select>
 
                   <select
                     value={filter.operator}
-                    onChange={(e) => setLocalFilters(prev => prev.map(f => f.id === filter.id ? { ...f, operator: e.target.value } : f))}
-                    className="bg-bg-card border border-border-subtle rounded-md text-[13px] font-medium outline-none text-text-main px-3 py-1 h-8 focus:border-primary/50 w-[160px] shrink-0"
+                    onChange={(e) =>
+                      setLocalFilters((prev) =>
+                        prev.map((f) =>
+                          f.id === filter.id
+                            ? { ...f, operator: e.target.value }
+                            : f,
+                        ),
+                      )
+                    }
+                    className="bg-bg-card border-border-subtle text-text-main focus:border-primary/50 h-8 w-[160px] shrink-0 rounded-md border px-3 py-1 text-[13px] font-medium outline-none"
                   >
                     <option value="eq">equals</option>
                     <option value="neq">not equal</option>
@@ -791,13 +1052,23 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
                     <option value="in">is in</option>
                   </select>
 
-                  {!['is_null', 'is_not_null'].includes(filter.operator) && (
+                  {!["is_null", "is_not_null"].includes(filter.operator) && (
                     <input
                       type="text"
                       value={filter.value}
-                      onChange={(e) => setLocalFilters(prev => prev.map(f => f.id === filter.id ? { ...f, value: e.target.value } : f))}
-                      placeholder={filter.operator === 'in' ? 'v1,v2,...' : '...'}
-                      className="bg-bg-card border border-border-subtle rounded-md px-3 py-1 h-8 text-[13px] outline-none focus:border-primary/50 w-[240px] shrink-0 font-medium"
+                      onChange={(e) =>
+                        setLocalFilters((prev) =>
+                          prev.map((f) =>
+                            f.id === filter.id
+                              ? { ...f, value: e.target.value }
+                              : f,
+                          ),
+                        )
+                      }
+                      placeholder={
+                        filter.operator === "in" ? "v1,v2,..." : "..."
+                      }
+                      className="bg-bg-card border-border-subtle focus:border-primary/50 h-8 w-[240px] shrink-0 rounded-md border px-3 py-1 text-[13px] font-medium outline-none"
                     />
                   )}
                 </div>
@@ -807,24 +1078,32 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
 
           <div
             className={cn(
-              "flex items-start gap-3 pl-8 border-l border-border-subtle transition-all duration-200 h-full"
+              "border-border-subtle flex h-full items-start gap-3 border-l pl-8 transition-all duration-200",
             )}
           >
-            <div className="flex items-center gap-2 h-8">
+            <div className="flex h-8 items-center gap-2">
               <button
                 onClick={() => {
-                  const defaultCol = schema?.[0]?.slug || '';
-                  setLocalFilters(prev => [...prev, { id: Math.random().toString(36).substring(7), column: defaultCol, operator: 'eq', value: '' }])
+                  const defaultCol = schema?.[0]?.slug || "";
+                  setLocalFilters((prev) => [
+                    ...prev,
+                    {
+                      id: Math.random().toString(36).substring(7),
+                      column: defaultCol,
+                      operator: "eq",
+                      value: "",
+                    },
+                  ]);
                 }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg"
+                className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
               >
                 <Plus size={12} /> Add filter
               </button>
               <button
                 onClick={() => {
-                  setLocalFilters([])
+                  setLocalFilters([]);
                 }}
-                className="text-xs font-medium text-text-muted hover:text-destructive transition-colors"
+                className="text-text-muted hover:text-destructive text-xs font-medium transition-colors"
               >
                 Clear filters
               </button>
@@ -833,7 +1112,7 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
         </div>
       )}
 
-      {activeTab === 'records' && (
+      {activeTab === "records" && (
         <div className="flex-1 overflow-auto">
           {isRecordsLoading ? (
             <div className="space-y-4 p-2">
@@ -850,15 +1129,57 @@ export const RecordsView = ({ projectId, isPannelOpen, onTogglePannel }: { proje
               columns={columns}
               data={displayRecords}
               isLoading={isRecordsLoading}
-              emptyMessage={t('records.noResults')}
+              emptyMessage={t("records.noResults")}
               containerClassName="border-none shadow-none"
               tableClassName="min-w-max border-collapse"
-              rowClassName={(row: any) => row.__isDraft ? "bg-primary/[0.04] dark:bg-primary/[0.08]" : ""}
-              className="rounded-none border-none [&_td]:p-1.5 [&_td]:border [&_td]:border-border-subtle [&_th]:p-1.5 [&_th]:border [&_th]:border-border-subtle [&_th]:h-8"
+              rowClassName={(row: any) =>
+                row.__isDraft ? "bg-primary/[0.04] dark:bg-primary/[0.08]" : ""
+              }
+              className="[&_td]:border-border-subtle [&_th]:border-border-subtle rounded-none border-none [&_td]:border [&_td]:p-1.5 [&_th]:h-8 [&_th]:border [&_th]:p-1.5"
             />
           )}
         </div>
       )}
+
+      {editingRecord && selectedTable && (
+        <RecordEditModal
+          open={!!editingRecord}
+          tableName={selectedTable}
+          schema={schema}
+          record={editingRecord}
+          onClose={() => setEditingRecord(null)}
+          onSuccess={() => refetch()}
+        />
+      )}
+
+      {deleteTarget && selectedTable && (
+        <RecordDeleteDialog
+          recordLabel={String(
+            deleteTarget.guid ?? deleteTarget.id ?? "this record",
+          )}
+          isLoading={deleteRecordMutation.isPending}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            const guid = deleteTarget.guid ?? deleteTarget.id;
+            if (!guid) {
+              toast.error("Record has no guid — cannot delete");
+              return;
+            }
+            try {
+              await deleteRecordMutation.mutateAsync({
+                tableName: selectedTable,
+                guid,
+              });
+              toast.success("Record deleted");
+              setDeleteTarget(null);
+              refetch();
+            } catch (err) {
+              console.error(err);
+              toast.error("Failed to delete record");
+            }
+          }}
+        />
+      )}
     </div>
-  )
-}
+  );
+};
