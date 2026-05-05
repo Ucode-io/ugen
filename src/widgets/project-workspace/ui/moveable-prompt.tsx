@@ -1,62 +1,61 @@
-import { ArrowUp, CornerDownLeft, Trash2, CodeXml } from "lucide-react"
+import { ArrowLeft, ArrowUp, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
+import { cn } from "@/shared/lib/utils/cn"
 
 interface MoveablePromptProps {
   isVisible: boolean
-  initialPosition: { x: number, y: number }
-  onClose: () => void
+  initialPosition: { x: number; y: number }
   containerRef: React.RefObject<HTMLDivElement | null>
+  onBack: () => void
+  onClose: () => void
+  onSubmit?: (text: string) => void
+  isSending?: boolean
 }
 
-export const MoveablePrompt = ({ isVisible, initialPosition, onClose, containerRef }: MoveablePromptProps) => {
+export const MoveablePrompt = ({
+  isVisible, initialPosition, containerRef, onBack, onClose, onSubmit, isSending = false,
+}: MoveablePromptProps) => {
   const [position, setPosition] = useState(initialPosition)
   const [value, setValue] = useState("")
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const promptRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { setPosition(initialPosition) }, [initialPosition])
 
   useEffect(() => {
-    setPosition(initialPosition)
-  }, [initialPosition])
+    if (isVisible) {
+      setValue("")
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [isVisible])
 
   useEffect(() => {
     if (!isDragging) return
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const containerRect = containerRef.current?.getBoundingClientRect()
-      if (containerRect) {
-        setPosition({
-          x: e.clientX - containerRect.left - dragOffset.x,
-          y: e.clientY - containerRect.top - dragOffset.y
-        })
-      }
+    const onMove = (e: MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (rect) setPosition({ x: e.clientX - rect.left - dragOffset.x, y: e.clientY - rect.top - dragOffset.y })
     }
-
-    const handleMouseUp = () => {
-      setIsDragging(false)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
+    const onUp = () => setIsDragging(false)
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [isDragging, dragOffset, containerRef])
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('input') || (e.target as HTMLElement).closest('button')) return
-
-    e.preventDefault()
-    e.stopPropagation()
+    if ((e.target as HTMLElement).closest('input, button')) return
+    e.preventDefault(); e.stopPropagation()
     setIsDragging(true)
     const rect = promptRef.current?.getBoundingClientRect()
-    if (rect) {
-      setDragOffset({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      })
-    }
+    if (rect) setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+  }
+
+  const handleSubmit = () => {
+    const text = value.trim()
+    if (!text || isSending) return
+    onSubmit?.(text)
+    setValue("")
   }
 
   if (!isVisible) return null
@@ -65,63 +64,69 @@ export const MoveablePrompt = ({ isVisible, initialPosition, onClose, containerR
     <div
       ref={promptRef}
       onMouseDown={handleMouseDown}
-      onClick={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-      }}
-      className={`ignore-inspect absolute z-[110] flex items-center bg-white border border-slate-200 rounded-full px-4 py-2 shadow-2xl min-w-[600px] max-w-[800px] transition-opacity duration-300 ${isDragging ? 'opacity-90' : 'opacity-100'}`}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+      className={cn(
+        "ignore-inspect absolute z-110 flex items-center gap-1 bg-bg-card border border-border-subtle rounded-xl px-1.5 py-1.5 shadow-2xl",
+        isDragging ? "opacity-90" : "opacity-100"
+      )}
       style={{
         top: position.y,
         left: Math.max(20, position.x),
-        cursor: isDragging ? 'grabbing' : 'grab'
+        cursor: isDragging ? 'grabbing' : 'grab',
+        minWidth: 340,
       }}
     >
+      {/* Back */}
+      <button
+        type="button"
+        title="Back to style editor"
+        onClick={(e) => { e.stopPropagation(); onBack() }}
+        className="h-7 w-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors shrink-0"
+      >
+        <ArrowLeft size={14} />
+      </button>
+
+      <div className="w-px h-4 bg-border-subtle mx-0.5" />
+
+      {/* Input */}
       <input
+        ref={inputRef}
         type="text"
         value={value}
+        disabled={isSending}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Describe your changes..."
-        className="flex-1 bg-transparent border-none outline-none text-slate-800 text-[15px] px-2 py-1 placeholder:text-slate-400"
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') { e.stopPropagation(); onBack(); return }
+          if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); handleSubmit() }
         }}
+        placeholder="Describe changes..."
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+        className="flex-1 bg-transparent border-none outline-none text-text-main text-[13px] px-1 placeholder:text-text-muted min-w-0 disabled:opacity-50"
       />
 
-      <div className="flex items-center gap-1.5 ml-2">
-        <button
-          className="bg-slate-900 text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-slate-800 transition-colors shrink-0"
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-        >
-          <ArrowUp size={18} strokeWidth={2.5} />
-        </button>
+      {/* Send */}
+      <button
+        type="button"
+        title="Send"
+        onClick={(e) => { e.stopPropagation(); handleSubmit() }}
+        disabled={!value.trim() || isSending}
+        className="h-7 w-7 flex items-center justify-center rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+      >
+        <ArrowUp size={13} strokeWidth={2.5} />
+      </button>
 
-        <div className="w-[1px] h-6 bg-slate-200 mx-2" />
+      <div className="w-px h-4 bg-border-subtle mx-0.5" />
 
-        <button
-          className="text-slate-500 hover:text-slate-800 p-1.5 transition-colors"
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-        >
-          <CornerDownLeft size={18} />
-        </button>
-        <button
-          className="text-slate-500 hover:text-slate-800 p-1.5 transition-colors"
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-        >
-          <CodeXml size={18} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            onClose()
-          }}
-          className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-        >
-          <Trash2 size={18} />
-        </button>
-      </div>
+      {/* Close all */}
+      <button
+        type="button"
+        title="Close"
+        onClick={(e) => { e.stopPropagation(); onClose() }}
+        className="h-7 w-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-red-500/10 hover:text-red-500 transition-colors shrink-0"
+      >
+        <X size={13} />
+      </button>
     </div>
   )
 }

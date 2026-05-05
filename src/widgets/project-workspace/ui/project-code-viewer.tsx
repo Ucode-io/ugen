@@ -27,16 +27,23 @@ import { CodebaseEditor } from "./codebase-editor";
 import type { CodebaseFile } from "./codebase-editor";
 import { EditorDropdown, FRONTEND_VALUE } from "./editor-dropdown";
 import type { DropdownOption } from "./editor-dropdown";
+import { getDirtyKey, useDirtyFilesStore } from "@/entities/project/model/dirty-files-store";
+import { useGuardedAction, requestSave } from "../lib/save-flow";
+import { cn } from "@/shared/lib/utils/cn";
 
 // ── Component ───────────────────────────────────────────────────────────────
 export const ProjectCodeViewer = ({
   projectId,
   getLanguageByPath,
   versionFiles,
+  isChatCollapsed = false,
+  chatPosition = 'left',
 }: {
   projectId: string;
   getLanguageByPath: (path: string) => string;
   versionFiles?: { path: string; content: string }[] | null;
+  isChatCollapsed?: boolean;
+  chatPosition?: 'left' | 'right';
 }) => {
   // ── Files store ────────────────────────────────────────────────────────────
   const files = useFilesStore((state) => state.files);
@@ -185,13 +192,27 @@ export const ProjectCodeViewer = ({
     selectionInitDoneRef.current = true;
   }, [activeCodeSelection, dropdownOptions]);
 
-  // Wrap setSelectedValue so every user-initiated dropdown change also updates the store
+  const guardedAction = useGuardedAction();
+
+  // Dirty state for gitlab mode (microfrontend/function)
+  const dirtyKey = getDirtyKey(activeOption?.target ?? null);
+  const dirtyMap = useDirtyFilesStore((s) => (dirtyKey ? s.dirty[dirtyKey] : undefined));
+  const gitlabHasDirty = !!dirtyMap && Object.keys(dirtyMap).length > 0;
+  const handleSaveAll = () => {
+    void requestSave(activeOption?.target ?? null).catch(() => { /* cancelled */ });
+  };
+
+  // Wrap setSelectedValue so every user-initiated dropdown change also updates the store.
+  // Guard: if there are unsaved changes for the currently selected microfrontend, prompt first.
   const handleDropdownChange = (value: string) => {
-    setSelectedValue(value);
-    const option = dropdownOptions.find((o) => o.value === value);
-    if (option?.target) {
-      setActiveCodeSelection(option.target);
-    }
+    if (value === selectedValue) return;
+    guardedAction(() => {
+      setSelectedValue(value);
+      const option = dropdownOptions.find((o) => o.value === value);
+      if (option?.target) {
+        setActiveCodeSelection(option.target);
+      }
+    });
   };
 
   // Fetch codebase files when a microfrontend/function is selected
@@ -461,6 +482,21 @@ export const ProjectCodeViewer = ({
     }
   };
 
+  const handleSaveAllFiles = () => {
+    const allDirty = updatedFilesRef.current;
+    if (allDirty.length === 0) return;
+    allDirty.forEach((f) => updateFile(f.path, f.content));
+    setUpdatedFiles([]);
+    api.put(`/v1/mcp_project/${projectIdRef.current}`, {
+      project_id: projectIdRef.current,
+      project_files: allDirty.map((f) => ({
+        path: f.path,
+        content: f.content,
+        language: f.language,
+      })),
+    });
+  };
+
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       const currentActiveFile = activeFileRef.current;
@@ -603,7 +639,12 @@ export const ProjectCodeViewer = ({
 
 
   return (
-    <div className="bg-bg-main flex h-full w-full flex-1 overflow-hidden flex-col text-[13px]">
+    <div className={cn(
+      "flex-1 flex justify-center items-start h-full overflow-hidden transition-all duration-300",
+      "pb-2",
+      chatPosition === 'left' ? (isChatCollapsed ? "px-4" : "pr-4 pl-0") : (isChatCollapsed ? "px-4" : "pl-4 pr-0"),
+    )}>
+    <div className="flex flex-col w-full h-full overflow-hidden border border-border-subtle shadow-md text-[13px]" style={{ borderRadius: '12px' }}>
       <EditorDropdown
         selectedValue={selectedValue}
         setSelectedValue={handleDropdownChange}
@@ -614,6 +655,8 @@ export const ProjectCodeViewer = ({
         onImportZip={handleImportZip}
         isImporting={isImporting}
         canImport={canImport}
+        onSave={isGitlabMode ? handleSaveAll : handleSaveAllFiles}
+        hasDirty={isGitlabMode ? gitlabHasDirty : updatedFiles.length > 0}
       />
 
       {isGitlabMode ? (
@@ -624,6 +667,7 @@ export const ProjectCodeViewer = ({
             isLoading={isLoadingCodebase && !versionFiles}
             name={activeOption?.target?.name}
             branch={activeOption?.target?.branch}
+            dirtyKey={versionFiles ? null : getDirtyKey(activeOption?.target ?? null)}
             className="h-full"
           />
         </div>
@@ -712,6 +756,7 @@ export const ProjectCodeViewer = ({
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

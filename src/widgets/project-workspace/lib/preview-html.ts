@@ -7,65 +7,87 @@ export const PREVIEW_Refresher_SCRIPT = `
 export const INSPECTOR_SCRIPT = `
   let overlay = null;
   let overlayTag = null;
+  let selOverlay = null;
+  let selTag = null;
   let enabled = false;
   let lastSelected = null;
   const originalStyles = new WeakMap();
 
+  // ── Hover overlay (dashed, light) ──
   function ensureOverlay() {
     if (!overlay) {
       overlay = document.createElement("div");
-      overlay.style.position = "fixed";
-      overlay.style.pointerEvents = "none";
-      overlay.style.zIndex = "999999";
-      overlay.style.border = "1px dashed #62c0ff";
-      
+      overlay.style.cssText = "position:fixed;pointer-events:none;z-index:999998;border:1px dashed rgba(98,192,255,0.7);border-radius:2px;transition:none;";
       overlayTag = document.createElement("div");
-      overlayTag.style.position = "absolute";
-      overlayTag.style.pointerEvents = "none";
-      overlayTag.style.bottom = "calc(100% + 6px)";
-      overlayTag.style.left = "0";
-      overlayTag.style.padding = "2px 4px";
-      overlayTag.style.borderRadius = "4px";
-      overlayTag.style.backgroundColor = "#62c0ff";
-      overlayTag.style.color = "#fff";
-      overlayTag.style.fontSize = "12px";
-      
+      overlayTag.style.cssText = "position:absolute;pointer-events:none;bottom:calc(100% + 4px);left:0;padding:1px 5px;border-radius:3px;background:#62c0ff;color:#fff;font-size:11px;font-family:monospace;white-space:nowrap;";
       overlay.appendChild(overlayTag);
-
       document.body.appendChild(overlay);
+    }
+  }
+
+  // ── Selected overlay (solid, prominent) ──
+  function ensureSelOverlay() {
+    if (!selOverlay) {
+      selOverlay = document.createElement("div");
+      selOverlay.style.cssText = "position:fixed;pointer-events:none;z-index:999999;border:2px solid #493CDD;border-radius:3px;box-shadow:0 0 0 3px rgba(73,60,221,0.15);transition:top 0.12s ease,left 0.12s ease,width 0.12s ease,height 0.12s ease;";
+      selTag = document.createElement("div");
+      selTag.style.cssText = "position:absolute;pointer-events:none;top:calc(-100% - 6px);left:-2px;padding:2px 6px;border-radius:4px;background:#493CDD;color:#fff;font-size:11px;font-family:monospace;white-space:nowrap;line-height:1.6;";
+      selOverlay.appendChild(selTag);
+      document.body.appendChild(selOverlay);
     }
   }
 
   function getLabel(el) {
     let label = el.tagName.toLowerCase();
     if (el.id) label += "#" + el.id;
-    if (el.classList.length) {
-      label += "." + [...el.classList].slice(0, 2).join(".");
-    }
+    else if (el.classList.length) label += "." + [...el.classList].slice(0, 2).join(".");
     return label;
   }
 
   function highlight(el) {
-    ensureOverlay(el);
+    ensureOverlay();
+    if (el === document.documentElement || el === document.body) { overlay.style.display = "none"; return; }
     const rect = el.getBoundingClientRect();
+    overlay.style.display = "block";
     overlay.style.top = rect.top + "px";
     overlay.style.left = rect.left + "px";
     overlay.style.width = rect.width + "px";
     overlay.style.height = rect.height + "px";
-
-    if (el === document.documentElement || el === document.body) {
-      overlay.style.display = "none";
-      return;
-    }
-    overlay.style.display = "block";
-
     overlayTag.textContent = getLabel(el);
   }
 
-  function clear() {
-    overlay?.remove();
-    overlay = null;
+  function positionSelOverlay(el) {
+    if (!el || !selOverlay) return;
+    const rect = el.getBoundingClientRect();
+    selOverlay.style.top = rect.top + "px";
+    selOverlay.style.left = rect.left + "px";
+    selOverlay.style.width = rect.width + "px";
+    selOverlay.style.height = rect.height + "px";
+    selOverlay.style.display = "block";
   }
+
+  function showSelOverlay(el) {
+    ensureSelOverlay();
+    selTag.textContent = getLabel(el);
+    positionSelOverlay(el);
+  }
+
+  function clearSelOverlay() {
+    if (selOverlay) selOverlay.style.display = "none";
+  }
+
+  function clear() {
+    overlay?.remove(); overlay = null;
+    clearSelOverlay();
+  }
+
+  // Reposition selected overlay on scroll / resize (element may move)
+  document.addEventListener("scroll", function() {
+    if (lastSelected) positionSelOverlay(lastSelected);
+  }, true);
+  window.addEventListener("resize", function() {
+    if (lastSelected) positionSelOverlay(lastSelected);
+  });
 
   function getDomPath(el) {
     const path = [];
@@ -144,6 +166,7 @@ export const INSPECTOR_SCRIPT = `
     } catch (_) {}
 
     lastSelected = target;
+    showSelOverlay(target);
 
     window.parent.postMessage({
       type: "INSPECT_SELECT",
@@ -195,7 +218,13 @@ export const INSPECTOR_SCRIPT = `
     if (e.data?.type === "INSPECT_OFF") {
       enabled = false;
       document.body.style.cursor = "default";
+      lastSelected = null;
       clear();
+    }
+
+    if (e.data?.type === "INSPECT_DESELECT") {
+      lastSelected = null;
+      clearSelOverlay();
     }
 
     if (e.data?.type === "STYLE_APPLY") {

@@ -104,10 +104,14 @@ interface ElementStyleToolbarProps {
   domPath?: string
   onClose: () => void
   onOpenAiPrompt?: () => void
+  /** Called when the user closes the toolbar with pending styles. Receives the accumulated style patch. */
+  onCommitStyles?: (styles: Record<string, string | number | null>, meta: { tagName?: string }) => void
+  tagName?: string
 }
 
 export const ElementStyleToolbar = ({
   isVisible, position: initialPosition, containerRef, iframeRef, domPath, onClose, onOpenAiPrompt,
+  onCommitStyles, tagName,
 }: ElementStyleToolbarProps) => {
   // Position / drag
   const [position, setPosition] = useState(initialPosition)
@@ -516,9 +520,16 @@ export const ElementStyleToolbar = ({
 
       <button
         type="button"
-        onClick={(e) => { e.stopPropagation(); resetAll(); onClose() }}
+        onClick={(e) => {
+          e.stopPropagation()
+          // Commit accumulated styles to source on close (do not reset preview)
+          if (Object.keys(styles).length > 0) {
+            onCommitStyles?.(styles, { tagName })
+          }
+          onClose()
+        }}
         className="h-8 w-8 flex items-center justify-center rounded-md text-text-muted hover:bg-red-500/10 hover:text-red-500 transition-colors shrink-0"
-        title="Close"
+        title="Apply & close"
       >
         <X size={15} />
       </button>

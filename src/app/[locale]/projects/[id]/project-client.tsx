@@ -11,6 +11,9 @@ import { useAuthStore } from '@/entities/session'
 import type { CodeEditorTarget } from '@/entities/session'
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store"
 import { useFilesStore, IFile } from "@/entities/project/model/files-store"
+import { useDirtyFilesStore } from "@/entities/project/model/dirty-files-store"
+import { CommitModal } from "@/widgets/project-workspace/ui/commit-modal"
+import { UnsavedChangesModal } from "@/widgets/project-workspace/ui/unsaved-changes-modal"
 
 import { ProjectHeader, DeviceType } from "@/widgets/project-workspace/ui/project-header"
 import { WorkspaceLoader } from "@/widgets/project-workspace/ui/workspace-loader"
@@ -133,6 +136,22 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
     }
   }
 
+  // Browser-level guard against losing unsaved microfrontend edits on tab close / reload.
+  // We can't show our own modal here — only trigger the native confirmation.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasAny = Object.values(useDirtyFilesStore.getState().dirty)
+        .some((m) => Object.keys(m).length > 0)
+      if (hasAny) {
+        e.preventDefault()
+        // Some browsers still require a returnValue assignment
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
+
   const handleEditCode = (target: CodeEditorTarget) => {
     console.log({ target })
     setCodeEditorTarget(target)
@@ -227,6 +246,7 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
       setApiKey(null)
       setActiveProjectTab(null)
       clearCodeSelection()
+      useDirtyFilesStore.getState().clearAll()
     };
   }, [projectId, setFiles, clearWorkspace, setApiKey, setActiveProjectTab, clearCodeSelection])
 
@@ -395,10 +415,12 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
           ) : hasNoFiles ? (
             <EmptyProjectView onStartChatting={() => setActiveTab('preview')} />
           ) : (
-            <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} versionFiles={versionPreviewFiles} />
+            <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} versionFiles={versionPreviewFiles} isChatCollapsed={isChatCollapsed} chatPosition={chatPosition} />
           )}
         </div>
       </div>
+      <CommitModal />
+      <UnsavedChangesModal />
     </ErrorBoundary>
   )
 }

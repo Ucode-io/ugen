@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { Loader2 } from "lucide-react";
 import {
@@ -10,6 +10,7 @@ import {
   buildFileTree,
 } from "./code-viewer-ui";
 import { useUIStore } from "@/shared/model/theme/use-ui-store";
+import { useDirtyFilesStore } from "@/entities/project/model/dirty-files-store";
 
 export interface CodebaseFile {
   path: string;
@@ -22,6 +23,8 @@ interface CodebaseEditorProps {
   name?: string;
   branch?: string;
   className?: string;
+  /** When set, edits are tracked in the dirty store under this key. When null/undefined, editor is read-only. */
+  dirtyKey?: string | null;
 }
 
 function getLanguage(filePath: string) {
@@ -61,11 +64,26 @@ export function CodebaseEditor({
   name,
   branch,
   className,
+  dirtyKey,
 }: CodebaseEditorProps) {
   const [openedFiles, setOpenedFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const { theme } = useUIStore();
+
+  const dirtyMap = useDirtyFilesStore((s) => (dirtyKey ? s.dirty[dirtyKey] : undefined));
+  const setDirtyFile = useDirtyFilesStore((s) => s.setDirtyFile);
+  const removeDirtyFile = useDirtyFilesStore((s) => s.removeDirtyFile);
+
+  const isReadOnly = !dirtyKey;
+
+  // Merge base files with dirty overlay so the tree, tabs, and editor show the latest content.
+  const mergedFiles = useMemo<CodebaseFile[]>(() => {
+    if (!dirtyMap || Object.keys(dirtyMap).length === 0) return files;
+    return files.map((f) =>
+      dirtyMap[f.path] != null ? { ...f, content: dirtyMap[f.path] } : f,
+    );
+  }, [files, dirtyMap]);
 
   // Open the first file when files load
   useEffect(() => {
@@ -76,14 +94,11 @@ export function CodebaseEditor({
     }
   }, [files]);
 
-  const fileTree = useMemo(
-    () => buildFileTree(files),
-    [files]
-  );
+  const fileTree = useMemo(() => buildFileTree(mergedFiles), [mergedFiles]);
 
   const activeContent = useMemo(
-    () => files.find((f) => f.path === selectedFile)?.content ?? "",
-    [files, selectedFile]
+    () => mergedFiles.find((f) => f.path === selectedFile)?.content ?? "",
+    [mergedFiles, selectedFile],
   );
 
   const handleSelectFile = (filePath: string) => {
@@ -110,6 +125,19 @@ export function CodebaseEditor({
     setOpenFolders(next);
   };
 
+  const handleEditorChange = (value: string | undefined) => {
+    if (value === undefined || !selectedFile || !dirtyKey) return;
+    const baseFile = files.find((f) => f.path === selectedFile);
+    if (!baseFile) return;
+    if (value === baseFile.content) {
+      removeDirtyFile(dirtyKey, selectedFile);
+    } else {
+      setDirtyFile(dirtyKey, selectedFile, value);
+    }
+  };
+
+  const dirtyPaths = useMemo(() => Object.keys(dirtyMap ?? {}), [dirtyMap]);
+
   if (isLoading) {
     return (
       <div
@@ -130,9 +158,11 @@ export function CodebaseEditor({
       <CodeSidebar
         header={
           name ? (
-            <div className="text-text-muted font-mono text-xs uppercase opacity-80">
-              {name}
-              {branch ? ` / ${branch}` : ""}
+            <div className="flex items-center gap-2">
+              <div className="text-text-muted font-mono text-xs uppercase opacity-80 truncate">
+                {name}
+                {branch ? ` / ${branch}` : ""}
+              </div>
             </div>
           ) : undefined
         }
@@ -148,10 +178,13 @@ export function CodebaseEditor({
         <CodeEditorTabs
           openedFiles={openedFiles}
           activeFile={selectedFile}
+          updatedFiles={dirtyPaths}
           onSelectFile={handleSelectFile}
           onCloseFile={handleCloseFile}
         />
-        <CodeActionBar activeFile={selectedFile} />
+        <CodeActionBar
+          activeFile={selectedFile}
+        />
         <div className="relative w-full flex-1 h-full min-h-0">
           {selectedFile ? (
             <Editor
@@ -159,8 +192,9 @@ export function CodebaseEditor({
               language={getLanguage(selectedFile)}
               value={activeContent}
               theme={theme === "dark" ? "vs-dark" : "vs"}
+              onChange={handleEditorChange}
               options={{
-                readOnly: false,
+                readOnly: isReadOnly,
                 minimap: { enabled: true },
                 fontSize: 14,
                 fontFamily: "JetBrains Mono, Fira Code, monospace",

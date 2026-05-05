@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui";
-import { Layers2, Zap, Sparkles, Download, Loader2 } from "lucide-react";
+import { Layers2, Zap, Sparkles, Download, Loader2, Save } from "lucide-react";
 import type { CodeEditorTarget } from "@/entities/session";
 
 export type DropdownOption = {
@@ -33,6 +33,8 @@ interface EditorDropdownProps {
   onImportZip: () => void;
   isImporting?: boolean;
   canImport?: boolean;
+  onSave?: () => void;
+  hasDirty?: boolean;
 }
 
 export const EditorDropdown = ({
@@ -45,6 +47,8 @@ export const EditorDropdown = ({
   onImportZip,
   isImporting = false,
   canImport = true,
+  onSave,
+  hasDirty = false,
 }: EditorDropdownProps) => {
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle bg-bg-card shrink-0 z-10">
@@ -106,21 +110,34 @@ export const EditorDropdown = ({
         {isGitlabMode ? 'GitLab Repository' : 'AI Generated'}
       </span>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onImportZip}
-        disabled={isImporting || !canImport}
-        className="ml-auto h-7 text-xs gap-1.5 px-2.5"
-      >
-        {isImporting ? (
-          <Loader2 size={12} className="animate-spin" />
-        ) : (
-          <Download size={12} />
+      <div className="ml-auto flex items-center gap-2">
+        {onSave && hasDirty && (
+          <Button
+            type="button"
+            size="sm"
+            onClick={onSave}
+            className="h-7 text-xs gap-1.5 px-2.5"
+          >
+            <Save size={12} />
+            Save changes
+          </Button>
         )}
-        Export ZIP
-      </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onImportZip}
+          disabled={isImporting || !canImport}
+          className="h-7 text-xs gap-1.5 px-2.5"
+        >
+          {isImporting ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : (
+            <Download size={12} />
+          )}
+          Export ZIP
+        </Button>
+      </div>
     </div>
   );
 };

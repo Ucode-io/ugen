@@ -17,6 +17,7 @@ import { cn } from "@/shared/lib/utils/cn";
 import { useTranslations } from "next-intl";
 import { VersionHistoryPanel, VersionPreviewFile } from "@/widgets/project-workspace/ui/version-history-panel";
 import { ThinkingBlock, type SseEvent } from "./thinking-block";
+import { useGuardedAction } from "@/widgets/project-workspace/lib/save-flow";
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -367,7 +368,9 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
       handleSendMessage(
         promptToProcess.content,
         promptToProcess.images?.map((url: string) => ({ url })),
-        promptToProcess.model
+        promptToProcess.model,
+        undefined,
+        promptToProcess.context,
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -388,7 +391,13 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
     });
   }, []);
 
-  const handleSendMessage = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
+  const guardedAction = useGuardedAction();
+
+  const handleSendMessage = (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
+    guardedAction(() => sendMessageInner(text, files, model, pendingActionPayload, context));
+  };
+
+  const sendMessageInner = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
     setSseEvents([]);
     accumulatedFilesRef.current = [];
     addMessage({ id: Date.now().toString(), role: "user", content: text, images: files?.map(f => f.url) || [] });

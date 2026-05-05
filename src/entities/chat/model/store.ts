@@ -22,8 +22,18 @@ interface ChatState {
   messages: Message[]
   chatWidth: number
   chatPosition: ChatPosition
-  pendingPrompt: { content: string, images?: string[], model?: string } | null
-  setPendingPrompt: (prompt: { content: string, images?: string[], model?: string } | null) => void
+  pendingPrompt: {
+    content: string
+    images?: string[]
+    model?: string
+    context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>
+  } | null
+  setPendingPrompt: (prompt: {
+    content: string
+    images?: string[]
+    model?: string
+    context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>
+  } | null) => void
   setChatPosition: (position: ChatPosition) => void
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void

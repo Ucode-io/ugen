@@ -7,6 +7,7 @@ import { useCodeSelectionStore } from "@/entities/project/model/code-selection-s
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/shared/lib/utils/cn"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
+import { useGuardedAction } from "@/widgets/project-workspace/lib/save-flow"
 
 interface CommitFile {
   file_path: string
@@ -77,6 +78,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
   const [selectedSha, setSelectedSha] = useState<string | null>(null)
   const [revertingSha, setRevertingSha] = useState<string | null>(null)
   const [publishingSha, setPublishingSha] = useState<string | null>(null)
+  const guardedAction = useGuardedAction()
 
   const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
 
@@ -120,29 +122,30 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
 
   const handleSelect = (commit: Commit) => {
     if (!repoId) return
-    setSelectedSha(commit.guid)
+    if (commit.guid === selectedSha) return
+    guardedAction(() => setSelectedSha(commit.guid))
   }
 
-  const handleRevert = async (sha: string) => {
+  const handleRevert = (sha: string) => {
     if (!repoId) return
     setOpenMenuId(null)
-    setRevertingSha(sha)
-    try {
-      await api.post(
-        '/v2/functions/micro-frontend/revert',
-        { repo_id: String(repoId), snapshot_id: sha },
-        { headers },
-      )
-      // BE creates a new revert-commit at HEAD — refetch so commits[0] reflects it
-      await queryClient.invalidateQueries({ queryKey: ['mf-commits', repoId] })
-      // Drop preview selection so the viewer shows the live (reverted) state
-      setSelectedSha(null)
-      await onReverted()
-    } catch (err) {
-      console.error('Failed to revert', err)
-    } finally {
-      setRevertingSha(null)
-    }
+    guardedAction(async () => {
+      setRevertingSha(sha)
+      try {
+        await api.post(
+          '/v2/functions/micro-frontend/revert',
+          { repo_id: String(repoId), snapshot_id: sha },
+          { headers },
+        )
+        await queryClient.invalidateQueries({ queryKey: ['mf-commits', repoId] })
+        setSelectedSha(null)
+        await onReverted()
+      } catch (err) {
+        console.error('Failed to revert', err)
+      } finally {
+        setRevertingSha(null)
+      }
+    })
   }
 
   const handlePublish = async (sha: string) => {

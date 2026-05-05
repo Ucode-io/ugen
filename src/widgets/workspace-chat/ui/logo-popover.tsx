@@ -6,6 +6,7 @@ import { useAuthStore } from '@/entities/session'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { api } from '@/shared/api'
 import { ChevronLeft } from 'lucide-react'
+import { useGuardedAction } from '@/widgets/project-workspace/lib/save-flow'
 
 function TokenBar({ label, item, color }: { label: string; item: any; color: string }) {
   const current = item?.current || 0
@@ -39,6 +40,7 @@ export const LogoPopover = ({ projectTitle }: { projectTitle?: string }) => {
   const workspaceName = project?.title || 'Workspace'
 
   const apiKey = useAuthStore((state) => state.apiKey)
+  const guardedAction = useGuardedAction()
 
   const { data: pricingData } = useQuery({
     queryKey: ['pricing-all', apiKey],
@@ -65,7 +67,7 @@ export const LogoPopover = ({ projectTitle }: { projectTitle?: string }) => {
       <PopoverContent align="start" sideOffset={8} className="w-72 p-0 bg-bg-card border border-border-subtle rounded-[10px] shadow-xl overflow-hidden">
         {/* Back to workspace */}
         <button
-          onClick={() => router.push('/')}
+          onClick={() => guardedAction(() => router.push('/'))}
           className="flex items-center gap-3 w-full px-4 py-4 hover:bg-hover-bg transition-colors text-left border-b border-border-subtle"
         >
           <ChevronLeft size={16} className="text-text-muted shrink-0" />

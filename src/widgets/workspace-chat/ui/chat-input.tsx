@@ -37,6 +37,7 @@ import { api } from "@/shared/api";
 import type { CodeEditorTarget } from "@/entities/session";
 import { useAuthStore } from "@/entities/session";
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
+import { useGuardedAction } from "@/widgets/project-workspace/lib/save-flow";
 
 interface AttachItem {
   id: string;
@@ -116,6 +117,8 @@ export const ChatInput = ({
   );
   const getApiKeyHeaders = () =>
     apiKey ? { Authorization: "API-KEY", "x-api-key": apiKey } : {};
+
+  const guardedAction = useGuardedAction();
 
   // Attach popover state
   const [attachOpen, setAttachOpen] = useState(false);
@@ -200,72 +203,87 @@ export const ChatInput = ({
   }, [microfrontendsList, apiKey]);
 
   const handleSelectNewProject = () => {
-    setActiveCodeSelection({ kind: "new_project" });
-    setAttachOpen(false);
+    guardedAction(() => {
+      setActiveCodeSelection({ kind: "new_project" });
+      setAttachOpen(false);
+    });
   };
 
   const handleSelectGeneratedFrontend = () => {
-    setActiveCodeSelection({ kind: "frontend" });
-    onSelectMicrofrontend?.([]);
-    setAttachOpen(false);
+    guardedAction(() => {
+      setActiveCodeSelection({ kind: "frontend" });
+      onSelectMicrofrontend?.([]);
+      setAttachOpen(false);
+    });
   };
 
-  const handleSelectFunction = async (fn: AttachItem) => {
-    try {
-      setPendingItemId(fn.id);
-      await api.get(`/v2/function/${fn.id}/codebase`, {
-        params: { "project-id": projectId },
-        headers: getApiKeyHeaders(),
-      });
-      setActiveCodeSelection({
-        kind: "function",
-        id: fn.id,
-        name: fn.name,
-        path: fn.path,
-        branch: fn.branch ?? "master",
-        type: fn.type,
-        repoId: fn.repo_id,
-      });
-    } catch (err) {
-      console.error("Failed to load function", err);
-    } finally {
-      setPendingItemId(null);
-      setAttachOpen(false);
-    }
+  const handleSelectFunction = (fn: AttachItem) => {
+    guardedAction(async () => {
+      try {
+        setPendingItemId(fn.id);
+        await api.get(`/v2/function/${fn.id}/codebase`, {
+          params: { "project-id": projectId },
+          headers: getApiKeyHeaders(),
+        });
+        setActiveCodeSelection({
+          kind: "function",
+          id: fn.id,
+          name: fn.name,
+          path: fn.path,
+          branch: fn.branch ?? "master",
+          type: fn.type,
+          repoId: fn.repo_id,
+        });
+      } catch (err) {
+        console.error("Failed to load function", err);
+      } finally {
+        setPendingItemId(null);
+        setAttachOpen(false);
+      }
+    });
   };
 
-  const handleSelectMicrofrontend = async (mf: AttachItem) => {
-    try {
-      setPendingItemId(mf.id);
-      const { data } = await api.get(`/v2/function/${mf.id}/codebase`, {
-        params: { "project-id": projectId },
-        headers: getApiKeyHeaders(),
-      });
-      const files = (data?.data?.files ?? []) as {
-        path: string;
-        content: string;
-      }[];
-      setActiveCodeSelection(
-        {
-          kind: "microfrontend",
-          id: mf.id,
-          name: mf.name,
-          path: mf.path,
-          branch: mf.branch ?? "master",
-          type: mf.type,
-          repoId: mf.repo_id,
-          url: mf.url,
-          projectId: mf.project_id,
-        },
-        files,
-      );
-      onSelectMicrofrontend?.(files);
-    } catch (err) {
-      console.error("Failed to load microfrontend", err);
-    } finally {
-      setPendingItemId(null);
+  const handleSelectMicrofrontend = (mf: AttachItem) => {
+    if (
+      activeCodeSelection?.kind === "microfrontend" &&
+      activeCodeSelection.id === mf.id
+    ) {
       setAttachOpen(false);
+      return;
     }
+    guardedAction(async () => {
+      try {
+        setPendingItemId(mf.id);
+        const { data } = await api.get(`/v2/function/${mf.id}/codebase`, {
+          params: { "project-id": projectId },
+          headers: getApiKeyHeaders(),
+        });
+        const files = (data?.data?.files ?? []) as {
+          path: string;
+          content: string;
+        }[];
+        setActiveCodeSelection(
+          {
+            kind: "microfrontend",
+            id: mf.id,
+            name: mf.name,
+            path: mf.path,
+            branch: mf.branch ?? "master",
+            type: mf.type,
+            repoId: mf.repo_id,
+            url: mf.url,
+            projectId: mf.project_id,
+          },
+          files,
+        );
+        onSelectMicrofrontend?.(files);
+      } catch (err) {
+        console.error("Failed to load microfrontend", err);
+      } finally {
+        setPendingItemId(null);
+        setAttachOpen(false);
+      }
+    });
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -285,44 +303,51 @@ export const ChatInput = ({
 
   const handleSend = () => {
     if (
-      (value.trim() ||
-        uploadedFiles.length > 0 ||
-        selectedElements.length > 0) &&
-      !isSending
+      !(
+        (value.trim() ||
+          uploadedFiles.length > 0 ||
+          selectedElements.length > 0) &&
+        !isSending
+      )
     ) {
-      const messageText = value;
-      let context: MessageContext | undefined;
+      return;
+    }
+    guardedAction(() => doSend());
+  };
 
-      if (selectedElements.length > 0) {
-        // Build context array from all selected elements that have source info
-        const contextItems = selectedElements
-          .filter((el) => el.sourceFile)
-          .map((el) => {
-            let element: string | undefined = el.outerHTML ?? undefined;
-            if (!element) {
-              const tag = el.tagName.toLowerCase();
-              const attrs: string[] = [];
-              if (el.htmlId) attrs.push(`id="${el.htmlId}"`);
-              if (el.className) attrs.push(`class="${el.className}"`);
-              if (el.dataName) attrs.push(`data-element-name="${el.dataName}"`);
-              element = `<${tag}${attrs.length ? " " + attrs.join(" ") : ""}>`;
-            }
-            return {
-              path: el.sourceFile,
-              line: el.sourceLine ?? undefined,
-              element,
-            };
-          });
-        if (contextItems.length > 0) context = contextItems;
-      }
+  const doSend = () => {
+    const messageText = value;
+    let context: MessageContext | undefined;
 
-      onSendMessage(messageText, uploadedFiles, selectedModel, context);
-      setValue("");
-      clearFiles();
-      clearSelectedElements();
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
-      }
+    if (selectedElements.length > 0) {
+      // Build context array from all selected elements that have source info
+      const contextItems = selectedElements
+        .filter((el) => el.sourceFile)
+        .map((el) => {
+          let element: string | undefined = el.outerHTML ?? undefined;
+          if (!element) {
+            const tag = el.tagName.toLowerCase();
+            const attrs: string[] = [];
+            if (el.htmlId) attrs.push(`id="${el.htmlId}"`);
+            if (el.className) attrs.push(`class="${el.className}"`);
+            if (el.dataName) attrs.push(`data-element-name="${el.dataName}"`);
+            element = `<${tag}${attrs.length ? " " + attrs.join(" ") : ""}>`;
+          }
+          return {
+            path: el.sourceFile,
+            line: el.sourceLine ?? undefined,
+            element,
+          };
+        });
+      if (contextItems.length > 0) context = contextItems;
+    }
+
+    onSendMessage(messageText, uploadedFiles, selectedModel, context);
+    setValue("");
+    clearFiles();
+    clearSelectedElements();
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
     }
   };
 

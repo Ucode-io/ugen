@@ -10,8 +10,11 @@ import {
   AlertTriangle, Loader2, Sparkles, Layers2, Zap,
   MousePointerClick, Monitor, Tablet, Smartphone,
   ChevronDown, Minimize, Maximize, Check,
-  Palette, Upload, ChevronUp, Search,
+  Palette, Upload, ChevronUp, Search, Save,
 } from "lucide-react"
+import { useDirtyFilesStore, getDirtyKey } from "@/entities/project/model/dirty-files-store"
+import { autoCommit, requestSave, useGuardedAction } from "../lib/save-flow"
+import { applyVisualEditToCss, buildSelector } from "../lib/visual-edits-css"
 
 const FONT_FAMILIES = [
   'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Raleway',
@@ -176,6 +179,13 @@ export const ProjectPreviewViewer = ({
   const setActiveCodeSelection = useCodeSelectionStore((s) => s.setActiveCodeSelection)
   const apiKey = useAuthStore((s) => s.apiKey)
 
+  const dirtyKey = getDirtyKey(activeCodeSelection ?? null)
+  const dirtyMap = useDirtyFilesStore((s) => (dirtyKey ? s.dirty[dirtyKey] : undefined))
+  const setDirtyFile = useDirtyFilesStore((s) => s.setDirtyFile)
+  const dirtyPaths = useMemo(() => Object.keys(dirtyMap ?? {}), [dirtyMap])
+  const hasDirty = dirtyPaths.length > 0
+  const guardedAction = useGuardedAction()
+
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null)
 
   const isFunction = activeCodeSelection?.kind === 'function'
@@ -199,37 +209,61 @@ export const ProjectPreviewViewer = ({
   // 2. If a microfrontend is selected → its activeCodeFiles only — never fall back to
   //    storeFiles, otherwise we'd build the wrong code in the gap before MF codebase loads.
   // 3. Otherwise (frontend / no selection) → storeFiles
+  // Dirty overlay (microfrontend only) is applied on top so the preview always
+  // reflects unsaved edits from the code editor or theme/style toolbars.
   const isMicrofrontend = activeCodeSelection?.kind === 'microfrontend'
   const isMicrofrontendLoading = isMicrofrontend && (!activeCodeFiles || activeCodeFiles.length === 0)
   const files = useMemo(() => {
+    let base: { path: string; content: string; language: string }[]
     if (versionPreviewFiles && versionPreviewFiles.length > 0) {
-      return versionPreviewFiles.map((f) => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
+      base = versionPreviewFiles.map((f) => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
+    } else if (isMicrofrontend) {
+      base = (activeCodeFiles ?? []).map((f: CodeSelectionFile) => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
+    } else {
+      base = storeFiles
     }
-    if (isMicrofrontend) {
-      return (activeCodeFiles ?? []).map((f: CodeSelectionFile) => ({ path: f.path, content: f.content, language: getLanguageByPath(f.path) }))
-    }
-    return storeFiles
-  }, [versionPreviewFiles, isMicrofrontend, activeCodeFiles, storeFiles])
+    // Don't apply dirty overlay while viewing a historical version
+    if (versionPreviewFiles && versionPreviewFiles.length > 0) return base
+    if (!dirtyMap || Object.keys(dirtyMap).length === 0) return base
+    const known = new Set(base.map((f) => f.path))
+    const merged = base.map((f) =>
+      dirtyMap[f.path] != null ? { ...f, content: dirtyMap[f.path] } : f,
+    )
+    // Include dirty-only files (e.g. CSS overrides we may add later)
+    Object.keys(dirtyMap).forEach((path) => {
+      if (!known.has(path)) {
+        merged.push({ path, content: dirtyMap[path], language: getLanguageByPath(path) })
+      }
+    })
+    return merged
+  }, [versionPreviewFiles, isMicrofrontend, activeCodeFiles, storeFiles, dirtyMap])
 
-  const handlePickMicrofrontend = async (mf: { id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string; repo_id?: string; url?: string }) => {
-    try {
-      setLoadingPreviewId(mf.id)
-      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
-      const { data } = await api.get(`/v2/function/${mf.id}/codebase`, {
-        params: { 'project-id': projectId },
-        headers,
-      })
-      const fetched = (data?.data?.files ?? []) as CodeSelectionFile[]
-      setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.repo_id, url: mf.url, projectId: mf.project_id }, fetched)
-    } catch (err) {
-      console.error('Failed to load microfrontend for preview', err)
-    } finally {
-      setLoadingPreviewId(null)
-    }
+  console.log({storeFiles, files})
+
+  const handlePickMicrofrontend = (mf: { id: string; name: string; path?: string; branch?: string; type?: string; project_id?: string; repo_id?: string; url?: string }) => {
+    if (activeCodeSelection?.kind === 'microfrontend' && activeCodeSelection.id === mf.id) return
+    guardedAction(async () => {
+      try {
+        setLoadingPreviewId(mf.id)
+        const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+        const { data } = await api.get(`/v2/function/${mf.id}/codebase`, {
+          params: { 'project-id': projectId },
+          headers,
+        })
+        const fetched = (data?.data?.files ?? []) as CodeSelectionFile[]
+        setActiveCodeSelection({ kind: 'microfrontend', id: mf.id, name: mf.name, path: mf.path, branch: mf.branch ?? 'master', type: mf.type, repoId: mf.repo_id, url: mf.url, projectId: mf.project_id }, fetched)
+      } catch (err) {
+        console.error('Failed to load microfrontend for preview', err)
+      } finally {
+        setLoadingPreviewId(null)
+      }
+    })
   }
 
   const handlePickGeneratedFrontend = () => {
-    setActiveCodeSelection({ kind: 'frontend' })
+    guardedAction(() => {
+      setActiveCodeSelection({ kind: 'frontend' })
+    })
   }
 
   const setPendingPrompt = useChatStore((s) => s.setPendingPrompt)
@@ -280,56 +314,107 @@ export const ProjectPreviewViewer = ({
     setFontFamily(parsed.fontFamily)
   }, [files, themeOpen])
 
-  // Live preview: inject CSS overrides directly into the iframe whenever colors/font change while popover is open
+  // Build the override CSS+font link from the current theme inputs.
+  // Returning a stable function via ref so the iframe load handler can call it
+  // without becoming part of the React tree.
+  const themeOverrideRef = useRef<{ open: boolean; settings: typeof themeSettings; font: string }>({
+    open: themeOpen,
+    settings: themeSettings,
+    font: fontFamily,
+  })
   useEffect(() => {
-    if (!themeOpen) return
-    const doc = iframeRef.current?.contentDocument
-    if (!doc?.head) return
+    themeOverrideRef.current = { open: themeOpen, settings: themeSettings, font: fontFamily }
+  }, [themeOpen, themeSettings, fontFamily])
 
-    let styleEl = doc.getElementById('ugen-theme-override') as HTMLStyleElement | null
-    if (!styleEl) {
-      styleEl = doc.createElement('style')
-      styleEl.id = 'ugen-theme-override'
-      doc.head.appendChild(styleEl)
-    }
-    styleEl.textContent = `:root {
-      --background: ${hexToHslString(themeSettings.background)};
-      --foreground: ${hexToHslString(themeSettings.foreground)};
-      --primary: ${hexToHslString(themeSettings.primary)};
-      --font-body: '${fontFamily}', sans-serif;
-    }
-    body { font-family: '${fontFamily}', sans-serif; }`
+  const injectThemeOverride = () => {
+    const { open, settings, font } = themeOverrideRef.current
+    if (!open) return // popover closed → leave whatever's there; the next rebuild creates a fresh document
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.documentElement) return
+
+    // Set CSS variables INLINE on :root. Inline styles trump every external
+    // <style>, including the bundle's runtime-injected text/tailwindcss block
+    // (which lands later async via esm.sh and would otherwise overwrite us).
+    const root = doc.documentElement
+    root.style.setProperty('--background', hexToHslString(settings.background))
+    root.style.setProperty('--foreground', hexToHslString(settings.foreground))
+    root.style.setProperty('--primary', hexToHslString(settings.primary))
+    root.style.setProperty('--font-body', `'${font}', sans-serif`)
+    if (doc.body) doc.body.style.fontFamily = `'${font}', sans-serif`
 
     let linkEl = doc.getElementById('ugen-font-override') as HTMLLinkElement | null
-    if (!linkEl) {
+    if (!linkEl && doc.head) {
       linkEl = doc.createElement('link')
       linkEl.id = 'ugen-font-override'
       linkEl.rel = 'stylesheet'
       doc.head.appendChild(linkEl)
     }
-    linkEl.href = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`
+    if (linkEl) {
+      linkEl.href = `https://fonts.googleapis.com/css2?family=${font.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`
+    }
+  }
+
+  /** Reset inline overrides — call when the iframe rebuilds with fresh CSS so the saved values take over. */
+  const clearThemeOverride = () => {
+    const root = iframeRef.current?.contentDocument?.documentElement
+    if (!root) return
+    root.style.removeProperty('--background')
+    root.style.removeProperty('--foreground')
+    root.style.removeProperty('--primary')
+    root.style.removeProperty('--font-body')
+    const body = iframeRef.current?.contentDocument?.body
+    if (body) body.style.removeProperty('font-family')
+  }
+
+  // Set true between Save click and the rebuild landing the saved CSS — keeps
+  // the inline override visible during the rebuild gap so colors don't flash old.
+  const themeSavePendingRef = useRef(false)
+
+  // Inject on every theme/font change. On close: clear the inline overrides
+  // unless a save is pending (in which case we wait for the rebuild to land).
+  useEffect(() => {
+    if (themeOpen) {
+      injectThemeOverride()
+    } else if (!themeSavePendingRef.current) {
+      clearThemeOverride()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeSettings, fontFamily, themeOpen, srcDoc])
 
   const handleThemeOpenChange = (open: boolean) => {
     if (open) {
-      // Snapshot current state so Cancel can restore it
+      // Fresh editing session: snapshot current state and reset save flag.
       themeSnapshotRef.current = { ...themeSettings, fontFamily }
+      themeSavePendingRef.current = false
+    } else if (!themeSavePendingRef.current) {
+      // Closing without Save (outside click / Esc / Cancel) → revert to snapshot
+      // so the effect clears inline overrides cleanly.
+      const snap = themeSnapshotRef.current
+      setThemeSettings((prev) => ({ ...prev, background: snap.background, primary: snap.primary, foreground: snap.foreground, logoUrl: snap.logoUrl }))
+      setFontFamily(snap.fontFamily)
     }
     setThemeOpen(open)
   }
 
-  const handleCancelTheme = () => {
-    const snap = themeSnapshotRef.current
-    setThemeSettings((prev) => ({ ...prev, background: snap.background, primary: snap.primary, foreground: snap.foreground, logoUrl: snap.logoUrl }))
-    setFontFamily(snap.fontFamily)
-    setThemeOpen(false)
-  }
+  const handleCancelTheme = () => handleThemeOpenChange(false)
 
   const handleSaveTheme = () => {
     const cssFile = files.find((f) => f.path === 'src/index.css')
     if (!cssFile) { setThemeOpen(false); return }
     const newContent = applyThemeToCss(cssFile.content, themeSettings, fontFamily)
-    if (isMicrofrontend && activeCodeSelection && activeCodeFiles) {
+
+    if (dirtyKey) {
+      // Microfrontend: route through dirty store + auto-commit (like ElementStyleToolbar)
+      const snap = themeSnapshotRef.current
+      const changed: string[] = []
+      if (snap.background !== themeSettings.background) changed.push('background')
+      if (snap.primary !== themeSettings.primary) changed.push('primary')
+      if (snap.foreground !== themeSettings.foreground) changed.push('foreground')
+      if (snap.fontFamily !== fontFamily) changed.push('fontFamily')
+      setDirtyFile(dirtyKey, 'src/index.css', newContent)
+      autoCommit(activeCodeSelection ?? null, `change: theme (${changed.join(', ') || 'no-op'})`)
+    } else if (isMicrofrontend && activeCodeSelection && activeCodeFiles) {
+      // Fallback (no dirty key — shouldn't happen for microfrontends, but keep behaviour)
       setActiveCodeSelection(
         activeCodeSelection,
         activeCodeFiles.map((f) => f.path === 'src/index.css' ? { ...f, content: newContent } : f)
@@ -337,7 +422,12 @@ export const ProjectPreviewViewer = ({
     } else {
       updateFile('src/index.css', newContent)
     }
+    themeSavePendingRef.current = true
     setThemeOpen(false)
+  }
+
+  const handleSaveAll = () => {
+    void requestSave(activeCodeSelection ?? null).catch(() => { /* cancelled */ })
   }
 
   // Floating Prompt States
@@ -348,6 +438,12 @@ export const ProjectPreviewViewer = ({
   const [isStyleToolbarVisible, setIsStyleToolbarVisible] = useState(false)
   const [styleToolbarPosition, setStyleToolbarPosition] = useState({ x: 0, y: 0 })
   const [selectedDomPath, setSelectedDomPath] = useState<string | undefined>(undefined)
+  const [selectedTagName, setSelectedTagName] = useState<string | undefined>(undefined)
+  const [selectedContext, setSelectedContext] = useState<{
+    sourceFile: string | null
+    sourceLine: number | null
+    outerHTML: string | null
+  } | null>(null)
 
   const runCode = async () => {
     if (isBuilding.current) return
@@ -465,6 +561,8 @@ export const ProjectPreviewViewer = ({
           outerHTML: outerHTML || null,
         })
         setSelectedDomPath(domPath || undefined)
+        setSelectedTagName(typeof tag === 'string' ? tag : undefined)
+        setSelectedContext({ sourceFile, sourceLine, outerHTML: outerHTML || null })
         if (rect && containerRef.current) {
           // Style toolbar — above the element (fall back to below if no room)
           const toolbarHeight = 48
@@ -745,8 +843,19 @@ export const ProjectPreviewViewer = ({
         )}
       </div>
 
-      {/* Right: Device Picker + Fullscreen */}
+      {/* Right: Save (when dirty) + Device Picker + Fullscreen */}
       <div className="flex items-center gap-0.5 shrink-0">
+        {!isVersionHistory && hasDirty && (
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            title={`Save ${dirtyPaths.length} change${dirtyPaths.length === 1 ? '' : 's'}`}
+            className="mr-1 inline-flex items-center gap-1 rounded-md bg-primary text-white px-2 h-7 text-[11px] font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Save size={12} />
+            Save ({dirtyPaths.length})
+          </button>
+        )}
         <Popover open={deviceOpen} onOpenChange={setDeviceOpen}>
           <PopoverTrigger asChild>
             <button
@@ -865,21 +974,55 @@ export const ProjectPreviewViewer = ({
 
       {/* Element Style Toolbar — direct visual editing */}
       <ElementStyleToolbar
-        isVisible={isStyleToolbarVisible && isInspectMode}
+        isVisible={isStyleToolbarVisible && isInspectMode && !isPromptVisible}
         position={styleToolbarPosition}
         containerRef={containerRef}
         iframeRef={iframeRef}
         domPath={selectedDomPath}
-        onClose={() => { setIsStyleToolbarVisible(false); setIsPromptVisible(false) }}
+        tagName={selectedTagName}
+        onCommitStyles={(stylePatch, meta) => {
+          if (!dirtyKey) return
+          const selector = buildSelector(selectedDomPath ?? null, selectedContext?.outerHTML ?? null)
+          if (!selector) return
+          const cssFile = filesRef.current.find((f) => f.path === 'src/index.css')
+          const baseCss = cssFile?.content ?? ''
+          const nextCss = applyVisualEditToCss(baseCss, { selector, styles: stylePatch })
+          setDirtyFile(dirtyKey, 'src/index.css', nextCss)
+          const tagLabel = (meta.tagName || selectedTagName || 'element').toLowerCase()
+          autoCommit(activeCodeSelection ?? null, `change: '${tagLabel}' element style`)
+        }}
+        onClose={() => {
+          setIsStyleToolbarVisible(false)
+          setIsPromptVisible(false)
+          iframeRef.current?.contentWindow?.postMessage({ type: 'INSPECT_DESELECT' }, '*')
+        }}
         onOpenAiPrompt={() => setIsPromptVisible(true)}
       />
 
-      {/* Floating Prompt Bar — AI editing */}
+      {/* Floating Prompt Bar — AI editing (replaces toolbar while open) */}
       <MoveablePrompt
         isVisible={isPromptVisible && isInspectMode}
         initialPosition={promptPosition}
         containerRef={containerRef}
-        onClose={() => setIsPromptVisible(false)}
+        onBack={() => setIsPromptVisible(false)}
+        onClose={() => {
+          setIsPromptVisible(false)
+          setIsStyleToolbarVisible(false)
+          iframeRef.current?.contentWindow?.postMessage({ type: 'INSPECT_DESELECT' }, '*')
+        }}
+        onSubmit={(text) => {
+          const context = selectedContext
+            ? [{
+                path: selectedContext.sourceFile,
+                line: selectedContext.sourceLine,
+                element: selectedContext.outerHTML,
+              }]
+            : undefined
+          setPendingPrompt({ content: text, context })
+          setIsPromptVisible(false)
+          setIsStyleToolbarVisible(false)
+          iframeRef.current?.contentWindow?.postMessage({ type: 'INSPECT_DESELECT' }, '*')
+        }}
       />
 
       {/* Function selector — browser card with header, no iframe */}
@@ -967,6 +1110,13 @@ export const ProjectPreviewViewer = ({
               srcDoc={srcDoc}
               title="Project Preview"
               sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+              onLoad={() => {
+                // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
+                themeSavePendingRef.current = false
+                clearThemeOverride()
+                // If the popover is still open (e.g. user kept it open through a save), re-inject.
+                if (themeOpen) injectThemeOverride()
+              }}
             />
           </div>
         </div>
