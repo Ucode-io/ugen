@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
   getPaginationRowModel,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 
 import {
   Table,
@@ -16,7 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/shared/ui"
+} from "@/shared/ui";
 import {
   Pagination,
   PaginationContent,
@@ -25,33 +25,33 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/shared/ui"
+} from "@/shared/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/ui"
-import { cn } from "@/shared/lib/utils/cn"
+} from "@/shared/ui";
+import { cn } from "@/shared/lib/utils/cn";
 
-import { useTranslations } from "next-intl"
+import { useTranslations } from "next-intl";
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  totalCount?: number
-  page?: number
-  limit?: number
-  onPageChange?: (page: number) => void
-  onLimitChange?: (limit: number) => void
-  isLoading?: boolean
-  className?: string
-  tableClassName?: string
-  rowClassName?: string | ((data: TData) => string)
-  containerClassName?: string
-  emptyMessage?: string
-  onRowClick?: (data: TData) => void
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  totalCount?: number;
+  page?: number;
+  limit?: number;
+  onPageChange?: (page: number) => void;
+  onLimitChange?: (limit: number) => void;
+  isLoading?: boolean;
+  className?: string;
+  tableClassName?: string;
+  rowClassName?: string | ((data: TData) => string);
+  containerClassName?: string;
+  emptyMessage?: string;
+  onRowClick?: (data: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -70,7 +70,7 @@ export function DataTable<TData, TValue>({
   emptyMessage,
   onRowClick,
 }: DataTableProps<TData, TValue>) {
-  const t = useTranslations('shared.dataTable')
+  const t = useTranslations("shared.dataTable");
   const table = useReactTable({
     data,
     columns,
@@ -78,28 +78,29 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,
     pageCount: Math.ceil(totalCount / limit),
-  })
+  });
 
-  const totalPages = Math.ceil(totalCount / limit)
+  const totalPages = Math.ceil(totalCount / limit);
 
   const renderPageNumbers = () => {
-    const pages = []
-    const showMax = 5
+    const pages = [];
+    const showMax = 5;
 
-    let startPage = Math.max(1, page - 2)
-    const endPage = Math.min(totalPages, startPage + showMax - 1)
+    let startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, startPage + showMax - 1);
 
     if (endPage - startPage < showMax - 1) {
-      startPage = Math.max(1, endPage - showMax + 1)
+      startPage = Math.max(1, endPage - showMax + 1);
     }
 
     if (startPage > 1) {
       pages.push(
         <PaginationItem key="1">
           <PaginationLink onClick={() => onPageChange?.(1)}>1</PaginationLink>
-        </PaginationItem>
-      )
-      if (startPage > 2) pages.push(<PaginationEllipsis key="start-ellipsis" />)
+        </PaginationItem>,
+      );
+      if (startPage > 2)
+        pages.push(<PaginationEllipsis key="start-ellipsis" />);
     }
 
     for (let i = startPage; i <= endPage; i++) {
@@ -111,32 +112,37 @@ export function DataTable<TData, TValue>({
           >
             {i}
           </PaginationLink>
-        </PaginationItem>
-      )
+        </PaginationItem>,
+      );
     }
 
     if (endPage < totalPages) {
-      if (endPage < totalPages - 1) pages.push(<PaginationEllipsis key="end-ellipsis" />)
+      if (endPage < totalPages - 1)
+        pages.push(<PaginationEllipsis key="end-ellipsis" />);
       pages.push(
         <PaginationItem key={totalPages}>
-          <PaginationLink onClick={() => onPageChange?.(totalPages)}>{totalPages}</PaginationLink>
-        </PaginationItem>
-      )
+          <PaginationLink onClick={() => onPageChange?.(totalPages)}>
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>,
+      );
     }
 
-    return pages
-  }
+    return pages;
+  };
 
-  const showFooter = totalCount > 0
+  const showFooter = totalCount > 0;
 
   return (
-    <div className={cn("w-full h-full flex flex-col rounded-ai border border-border-subtle bg-bg-card shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden transition-all", className)}>
+    <div
+      className={cn(
+        "rounded-ai border-border-subtle bg-bg-card flex h-full w-full flex-col overflow-hidden border shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all",
+        className,
+      )}
+    >
       <Table
         className={tableClassName}
-        wrapperClassName={cn(
-          "transition-all flex-1",
-          containerClassName
-        )}
+        wrapperClassName={cn("transition-all flex-1", containerClassName)}
       >
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -147,11 +153,11 @@ export function DataTable<TData, TValue>({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                   </TableHead>
-                )
+                );
               })}
             </TableRow>
           ))}
@@ -162,7 +168,7 @@ export function DataTable<TData, TValue>({
               <TableRow key={`skeleton-${i}`}>
                 {columns.map((_, j) => (
                   <TableCell key={`skeleton-cell-${j}`}>
-                    <div className="h-4 w-full bg-hover-bg animate-pulse rounded" />
+                    <div className="bg-hover-bg h-4 w-full animate-pulse rounded" />
                   </TableCell>
                 ))}
               </TableRow>
@@ -175,7 +181,9 @@ export function DataTable<TData, TValue>({
                 onClick={() => onRowClick?.(row.original)}
                 className={cn(
                   onRowClick && "cursor-pointer",
-                  typeof rowClassName === 'function' ? rowClassName(row.original) : rowClassName
+                  typeof rowClassName === "function"
+                    ? rowClassName(row.original)
+                    : rowClassName,
                 )}
               >
                 {row.getVisibleCells().map((cell) => (
@@ -189,9 +197,9 @@ export function DataTable<TData, TValue>({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="h-24 py-4 text-center text-text-muted whitespace-pre-wrap"
+                className="text-text-muted h-24 py-4 text-center whitespace-pre-wrap"
               >
-                {emptyMessage || t('emptyMessage')}
+                {emptyMessage || t("emptyMessage")}
               </TableCell>
             </TableRow>
           )}
@@ -199,15 +207,17 @@ export function DataTable<TData, TValue>({
       </Table>
 
       {showFooter && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-y-4 sm:gap-x-6 px-4 py-3 border-t border-border-subtle bg-bg-card/40 backdrop-blur-md">
-          <div className="flex flex-col sm:flex-row items-center gap-y-3 sm:gap-x-6 w-full sm:w-auto">
-            <div className="flex items-center gap-x-2 w-full sm:w-auto justify-center sm:justify-start">
-              <p className="text-[13px] font-medium text-text-muted whitespace-nowrap">{t('rowsPerPage')}</p>
+        <div className="border-border-subtle bg-bg-card/40 flex flex-col items-center justify-between gap-y-4 border-t px-4 py-3 backdrop-blur-md sm:flex-row sm:gap-x-6">
+          <div className="flex w-full flex-col items-center gap-y-3 sm:w-auto sm:flex-row sm:gap-x-6">
+            <div className="flex w-full items-center justify-center gap-x-2 sm:w-auto sm:justify-start">
+              <p className="text-text-muted text-[13px] font-medium whitespace-nowrap">
+                {t("rowsPerPage")}
+              </p>
               <Select
                 value={limit.toString()}
                 onValueChange={(value) => onLimitChange?.(Number(value))}
               >
-                <SelectTrigger className="h-8 w-[70px] bg-bg-card border-border-subtle">
+                <SelectTrigger className="bg-bg-card border-border-subtle h-8 w-[70px]">
                   <SelectValue placeholder={limit.toString()} />
                 </SelectTrigger>
                 <SelectContent side="top">
@@ -219,16 +229,16 @@ export function DataTable<TData, TValue>({
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-[12px] text-text-muted whitespace-nowrap w-full text-center sm:text-left">
-              {t('showingEntries', {
+            <p className="text-text-muted w-full text-center text-[12px] whitespace-nowrap sm:text-left">
+              {t("showingEntries", {
                 start: Math.min((page - 1) * limit + 1, totalCount),
                 end: Math.min(page * limit, totalCount),
-                total: totalCount
+                total: totalCount,
               })}
             </p>
           </div>
 
-          <Pagination className="mx-0 w-full sm:w-auto justify-center sm:justify-end">
+          <Pagination className="mx-0 w-full justify-center sm:w-auto sm:justify-end">
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
@@ -236,7 +246,7 @@ export function DataTable<TData, TValue>({
                   disabled={page === 1}
                   className={cn(
                     "cursor-pointer",
-                    page === 1 && "pointer-events-none opacity-50"
+                    page === 1 && "pointer-events-none opacity-50",
                   )}
                 />
               </PaginationItem>
@@ -249,7 +259,8 @@ export function DataTable<TData, TValue>({
                   disabled={page === totalPages || totalPages === 0}
                   className={cn(
                     "cursor-pointer",
-                    (page === totalPages || totalPages === 0) && "pointer-events-none opacity-50"
+                    (page === totalPages || totalPages === 0) &&
+                      "pointer-events-none opacity-50",
                   )}
                 />
               </PaginationItem>
@@ -258,5 +269,5 @@ export function DataTable<TData, TValue>({
         </div>
       )}
     </div>
-  )
+  );
 }
