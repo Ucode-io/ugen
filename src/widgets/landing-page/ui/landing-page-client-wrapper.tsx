@@ -1,17 +1,23 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { useAuthStore } from '@/entities/session'
-import { DashboardHome } from '@/widgets/dashboard-home'
-import { useRouter } from "@/shared/lib/i18n";
+import { DashboardHome } from "@/widgets/dashboard-home";
+import { useRouter } from "@/shared/lib/i18n/navigation"
 
 export const LandingPageClientWrapper = ({ children }: { children: ReactNode }) => {
-  const { activeView, project } = useAuthStore();
-  const isUgen = project?.is_ugen ?? false;
+  const { activeView, isAuthenticated, project } = useAuthStore();
+  const router = useRouter()
 
-  const router = useRouter();
+  const shouldRedirectToProjects = isAuthenticated && project?.is_ugen === false
 
-  if (!isUgen) router.push(`/projects`);
+  useEffect(() => {
+    if (shouldRedirectToProjects) {
+      router.replace('/projects' as any)
+    }
+  }, [shouldRedirectToProjects, router])
+
+  if (shouldRedirectToProjects) return null
 
   if (activeView === 'dashboard') {
     return <DashboardHome />

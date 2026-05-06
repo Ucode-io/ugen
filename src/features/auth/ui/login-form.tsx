@@ -124,7 +124,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
 
     setAuth(
       userData,
-      project_data,
+      { ...project_data, is_ugen: responseData?.is_ugen ?? project_data?.is_ugen ?? false },
       permissions || [],
       app_permissions || [],
       global_permission,

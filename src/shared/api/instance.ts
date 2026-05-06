@@ -220,12 +220,16 @@ api.interceptors.response.use(
         const tokenData = data?.data?.response?.token || data?.data?.token || data?.data || data?.response?.token || data
         const newAccessToken = tokenData?.access_token
         const newRefreshToken = tokenData?.refresh_token
+        const refreshedIsUgen = data?.data?.is_ugen
 
         if (newAccessToken) {
-          useAuthStore.setState({
+          useAuthStore.setState((state) => ({
             accessToken: newAccessToken,
-            ...(newRefreshToken && { refreshToken: newRefreshToken })
-          })
+            ...(newRefreshToken && { refreshToken: newRefreshToken }),
+            ...(refreshedIsUgen !== undefined && state.project
+              ? { project: { ...state.project, is_ugen: refreshedIsUgen } }
+              : {}),
+          }))
 
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
           processQueue(null, newAccessToken)
