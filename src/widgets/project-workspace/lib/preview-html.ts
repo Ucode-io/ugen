@@ -251,6 +251,26 @@ export const INSPECTOR_SCRIPT = `
       else el2.removeAttribute('style');
       originalStyles.delete(el2);
     }
+
+    if (e.data?.type === "GET_COMPUTED_STYLES") {
+      var el3 = resolveTarget(e.data.domPath);
+      if (!el3) return;
+      var cs = window.getComputedStyle(el3);
+      window.parent.postMessage({
+        type: "COMPUTED_STYLES_RESULT",
+        domPath: e.data.domPath,
+        styles: {
+          color: cs.color,
+          backgroundColor: cs.backgroundColor,
+          borderColor: cs.borderColor,
+          fontSize: cs.fontSize,
+          fontWeight: cs.fontWeight,
+          fontFamily: cs.fontFamily,
+          lineHeight: cs.lineHeight,
+          letterSpacing: cs.letterSpacing,
+        }
+      }, "*");
+    }
   });
 `
 

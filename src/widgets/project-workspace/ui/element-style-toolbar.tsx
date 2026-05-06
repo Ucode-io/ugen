@@ -8,6 +8,13 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
 import { cn } from "@/shared/lib/utils/cn"
 
+function rgbToHex(rgb: string): string | null {
+  const ma = rgb.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/)
+  if (!ma) return null
+  if (ma[4] !== undefined && parseFloat(ma[4]) === 0) return null
+  return '#' + [ma[1], ma[2], ma[3]].map((v) => parseInt(v).toString(16).padStart(2, '0')).join('')
+}
+
 const FONT_FAMILIES = [
   'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Raleway',
   'Ubuntu', 'Nunito', 'Playfair Display', 'Merriweather', 'Source Code Pro',
@@ -121,6 +128,7 @@ export const ElementStyleToolbar = ({
 
   // Live style state
   const [styles, setStyles] = useState<StyleMap>({})
+  const [computedStyles, setComputedStyles] = useState<Record<string, string>>({})
   const [fontOpen, setFontOpen] = useState(false)
   const [fontSearch, setFontSearch] = useState('')
 
@@ -142,8 +150,41 @@ export const ElementStyleToolbar = ({
     }
   }, [isDragging, dragOffset, containerRef])
 
-  // Reset state when a different element is selected
-  useEffect(() => { setStyles({}); setFontOpen(false); setFontSearch('') }, [domPath])
+  // Reset state when a different element is selected and fetch computed colors
+  useEffect(() => {
+    setStyles({})
+    setComputedStyles({})
+    setFontOpen(false)
+    setFontSearch('')
+    if (domPath) {
+      iframeRef.current?.contentWindow?.postMessage({ type: 'GET_COMPUTED_STYLES', domPath }, '*')
+    }
+  }, [domPath, iframeRef])
+
+  // Listen for computed styles response from iframe
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type !== 'COMPUTED_STYLES_RESULT') return
+      if (e.data.domPath !== domPath) return
+      const s = e.data.styles || {}
+      const fsPx = parseFloat(s.fontSize)
+      const lhPx = parseFloat(s.lineHeight)
+      setComputedStyles({
+        ...(s.color ? { color: rgbToHex(s.color) ?? '' } : {}),
+        ...(s.backgroundColor ? { backgroundColor: rgbToHex(s.backgroundColor) ?? '' } : {}),
+        ...(s.borderColor ? { borderColor: rgbToHex(s.borderColor) ?? '' } : {}),
+        ...(s.fontSize ? { fontSize: s.fontSize } : {}),
+        ...(s.fontWeight ? { fontWeight: s.fontWeight } : {}),
+        ...(s.fontFamily ? { fontFamily: s.fontFamily } : {}),
+        ...(s.letterSpacing && s.letterSpacing !== 'normal' ? { letterSpacing: s.letterSpacing } : {}),
+        ...(!isNaN(fsPx) && !isNaN(lhPx) && fsPx > 0
+          ? { lineHeight: String(Math.round((lhPx / fsPx) * 100) / 100) }
+          : {}),
+      })
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [domPath])
 
   const postStyles = useCallback((patch: StyleMap) => {
     iframeRef.current?.contentWindow?.postMessage({
@@ -163,7 +204,11 @@ export const ElementStyleToolbar = ({
     iframeRef.current?.contentWindow?.postMessage({ type: 'STYLE_RESET', domPath }, '*')
   }, [iframeRef, domPath])
 
-  const get = useCallback((k: string, fallback = '') => (styles[k] != null ? String(styles[k]) : fallback), [styles])
+  const get = useCallback((k: string, fallback = '') => {
+    if (styles[k] != null) return String(styles[k])
+    if (computedStyles[k]) return computedStyles[k]
+    return fallback
+  }, [styles, computedStyles])
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('input, button, [data-popover-content]')) return
@@ -194,7 +239,11 @@ export const ElementStyleToolbar = ({
     <div
       ref={toolbarRef}
       onMouseDown={handleMouseDown}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('input, button, select, label, [data-popover-content]')) return
+        e.preventDefault()
+        e.stopPropagation()
+      }}
       className={cn(
         "ignore-inspect absolute z-110 flex items-center gap-0.5 bg-bg-card border border-border-subtle rounded-xl px-2 py-1.5 shadow-2xl transition-opacity duration-200",
         isDragging ? "opacity-90" : "opacity-100"
@@ -303,6 +352,8 @@ export const ElementStyleToolbar = ({
             <SectionLabel>Style</SectionLabel>
             <ColorRow label="Color" value={get('color', '#000000')}
               onChange={(hex) => update({ color: hex })} />
+            <ColorRow label="Background" value={get('backgroundColor', '#ffffff')}
+              onChange={(hex) => update({ backgroundColor: hex })} />
             <div className="flex items-center gap-1">
               {([
                 { val: '700',       icon: Bold,      prop: 'fontWeight'    },

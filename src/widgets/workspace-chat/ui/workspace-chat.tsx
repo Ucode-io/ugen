@@ -176,6 +176,7 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
   const setPendingPrompt = useChatStore((state) => state.setPendingPrompt);
   const chatPosition = useChatStore((state) => state.chatPosition);
   const setChatPosition = useChatStore((state) => state.setChatPosition);
+  const setIsStreaming = useChatStore((state) => state.setIsStreaming);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -424,6 +425,7 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
 
     if (activeChatId) {
       setIsSending(true);
+      setIsStreaming(true);
       thinkingTimeoutRef.current = setTimeout(() => {
         setIsThinking(true);
         handleAutoScroll();
@@ -629,6 +631,7 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
       } finally {
         setIsSending(false);
         setIsThinking(false);
+        setIsStreaming(false);
         if (thinkingTimeoutRef.current) {
           clearTimeout(thinkingTimeoutRef.current);
           thinkingTimeoutRef.current = null;
