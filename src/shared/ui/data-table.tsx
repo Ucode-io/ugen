@@ -132,7 +132,7 @@ export function DataTable<TData, TValue>({
   };
 
   const showFooter = totalCount > 0;
-
+  console.log("headerGroupheaderGroup", table.getHeaderGroups());
   return (
     <div
       className={cn(

@@ -5,7 +5,7 @@ import { setRequestLocale } from "next-intl/server";
 import "@/app/globals.css";
 import { siteConfig } from "@/shared/config";
 import { routing } from "@/shared/lib/i18n";
-import { ThemeProvider, QueryProvider } from "@/shared/providers";
+import { ThemeProvider, QueryProvider, YandexMetrika } from "@/shared/providers";
 import { ViewLayoutWrapper } from "@/shared/ui";
 
 const inter = Inter({
@@ -33,6 +33,7 @@ const RootLayout = async ({ children, params }: Props) => {
       <body
         className="antialiased font-sans"
       >
+        <YandexMetrika />
         <QueryProvider>
           <ThemeProvider>
             <NextIntlClientProvider>
