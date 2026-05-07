@@ -93,6 +93,7 @@ export const PublishPopover = ({
 
   const [hasChanges, setHasChanges] = useState<boolean | null>(null);
   const [isCheckingChanges, setIsCheckingChanges] = useState(false);
+  const [everPromoted, setEverPromoted] = useState<boolean | null>(null);
 
   const loadChanges = async () => {
     const repoId = activeCodeSelection?.repoId
@@ -105,8 +106,10 @@ export const PublishPopover = ({
         { headers }
       )
       setHasChanges(data?.data?.hasChanges ?? true)
+      setEverPromoted(data?.data?.everPromoted ?? true)
     } catch {
       setHasChanges(true)
+      setEverPromoted(true)
     } finally {
       setIsCheckingChanges(false)
     }
@@ -503,20 +506,34 @@ export const PublishPopover = ({
                 <Globe size={12} />
                 {t("visibilityPublic")}
               </span>
-              <div className="border-border-subtle bg-bg-main flex items-center gap-1 rounded-lg border px-3 py-2">
-                <a
-                  href={shortUrl ?? finalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={mfUrl}
-                  className="text-primary flex-1 truncate font-mono text-xs hover:underline"
-                >
-                  {shortUrl ?? displayMfUrl}
-                </a>
+              <div className={cn(
+                "border-bg-main flex items-center gap-1 rounded-lg border px-3 py-2",
+                everPromoted === false
+                  ? "border-border-subtle bg-bg-sidebar opacity-60"
+                  : "border-border-subtle bg-bg-main"
+              )}>
+                {everPromoted === false ? (
+                  <span
+                    title="Deploy the project first to get a live URL"
+                    className="text-text-muted flex-1 truncate font-mono text-xs cursor-not-allowed"
+                  >
+                    {shortUrl ?? displayMfUrl}
+                  </span>
+                ) : (
+                  <a
+                    href={shortUrl ?? finalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={mfUrl}
+                    className="text-primary flex-1 truncate font-mono text-xs hover:underline"
+                  >
+                    {shortUrl ?? displayMfUrl}
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={copyMfUrl}
-                  disabled={isShortening}
+                  disabled={isShortening || everPromoted === false}
                   className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isShortening ? (
