@@ -617,6 +617,10 @@
         "queryError": "So'rovda xato",
         "noResultsYet": "Hozircha natija yo'q. Ma'lumotlarni ko'rish uchun so'rovni ishga tushiring."
       },
+      "dbDiagram": {
+        "header": "Bazaviy diagramma",
+        "hint": "Aloqalar FK va slug shakllaridan avtomatik aniqlanadi"
+      },
       "records": {
         "count": "Yozuvlar: {count}",
         "limit": "Limit",

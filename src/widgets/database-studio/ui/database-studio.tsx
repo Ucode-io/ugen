@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Table as TableIcon, Terminal } from "lucide-react";
+import { Table as TableIcon, Terminal, Network } from "lucide-react";
 import { useDatabaseStore, DatabaseView } from "@/entities/database";
 import {
   TablesView,
@@ -10,6 +10,7 @@ import {
   QueryView,
   LogsView,
   PlaceholderView,
+  DbDiagramView,
 } from "./index";
 import { cn } from "@/shared/lib/utils/cn";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,14 +46,17 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
     setIsPannelOpen(!isPannelOpen);
   };
 
+  const isTableEditor =
+    currentView !== "sql-console" && currentView !== "db-diagram";
+
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">
       <div className="border-border-subtle bg-bg-main flex h-10 shrink-0 items-center gap-1 border-b px-5">
         <button
           onClick={() => setCurrentView("tables")}
           className={cn(
-            "flex h-full cursor-pointer items-center gap-1.5 border-b-2 border-none bg-transparent px-4 text-[13px] font-[500] transition-colors",
-            currentView !== "sql-console"
+            "flex h-full cursor-pointer items-center gap-1.5 border-b-2 border-none bg-transparent px-2.5 text-[13px] font-[500] transition-colors",
+            isTableEditor
               ? "border-[#004eea] text-[#004eea]"
               : "text-text-muted hover:text-text-main border-transparent",
           )}
@@ -60,9 +64,20 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
           <TableIcon size={14} /> Table Editor
         </button>
         <button
+          onClick={() => setCurrentView("db-diagram")}
+          className={cn(
+            "flex h-full cursor-pointer items-center gap-1.5 border-b-2 border-none bg-transparent px-2.5 text-[13px] font-[500] transition-colors",
+            currentView === "db-diagram"
+              ? "border-[#004eea] text-[#004eea]"
+              : "text-text-muted hover:text-text-main border-transparent",
+          )}
+        >
+          <Network size={14} /> DB Diagram
+        </button>
+        <button
           onClick={() => setCurrentView("sql-console")}
           className={cn(
-            "flex h-full cursor-pointer items-center gap-1.5 border-b-2 border-none bg-transparent px-4 text-[13px] font-[500] transition-colors",
+            "flex h-full cursor-pointer items-center gap-1.5 border-b-2 border-none bg-transparent px-2.5 text-[13px] font-[500] transition-colors",
             currentView === "sql-console"
               ? "border-[#004eea] text-[#004eea]"
               : "text-text-muted hover:text-text-main border-transparent",
@@ -86,6 +101,10 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
         {currentView === "sql-console" ? (
           <div className="flex flex-1 overflow-hidden">
             <SqlConsole />
+          </div>
+        ) : currentView === "db-diagram" ? (
+          <div className="flex flex-1 overflow-hidden">
+            <DbDiagramView projectId={projectId} />
           </div>
         ) : (
           <>

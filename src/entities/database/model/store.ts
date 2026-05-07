@@ -28,6 +28,8 @@ export const useDatabaseStore = create<DatabaseState>((set) => ({
       newBreadcrumbs = [...newBreadcrumbs, ...tablePart, ...queryPart];
     } else if (view === 'sql-console') {
        newBreadcrumbs = [{ label: 'sqlConsole.header', view: 'sql-console' as DatabaseView }];
+    } else if (view === 'db-diagram') {
+      newBreadcrumbs = [{ label: 'tabs.dbDiagram', view: 'db-diagram' as DatabaseView }];
     }
 
     return { 

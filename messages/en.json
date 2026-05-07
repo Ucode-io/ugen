@@ -617,6 +617,10 @@
         "queryError": "Query Error",
         "noResultsYet": "No results yet. Run a query to see data."
       },
+      "dbDiagram": {
+        "header": "Database Diagram",
+        "hint": "Auto-detected relations from FK constraints and slug patterns"
+      },
       "records": {
         "count": "{count} records",
         "limit": "Limit",

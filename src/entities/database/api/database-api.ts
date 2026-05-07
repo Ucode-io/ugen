@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, githubApi } from '@/shared/api';
-import { Table, Column, TableRecord, TableDetail, SchemaColumn } from '../model/types';
+import { Table, Column, TableRecord, TableDetail, SchemaColumn, SchemaConstraint } from '../model/types';
 
 // Mock DB Tables
 const MOCK_SCHEMAS: Record<string, Column[]> = {
@@ -99,6 +99,26 @@ export const databaseApi = {
       { name: 'id', type: 'uuid', isNullable: false, isPrimaryKey: true },
       { name: 'name', type: 'varchar', isNullable: true, isPrimaryKey: false }
     ];
+  },
+
+  fetchDiagramSchema: async (
+    tableSlug: string,
+    projectId: string
+  ): Promise<{
+    table_name: string;
+    columns: SchemaColumn[];
+    constraints: SchemaConstraint[];
+  } | null> => {
+    const { data } = await api.get<any>(`/v2/items/${tableSlug}/schema`, {
+      params: { 'project-id': projectId },
+    });
+    const payload = data?.data?.data ?? data?.data ?? null;
+    if (!payload) return null;
+    return {
+      table_name: payload.table_name ?? tableSlug,
+      columns: Array.isArray(payload.columns) ? payload.columns : [],
+      constraints: Array.isArray(payload.constraints) ? payload.constraints : [],
+    };
   },
 
   fetchTableSchemaV2: async (tableSlug: string, projectId: string): Promise<SchemaColumn[]> => {
@@ -444,5 +464,111 @@ export const useUpdateSchemaField = () => {
       queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableSlug] });
     },
   });
+};
+
+/* ---------------------------------------------------------------- *
+ * DB Diagram                                                       *
+ * ---------------------------------------------------------------- */
+
+export interface DiagramSchema {
+  label: string;
+  slug: string;
+  data: {
+    table_name: string;
+    columns: SchemaColumn[];
+    constraints: SchemaConstraint[];
+  };
+}
+
+export interface DiagramRelation {
+  from: string;
+  fromColumn: string;
+  to: string;
+  toColumn: string;
+}
+
+const FIVE_MINUTES = 5 * 60 * 1000;
+
+const inferRelations = (
+  tables: Pick<Table, 'slug'>[],
+  schemas: DiagramSchema[]
+): DiagramRelation[] => {
+  const slugSet = new Set(tables.map((t) => t.slug));
+  const relations: DiagramRelation[] = [];
+  const seen = new Set<string>();
+
+  for (const { slug, data } of schemas) {
+    for (const col of data.columns) {
+      // Already-marked FK constraint (target unknown — fall through to slug match)
+      const explicitFk = col.constraints?.some((c) => c.label === 'FK');
+
+      // Pattern: <slug>_id, <slug>_guid, or column equals "<slug>_id" / "<slug>_guid"
+      const target = tables.find(
+        (t) =>
+          t.slug !== slug &&
+          (col.name === `${t.slug}_id` ||
+            col.name === `${t.slug}_guid` ||
+            (col.name.endsWith('_id') && col.name.replace(/_id$/, '') === t.slug) ||
+            (col.name.endsWith('_guid') && col.name.replace(/_guid$/, '') === t.slug))
+      );
+
+      if (!target) continue;
+      if (!slugSet.has(target.slug)) continue;
+
+      const key = `${slug}.${col.name}->${target.slug}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      relations.push({
+        from: slug,
+        fromColumn: col.name,
+        to: target.slug,
+        toColumn: 'guid',
+      });
+
+      // Suppress unused-var warning; explicitFk is reserved for future use when
+      // backend exposes target table on FK constraints.
+      void explicitFk;
+    }
+  }
+  return relations;
+};
+
+export const useDbDiagram = (projectId: string) => {
+  const tablesQuery = useQuery({
+    queryKey: ['db-diagram', 'tables', projectId],
+    queryFn: () => databaseApi.fetchTables('', 200, 0),
+    staleTime: FIVE_MINUTES,
+    enabled: !!projectId,
+  });
+
+  const tables = tablesQuery.data ?? [];
+
+  const schemaQueries = useQueries({
+    queries: tables.map((table) => ({
+      queryKey: ['db-diagram', 'schema', table.slug, projectId],
+      queryFn: () => databaseApi.fetchDiagramSchema(table.slug, projectId),
+      enabled: !!projectId && tables.length > 0,
+      staleTime: FIVE_MINUTES,
+    })),
+  });
+
+  const isLoading =
+    tablesQuery.isLoading || (tables.length > 0 && schemaQueries.some((q) => q.isLoading));
+
+  const isError =
+    tablesQuery.isError || schemaQueries.some((q) => q.isError);
+
+  const schemas: DiagramSchema[] = schemaQueries
+    .map((q, i) => {
+      const t = tables[i];
+      if (!q.data || !t) return null;
+      return { label: t.label, slug: t.slug, data: q.data };
+    })
+    .filter((s): s is DiagramSchema => s !== null);
+
+  const relations = inferRelations(tables, schemas);
+
+  return { tables, schemas, relations, isLoading, isError };
 };
 

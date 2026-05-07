@@ -59,7 +59,7 @@ export interface SqlScript {
   createdAt: number;
 }
 
-export type DatabaseView = 'tables' | 'records' | 'query' | 'sql-console';
+export type DatabaseView = 'tables' | 'records' | 'query' | 'sql-console' | 'db-diagram';
 
 export interface DatabaseState {
   selectedTable: string | null;
