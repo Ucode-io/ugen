@@ -5,6 +5,7 @@ import {
   Globe,
   LayoutDashboard,
   BrainCircuit,
+  Sparkles,
 } from "lucide-react";
 import type { ChatPosition } from "@/entities/chat"
 import { useTranslations } from "next-intl"
@@ -83,7 +84,7 @@ export const ProjectHeader = ({
       className="border-border-subtle flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all"
       title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
     >
-      <BrainCircuit size={16} className="text-text-muted" />
+      <Sparkles size={16} className="text-primary/60" />
     </button>
   );
 
@@ -93,18 +94,12 @@ export const ProjectHeader = ({
       !isChatCollapsed && chatPosition === 'left' && "pl-0",
     )}>
       <div className="flex items-center gap-2 min-w-[135px]">
-        {chatPosition === 'left' && toggleButton}
-        {chatPosition === 'right' && (
+        {chatPosition === 'right' && !isChatCollapsed && (
           <>
-            {!isChatCollapsed && (
-              <>
-                <LogoPopover projectTitle={projectTitle} />
-                <span className="text-[15px] font-medium text-text-main truncate max-w-[120px]">
-                  {projectTitle}
-                </span>
-              </>
-            )}
-            {toggleButton}
+            <LogoPopover projectTitle={projectTitle} />
+            <span className="text-[15px] font-medium text-text-main truncate max-w-[120px]">
+              {projectTitle}
+            </span>
           </>
         )}
       </div>
@@ -117,6 +112,7 @@ export const ProjectHeader = ({
 
       <div className="flex items-center gap-1.5 justify-end min-w-[135px]">
         <GithubPopover projectId={projectId} />
+        {toggleButton}
         {isUgen && (
           <>
             <div className="bg-border-subtle w-[1px] h-4 mx-2" />

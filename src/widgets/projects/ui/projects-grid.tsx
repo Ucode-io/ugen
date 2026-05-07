@@ -21,15 +21,15 @@ export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant
 
   return (
     <div className={
-      variant === "dashboard" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      variant === "dashboard" ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
     }>
       {(variant === "projects" && isUgen) && (
         <Link href="/?focus=prompt" className="group cursor-pointer block">
-          <div className="aspect-[16/9] w-full rounded-2xl border-2 border-dashed border-border-subtle bg-transparent flex flex-col items-center justify-center transition-colors hover:border-text-muted hover:bg-hover-bg/30">
-            <Plus size={24} className="text-text-muted transition-colors group-hover:text-text-main" />
+          <div className="aspect-video w-full rounded-2xl border-2 border-dashed border-border-subtle bg-transparent flex flex-col items-center justify-center transition-colors hover:border-text-muted hover:bg-hover-bg/30">
+            <Plus size={20} className="text-text-muted transition-colors group-hover:text-text-main" />
           </div>
-          <div className="mt-3">
-            <h3 className="text-[15px] font-medium text-text-main">{t("createNewProject")}</h3>
+          <div className="mt-2">
+            <h3 className="text-[13px] font-medium text-text-main">{t("createNewProject")}</h3>
           </div>
         </Link>
       )}
@@ -38,12 +38,12 @@ export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant
         <div key={folder.id} className="group relative block">
           <Link href={`/projects?folder_id=${folder.id}`} className="block">
             <div className="aspect-video w-full overflow-hidden rounded-2xl border border-border-subtle bg-bg-sidebar flex items-center justify-center transition-colors group-hover:bg-hover-bg">
-              <Folder size={40} className="text-text-muted transition-colors group-hover:text-text-main" />
+              <Folder size={28} className="text-text-muted transition-colors group-hover:text-text-main" />
             </div>
-            <div className="mt-3 flex items-start gap-3">
+            <div className="mt-2 flex items-start gap-2">
               <div className="flex-1 min-w-0">
-                <h3 className="truncate text-[15px] font-medium text-text-main">{folder.name}</h3>
-                <p className="text-[13px] text-text-muted mt-0.5">Folder</p>
+                <h3 className="truncate text-[13px] font-medium text-text-main">{folder.name}</h3>
+                <p className="text-[11px] text-text-muted mt-0.5">Folder</p>
               </div>
             </div>
           </Link>
@@ -72,33 +72,33 @@ export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant
                   <Loader2 size={24} className="animate-spin text-primary" />
                 </div>
               )}
-              <div className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-bg-main/60 text-text-main hover:bg-bg-main/80 backdrop-blur-sm transition-colors"
+                  className="flex h-6 w-6 items-center justify-center rounded-md bg-bg-main/60 text-text-main hover:bg-bg-main/80 backdrop-blur-sm transition-colors"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
                 >
-                  <Star size={18} />
+                  <Star size={13} />
                 </button>
               </div>
             </div>
 
-            <div className="mt-3 flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-secondary text-xs font-bold text-bg-main shadow-sm">
+            <div className="mt-2 flex items-start gap-2">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-secondary text-[10px] font-bold text-bg-main shadow-sm">
                 {proj.author.initials}
               </div>
               <div className="flex-1 overflow-hidden">
-                <h3 className="truncate text-[15px] font-medium text-text-main group-hover:text-text-main flex items-center gap-2">
+                <h3 className="truncate text-[13px] font-medium text-text-main group-hover:text-text-main">
                   {proj.name}
                 </h3>
-                <p className="truncate text-[13px] text-text-muted mt-0.5">{proj.editedAt}</p>
+                <p className="truncate text-[11px] text-text-muted mt-0.5">{proj.editedAt}</p>
               </div>
               {proj.rawProject && (
-                <div className="shrink-0 items-center gap-1 flex mt-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="shrink-0 items-center gap-0.5 flex opacity-0 transition-opacity group-hover:opacity-100">
                   <button
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-text-main hover:bg-hover-bg transition-colors"
+                    className="flex h-6 w-6 items-center justify-center rounded-md text-text-main hover:bg-hover-bg transition-colors"
                     onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
                   >
-                    <LinkIcon size={16} />
+                    <LinkIcon size={13} />
                   </button>
                   <ProjectCardActions project={proj.rawProject} folderItemId={proj.folderItemId} />
                 </div>
