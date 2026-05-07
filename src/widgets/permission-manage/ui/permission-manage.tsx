@@ -309,9 +309,9 @@ export const PermissionManage = ({ projectId }: Props) => {
         <p className="text-text-muted text-[13px]">Configure user type permissions by menu pages and tables</p>
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex-1 max-w-[240px] space-y-1.5">
-          <label className="text-[12px] font-medium text-text-muted block">User Type</label>
+      <div className="flex items-end gap-3 mb-5">
+        <div className="space-y-1.5 w-[200px]">
+          <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider block">User Type</label>
           <Select value={selectedClientTypeId} onValueChange={setSelectedClientTypeId}>
             <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9">
               <SelectValue placeholder="Select user type" />
@@ -340,67 +340,77 @@ export const PermissionManage = ({ projectId }: Props) => {
                   <span className="truncate">{ct.label}</span>
                 </SelectItem>
               ))}
+              <div className="border-t border-border-subtle/50 mt-1 pt-1 px-1">
+                <button
+                  className="flex w-full items-center gap-2 px-2 py-1.5 text-[13px] text-text-muted hover:text-text-main hover:bg-bg-sidebar rounded-md transition-colors"
+                  onPointerDown={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    setIsClientTypeModalOpen(true)
+                  }}
+                >
+                  <Plus size={13} />
+                  Add Type
+                </button>
+              </div>
             </SelectContent>
           </Select>
         </div>
-        <div className="pt-5">
-          <Button
-            onClick={() => setIsClientTypeModalOpen(true)}
-            variant="outline"
-            className="h-9 px-3 rounded-lg text-[13px] border-border-subtle"
-          >
-            <Plus size={14} className="mr-1.5" />
-            Add Type
-          </Button>
-        </div>
-      </div>
 
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <div className="flex items-center gap-2">
-          <div className="flex border border-border-subtle rounded-lg overflow-hidden bg-bg-card h-8">
-            {rolesData?.map((role: any) => (
-              <div key={role.guid} className="group/role relative flex items-center">
-                <button
-                  onClick={() => setSelectedRoleId(role.guid)}
-                  className={cn(
-                    "px-4 py-1 h-full text-[12px] font-medium transition-all border-r border-border-subtle last:border-r-0 outline-none cursor-pointer flex items-center justify-center min-w-[80px]",
-                    selectedRoleId === role.guid
-                      ? "bg-primary/10 text-primary font-semibold"
-                      : "bg-transparent text-text-muted hover:bg-bg-sidebar hover:text-text-main"
-                  )}
+        <div className="space-y-1.5 w-[200px]">
+          <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider block">Role</label>
+          <Select value={selectedRoleId} onValueChange={setSelectedRoleId} disabled={!selectedClientTypeId}>
+            <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9">
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              {rolesData?.map((role: any) => (
+                <SelectItem
+                  key={role.guid}
+                  value={role.guid}
+                  actions={
+                    !role.is_system ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-40 group-hover:opacity-100 transition-opacity"
+                        onPointerDown={(e) => {
+                          e.stopPropagation()
+                          e.preventDefault()
+                          setEditingRole(role)
+                          setIsRoleModalOpen(true)
+                        }}
+                      >
+                        <Pencil size={12} className="text-text-muted" />
+                      </Button>
+                    ) : undefined
+                  }
                 >
-                  {role.name}
+                  <span className="truncate">{role.name}</span>
+                </SelectItem>
+              ))}
+              {(!rolesData || rolesData.length === 0) && (
+                <div className="px-2 py-1.5 text-[12px] text-text-muted italic">No roles yet</div>
+              )}
+              <div className="border-t border-border-subtle/50 mt-1 pt-1 px-1">
+                <button
+                  className="flex w-full items-center gap-2 px-2 py-1.5 text-[13px] text-text-muted hover:text-text-main hover:bg-bg-sidebar rounded-md transition-colors"
+                  onPointerDown={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    setEditingRole(null)
+                    setIsRoleModalOpen(true)
+                  }}
+                >
+                  <Plus size={13} />
+                  Create Role
                 </button>
-                {!role.is_system && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setEditingRole(role)
-                      setIsRoleModalOpen(true)
-                    }}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md bg-bg-card opacity-0 group-hover/role:opacity-100 hover:text-primary transition-all z-10"
-                  >
-                    <Pencil size={10} />
-                  </button>
-                )}
               </div>
-            ))}
-            {(!rolesData || rolesData.length === 0) && (
-              <div className="px-4 py-2 text-[12px] text-text-muted italic flex items-center">No roles</div>
-            )}
-          </div>
-          <Button
-            onClick={() => {
-              setEditingRole(null)
-              setIsRoleModalOpen(true)
-            }}
-            disabled={!selectedClientTypeId}
-            className="bg-primary hover:bg-primary/90 text-white h-8 px-3 rounded-lg text-[13px] font-medium ml-1"
-          >
-            <Plus size={14} className="mr-1.5" />
-            Create Role
-          </Button>
+            </SelectContent>
+          </Select>
         </div>
+
+        <div className="flex-1" />
 
         {selectedRoleId && (
           <Button

@@ -1,5 +1,11 @@
 'use client'
-import { MessageSquare, CodeXml, Globe, LayoutDashboard } from "lucide-react"
+import {
+  MessageSquare,
+  CodeXml,
+  Globe,
+  LayoutDashboard,
+  BrainCircuit,
+} from "lucide-react";
 import type { ChatPosition } from "@/entities/chat"
 import { useTranslations } from "next-intl"
 import { ReusableTabs } from "@/shared/ui"
@@ -74,12 +80,12 @@ export const ProjectHeader = ({
   const toggleButton = isUgen && (
     <button
       onClick={onToggleChat}
-      className="flex items-center justify-center w-7 h-7 rounded-lg border border-border-subtle transition-all shrink-0"
+      className="border-border-subtle flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all"
       title={isChatCollapsed ? `Open AI Chat` : `Collapse AI Chat`}
     >
-      <MessageSquare size={16} className="text-text-muted" />
+      <BrainCircuit size={16} className="text-text-muted" />
     </button>
-  )
+  );
 
   return (
     <header className={cn(

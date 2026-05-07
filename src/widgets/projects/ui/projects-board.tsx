@@ -16,7 +16,6 @@ import { useAuthStore } from "@/entities/session";
 import { ProjectsToolbar } from "./projects-toolbar";
 import { ProjectsGrid } from "./projects-grid";
 import { ProjectsList } from "./projects-list";
-import { FolderCard } from "./folder-card";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ChevronRight, MoreHorizontal, FolderPlus } from "lucide-react";
@@ -276,14 +275,6 @@ export const ProjectsBoard = () => {
         )}
       </div>
 
-      {foldersDisplay.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-4">
-          {foldersDisplay.map((folder) => (
-            <FolderCard key={folder.id} folder={folder} readOnly={!isUgen} />
-          ))}
-        </div>
-      )}
-
       <ProjectsToolbar
         canSelectProject={canSelectProject}
         setCanSelectProject={setCanSelectProject}
@@ -301,13 +292,18 @@ export const ProjectsBoard = () => {
         ) : viewType === "grid" ? (
           <ProjectsGrid
             projects={projectsDisplay}
+            folders={foldersDisplay}
+            readOnly={!isUgen}
             onProjectClick={handleProjectClick}
             switchingProjectId={switchingProjectId}
           />
         ) : (
           <ProjectsList
             projects={projectsDisplay}
+            folders={foldersDisplay}
+            readOnly={!isUgen}
             onProjectClick={handleProjectClick}
+            onFolderClick={(f) => router.push(`/projects?folder_id=${f.id}` as any)}
             switchingProjectId={switchingProjectId}
           />
         )}

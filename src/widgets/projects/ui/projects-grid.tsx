@@ -1,17 +1,20 @@
-import { Plus, Star, Link as LinkIcon, Loader2 } from "lucide-react"
+import { Plus, Star, Link as LinkIcon, Loader2, Folder } from "lucide-react"
 import { Link } from "@/shared/lib/i18n/navigation"
 import { ProjectCardActions } from "./project-card-actions"
+import { FolderCardActions } from "./folder-card-actions"
 import { useTranslations } from "next-intl"
 import { useAuthStore } from "@/entities/session"
 
 interface ProjectsGridProps {
   projects: any[]
+  folders?: any[]
+  readOnly?: boolean
   variant?: "dashboard" | "projects"
   onProjectClick?: (project: any) => void
   switchingProjectId?: string | null
 }
 
-export const ProjectsGrid = ({ projects, variant = "projects", onProjectClick, switchingProjectId }: ProjectsGridProps) => {
+export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant = "projects", onProjectClick, switchingProjectId }: ProjectsGridProps) => {
   const t = useTranslations('widgets.projects')
   const { project } = useAuthStore()
   const isUgen = project?.is_ugen ?? false
@@ -30,6 +33,27 @@ export const ProjectsGrid = ({ projects, variant = "projects", onProjectClick, s
           </div>
         </Link>
       )}
+
+      {folders.map(folder => (
+        <div key={folder.id} className="group relative block">
+          <Link href={`/projects?folder_id=${folder.id}`} className="block">
+            <div className="aspect-video w-full overflow-hidden rounded-2xl border border-border-subtle bg-bg-sidebar flex items-center justify-center transition-colors group-hover:bg-hover-bg">
+              <Folder size={40} className="text-text-muted transition-colors group-hover:text-text-main" />
+            </div>
+            <div className="mt-3 flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="truncate text-[15px] font-medium text-text-main">{folder.name}</h3>
+                <p className="text-[13px] text-text-muted mt-0.5">Folder</p>
+              </div>
+            </div>
+          </Link>
+          {!readOnly && (
+            <div className="absolute right-0 bottom-[2px] opacity-0 group-hover:opacity-100 transition-opacity">
+              <FolderCardActions folder={folder} />
+            </div>
+          )}
+        </div>
+      ))}
 
       {projects.map(proj => {
         const isSwitching = switchingProjectId === proj.mcp_project_id

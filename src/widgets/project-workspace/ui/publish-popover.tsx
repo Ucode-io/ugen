@@ -12,6 +12,10 @@ import {
   Lock,
   ChevronDown,
   Loader2,
+  XCircle,
+  AlertTriangle,
+  Rocket,
+  ExternalLink,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
@@ -23,7 +27,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Dialog,
+  DialogContent,
 } from "@/shared/ui";
+import { cn } from "@/shared/lib/utils/cn";
 import { useRoles, useClientTypes, useUsers } from "../api/users";
 import { useAuthStore } from "@/entities/session";
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
@@ -35,6 +42,15 @@ interface PublishPopoverProps {
 }
 
 type Visibility = "public" | "public-login" | "workspace" | "private";
+type PublishStatus =
+  | "idle"
+  | "pending"
+  | "running"
+  | "success"
+  | "failed"
+  | "canceled";
+
+const POLL_INTERVAL_MS = 5000;
 
 export const PublishPopover = ({
   projectTitle,
@@ -68,6 +84,34 @@ export const PublishPopover = ({
   const [publishDone, setPublishDone] = useState(false);
   const [isLoadingVisibility, setIsLoadingVisibility] = useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
+
+  const [publishStatusOpen, setPublishStatusOpen] = useState(false);
+  const [publishStatus, setPublishStatus] = useState<PublishStatus>("idle");
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollCancelledRef = useRef(false);
+
+  const [hasChanges, setHasChanges] = useState<boolean | null>(null);
+  const [isCheckingChanges, setIsCheckingChanges] = useState(false);
+
+  const loadChanges = async () => {
+    const repoId = activeCodeSelection?.repoId
+    if (!repoId) return
+    setIsCheckingChanges(true)
+    try {
+      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const { data } = await api.get(
+        `/v2/functions/micro-frontend/promote/check-changes?repo_id=${repoId}`,
+        { headers }
+      )
+      setHasChanges(data?.data?.hasChanges ?? true)
+    } catch {
+      setHasChanges(true)
+    } finally {
+      setIsCheckingChanges(false)
+    }
+  }
+
 
   const loadVisibility = async () => {
     if (!projectId) return
@@ -105,22 +149,113 @@ export const PublishPopover = ({
     }
   }
 
-  const handlePublish = async () => {
-    const repoId = activeCodeSelection?.repoId
-    if (!repoId) return
-    setIsPublishing(true)
-    setPublishDone(false)
+  const stopPolling = () => {
+    pollCancelledRef.current = true
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current)
+      pollTimerRef.current = null
+    }
+  }
+
+  const pollPipelineStatus = async (pipelineId: number, repoId: number) => {
+    if (pollCancelledRef.current) return
     try {
       const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
-      await api.post('/v2/functions/micro-frontend/promote', { repo_id: Number(repoId) }, { headers })
-      setPublishDone(true)
-      setTimeout(() => setPublishDone(false), 3000)
+      const { data } = await api.get(
+        `/v2/functions/micro-frontend/promote/pipeline-status/${pipelineId}?repo_id=${repoId}`,
+        { headers }
+      )
+      if (pollCancelledRef.current) return
+      const status = (data?.data?.status as PublishStatus) || 'pending'
+      setPublishStatus(status)
+      if (status === 'pending' || status === 'running') {
+        pollTimerRef.current = setTimeout(
+          () => pollPipelineStatus(pipelineId, repoId),
+          POLL_INTERVAL_MS
+        )
+      } else {
+        setIsPublishing(false)
+        if (status === 'success') {
+          setPublishDone(true)
+          setTimeout(() => setPublishDone(false), 3000)
+          loadChanges()
+        }
+      }
     } catch (err) {
-      console.error('Failed to publish', err)
-    } finally {
+      console.error('Failed to fetch pipeline status', err)
+      if (pollCancelledRef.current) return
+      setPublishStatus('failed')
+      setPublishError(t('publishStatusError'))
       setIsPublishing(false)
     }
   }
+
+  const handlePublish = async () => {
+    const repoId = activeCodeSelection?.repoId
+    if (!repoId) return
+    stopPolling()
+    pollCancelledRef.current = false
+    setIsPublishing(true)
+    setPublishDone(false)
+    setPublishError(null)
+    setPublishStatus('pending')
+    setPublishStatusOpen(true)
+    setIsOpen(false)
+    try {
+      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const { data } = await api.post(
+        '/v2/functions/micro-frontend/promote',
+        { repo_id: Number(repoId) },
+        { headers }
+      )
+      const pipelineId = data?.data?.pipeline_id as number | undefined
+      const initialStatus = (data?.data?.status as PublishStatus) || 'pending'
+      if (!pipelineId) {
+        setPublishStatus('failed')
+        setPublishError(t('publishStatusError'))
+        setIsPublishing(false)
+        return
+      }
+      setPublishStatus(initialStatus)
+      if (initialStatus === 'pending' || initialStatus === 'running') {
+        pollTimerRef.current = setTimeout(
+          () => pollPipelineStatus(pipelineId, Number(repoId)),
+          POLL_INTERVAL_MS
+        )
+      } else {
+        setIsPublishing(false)
+        if (initialStatus === 'success') {
+          setPublishDone(true)
+          setTimeout(() => setPublishDone(false), 3000)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to publish', err)
+      setPublishStatus('failed')
+      setPublishError(t('publishStatusError'))
+      setIsPublishing(false)
+    }
+  }
+
+  const handleClosePublishStatus = (open: boolean) => {
+    setPublishStatusOpen(open)
+    if (!open) {
+      stopPolling()
+      // reset only when terminal so user doesn't lose in-progress info
+      if (
+        publishStatus === 'success' ||
+        publishStatus === 'failed' ||
+        publishStatus === 'canceled'
+      ) {
+        setPublishStatus('idle')
+        setPublishError(null)
+      }
+    }
+  }
+
+  useEffect(() => {
+    return () => stopPolling()
+  }, [])
 
 
 
@@ -143,6 +278,7 @@ export const PublishPopover = ({
   useEffect(() => {
     if (isOpen) {
       loadVisibility()
+      loadChanges()
     }
   }, [isOpen, projectId])
 
@@ -381,7 +517,7 @@ export const PublishPopover = ({
                   type="button"
                   onClick={copyMfUrl}
                   disabled={isShortening}
-                  className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors disabled:opacity-50"
+                  className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isShortening ? (
                     <Loader2 size={15} className="animate-spin" />
@@ -543,18 +679,18 @@ export const PublishPopover = ({
         <div className="p-5 pt-4">
           <button
             onClick={handlePublish}
-            disabled={isPublishing || !activeCodeSelection?.repoId}
+            disabled={isPublishing || !activeCodeSelection?.repoId || isCheckingChanges || hasChanges === false}
             className="bg-primary hover:bg-primary-hover w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isPublishing ? (
               <>
                 <Loader2 size={14} className="animate-spin" />
-                Publishing...
+                {t("publishStatusRunningTitle")}
               </>
             ) : publishDone ? (
               <>
                 <Check size={14} />
-                Published!
+                {t("publishStatusSuccessTitle")}
               </>
             ) : (
               t("publishApp")
@@ -562,6 +698,213 @@ export const PublishPopover = ({
           </button>
         </div>
       </PopoverContent>
+
+      <Dialog open={publishStatusOpen} onOpenChange={handleClosePublishStatus}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden gap-0 [&>button]:hidden">
+          {/* Accent bar */}
+          <div
+            className={cn("h-0.5 w-full", {
+              "bg-yellow-500": publishStatus === "pending",
+              "bg-primary": publishStatus === "running",
+              "bg-green-500": publishStatus === "success",
+              "bg-red-500": publishStatus === "failed",
+              "bg-amber-400": publishStatus === "canceled",
+            })}
+          />
+
+          <div className="px-5 pt-5 pb-4 space-y-4">
+            {/* Icon + title row */}
+            <div className="flex items-center gap-3.5">
+              <div
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                  {
+                    "bg-yellow-500/10": publishStatus === "pending",
+                    "bg-primary/10": publishStatus === "running",
+                    "bg-green-500/10": publishStatus === "success",
+                    "bg-red-500/10": publishStatus === "failed",
+                    "bg-amber-400/10": publishStatus === "canceled",
+                  }
+                )}
+              >
+                {(publishStatus === "pending" || publishStatus === "running") && (
+                  <Loader2
+                    size={20}
+                    className={cn("animate-spin", {
+                      "text-yellow-500": publishStatus === "pending",
+                      "text-primary": publishStatus === "running",
+                    })}
+                  />
+                )}
+                {publishStatus === "success" && (
+                  <Rocket size={20} className="text-green-500" />
+                )}
+                {publishStatus === "failed" && (
+                  <XCircle size={20} className="text-red-500" />
+                )}
+                {publishStatus === "canceled" && (
+                  <AlertTriangle size={20} className="text-amber-400" />
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-text-main text-sm font-semibold leading-tight">
+                  {publishStatus === "pending" && t("publishStatusPendingTitle")}
+                  {publishStatus === "running" && t("publishStatusRunningTitle")}
+                  {publishStatus === "success" && t("publishStatusSuccessTitle")}
+                  {publishStatus === "failed" && t("publishStatusFailedTitle")}
+                  {publishStatus === "canceled" && t("publishStatusCanceledTitle")}
+                </p>
+                <p className="text-text-muted text-xs mt-0.5 leading-snug">
+                  {publishStatus === "pending" && t("publishStatusPendingDesc")}
+                  {publishStatus === "running" && t("publishStatusRunningDesc")}
+                  {publishStatus === "success" && t("publishStatusSuccessDesc")}
+                  {publishStatus === "failed" && (publishError || t("publishStatusFailedDesc"))}
+                  {publishStatus === "canceled" && t("publishStatusCanceledDesc")}
+                </p>
+              </div>
+            </div>
+
+            {/* Pipeline steps */}
+            <div className="border-border-subtle rounded-lg border bg-bg-main px-3.5 py-3 space-y-2.5">
+              {(
+                [
+                  {
+                    label: "Queued",
+                    done: true,
+                    active: publishStatus === "pending",
+                  },
+                  {
+                    label: "Deploying",
+                    done: publishStatus === "success",
+                    active: publishStatus === "running",
+                    running: publishStatus === "running",
+                  },
+                  {
+                    label: "Live",
+                    done: publishStatus === "success",
+                    active: false,
+                    failed: publishStatus === "failed",
+                    canceled: publishStatus === "canceled",
+                  },
+                ] as {
+                  label: string;
+                  done: boolean;
+                  active?: boolean;
+                  running?: boolean;
+                  failed?: boolean;
+                  canceled?: boolean;
+                }[]
+              ).map((step, i) => (
+                <div key={i} className="flex items-center gap-2.5">
+                  <div
+                    className={cn(
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-bold transition-colors",
+                      step.failed
+                        ? "border-red-500/50 bg-red-500/10 text-red-500"
+                        : step.canceled
+                          ? "border-amber-400/50 bg-amber-400/10 text-amber-400"
+                          : step.done
+                            ? "border-green-500/50 bg-green-500/10 text-green-500"
+                            : step.running
+                              ? "border-primary/50 bg-primary/10 text-primary"
+                              : step.active
+                                ? "border-yellow-500/50 bg-yellow-500/10 text-yellow-500"
+                                : "border-border-subtle bg-transparent text-text-muted/30"
+                    )}
+                  >
+                    {step.failed ? (
+                      <XCircle size={9} />
+                    ) : step.canceled ? (
+                      <AlertTriangle size={9} />
+                    ) : step.done ? (
+                      <Check size={9} />
+                    ) : step.running ? (
+                      <Loader2 size={9} className="animate-spin" />
+                    ) : (
+                      String(i + 1)
+                    )}
+                  </div>
+                  <span
+                    className={cn("text-xs font-mono", {
+                      "text-red-500": step.failed,
+                      "text-amber-400": step.canceled,
+                      "text-green-500": step.done && !step.failed && !step.canceled,
+                      "text-primary": step.running,
+                      "text-yellow-500": step.active && !step.running,
+                      "text-text-muted/40":
+                        !step.done &&
+                        !step.active &&
+                        !step.running &&
+                        !step.failed &&
+                        !step.canceled,
+                    })}
+                  >
+                    {step.label}
+                  </span>
+                  {step.done && !step.failed && !step.canceled && (
+                    <span className="ml-auto text-[10px] text-green-500/70 font-mono">
+                      done
+                    </span>
+                  )}
+                  {step.running && (
+                    <span className="ml-auto text-[10px] text-primary/70 font-mono animate-pulse">
+                      in progress
+                    </span>
+                  )}
+                  {step.failed && (
+                    <span className="ml-auto text-[10px] text-red-500/70 font-mono">
+                      failed
+                    </span>
+                  )}
+                  {step.canceled && (
+                    <span className="ml-auto text-[10px] text-amber-400/70 font-mono">
+                      canceled
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Success: show deploy URL */}
+            {publishStatus === "success" && mfUrl && (
+              <a
+                href={shortUrl ?? finalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2 group transition-colors hover:border-green-500/40"
+              >
+                <Globe size={13} className="text-green-500 shrink-0" />
+                <span className="text-primary flex-1 truncate font-mono text-xs group-hover:underline">
+                  {shortUrl ?? displayMfUrl}
+                </span>
+                <ExternalLink size={12} className="text-green-500/50 shrink-0" />
+              </a>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-border-subtle border-t px-5 py-3 flex justify-end">
+            {publishStatus === "pending" || publishStatus === "running" ? (
+              <button
+                type="button"
+                onClick={() => handleClosePublishStatus(false)}
+                className="text-text-muted hover:text-text-main text-sm px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {t("hide")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleClosePublishStatus(false)}
+                className="bg-primary hover:bg-primary-hover rounded-lg px-4 py-1.5 text-sm font-medium text-white transition-colors"
+              >
+                {t("close")}
+              </button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Popover>
   );
 };
