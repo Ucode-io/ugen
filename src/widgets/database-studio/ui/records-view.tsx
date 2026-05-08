@@ -150,7 +150,7 @@ const LookupEditSelect = ({
       }}
     >
       <PopoverTrigger asChild>
-        <div className="hover:bg-primary/[0.04] -mx-1 min-w-[200px] max-w-[400px] cursor-pointer truncate rounded px-1 py-0.5 text-[13px] leading-tight transition-colors">
+        <div className="-mx-1 min-w-[200px] max-w-[400px] cursor-pointer truncate rounded px-1 py-0.5 text-[13px] leading-tight">
           {selectedLabel ? (
             <span className="text-text-main">{selectedLabel}</span>
           ) : (
@@ -209,12 +209,14 @@ const LookupDisplayCell = ({
   projectId,
   clientTypeId,
   onEdit,
+  onClear,
 }: {
   slug: string;
   value: any;
   projectId: string;
   clientTypeId: string;
   onEdit: () => void;
+  onClear?: () => void;
 }) => {
   const [options, setOptions] = useState<any[]>([]);
 
@@ -236,15 +238,32 @@ const LookupDisplayCell = ({
     return match ? getRecordLabel(match) : String(value);
   }, [value, options]);
 
+  const hasValue = value !== null && value !== undefined && value !== "";
+
   return (
     <div
-      className="hover:bg-primary/[0.04] -mx-1 max-w-[400px] min-w-[200px] cursor-text truncate rounded px-1 py-0 text-[13px] leading-tight transition-colors"
+      className="group/lookup -mx-1 flex max-w-[400px] min-w-[200px] cursor-pointer items-center gap-1.5 rounded px-1 py-0 text-[13px] leading-tight"
       onClick={onEdit}
     >
-      {label ? (
-        <span className="text-text-main">{label}</span>
-      ) : (
-        <span className="text-text-muted/40 text-[11px] italic">Select…</span>
+      <div className="min-w-0 flex-1 truncate">
+        {label ? (
+          <span className="text-text-main">{label}</span>
+        ) : (
+          <span className="text-text-muted/40 text-[11px] italic">Select…</span>
+        )}
+      </div>
+      {hasValue && onClear && (
+        <button
+          type="button"
+          title="Clear value"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClear();
+          }}
+          className="text-text-muted/60 hover:text-text-main hover:bg-hover-bg flex h-5 w-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover/lookup:opacity-100"
+        >
+          <X size={11} />
+        </button>
       )}
     </div>
   );
@@ -485,6 +504,28 @@ export const RecordsView = ({
     } catch (err) {
       console.error(err);
       toast.error("Failed to add record");
+    }
+  };
+
+  const clearLookupValue = async (row: any, key: string) => {
+    if (!selectedTable) return;
+    const col = schema?.find((s) => s.slug === key);
+    if (!col) return;
+    const currentVal = row[key];
+    if (currentVal === null || currentVal === undefined || currentVal === "")
+      return;
+
+    const updatedData = { ...row, [key]: null };
+    try {
+      await updateRecordMutation.mutateAsync({
+        tableName: selectedTable,
+        data: updatedData,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["db-records", selectedTable, projectId, ucodeProjectId || ""],
+      });
+    } catch {
+      toast.error("Failed to clear value");
     }
   };
 
@@ -775,6 +816,7 @@ export const RecordsView = ({
                   setEditingCell({ id: row.id, key });
                   setEditValue(val);
                 }}
+                onClear={() => clearLookupValue(row.original, key)}
               />
             );
           }
