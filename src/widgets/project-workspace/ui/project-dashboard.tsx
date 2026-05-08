@@ -27,8 +27,6 @@ import { CodeView } from '@/widgets/project-workspace'
 import { CodeEditorTarget } from '@/entities/session'
 import { ClientTypeManagement } from '@/widgets/client-type-management'
 
-import { useMenus } from '@/entities/menu/lib/use-menus'
-import { MenuItem } from '@/entities/menu/model/types'
 import { DashboardSidebar, NavigationItem } from './dashboard-sidebar'
 import { RoleList } from '@/widgets/role-manage'
 import { PermissionManage } from '@/widgets/permission-manage'
@@ -97,7 +95,6 @@ export const ProjectDashboard = ({
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
 
   const FILES_PARENT_MENU_ID = '8a6f913a-e3d4-4b73-9fc0-c942f343d0b9'
-  const { data: fileMenus, isLoading: isMenusLoading, refetch: refetchFileMenus } = useMenus(FILES_PARENT_MENU_ID)
   const { data: clientTypes = [] } = useClientTypes(projectId)
 
   const navigationItems: NavigationItem[] = useMemo(() => [
@@ -114,7 +111,7 @@ export const ProjectDashboard = ({
     { id: 'database_studio', icon: Database, label: 'Database', category: 'Development' },
     { id: 'logs', icon: History, label: 'Logs', category: 'Monitoring' },
     { id: 'analytics', icon: BarChart2, label: 'Analytics', category: 'Monitoring' },
-  ], [fileMenus])
+  ], [])
 
   const findActiveItem = (items: any[], activeId: string): any => {
     for (const item of items) {
@@ -209,9 +206,7 @@ export const ProjectDashboard = ({
           <MediaGallery
             activeMenuId="files"
             folderPath="media"
-            folders={fileMenus}
             parentMenuId={FILES_PARENT_MENU_ID}
-            onFolderCreated={() => refetchFileMenus()}
           />
         </div>
       );

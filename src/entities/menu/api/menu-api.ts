@@ -6,6 +6,7 @@ export interface MenuResponse {
   description: string;
   data: {
     menus: MenuItem[];
+    count?: number;
   };
 }
 
@@ -17,12 +18,27 @@ export interface CreateMenuFolderPayload {
   attributes?: Record<string, unknown>;
 }
 
+export interface GetMenusParams {
+  parentId: string;
+  projectId?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export const menuService = {
-  getMenus: async (parentId: string) => {
+  getMenus: async ({ parentId, projectId, limit, offset }: GetMenusParams) => {
     const { data } = await api.get<MenuResponse>(`/v3/menus`, {
-      params: { parent_id: parentId }
+      params: {
+        parent_id: parentId,
+        ...(projectId && { 'project-id': projectId }),
+        ...(limit !== undefined && { limit }),
+        ...(offset !== undefined && { offset }),
+      }
     });
-    return data.data.menus;
+    return {
+      menus: data.data.menus ?? [],
+      count: data.data.count ?? data.data.menus?.length ?? 0,
+    };
   },
   createMenuFolder: async (payload: CreateMenuFolderPayload) => {
     const { data } = await api.post(`/v3/menus`, {

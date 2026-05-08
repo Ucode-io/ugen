@@ -1,12 +1,21 @@
 import { api } from "@/shared/api/instance";
 import { FilesResponse } from "../model/types";
 
+export interface GetFilesParams {
+  limit?: number;
+  offset?: number;
+  folderName?: string;
+  projectId?: string;
+}
+
 export const fileApi = {
-  getFiles: async (limit: number = 20, offset: number = 0) => {
+  getFiles: async ({ limit = 20, offset = 0, folderName, projectId }: GetFilesParams = {}) => {
     const { data } = await api.get<FilesResponse>(`/v1/files`, {
       params: {
         limit,
-        offset
+        offset,
+        ...(folderName && { folder_name: folderName }),
+        ...(projectId && { project_id: projectId }),
       }
     });
     return data.data;

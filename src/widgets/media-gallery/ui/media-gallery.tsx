@@ -24,7 +24,9 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from 'next/navigation'
 import { FileItem, useFilesInfinite, useDeleteFiles } from '@/entities/media-file'
+import { useMenusInfinite } from '@/entities/menu'
 import { useMediaGallery } from '../lib/use-media-gallery'
 import { MediaCard } from './media-card'
 import { FileUploadModal } from '@/features/file-upload'
@@ -48,9 +50,7 @@ interface MediaGalleryProps {
   isLoading?: boolean
   activeMenuId?: string
   folderPath?: string
-  folders?: any[]
   parentMenuId?: string
-  onFolderCreated?: () => void
 }
 
 export const MediaGallery = ({
@@ -58,11 +58,55 @@ export const MediaGallery = ({
   isLoading: propIsLoading = false,
   activeMenuId = 'media',
   folderPath = 'media',
-  folders = [],
   parentMenuId,
-  onFolderCreated,
 }: MediaGalleryProps) => {
   const t = useTranslations('widgets.mediaGallery')
+  const params = useParams()
+  const projectId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string | undefined)
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([
+    { id: "root", label: "Root" },
+  ]);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+
+  const {
+    data: menusData,
+    isLoading: isMenusLoading,
+    fetchNextPage: fetchNextMenus,
+    hasNextPage: hasNextMenus,
+    isFetchingNextPage: isFetchingNextMenus,
+  } = useMenusInfinite({
+    parentId: parentMenuId ?? '',
+    projectId,
+    limit: 20,
+    enabled: !!parentMenuId,
+  })
+
+  const computedFolders = useMemo(() => {
+    if (!menusData?.pages) return []
+    const seen = new Set<string>()
+    const all: { id: string; label: string; type: string }[] = []
+    for (const page of menusData.pages) {
+      for (const m of page.menus ?? []) {
+        if (m?.type !== 'MINIO_FOLDER') continue
+        if (seen.has(m.id)) continue
+        seen.add(m.id)
+        all.push({ id: m.id, label: m.label, type: 'FOLDER' })
+      }
+    }
+    return all
+  }, [menusData])
+
+  const activeFolderLabel = useMemo(() => {
+    if (!activeFolderId) return null
+    return computedFolders.find((f) => f.id === activeFolderId)?.label ?? null
+  }, [activeFolderId, computedFolders])
+
   const {
     data,
     isLoading: isQueryLoading,
@@ -72,7 +116,12 @@ export const MediaGallery = ({
     hasNextPage,
     isFetchingNextPage,
     refetch
-  } = useFilesInfinite(20)
+  } = useFilesInfinite({
+    limit: 20,
+    folderName: activeFolderLabel ?? undefined,
+    projectId,
+    enabled: !!activeFolderLabel,
+  })
 
   const { data: pricingData, refetch: refetchPricing } = useQuery({
     queryKey: ["pricing-all"],
@@ -85,39 +134,41 @@ export const MediaGallery = ({
 
   const { mutate: deleteFiles, isPending: isDeleting } = useDeleteFiles();
 
-  // Infinite scroll observer
+  // Infinite scroll observer — pages files inside a folder, folders at root
   const observerRef = useRef<IntersectionObserver | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
+  const isInsideFolder = !!activeFolderLabel;
+  const activeHasNext = isInsideFolder ? hasNextPage : hasNextMenus;
+  const activeIsFetchingNext = isInsideFolder ? isFetchingNextPage : isFetchingNextMenus;
+  const fetchNextActive = useCallback(() => {
+    if (isInsideFolder) fetchNextPage();
+    else fetchNextMenus();
+  }, [isInsideFolder, fetchNextPage, fetchNextMenus]);
+
   useEffect(() => {
-    if (isFetchingNextPage || !hasNextPage) return;
+    if (activeIsFetchingNext || !activeHasNext) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) fetchNextPage();
+        if (entries[0].isIntersecting) fetchNextActive();
       },
       { threshold: 1.0 },
     );
     if (bottomRef.current) observer.observe(bottomRef.current);
     observerRef.current = observer;
     return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [fetchNextActive, activeHasNext, activeIsFetchingNext]);
 
   const files = useMemo(() => {
     if (!data?.pages) return initialFiles || [];
     return data.pages.flatMap((p) => (Array.isArray(p?.files) ? p.files : []));
   }, [data, initialFiles]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([
-    { id: "root", label: "Root" },
-  ]);
-  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
-
-  const isLoading = propIsLoading || (isQueryLoading && files.length === 0);
+  const isLoading =
+    propIsLoading ||
+    (isInsideFolder
+      ? isQueryLoading && files.length === 0
+      : isMenusLoading && computedFolders.length === 0);
   const cdnUrl = process.env.NEXT_PUBLIC_CDN_BASE_URL;
 
   const {
@@ -166,30 +217,9 @@ export const MediaGallery = ({
     if (index !== -1) setPreviewIndex(index)
   }, [filteredFiles])
 
-  const computedFolders = useMemo(() => {
-    if (folders && folders.length > 0) {
-      return folders
-        .filter((f: any) => f?.type === 'MINIO_FOLDER')
-        .map((f: any) => ({ id: f.id, label: f.label, type: 'FOLDER' }))
-    }
-    const storages = new Set<string>()
-    files.forEach((f) => {
-      if (f.storage) storages.add(f.storage);
-    });
-    return Array.from(storages).map(s => ({ id: s, label: s, type: 'FOLDER' }))
-  }, [folders, files])
-
-  const activeFolderLabel = useMemo(() => {
-    if (!activeFolderId) return null
-    return computedFolders.find((f) => f.id === activeFolderId)?.label ?? activeFolderId
-  }, [activeFolderId, computedFolders])
-
   const displayFiles = useMemo(() => {
-    return filteredFiles.filter((f) => {
-      if (!activeFolderLabel)
-        return !f.storage || f.storage === "" || f.storage === "root";
-      return f.storage === activeFolderLabel;
-    });
+    if (!activeFolderLabel) return [];
+    return filteredFiles;
   }, [filteredFiles, activeFolderLabel]);
 
   const handleToggle = useCallback(
@@ -612,17 +642,18 @@ export const MediaGallery = ({
                 ref={bottomRef}
                 className="flex h-20 items-center justify-center py-8"
               >
-                {isFetchingNextPage && (
+                {activeIsFetchingNext && (
                   <div className="text-primary flex items-center gap-2 font-medium">
                     <Loader2 className="h-5 w-5 animate-spin" />
                     <span>{t("loadingMore")}</span>
                   </div>
                 )}
-                {!hasNextPage && files.length > 19 && (
-                  <div className="text-text-muted text-sm font-medium">
-                    {t("reachedEnd")}
-                  </div>
-                )}
+                {!activeHasNext &&
+                  (isInsideFolder ? files.length > 19 : computedFolders.length > 19) && (
+                    <div className="text-text-muted text-sm font-medium">
+                      {t("reachedEnd")}
+                    </div>
+                  )}
               </div>
             </motion.div>
           )}
@@ -649,9 +680,6 @@ export const MediaGallery = ({
           isOpen={isCreateFolderOpen}
           onClose={() => setIsCreateFolderOpen(false)}
           parentId={activeFolderId || parentMenuId}
-          onSuccess={() => {
-            onFolderCreated?.()
-          }}
         />
       )}
     </div>
