@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   Filter,
@@ -35,6 +36,7 @@ import {
   useUpdateRecord,
   useDeleteRecord,
   Column,
+  databaseApi,
 } from "@/entities/database";
 import { DataTable } from "@/shared/ui";
 import { Button } from "@/shared/ui";
@@ -51,6 +53,221 @@ import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/entities/session";
 
 type ActiveTab = "records" | "schema";
+
+// Module-level cache so all cells for the same related table share one fetch
+const _lookupCache = new Map<string, any[]>();
+const _lookupInFlight = new Map<string, Promise<any[]>>();
+
+const fetchLookupOptions = (
+  relatedTable: string,
+  projectId: string,
+  clientTypeId: string,
+): Promise<any[]> => {
+  const key = `${relatedTable}:${projectId}`;
+  if (_lookupCache.has(key)) return Promise.resolve(_lookupCache.get(key)!);
+  if (_lookupInFlight.has(key)) return _lookupInFlight.get(key)!;
+  const p = databaseApi
+    .fetchTableRecords(relatedTable, projectId, clientTypeId, 200, 0)
+    .then((r) => {
+      _lookupCache.set(key, r.items);
+      _lookupInFlight.delete(key);
+      return r.items;
+    })
+    .catch(() => {
+      _lookupInFlight.delete(key);
+      return [] as any[];
+    });
+  _lookupInFlight.set(key, p);
+  return p;
+};
+
+const getRelatedTable = (slug: string): string => {
+  if (slug.endsWith("_guid")) return slug.slice(0, -5);
+  if (slug.endsWith("_id")) return slug.slice(0, -3);
+  return slug;
+};
+
+const getRecordLabel = (record: any): string => {
+  const keys = Object.keys(record).filter(
+    (k) =>
+      typeof record[k] === "string" &&
+      k !== "guid" &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(record[k] || ""),
+  );
+  if (keys.length > 0) return String(record[keys[0]]);
+  return record.guid || record.id || "—";
+};
+
+const LookupEditSelect = ({
+  slug,
+  value,
+  projectId,
+  clientTypeId,
+  onSelect,
+  onClose,
+  autoOpen = false,
+}: {
+  slug: string;
+  value: any;
+  projectId: string;
+  clientTypeId: string;
+  onSelect: (val: string) => void;
+  onClose?: () => void;
+  autoOpen?: boolean;
+}) => {
+  const relatedTable = getRelatedTable(slug);
+  const cacheKey = `${relatedTable}:${projectId}`;
+
+  const [options, setOptions] = useState<any[]>(
+    () => _lookupCache.get(cacheKey) ?? [],
+  );
+  const [isLoading, setIsLoading] = useState(options.length === 0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLookupOptions(relatedTable, projectId, clientTypeId).then((items) => {
+      if (!cancelled) {
+        setOptions(items);
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [relatedTable, projectId, clientTypeId, cacheKey]);
+
+  const selectedLabel = useMemo(() => {
+    if (!value) return null;
+    const match = options.find((o) => (o.guid || o.id) === value);
+    return match ? getRecordLabel(match) : String(value);
+  }, [value, options]);
+
+  return (
+    <Popover
+      defaultOpen={autoOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose?.();
+      }}
+    >
+      <PopoverTrigger asChild>
+        <div className="-mx-1 min-w-[200px] max-w-[400px] cursor-pointer truncate rounded px-1 py-0.5 text-[13px] leading-tight">
+          {selectedLabel ? (
+            <span className="text-text-main">{selectedLabel}</span>
+          ) : (
+            <span className="text-text-muted/40 text-[11px] italic">
+              Select…
+            </span>
+          )}
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
+        className="bg-bg-card border-border-subtle w-[280px] p-1 shadow-lg"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {isLoading ? (
+          <div className="text-text-muted px-3 py-2 text-[12px]">
+            Loading…
+          </div>
+        ) : options.length === 0 ? (
+          <div className="text-text-muted px-3 py-2 text-[12px]">
+            No options found
+          </div>
+        ) : (
+          <div className="max-h-[240px] overflow-y-auto">
+            {options.map((opt) => {
+              const val = opt.guid || opt.id || getRecordLabel(opt);
+              const label = getRecordLabel(opt);
+              return (
+                <div
+                  key={val}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onSelect(val);
+                  }}
+                  className={cn(
+                    "hover:bg-hover-bg cursor-pointer truncate rounded-sm px-3 py-1.5 text-[12px]",
+                    value === val
+                      ? "text-primary font-medium"
+                      : "text-text-main",
+                  )}
+                >
+                  {label}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+const LookupDisplayCell = ({
+  slug,
+  value,
+  projectId,
+  clientTypeId,
+  onEdit,
+  onClear,
+}: {
+  slug: string;
+  value: any;
+  projectId: string;
+  clientTypeId: string;
+  onEdit: () => void;
+  onClear?: () => void;
+}) => {
+  const [options, setOptions] = useState<any[]>([]);
+
+  const relatedTable = getRelatedTable(slug);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLookupOptions(relatedTable, projectId, clientTypeId).then((items) => {
+      if (!cancelled) setOptions(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [relatedTable, projectId, clientTypeId]);
+
+  const label = useMemo(() => {
+    if (!value) return null;
+    const match = options.find((o) => (o.guid || o.id) === value);
+    return match ? getRecordLabel(match) : String(value);
+  }, [value, options]);
+
+  const hasValue = value !== null && value !== undefined && value !== "";
+
+  return (
+    <div
+      className="group/lookup -mx-1 flex max-w-[400px] min-w-[200px] cursor-pointer items-center gap-1.5 rounded px-1 py-0 text-[13px] leading-tight"
+      onClick={onEdit}
+    >
+      <div className="min-w-0 flex-1 truncate">
+        {label ? (
+          <span className="text-text-main">{label}</span>
+        ) : (
+          <span className="text-text-muted/40 text-[11px] italic">Select…</span>
+        )}
+      </div>
+      {hasValue && onClear && (
+        <button
+          type="button"
+          title="Clear value"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClear();
+          }}
+          className="text-text-muted/60 hover:text-text-main hover:bg-hover-bg flex h-5 w-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover/lookup:opacity-100"
+        >
+          <X size={11} />
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const RecordsView = ({
   projectId,
@@ -95,14 +312,23 @@ export const RecordsView = ({
     key: string;
   } | null>(null);
   const [editValue, setEditValue] = useState<any>(null);
+  // Ref that's always current — used in uncontrolled-input handlers and async callbacks
+  // so we never capture stale closure values.
+  const editValueRef = useRef<any>(null);
+  editValueRef.current = editValue;
+  const editingKey = editingCell
+    ? `${editingCell.id}:${editingCell.key}`
+    : null;
 
+  const queryClient = useQueryClient();
   const addRecordMutation = useAddRecord();
   const updateRecordMutation = useUpdateRecord();
   const deleteRecordMutation = useDeleteRecord();
 
-  const [editingRecord, setEditingRecord] = useState<Record<string, any> | null>(
-    null,
-  );
+  const [editingRecord, setEditingRecord] = useState<Record<
+    string,
+    any
+  > | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Record<string, any> | null>(
     null,
   );
@@ -281,15 +507,37 @@ export const RecordsView = ({
     }
   };
 
+  const clearLookupValue = async (row: any, key: string) => {
+    if (!selectedTable) return;
+    const col = schema?.find((s) => s.slug === key);
+    if (!col) return;
+    const currentVal = row[key];
+    if (currentVal === null || currentVal === undefined || currentVal === "")
+      return;
+
+    const updatedData = { ...row, [key]: null };
+    try {
+      await updateRecordMutation.mutateAsync({
+        tableName: selectedTable,
+        data: updatedData,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["db-records", selectedTable, projectId, ucodeProjectId || ""],
+      });
+    } catch {
+      toast.error("Failed to clear value");
+    }
+  };
+
   const handleUpdateRecord = async (row: any, key: string, newVal: any) => {
     if (!selectedTable || editingCell === null) return;
 
-    // If value hasn't changed, just close
-    if (newVal === row[key]) {
-      setEditingCell(null);
-      setEditValue(null);
-      return;
-    }
+    // Close edit mode immediately — no waiting for the API response.
+    setEditingCell(null);
+    setEditValue(null);
+    editValueRef.current = null;
+
+    if (newVal === row[key]) return;
 
     const col = schema?.find((s) => s.slug === key);
     if (!col) return;
@@ -307,14 +555,35 @@ export const RecordsView = ({
         tableName: selectedTable,
         data: updatedData,
       });
+      // Update the cached row in place — no refetch needed.
+      queryClient.setQueryData(
+        [
+          "db-records",
+          selectedTable,
+          projectId,
+          ucodeProjectId || "",
+          limit,
+          offset,
+          appliedFilters,
+          selectedColumns,
+        ],
+        (old: any) => {
+          if (!old) return old;
+          const rowId = row.guid || row.id;
+          return {
+            ...old,
+            items: old.items.map((item: any) =>
+              (item.guid || item.id) === rowId
+                ? { ...item, [key]: result }
+                : item,
+            ),
+          };
+        },
+      );
       toast.success("Record updated");
-      refetch();
     } catch (err) {
       console.error(err);
       toast.error("Failed to update record");
-    } finally {
-      setEditingCell(null);
-      setEditValue(null);
     }
   };
 
@@ -350,13 +619,18 @@ export const RecordsView = ({
 
   const isSchemaLoading = isDetailLoading;
 
+  // Column keys derived from schema (stable) with records as structural fallback.
+  // Depends on records.length (row added/removed) and schema — NOT on record values,
+  // so updating a field does not recreate column definitions.
+  const baseColumnKeys = useMemo(() => {
+    if (schema?.length > 0) return schema.map((c) => c.slug);
+    if (records.length > 0) return Object.keys(records[0]);
+    return [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema, records.length]);
+
   const columns = useMemo(() => {
-    let baseKeys: string[] = [];
-    if (records && records.length > 0) {
-      baseKeys = Object.keys(records[0]);
-    } else if (schema && schema.length > 0) {
-      baseKeys = schema.map((c) => c.slug);
-    }
+    let baseKeys = baseColumnKeys;
 
     if (selectedColumns.length > 0) {
       baseKeys = baseKeys.filter((k) => selectedColumns.includes(k));
@@ -437,19 +711,40 @@ export const RecordsView = ({
             editingCell?.id === row.id && editingCell?.key === key;
 
           if (isEditing) {
+            const schemaFieldEdit = schema?.find((s) => s.slug === key);
+            if (schemaFieldEdit?.type?.toUpperCase() === "LOOKUP") {
+              return (
+                <div className="max-w-[400px] min-w-[200px]">
+                  <LookupEditSelect
+                    slug={key}
+                    value={editValue ?? ""}
+                    projectId={projectId}
+                    clientTypeId={ucodeProjectId || ""}
+                    autoOpen
+                    onSelect={(val) => handleUpdateRecord(row.original, key, val)}
+                    onClose={() => {
+                      setEditingCell(null);
+                      setEditValue(null);
+                    }}
+                  />
+                </div>
+              );
+            }
             return (
               <div className="max-w-[400px] min-w-[200px] px-0 py-0 text-[13px] leading-tight">
                 <input
                   autoFocus
                   type="text"
-                  value={editValue ?? ""}
-                  onChange={(e) => setEditValue(e.target.value)}
+                  defaultValue={editValueRef.current ?? ""}
+                  onChange={(e) => {
+                    editValueRef.current = e.target.value;
+                  }}
                   onBlur={() =>
-                    handleUpdateRecord(row.original, key, editValue)
+                    handleUpdateRecord(row.original, key, editValueRef.current)
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter")
-                      handleUpdateRecord(row.original, key, editValue);
+                      handleUpdateRecord(row.original, key, editValueRef.current);
                     if (e.key === "Escape") {
                       setEditingCell(null);
                       setEditValue(null);
@@ -474,6 +769,22 @@ export const RecordsView = ({
               );
             }
 
+            if (schemaField?.type?.toUpperCase() === "LOOKUP") {
+              return (
+                <div className="max-w-[400px] min-w-[200px]">
+                  <LookupEditSelect
+                    slug={key}
+                    value={row.original[key] ?? ""}
+                    projectId={projectId}
+                    clientTypeId={ucodeProjectId || ""}
+                    onSelect={(val) =>
+                      setInlineRowData((prev) => ({ ...prev, [key]: val }))
+                    }
+                  />
+                </div>
+              );
+            }
+
             return (
               <div className="max-w-[400px] min-w-[200px] px-0 py-0 text-[13px] leading-tight">
                 <input
@@ -493,6 +804,23 @@ export const RecordsView = ({
           }
 
           const val = row.getValue(key);
+
+          if (schemaField?.type?.toUpperCase() === "LOOKUP") {
+            return (
+              <LookupDisplayCell
+                slug={key}
+                value={val}
+                projectId={projectId}
+                clientTypeId={ucodeProjectId || ""}
+                onEdit={() => {
+                  setEditingCell({ id: row.id, key });
+                  setEditValue(val);
+                }}
+                onClear={() => clearLookupValue(row.original, key)}
+              />
+            );
+          }
+
           let content: React.ReactNode = null;
 
           // Enhanced rendering based on PG Type
@@ -590,11 +918,10 @@ export const RecordsView = ({
     return [...dataColumns, actionsColumn];
   }, [
     schema,
-    records,
+    baseColumnKeys,
     selectedColumns,
     isInlineAdding,
-    editingCell,
-    editValue,
+    editingKey,
   ]);
 
   useEffect(() => {

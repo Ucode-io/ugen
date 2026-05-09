@@ -180,6 +180,79 @@ export const databaseApi = {
     return data;
   },
 
+  addRelationField: async (
+    tableFrom: string,
+    projectId: string,
+    payload: {
+      id: string;
+      label: string;
+      slug: string;
+      tableTo: string;
+      required: boolean;
+    }
+  ): Promise<any> => {
+    const body = {
+      attributes: {
+        format: "RELATION",
+        options: [],
+        formula_filters: [],
+        todo: { options: [] },
+        progress: { options: [] },
+        complete: { options: [] },
+        type: null,
+        table_from: null,
+        sum_field: null,
+        number_of_rounds: null,
+        label: payload.label,
+      },
+      type: "Many2One",
+      table_to: payload.tableTo,
+      view_fields: [],
+      table_from: tableFrom,
+      relation_table_slug: tableFrom,
+      label: payload.slug,
+      required: payload.required,
+      multiple_insert: false,
+      show_label: true,
+      id: payload.id,
+    };
+    const { data } = await api.post<any>(`/v2/relations/${tableFrom}`, body, {
+      params: { 'project-id': projectId }
+    });
+    return data;
+  },
+
+  fetchTableRelations: async (
+    tableSlug: string,
+    projectId: string
+  ): Promise<Array<{
+    id?: string;
+    label?: string;
+    slug?: string;
+    table_to?: string;
+    table_from?: string;
+    type?: string;
+    required?: boolean;
+    attributes?: Record<string, unknown>;
+  }>> => {
+    try {
+      const { data } = await api.get<any>(`/v2/relations/${tableSlug}`, {
+        params: { 'project-id': projectId },
+      });
+      const list =
+        data?.data?.data?.relations ??
+        data?.data?.relations ??
+        data?.relations ??
+        data?.data?.data ??
+        data?.data ??
+        data ??
+        [];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  },
+
   updateSchemaField: async (
     tableSlug: string,
     projectId: string,
@@ -413,6 +486,40 @@ export const useAddSchemaField = () => {
       queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug, variables.projectId] });
       // tableDetail powers the column headers in the records tab — bust it too.
       queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableSlug] });
+    },
+  });
+};
+
+export const useTableRelations = (tableSlug: string | null, projectId: string) =>
+  useQuery({
+    queryKey: ['db-relations', tableSlug, projectId],
+    queryFn: () => databaseApi.fetchTableRelations(tableSlug!, projectId),
+    enabled: !!tableSlug && !!projectId,
+    staleTime: 0,
+  });
+
+export const useAddRelationField = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tableFrom,
+      projectId,
+      payload,
+    }: {
+      tableFrom: string;
+      projectId: string;
+      payload: {
+        id: string;
+        label: string;
+        slug: string;
+        tableTo: string;
+        required: boolean;
+      };
+    }) => databaseApi.addRelationField(tableFrom, projectId, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableFrom, variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['db-relations', variables.tableFrom, variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableFrom] });
     },
   });
 };

@@ -42,6 +42,7 @@ export interface SchemaColumn {
   nullable: 'YES' | 'NO' | string;
   default: string | null;
   constraints: SchemaConstraint[] | null;
+  attributes?: Record<string, unknown> | null;
 }
 
 export interface TableDetail extends Table {

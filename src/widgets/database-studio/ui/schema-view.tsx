@@ -1,127 +1,182 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Pencil, Trash2, X, Check, ShieldOff } from 'lucide-react'
+import { useState, useEffect } from "react";
+import {
+  Pencil,
+  Trash2,
+  X,
+  Check,
+  ShieldOff,
+  ChevronDown,
+} from "lucide-react";
 import {
   useDatabaseStore,
   useTableSchemaV2,
   useAddSchemaField,
+  useAddRelationField,
   useDeleteSchemaField,
   useUpdateSchemaField,
+  useTables,
+  useTableRelations,
   SchemaColumn,
-} from '@/entities/database'
-import { Skeleton } from '@/shared/ui'
-import { cn } from '@/shared/lib/utils/cn'
-import { useAuthStore } from '@/entities/session'
-import { toast } from 'sonner'
+} from "@/entities/database";
+import { Skeleton } from "@/shared/ui";
+import { cn } from "@/shared/lib/utils/cn";
+import { useAuthStore } from "@/entities/session";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Protected fields — cannot be deleted
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PROTECTED_FIELDS = new Set(['guid', 'created_at', 'updated_at', 'deleted_at'])
+const PROTECTED_FIELDS = new Set([
+  "guid",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+]);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PostgreSQL types
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PG_TYPES = [
-  'character varying', 'varchar', 'text', 'citext',
-  'integer', 'smallint', 'bigint', 'int2', 'int4', 'int8', 'serial',
-  'numeric', 'decimal', 'real', 'double precision', 'money',
-  'boolean', 'uuid', 'jsonb', 'json', 'date',
-  'timestamp', 'timestamptz', 'timestamp with time zone',
-  'timestamp without time zone', 'text[]', 'uuid[]',
-] as const
+  "character varying",
+  "relation",
+  "varchar",
+  "text",
+  "citext",
+  "integer",
+  "smallint",
+  "bigint",
+  "int2",
+  "int4",
+  "int8",
+  "serial",
+  "numeric",
+  "decimal",
+  "real",
+  "double precision",
+  "money",
+  "boolean",
+  "uuid",
+  "jsonb",
+  "json",
+  "date",
+  "timestamp",
+  "timestamptz",
+  "timestamp with time zone",
+  "timestamp without time zone",
+  "text[]",
+  "uuid[]",
+] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared field payload type
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FieldPayload {
-  id: string
-  slug: string
-  label: string
-  type: string
-  table_id: string
-  index: string
-  required: boolean
-  show_label: boolean
-  is_visible: boolean
-  attributes: Record<string, unknown>
+  id: string;
+  slug: string;
+  label: string;
+  type: string;
+  table_id: string;
+  index: string;
+  required: boolean;
+  show_label: boolean;
+  is_visible: boolean;
+  attributes: Record<string, unknown>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constraint badge
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ConstraintVariant = 'pk' | 'fk' | 'nn' | 'uq' | 'df' | 'ai'
+type ConstraintVariant = "pk" | "fk" | "nn" | "uq" | "df" | "ai";
 
 const CONSTRAINT_STYLES: Record<ConstraintVariant, string> = {
-  pk: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
-  fk: 'bg-blue-500/10   text-blue-400   border border-blue-500/20',
-  nn: 'bg-red-500/10    text-red-400    border border-red-500/20',
-  uq: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
-  df: 'bg-green-500/10  text-green-400  border border-green-500/20',
-  ai: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
-}
+  pk: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+  fk: "bg-blue-500/10   text-blue-400   border border-blue-500/20",
+  nn: "bg-red-500/10    text-red-400    border border-red-500/20",
+  uq: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+  df: "bg-green-500/10  text-green-400  border border-green-500/20",
+  ai: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+};
 
 function constraintVariant(label: string): ConstraintVariant {
-  const l = label.toUpperCase()
-  if (l === 'PK' || l.includes('PRIMARY')) return 'pk'
-  if (l === 'FK' || l.includes('FOREIGN')) return 'fk'
-  if (l.includes('NOT NULL') || l === 'NN') return 'nn'
-  if (l.includes('UNIQUE') || l === 'UQ') return 'uq'
-  if (l.includes('AUTO') || l === 'AI') return 'ai'
-  return 'df'
+  const l = label.toUpperCase();
+  if (l === "PK" || l.includes("PRIMARY")) return "pk";
+  if (l === "FK" || l.includes("FOREIGN")) return "fk";
+  if (l.includes("NOT NULL") || l === "NN") return "nn";
+  if (l.includes("UNIQUE") || l === "UQ") return "uq";
+  if (l.includes("AUTO") || l === "AI") return "ai";
+  return "df";
 }
 
-const ConstraintBadge = ({ label, title }: { label: string; title?: string }) => (
+const ConstraintBadge = ({
+  label,
+  title,
+}: {
+  label: string;
+  title?: string;
+}) => (
   <span
     title={title}
     className={cn(
-      'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-[0.4px] shrink-0 whitespace-nowrap',
-      CONSTRAINT_STYLES[constraintVariant(label)]
+      "shrink-0 rounded px-2 py-0.5 text-[10px] font-bold tracking-[0.4px] whitespace-nowrap uppercase",
+      CONSTRAINT_STYLES[constraintVariant(label)],
     )}
   >
     {label}
   </span>
-)
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Delete Confirmation Dialog
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface DeleteConfirmDialogProps {
-  fieldName: string
-  isLoading: boolean
-  onConfirm: () => void
-  onCancel: () => void
+  fieldName: string;
+  isLoading: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
-const DeleteConfirmDialog = ({ fieldName, isLoading, onConfirm, onCancel }: DeleteConfirmDialogProps) => {
+const DeleteConfirmDialog = ({
+  fieldName,
+  isLoading,
+  onConfirm,
+  onCancel,
+}: DeleteConfirmDialogProps) => {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onCancel])
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onCancel]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onCancel}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={onCancel}
+    >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
       <div
-        className="relative z-10 w-[400px] bg-bg-card border border-border-subtle rounded-xl shadow-2xl p-6 flex flex-col gap-5"
-        onClick={e => e.stopPropagation()}
+        className="bg-bg-card border-border-subtle relative z-10 flex w-[400px] flex-col gap-5 rounded-xl border p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center shrink-0">
+          <div className="bg-destructive/10 border-destructive/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
             <Trash2 size={18} className="text-destructive" />
           </div>
           <div className="pt-0.5">
-            <h3 className="text-[15px] font-semibold text-text-main leading-tight">Delete field</h3>
-            <p className="text-[13px] text-text-muted mt-1.5 leading-relaxed">
-              Are you sure you want to delete{' '}
-              <code className="font-mono font-semibold text-text-main bg-bg-main border border-border-subtle px-1.5 py-0.5 rounded text-[12px]">
+            <h3 className="text-text-main text-[15px] leading-tight font-semibold">
+              Delete field
+            </h3>
+            <p className="text-text-muted mt-1.5 text-[13px] leading-relaxed">
+              Are you sure you want to delete{" "}
+              <code className="text-text-main bg-bg-main border-border-subtle rounded border px-1.5 py-0.5 font-mono text-[12px] font-semibold">
                 {fieldName}
               </code>
               ? This action is <strong>permanent</strong> and cannot be undone.
@@ -131,46 +186,57 @@ const DeleteConfirmDialog = ({ fieldName, isLoading, onConfirm, onCancel }: Dele
         <div className="flex items-center justify-end gap-2 pt-1">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg border border-border-subtle text-[13px] font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+            className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive text-white text-[13px] font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-destructive hover:bg-destructive/90 flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Trash2 size={13} />
-            {isLoading ? 'Deleting…' : 'Delete field'}
+            {isLoading ? "Deleting…" : "Delete field"}
           </button>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CSV export
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function exportSchemaToCSV(tableName: string, columns: SchemaColumn[]) {
-  const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`
-  const headers = ['Name', 'Type', 'Nullable', 'Constraints', 'Default']
-  const rows = columns.map(col => [
-    col.name, col.type, col.nullable,
-    (col.constraints ?? []).map(c => c.label).join(' | '),
-    col.default ?? '',
-  ])
-  const csv = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = `${tableName}_schema.csv`; a.click()
-  URL.revokeObjectURL(url)
+  const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+  const headers = ["Name", "Type", "Nullable", "Constraints", "Default"];
+  const rows = columns.map((col) => [
+    col.name,
+    col.type,
+    col.nullable,
+    (col.constraints ?? []).map((c) => c.label).join(" | "),
+    col.default ?? "",
+  ]);
+  const csv = [
+    headers.map(escape).join(","),
+    ...rows.map((r) => r.map(escape).join(",")),
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${tableName}_schema.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function toSlug(label: string): string {
-  return label.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+  return label
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -178,58 +244,79 @@ function toSlug(label: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FieldFormProps {
-  tableId: string
+  tableId: string;
   /** Pre-fill values for edit mode */
   initial?: {
-    id: string
-    slug: string
-    label: string
-    type: string
-    required: boolean
-  }
-  isLoading: boolean
-  onClose: () => void
-  onSubmit: (payload: FieldPayload) => void
-  submitLabel: string
+    id: string;
+    slug: string;
+    label: string;
+    type: string;
+    required: boolean;
+  };
+  isLoading: boolean;
+  onClose: () => void;
+  onSubmit: (payload: FieldPayload) => void;
+  submitLabel: string;
 }
 
-const FieldForm = ({ tableId, initial, isLoading, onClose, onSubmit, submitLabel }: FieldFormProps) => {
-  const [label, setLabel] = useState(initial?.label ?? '')
-  const [slug, setSlug] = useState(initial?.slug ?? '')
-  const [slugTouched, setSlugTouched] = useState(!!initial)
-  const [type, setType] = useState(initial?.type ?? 'character varying')
-  const [required, setRequired] = useState(initial?.required ?? false)
+const FieldForm = ({
+  tableId,
+  initial,
+  isLoading,
+  onClose,
+  onSubmit,
+  submitLabel,
+}: FieldFormProps) => {
+  const [label, setLabel] = useState(initial?.label ?? "");
+  const [slug, setSlug] = useState(initial?.slug ?? "");
+  const [slugTouched, setSlugTouched] = useState(!!initial);
+  const [type, setType] = useState(initial?.type ?? "character varying");
+  const [required, setRequired] = useState(initial?.required ?? false);
+  const [relationTable, setRelationTable] = useState("");
+
+  const { data: tables = [] } = useTables("", 200, 0);
+  const relationOptions = tables.filter((t) => t.slug !== tableId);
 
   const handleLabelChange = (val: string) => {
-    setLabel(val)
-    if (!slugTouched) setSlug(toSlug(val))
-  }
+    setLabel(val);
+    if (!slugTouched) setSlug(toSlug(val));
+  };
 
   const handleSubmit = () => {
-    if (!label.trim()) { toast.error('Label is required'); return }
-    if (!slug.trim()) { toast.error('Slug is required'); return }
+    if (!label.trim()) {
+      toast.error("Label is required");
+      return;
+    }
+    if (!slug.trim()) {
+      toast.error("Slug is required");
+      return;
+    }
+    if (type === "relation" && !relationTable) {
+      toast.error("Please select a related table");
+      return;
+    }
     onSubmit({
       id: initial?.id ?? crypto.randomUUID(),
       slug: slug.trim(),
       label: label.trim(),
       type,
       table_id: tableId,
-      index: 'string',
+      index: "string",
       required,
       show_label: true,
       is_visible: true,
-      attributes: {},
-    })
-  }
+      attributes: type === "relation" ? { relation_table: relationTable } : {},
+    });
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSubmit()
-    if (e.key === 'Escape') onClose()
-  }
+    if (e.key === "Enter") handleSubmit();
+    if (e.key === "Escape") onClose();
+  };
 
   return (
     <div
-      className="flex items-center gap-2 px-4 py-2.5 border-b border-primary/30 border-l-2 border-l-primary bg-primary/[0.04] flex-wrap"
+      className="border-primary/30 border-l-primary bg-primary/[0.04] flex flex-wrap items-center gap-2 border-b border-l-2 px-4 py-2.5"
       onKeyDown={handleKeyDown}
     >
       {/* Label */}
@@ -239,8 +326,11 @@ const FieldForm = ({ tableId, initial, isLoading, onClose, onSubmit, submitLabel
         disabled={!!initial}
         placeholder="Label (e.g. Phone Number)"
         value={label}
-        onChange={e => handleLabelChange(e.target.value)}
-        className="bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-semibold text-text-main outline-none focus:border-primary/60 w-[170px] shrink-0"
+        onChange={(e) => handleLabelChange(e.target.value)}
+        className={cn(
+          "bg-bg-main border-border-subtle text-text-main focus:border-primary/60 shrink-0 rounded border px-2.5 py-1.5 text-[12px] font-semibold outline-none",
+          type === "relation" ? "w-35" : "w-42.5",
+        )}
       />
 
       {/* Slug */}
@@ -248,56 +338,114 @@ const FieldForm = ({ tableId, initial, isLoading, onClose, onSubmit, submitLabel
         type="text"
         placeholder="slug"
         value={slug}
-        onChange={e => { setSlugTouched(true); setSlug(e.target.value) }}
+        onChange={(e) => {
+          setSlugTouched(true);
+          setSlug(e.target.value);
+        }}
         disabled={!!initial}
         className={cn(
-          "bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-mono outline-none w-[150px] shrink-0",
+          "bg-bg-main border-border-subtle shrink-0 rounded border px-2.5 py-1.5 font-mono text-[12px] outline-none",
+          type === "relation" ? "w-30" : "w-37.5",
           initial
             ? "text-text-muted/50 cursor-not-allowed opacity-60"
-            : "text-text-muted focus:border-primary/60"
+            : "text-text-muted focus:border-primary/60",
         )}
-        title={initial ? "Slug cannot be changed after creation" : "Column slug"}
+        title={
+          initial ? "Slug cannot be changed after creation" : "Column slug"
+        }
       />
 
       {/* Type */}
-      <select
-        value={type}
-        onChange={e => setType(e.target.value)}
-        className="bg-bg-main border border-border-subtle rounded px-2.5 py-1.5 text-[12px] font-mono text-blue-400 outline-none focus:border-primary/60 w-[210px] shrink-0"
+      <div
+        className={cn(
+          "relative shrink-0",
+          type === "relation" ? "w-35" : "w-52.5",
+        )}
       >
-        {PG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-      </select>
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="bg-bg-main border-border-subtle focus:border-primary/60 w-full appearance-none rounded border py-1.5 pr-7 pl-2.5 font-mono text-[12px] text-blue-400 outline-none"
+        >
+          {PG_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          size={12}
+          className="text-text-muted pointer-events-none absolute top-1/2 right-2 -translate-y-1/2"
+        />
+      </div>
+
+      {/* Relation target table — only when type === "relation" */}
+      {type === "relation" && (
+        <div className="flex shrink-0 items-center gap-1">
+          <div className="relative w-42.5 shrink-0">
+            <select
+              value={relationTable}
+              onChange={(e) => setRelationTable(e.target.value)}
+              className="bg-bg-main border-border-subtle focus:border-primary/60 w-full appearance-none rounded border py-1.5 pr-7 pl-2.5 font-mono text-[12px] text-blue-400 outline-none"
+            >
+              <option value="">Select table…</option>
+              {relationOptions.map((t) => {
+                const label = t.label || t.name || t.slug;
+                return (
+                  <option key={t.id} value={t.slug}>
+                    {label === t.slug ? label : `${label} (${t.slug})`}
+                  </option>
+                );
+              })}
+            </select>
+            <ChevronDown
+              size={12}
+              className="text-text-muted pointer-events-none absolute top-1/2 right-2 -translate-y-1/2"
+            />
+          </div>
+          {relationTable && (
+            <button
+              type="button"
+              onClick={() => setRelationTable("")}
+              title="Clear relation"
+              className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded border transition-colors"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Required */}
-      <label className="flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer select-none shrink-0">
+      <label className="text-text-muted flex shrink-0 cursor-pointer items-center gap-1.5 text-[11px] select-none">
         <input
           type="checkbox"
           checked={required}
-          onChange={e => setRequired(e.target.checked)}
+          onChange={(e) => setRequired(e.target.checked)}
           className="accent-primary"
         />
         Required
       </label>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 ml-auto shrink-0">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5">
         <button
           onClick={handleSubmit}
           disabled={isLoading}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-primary text-white text-[11px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="bg-primary hover:bg-primary/90 flex items-center gap-1 rounded px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Check size={12} /> {isLoading ? '…' : submitLabel}
+          <Check size={12} /> {isLoading ? "…" : submitLabel}
         </button>
         <button
           onClick={onClose}
-          className="p-1.5 rounded border border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
+          className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg rounded border p-1.5 transition-colors"
         >
           <X size={12} />
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FieldRow — grid: [name 160px] | [type 240px] | [constraints 1fr] | [actions auto]
@@ -305,24 +453,32 @@ const FieldForm = ({ tableId, initial, isLoading, onClose, onSubmit, submitLabel
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FieldRowProps {
-  col: SchemaColumn
-  tableId: string
-  isEditing: boolean
-  isProtected: boolean
-  isUpdating: boolean
-  onEdit: () => void
-  onCancelEdit: () => void
-  onUpdate: (payload: FieldPayload) => void
-  onDelete: () => void
+  col: SchemaColumn;
+  tableId: string;
+  isEditing: boolean;
+  isProtected: boolean;
+  isUpdating: boolean;
+  onEdit: () => void;
+  onCancelEdit: () => void;
+  onUpdate: (payload: FieldPayload) => void;
+  onDelete: () => void;
 }
 
 const FieldRow = ({
-  col, tableId, isEditing, isProtected, isUpdating,
-  onEdit, onCancelEdit, onUpdate, onDelete,
+  col,
+  tableId,
+  isEditing,
+  isProtected,
+  isUpdating,
+  onEdit,
+  onCancelEdit,
+  onUpdate,
+  onDelete,
 }: FieldRowProps) => {
-  const constraints = col.constraints ?? []
-  const hasDefault = col.default !== null && col.default !== undefined && col.default !== ''
-  const isNullable = col.nullable === 'YES'
+  const constraints = col.constraints ?? [];
+  const hasDefault =
+    col.default !== null && col.default !== undefined && col.default !== "";
+  const isNullable = col.nullable === "YES";
 
   // Editing mode — show pre-filled form inline
   if (isEditing) {
@@ -330,7 +486,7 @@ const FieldRow = ({
       <FieldForm
         tableId={tableId}
         initial={{
-          id: col.id ?? '',
+          id: col.id ?? "",
           slug: col.name,
           label: col.label ?? col.name,
           type: col.type,
@@ -341,49 +497,67 @@ const FieldRow = ({
         onSubmit={onUpdate}
         submitLabel="Save"
       />
-    )
+    );
   }
 
   return (
     <div
-      className="group grid items-center px-4 py-[10px] border-b border-border-subtle hover:bg-hover-bg/60 transition-colors"
-      style={{ gridTemplateColumns: '160px 240px 1fr auto' }}
+      className="group border-border-subtle hover:bg-hover-bg/60 grid items-center border-b px-4 py-[10px] transition-colors"
+      style={{ gridTemplateColumns: "160px 240px 1fr auto" }}
     >
       {/* Col 1: name + protected badge */}
-      <div className="flex items-center gap-1.5 pr-2 min-w-0">
-        <span className="font-semibold text-[13px] text-text-main truncate">{col.name}</span>
+      <div className="flex min-w-0 items-center gap-1.5 pr-2">
+        <span className="text-text-main truncate text-[13px] font-semibold">
+          {col.name}
+        </span>
         {isProtected && (
           <span title="System field — cannot be deleted">
-            <ShieldOff size={10} className="shrink-0 text-text-muted/40" />
+            <ShieldOff size={10} className="text-text-muted/40 shrink-0" />
           </span>
         )}
       </div>
 
-      {/* Col 2: type pill */}
-      <div className="flex items-center">
-        <span className="font-mono text-[12px] text-blue-400 bg-blue-400/[0.08] px-2 py-0.5 rounded">
+      {/* Col 2: type pill (+ relation target when type === "relation") */}
+      <div className="flex items-center gap-1.5">
+        <span className="rounded bg-blue-400/[0.08] px-2 py-0.5 font-mono text-[12px] text-blue-400">
           {col.type}
         </span>
+        {col.type === "relation" &&
+          typeof col.attributes?.relation_table === "string" &&
+          col.attributes.relation_table && (
+            <span
+              title={`Relates to ${col.attributes.relation_table}`}
+              className="rounded bg-purple-400/8 px-2 py-0.5 font-mono text-[11px] text-purple-400"
+            >
+              → {col.attributes.relation_table}
+            </span>
+          )}
       </div>
 
       {/* Col 3: constraint badges */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex flex-wrap items-center gap-1.5">
         {constraints.map((c, i) => (
           <ConstraintBadge key={i} label={c.label} title={c.name} />
         ))}
-        {!isNullable && !constraints.some(c =>
-          c.label.toUpperCase().includes('NOT NULL') || c.label.toUpperCase() === 'NN'
-        ) && <ConstraintBadge label="NOT NULL" />}
+        {!isNullable &&
+          !constraints.some(
+            (c) =>
+              c.label.toUpperCase().includes("NOT NULL") ||
+              c.label.toUpperCase() === "NN",
+          ) && <ConstraintBadge label="NOT NULL" />}
         {hasDefault && (
-          <ConstraintBadge label={`DEFAULT ${col.default}`} title={`Default: ${col.default}`} />
+          <ConstraintBadge
+            label={`DEFAULT ${col.default}`}
+            title={`Default: ${col.default}`}
+          />
         )}
       </div>
 
       {/* Col 4: hover actions */}
-      <div className="flex items-center gap-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      <div className="ml-auto flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={onEdit}
-          className="w-7 h-7 border border-border-subtle rounded bg-bg-main text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center justify-center transition-colors"
+          className="border-border-subtle bg-bg-main text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded border transition-colors"
           title="Edit field"
         >
           <Pencil size={11} />
@@ -393,14 +567,14 @@ const FieldRow = ({
           <button
             disabled
             title="System field — cannot be deleted"
-            className="w-7 h-7 border border-border-subtle/40 rounded bg-bg-main text-text-muted/30 flex items-center justify-center cursor-not-allowed"
+            className="border-border-subtle/40 bg-bg-main text-text-muted/30 flex h-7 w-7 cursor-not-allowed items-center justify-center rounded border"
           >
             <Trash2 size={11} />
           </button>
         ) : (
           <button
             onClick={onDelete}
-            className="w-7 h-7 border border-border-subtle rounded bg-bg-main text-text-muted hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 flex items-center justify-center transition-colors"
+            className="border-border-subtle bg-bg-main text-text-muted hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 flex h-7 w-7 items-center justify-center rounded border transition-colors"
             title="Delete field"
           >
             <Trash2 size={11} />
@@ -408,104 +582,171 @@ const FieldRow = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main SchemaView
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SchemaViewProps {
-  isAddingField: boolean
-  setIsAddingField: (v: boolean) => void
+  isAddingField: boolean;
+  setIsAddingField: (v: boolean) => void;
 }
 
-export const SchemaView = ({ isAddingField, setIsAddingField }: SchemaViewProps) => {
-  const { selectedTable } = useDatabaseStore()
-  const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
+export const SchemaView = ({
+  isAddingField,
+  setIsAddingField,
+}: SchemaViewProps) => {
+  const { selectedTable } = useDatabaseStore();
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
 
-  const { data: columns = [], isLoading } = useTableSchemaV2(
+  const { data: rawColumns = [], isLoading } = useTableSchemaV2(
     selectedTable,
-    ucodeProjectId || ''
-  )
-  const addFieldMutation = useAddSchemaField()
-  const updateFieldMutation = useUpdateSchemaField()
-  const deleteFieldMutation = useDeleteSchemaField()
+    ucodeProjectId || "",
+  );
+  const { data: relations = [] } = useTableRelations(
+    selectedTable,
+    ucodeProjectId || "",
+  );
 
-  const [editingName, setEditingName] = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const columns: SchemaColumn[] = [
+    ...rawColumns,
+    ...relations
+      .filter((r) => !!r.table_to)
+      .map<SchemaColumn>((r) => ({
+        id: r.id,
+        name:
+          r.slug ||
+          (typeof r.attributes?.label === "string"
+            ? (r.attributes.label as string)
+            : undefined) ||
+          r.label ||
+          r.table_to ||
+          "",
+        label:
+          (typeof r.attributes?.label === "string"
+            ? (r.attributes.label as string)
+            : undefined) ||
+          r.label ||
+          r.slug,
+        type: "relation",
+        nullable: r.required ? "NO" : "YES",
+        default: null,
+        constraints: [{ label: "FK", name: `${r.table_to}_fk` }],
+        attributes: { ...(r.attributes || {}), relation_table: r.table_to },
+      })),
+  ];
+
+  const addFieldMutation = useAddSchemaField();
+  const addRelationMutation = useAddRelationField();
+  const updateFieldMutation = useUpdateSchemaField();
+  const deleteFieldMutation = useDeleteSchemaField();
+
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
-    setIsAddingField(false)
-    setEditingName(null)
-    setDeleteTarget(null)
-  }, [selectedTable])
+    setIsAddingField(false);
+    setEditingName(null);
+    setDeleteTarget(null);
+  }, [selectedTable]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleAddField = async (payload: FieldPayload) => {
-    if (!selectedTable) return
+    if (!selectedTable) return;
     try {
-      await addFieldMutation.mutateAsync({ tableSlug: selectedTable, projectId: ucodeProjectId || '', payload })
-      toast.success(`Field "${payload.label}" added`)
-      setIsAddingField(false)
+      if (payload.type === "relation") {
+        const tableTo = payload.attributes?.relation_table;
+        if (typeof tableTo !== "string" || !tableTo) {
+          toast.error("Please select a related table");
+          return;
+        }
+        await addRelationMutation.mutateAsync({
+          tableFrom: selectedTable,
+          projectId: ucodeProjectId || "",
+          payload: {
+            id: payload.id,
+            label: payload.label,
+            slug: payload.slug,
+            tableTo,
+            required: payload.required,
+          },
+        });
+      } else {
+        await addFieldMutation.mutateAsync({
+          tableSlug: selectedTable,
+          projectId: ucodeProjectId || "",
+          payload,
+        });
+      }
+      toast.success(`Field "${payload.label}" added`);
+      setIsAddingField(false);
     } catch {
-      toast.error('Failed to add field')
+      toast.error("Failed to add field");
     }
-  }
+  };
 
   const handleUpdateField = async (payload: FieldPayload) => {
-    if (!selectedTable) return
+    if (!selectedTable) return;
     try {
-      await updateFieldMutation.mutateAsync({ tableSlug: selectedTable, projectId: ucodeProjectId || '', payload })
-      toast.success(`Field "${payload.label}" updated`)
-      setEditingName(null)
+      await updateFieldMutation.mutateAsync({
+        tableSlug: selectedTable,
+        projectId: ucodeProjectId || "",
+        payload,
+      });
+      toast.success(`Field "${payload.label}" updated`);
+      setEditingName(null);
     } catch {
-      toast.error('Failed to update field')
+      toast.error("Failed to update field");
     }
-  }
+  };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget || !selectedTable) return
+    if (!deleteTarget || !selectedTable) return;
     try {
       await deleteFieldMutation.mutateAsync({
         tableSlug: selectedTable,
         fieldId: deleteTarget.id,
-        projectId: ucodeProjectId || '',
-      })
-      toast.success(`Field "${deleteTarget.name}" deleted`)
-      setDeleteTarget(null)
+        projectId: ucodeProjectId || "",
+      });
+      toast.success(`Field "${deleteTarget.name}" deleted`);
+      setDeleteTarget(null);
     } catch {
-      toast.error('Failed to delete field')
+      toast.error("Failed to delete field");
     }
-  }
+  };
 
   const requestDelete = (col: SchemaColumn) => {
     if (PROTECTED_FIELDS.has(col.name)) {
-      toast.error(`"${col.name}" is a system field and cannot be deleted`)
-      return
+      toast.error(`"${col.name}" is a system field and cannot be deleted`);
+      return;
     }
     if (!col.id) {
-      toast.error('Cannot delete: field has no ID')
-      return
+      toast.error("Cannot delete: field has no ID");
+      return;
     }
-    setDeleteTarget({ id: col.id, name: col.name })
-  }
+    setDeleteTarget({ id: col.id, name: col.name });
+  };
 
   if (!selectedTable) {
     return (
-      <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
+      <div className="text-text-muted flex flex-1 items-center justify-center text-sm">
         Select a table to view its schema
       </div>
-    )
+    );
   }
 
   return (
     <>
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex h-full flex-col overflow-hidden">
         {/* ── Fields list ── */}
         <div className="flex-1 overflow-y-auto">
-          <div className="px-4 py-[10px] text-[10px] font-semibold uppercase tracking-[0.6px] text-text-muted/50 bg-bg-card border-b border-border-subtle sticky top-0 z-10">
+          <div className="text-text-muted/50 bg-bg-card border-border-subtle sticky top-0 z-10 border-b px-4 py-[10px] text-[10px] font-semibold tracking-[0.6px] uppercase">
             Columns
           </div>
 
@@ -513,7 +754,9 @@ export const SchemaView = ({ isAddingField, setIsAddingField }: SchemaViewProps)
           {isAddingField && (
             <FieldForm
               tableId={selectedTable}
-              isLoading={addFieldMutation.isPending}
+              isLoading={
+                addFieldMutation.isPending || addRelationMutation.isPending
+              }
               onClose={() => setIsAddingField(false)}
               onSubmit={handleAddField}
               submitLabel="Add"
@@ -525,8 +768,8 @@ export const SchemaView = ({ isAddingField, setIsAddingField }: SchemaViewProps)
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="grid items-center px-4 py-[10px] border-b border-border-subtle"
-                  style={{ gridTemplateColumns: '160px 240px 1fr auto' }}
+                  className="border-border-subtle grid items-center border-b px-4 py-[10px]"
+                  style={{ gridTemplateColumns: "160px 240px 1fr auto" }}
                 >
                   <Skeleton className="h-4 w-[120px]" />
                   <Skeleton className="h-5 w-[140px] rounded" />
@@ -539,7 +782,7 @@ export const SchemaView = ({ isAddingField, setIsAddingField }: SchemaViewProps)
               ))}
             </>
           ) : columns.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-text-muted/50">
+            <div className="text-text-muted/50 px-4 py-10 text-center text-sm">
               No columns found for this table.
             </div>
           ) : (
@@ -551,7 +794,10 @@ export const SchemaView = ({ isAddingField, setIsAddingField }: SchemaViewProps)
                 isEditing={editingName === col.name}
                 isProtected={PROTECTED_FIELDS.has(col.name)}
                 isUpdating={updateFieldMutation.isPending}
-                onEdit={() => { setIsAddingField(false); setEditingName(col.name) }}
+                onEdit={() => {
+                  setIsAddingField(false);
+                  setEditingName(col.name);
+                }}
                 onCancelEdit={() => setEditingName(null)}
                 onUpdate={handleUpdateField}
                 onDelete={() => requestDelete(col)}
@@ -561,11 +807,20 @@ export const SchemaView = ({ isAddingField, setIsAddingField }: SchemaViewProps)
         </div>
 
         {/* ── Bottom status bar ── */}
-        <div className="h-[28px] bg-bg-card border-t border-border-subtle flex items-center px-4 gap-4 text-[11px] text-text-muted/50 shrink-0 font-medium">
+        <div className="bg-bg-card border-border-subtle text-text-muted/50 flex h-[28px] shrink-0 items-center gap-4 border-t px-4 text-[11px] font-medium">
           <span className="flex items-center gap-1.5">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
               <path d="M4.93 4.93a10 10 0 0 0 0 14.14" />
             </svg>
             Schema: {selectedTable}
@@ -586,5 +841,5 @@ export const SchemaView = ({ isAddingField, setIsAddingField }: SchemaViewProps)
         />
       )}
     </>
-  )
-}
+  );
+};
