@@ -3,7 +3,9 @@ import { virtualFsPlugin } from "./esbuildPlugin"
 
 let initPromise: Promise<void> | null = null;
 
-const WASM_URL = "https://esm.sh/esbuild-wasm@0.27.3/esbuild.wasm";
+// Hosted locally in /public — esm.sh hangs/blocks in some prod environments
+// (CSP, corp proxies). The file is copied at install time; see scripts/copy-esbuild-wasm.
+const WASM_URL = "/esbuild.wasm";
 
 export function ensureEsbuild() {
   // 1. Проверяем локальный промис (текущая сессия)
