@@ -585,7 +585,8 @@ export const ProjectPreviewViewer = ({
     isBuilding.current = true;
     setIsLoading(true);
     setRuntimeError(null);
-    try {
+
+    const build = async () => {
       await ensureEsbuild();
       const { code, dependencies } = await buildProjectFromFiles(files, {
         VITE_API_BASE_URL: "http://localhost:3000",
@@ -597,8 +598,24 @@ export const ProjectPreviewViewer = ({
       });
       const html = generatePreviewHtml(code, dependencies, files);
       setSrcDoc(html);
+    };
+
+    try {
+      // Safety timeout — in production esbuild WASM (loaded from esm.sh) can hang
+      // silently if blocked by CSP or a flaky CDN. Without this race, the await
+      // would never settle and the loader would spin forever.
+      await Promise.race([
+        build(),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Preview build timed out after 30s — esbuild may have failed to load.")),
+            30_000,
+          ),
+        ),
+      ]);
     } catch (err: any) {
       const errorMessage = err.message || "Unknown build error";
+      console.error("[preview] build failed:", err);
       setSrcDoc(
         `<html><body style="background:#1e1e1e;color:#f87171;padding:2rem;font-family:monospace;white-space:pre-wrap;">${errorMessage}</body></html>`,
       );

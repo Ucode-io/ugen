@@ -15,16 +15,27 @@ export function ensureEsbuild() {
     return initPromise;
   }
 
-  // 3. Если ничего нет, инициализируем
-  initPromise = esbuild.initialize({
+  // 3. Если ничего нет, инициализируем. Гонка с таймаутом нужна для прода:
+  //    esbuild.initialize иногда никогда не resolve/reject (например, если WASM
+  //    блокируется CSP или CDN недоступен) — без таймаута сборка зависает молча.
+  const init = esbuild.initialize({
     worker: true,
     wasmURL: WASM_URL,
-  })
+  });
+
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(
+      () => reject(new Error(`esbuild.initialize timed out (15s) — couldn't load ${WASM_URL}`)),
+      15_000,
+    ),
+  );
+
+  initPromise = Promise.race([init, timeout])
     .then(() => {
       (window as any).__ESBUILD_READY__ = true;
     })
     .catch((err) => {
-      if (err.message?.includes("initialize") || err.message?.includes("already")) {
+      if (err.message?.includes("Cannot call") || err.message?.includes("already")) {
         (window as any).__ESBUILD_READY__ = true;
         return;
       }
