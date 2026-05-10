@@ -334,7 +334,7 @@ export const ProjectPreviewViewer = ({
 
   const setPendingPrompt = useChatStore((s) => s.setPendingPrompt);
   const [srcDoc, setSrcDoc] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [runtimeError, setRuntimeError] = useState<
     (PreviewRuntimeError & { isBuildError?: boolean }) | null
   >(null);
@@ -637,8 +637,14 @@ export const ProjectPreviewViewer = ({
   const isStreaming = useChatStore((s) => s.isStreaming);
 
   useEffect(() => {
-    if (isMicrofrontendLoading) return;
-    if (isStreaming) return;
+    // Skip while microfrontend codebase is still loading or chat is streaming —
+    // those states have their own loaders. Don't leave "Building preview" hanging
+    // when no build is actually scheduled.
+    if (isMicrofrontendLoading || isStreaming) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
     const timeout = setTimeout(() => {
       runCode();
     }, 1000);
@@ -1176,7 +1182,7 @@ export const ProjectPreviewViewer = ({
       )}
     >
       {/* Error overlay */}
-      {runtimeError && !isLoading && (
+      {runtimeError && (
         <div className="bg-bg-main/95 animate-in fade-in absolute inset-0 z-40 flex items-center justify-center p-6 backdrop-blur-sm duration-200">
           <div className="bg-bg-card border-border-subtle w-full max-w-lg overflow-hidden rounded-2xl border shadow-xl">
             <div className="border-border-subtle flex items-start gap-3 border-b p-5">
@@ -1410,18 +1416,18 @@ export const ProjectPreviewViewer = ({
             }}
           >
             {browserHeader}
-            {/* Build loading overlay — inside the card so the header stays visible */}
-            {isLoading && (
-              <WorkspaceLoader
-                message="Building preview..."
-                subMessage="Running esbuild"
-              />
-            )}
-            {/* Microfrontend loading overlay */}
-            {!isLoading && (!!loadingPreviewId || isMicrofrontendLoading) && (
+            {/* Microfrontend loading overlay (takes priority) */}
+            {(!!loadingPreviewId || isMicrofrontendLoading) && (
               <WorkspaceLoader
                 message="Loading microfrontend..."
                 subMessage="Fetching codebase"
+              />
+            )}
+            {/* Build loading overlay — hidden when an error is shown */}
+            {isLoading && !runtimeError && !loadingPreviewId && !isMicrofrontendLoading && (
+              <WorkspaceLoader
+                message="Building preview..."
+                subMessage="Running esbuild"
               />
             )}
             <iframe
