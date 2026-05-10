@@ -214,12 +214,60 @@ export const ProjectPreviewViewer = ({
         branch?: string;
         type?: string;
         project_id?: string;
+        repo_id?: string;
         url?: string;
       }>;
     },
     enabled: !!projectId,
     staleTime: 0,
   });
+
+  // Fallback auto-select: chat-input has identical logic, but in production it
+  // sometimes doesn't fire (chat-input isn't mounted yet, or apiKey arrives after
+  // its query settles). Without a selection, isMicrofrontendLoading stays true
+  // forever and the loader hangs. Run the same auto-select here as a safety net.
+  const autoSelectAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (autoSelectAttemptedRef.current) return;
+    if (!projectId || !apiKey) return;
+    if (!microfrontendsList.length) return;
+    if (activeCodeSelection) return; // chat-input or processDoneData already set it
+
+    autoSelectAttemptedRef.current = true;
+    const targetMf = microfrontendsList[0];
+    const target = {
+      kind: "microfrontend" as const,
+      id: targetMf.id,
+      name: targetMf.name,
+      path: targetMf.path,
+      branch: targetMf.branch ?? "master",
+      type: targetMf.type,
+      repoId: targetMf.repo_id,
+      url: targetMf.url,
+      projectId: targetMf.project_id,
+    };
+    api
+      .get(`/v2/function/${targetMf.id}/codebase`, {
+        params: { "project-id": projectId },
+        headers: { Authorization: "API-KEY", "x-api-key": apiKey },
+      })
+      .then(({ data }) => {
+        const fetched = (data?.data?.files ?? []) as CodeSelectionFile[];
+        setActiveCodeSelection(target, fetched);
+      })
+      .catch((err) => {
+        console.error("[preview] auto-select codebase failed:", err);
+        // Set selection without files so isMicrofrontendLoading flips to false
+        // (empty array, not null) — preview will show a build error instead of spinning.
+        setActiveCodeSelection(target, []);
+      });
+  }, [
+    microfrontendsList,
+    apiKey,
+    projectId,
+    activeCodeSelection,
+    setActiveCodeSelection,
+  ]);
 
   // Files priority for the preview iframe:
   // 1. versionPreviewFiles (browsing version history)
