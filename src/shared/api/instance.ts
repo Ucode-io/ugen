@@ -101,22 +101,10 @@ api.interceptors.request.use(
 )
 
 
-// Endpoints on authApi that must NOT receive a Bearer header — credentials are in the body
-const AUTH_PUBLIC_ENDPOINTS = [/\/v2\/refresh$/, /\/login(\b|\/)/, /\/register(\b|\/)/]
-
-const isAuthPublicEndpoint = (url: string = '') => {
-  const path = url.startsWith('http') ? new URL(url).pathname : url
-  return AUTH_PUBLIC_ENDPOINTS.some((pattern) => pattern.test(path))
-}
-
 // Request interceptor: auth API always uses Bearer token (refresh, login, etc.)
 authApi.interceptors.request.use(
   async (config) => {
     if (config.headers?.['Authorization']) return config
-
-    // Refresh / login / register: never send a Bearer header — the (possibly expired) access
-    // token can cause the server to reject the request even though the body is valid.
-    if (isAuthPublicEndpoint(config.url)) return config
 
     const urlProjectId = getProjectIdFromUrl()
 
@@ -141,6 +129,13 @@ authApi.interceptors.request.use(
     }
 
     return config
+
+    // const token = useAuthStore.getState().accessToken
+    // if (token) {
+    //   config.headers['Authorization'] = `Bearer ${token}`
+    // }
+
+    // return config
   },
   (error) => Promise.reject(error)
 )
@@ -192,12 +187,6 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // Allow callers to opt out of the 401 refresh-or-logout flow (e.g. non-critical calls
-    // fired right after login that shouldn't drag the user back to the guest page).
-    if (originalRequest?._skipAuthRefresh) {
-      return Promise.reject(error)
-    }
-
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -220,6 +209,7 @@ api.interceptors.response.use(
 
       if (!refreshToken) {
         state.logout()
+        if (typeof window !== 'undefined') window.location.href = '/'
         return Promise.reject(error)
       }
 
@@ -251,6 +241,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null)
         const authState = useAuthStore.getState()
         authState.logout()
+        if (typeof window !== 'undefined') window.location.href = '/'
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

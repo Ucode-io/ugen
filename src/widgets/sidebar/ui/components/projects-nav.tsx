@@ -115,7 +115,7 @@ const SortableNode = ({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Link
-        href={item.type?.toUpperCase() === 'PROJECT' ? `/projects/${item.mcp_project_id}` : '/chats'}
+        href={item.type?.toUpperCase() === 'PROJECT' ? `/projects/${item.mcp_project_id}` : `/chat/${item.chat_id}`}
         className="text-text-muted hover:bg-hover-bg hover:text-text-main flex items-center gap-2 rounded-lg px-2 py-1 text-sm transition-colors"
         title={item.label}
         onClick={(e) => {

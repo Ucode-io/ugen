@@ -133,7 +133,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
     )
 
     try {
-      const langRes = await api.get('/v1/language?search=Admin', { _skipAuthRefresh: true } as any)
+      const langRes = await api.get('/v1/language?search=Admin')
       if (langRes.data?.data?.languages) {
         useAuthStore.getState().setLanguages(langRes.data.data.languages)
       }
