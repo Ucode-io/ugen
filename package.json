@@ -2,6 +2,7 @@
   "name": "ugen",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.29.2",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "node -e \"require('fs').copyFileSync('node_modules/esbuild-wasm/esbuild.wasm', 'public/esbuild.wasm')\" && next build --turbopack",
