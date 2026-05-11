@@ -2,7 +2,8 @@
 import { useState, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from "@/shared/lib/i18n/navigation";
-import { PanelLeftClose, PanelLeft } from "lucide-react";
+import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/entities/session";
 import Image from 'next/image'
 import { useUIStore } from "@/shared/model/theme/use-ui-store";
@@ -10,21 +11,18 @@ import { SearchModal } from "@/features/search";
 
 import { useClickOutside } from "../lib/use-click-outside";
 import { CoreNav } from "./components/core-nav";
-import { ProjectsNav } from "./components/projects-nav";
-import { ProjectsNavReadOnly } from "./components/projects-nav-readonly";
 import { RecentsNav } from "./components/recents-nav";
 import { ProjectDropdown } from "./components/project-dropdown";
 import { ProfileFooter } from "./components/profile-footer";
 import { ProfileModal } from "./components/profile-modal";
+import { cn } from "@/shared/lib/utils/cn";
 
-export const Sidebar = () => {
+export const Sidebar = ({ className }: { className?: string }) => {
   const router = useRouter();
+  const t = useTranslations('Navigation');
   const { user, project, logout, setActiveView } = useAuthStore();
   const isUgen = project?.is_ugen ?? false;
   const { theme, setTheme } = useUIStore();
-
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isAllProjectsOpen, setIsAllProjectsOpen] = useState(true);
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -47,81 +45,61 @@ export const Sidebar = () => {
     router.push("/");
   };
 
+  const handleNewChat = () => {
+    if (isUgen) router.push("/");
+  };
+
   const projectInitial = project?.title?.[0] || "U";
   const userInitial = user?.login?.[0]?.toUpperCase() || "U";
 
   return (
-    <aside
-      className={`bg-bg-sidebar border-border-subtle text-text-muted z-50 flex h-screen flex-col overflow-visible border-r font-sans text-sm font-medium transition-all duration-300 ${isCollapsed ? "w-[68px]" : "w-64 shrink-0"
-        }`}
-    >
+    <aside className={cn("bg-bg-sidebar border-border-subtle text-text-muted z-50 flex h-screen w-64 shrink-0 flex-col overflow-visible border-r font-sans text-sm font-medium", className)}>
       {/* Header Area */}
-      <div className="p-3">
-        {/* Top bar with Logo & Collapse Icon */}
-        <div
-          className={`flex h-8 items-center ${isCollapsed ? "justify-center" : "justify-between px-1"}`}
-        >
-          {!isCollapsed && (
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/logo.svg"
-                alt="Logo"
-                width={100}
-                height={28}
-                className="h-6 w-auto"
-              />
-            </Link>
-          )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center justify-center rounded-md p-1 transition-colors"
-          >
-            {isCollapsed ? (
-              <PanelLeft size={18} strokeWidth={2} />
-            ) : (
-              <PanelLeftClose size={18} strokeWidth={2} />
-            )}
-          </button>
+      <div className="p-3 space-y-2">
+        <div className="flex h-8 min-w-0 items-center gap-2 px-1">
+          <Link href="/" className="flex shrink-0 items-center">
+            <Image
+              src="/logo.svg"
+              alt="Logo"
+              width={80}
+              height={24}
+              className="h-5 w-auto"
+            />
+          </Link>
+          <span className="text-text-muted/40 shrink-0 text-sm">/</span>
+          <ProjectDropdown
+            project={project}
+            projectInitial={projectInitial}
+            isProjectPopupOpen={isProjectPopupOpen}
+            setIsProjectPopupOpen={setIsProjectPopupOpen}
+            projectPopupRef={projectPopupRef}
+            onOpenProfileModal={() => setIsProfileModalOpen(true)}
+          />
         </div>
 
-        <ProjectDropdown
-          isCollapsed={isCollapsed}
-          project={project}
-          projectInitial={projectInitial}
-          isProjectPopupOpen={isProjectPopupOpen}
-          setIsProjectPopupOpen={setIsProjectPopupOpen}
-          projectPopupRef={projectPopupRef}
-          onOpenProfileModal={() => setIsProfileModalOpen(true)}
-        />
+        {isUgen && (
+          <button
+            onClick={handleNewChat}
+            className="bg-bg-card hover:bg-hover-bg border-border-subtle text-text-main flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-1 text-sm font-medium transition-colors"
+          >
+            <Plus size={16} strokeWidth={2} />
+            <span>{t('new_chat')}</span>
+          </button>
+        )}
       </div>
 
       {/* Scrollable Nav Area */}
-      <div className="scrollbar-hide flex-1 space-y-7 overflow-y-auto px-3 pb-4">
+      <div className="scrollbar-hide flex-1 space-y-4 overflow-y-auto px-3 pb-4">
         <CoreNav
-          isCollapsed={isCollapsed}
           onSearchClick={() => setIsSearchOpen(true)}
           isUgen={isUgen}
         />
 
-        {isUgen ? (
-          <ProjectsNav
-            isCollapsed={isCollapsed}
-            isAllProjectsOpen={isAllProjectsOpen}
-            setIsAllProjectsOpen={setIsAllProjectsOpen}
-          />
-        ) : (
-          <ProjectsNavReadOnly
-            isCollapsed={isCollapsed}
-            isAllProjectsOpen={isAllProjectsOpen}
-            setIsAllProjectsOpen={setIsAllProjectsOpen}
-          />
-        )}
-
-        <RecentsNav isCollapsed={isCollapsed} />
+        <RecentsNav />
       </div>
 
       <ProfileFooter
-        isCollapsed={isCollapsed}
+        isCollapsed={false}
         user={user}
         userInitial={userInitial}
         isProfilePopupOpen={isProfilePopupOpen}

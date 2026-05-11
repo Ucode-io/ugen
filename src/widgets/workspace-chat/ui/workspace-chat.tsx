@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { History, Loader2, PanelLeft, PanelRight } from "lucide-react";
 import { LogoPopover } from "./logo-popover";
+import { Sidebar } from "@/widgets/sidebar";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
@@ -687,7 +688,12 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
         <div className="flex items-center gap-2 px-4 py-3 shrink-0">
           {chatPosition === 'left' && (
             <>
-              <LogoPopover projectTitle={projectTitle} />
+              <div className="group/sidebar-drawer relative shrink-0">
+                <LogoPopover projectTitle={projectTitle} />
+                <div className="pointer-events-none fixed left-3 top-3 bottom-3 z-[180] -translate-x-4 opacity-0 transition-all duration-200 ease-out group-hover/sidebar-drawer:pointer-events-auto group-hover/sidebar-drawer:translate-x-0 group-hover/sidebar-drawer:opacity-100">
+                  <Sidebar className="h-[calc(100vh-24px)] w-72 rounded-2xl border border-border-subtle shadow-2xl" />
+                </div>
+              </div>
               <span className="text-[15px] font-medium text-text-main truncate flex-1">
                 {projectTitle}
               </span>
