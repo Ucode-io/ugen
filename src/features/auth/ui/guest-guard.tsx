@@ -11,7 +11,7 @@ export const GuestGuard = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     setIsMounted(true)
     if (isAuthenticated) {
-      router.replace('/dashboard') // redirect to dashboard if already authenticated
+      router.replace('/') // redirect to dashboard (rendered at "/" when authenticated)
     }
   }, [isAuthenticated, router])
 

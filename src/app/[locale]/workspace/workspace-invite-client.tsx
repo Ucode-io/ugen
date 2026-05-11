@@ -75,7 +75,7 @@ export const WorkspaceInviteClient = () => {
       );
 
       try {
-        const langRes = await api.get("/v1/language?search=Admin");
+        const langRes = await api.get("/v1/language?search=Admin", { _skipAuthRefresh: true } as any);
         if (langRes.data?.data?.languages) setLanguages(langRes.data.data.languages);
       } catch { /* non-critical */ }
 
