@@ -120,8 +120,6 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
 
   const activeTab = searchParams.get('tab') as 'dashboard' | 'code' | 'preview' || 'preview'
 
-  console.log({activeCodeFiles})
-
   const setActiveTab = useCallback((tab: 'dashboard' | 'code' | 'preview') => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', tab)

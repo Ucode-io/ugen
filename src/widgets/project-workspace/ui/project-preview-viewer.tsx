@@ -10,11 +10,13 @@ import {
   AlertTriangle, Loader2, Sparkles, Layers2, Zap,
   MousePointerClick, Monitor, Tablet, Smartphone,
   ChevronDown, Minimize, Maximize, Check,
-  Palette, Upload, ChevronUp, Search, Save,
+  Palette, Upload, ChevronUp, Search, Save, RotateCcw,
 } from "lucide-react"
 import { useDirtyFilesStore, getDirtyKey } from "@/entities/project/model/dirty-files-store"
 import { autoCommit, requestSave, useGuardedAction } from "../lib/save-flow"
 import { applyVisualEditToCss, buildSelector } from "../lib/visual-edits-css"
+import { toPng } from "html-to-image"
+import { fileService } from "@/shared/api/file-service"
 
 const FONT_FAMILIES = [
   'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Raleway',
@@ -654,6 +656,8 @@ export const ProjectPreviewViewer = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isBuilding = useRef(false);
+  const screenshotPendingRef = useRef(false);
+  const prevStreamingRef = useRef(false);
 
   // Keep a ref to files so message handler always sees the latest value
   const filesRef = useRef(files);
@@ -929,6 +933,15 @@ export const ProjectPreviewViewer = ({
   const isStreaming = useChatStore((s) => s.isStreaming);
 
   useEffect(() => {
+    // Mark a pending screenshot only on the streaming → done transition. The
+    // build that follows will trigger the iframe's onLoad, where we capture.
+    if (prevStreamingRef.current && !isStreaming) {
+      screenshotPendingRef.current = true;
+    }
+    prevStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
+  useEffect(() => {
     // Skip while microfrontend codebase is still loading or chat is streaming —
     // those states have their own loaders. Don't leave "Building preview" hanging
     // when no build is actually scheduled.
@@ -942,6 +955,82 @@ export const ProjectPreviewViewer = ({
     }, 1000);
     return () => clearTimeout(timeout);
   }, [filesHash, isMicrofrontendLoading, isStreaming]);
+
+  const captureAndUploadScreenshot = async () => {
+    console.log("[preview screenshot] capture started");
+    if (!srcDoc) {
+      console.warn("[preview screenshot] no srcDoc yet — aborting");
+      return;
+    }
+    // Mount an off-screen iframe at full desktop size so the screenshot isn't
+    // constrained by the visible preview panel. The user never sees it.
+    const hidden = document.createElement("iframe");
+    hidden.style.position = "fixed";
+    hidden.style.left = "-10000px";
+    hidden.style.top = "0";
+    hidden.style.width = "1440px";
+    hidden.style.height = "900px";
+    hidden.style.border = "none";
+    hidden.style.pointerEvents = "none";
+    hidden.setAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin allow-forms allow-modals",
+    );
+    hidden.srcdoc = srcDoc;
+    document.body.appendChild(hidden);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("hidden iframe load timed out")),
+          15_000,
+        );
+        hidden.onload = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+      });
+      // Let the bundled app mount and render in the hidden iframe.
+      await new Promise((r) => setTimeout(r, 1500));
+      const target = hidden.contentDocument?.body;
+      console.log("[preview screenshot] hidden body:", target);
+      if (!target) {
+        console.warn("[preview screenshot] no hidden body — aborting");
+        return;
+      }
+      const dataUrl = await toPng(target, {
+        cacheBust: true,
+        pixelRatio: 1,
+        skipFonts: true,
+      });
+      console.log("[preview screenshot] dataUrl length:", dataUrl.length);
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], `preview-${Date.now()}.png`, { type: "image/png" });
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await fileService.folderUpload(formData, {
+        folder_name: projectId || "preview-screenshots",
+      });
+      const cdn = process.env.NEXT_PUBLIC_CDN_BASE_URL || "https://cdn.u-code.io";
+      const link = result?.data?.link;
+      const url = link ? `${cdn}/${link}` : null;
+      console.log("[preview screenshot] uploaded:", url, result);
+      if (url && projectId) {
+        try {
+          await api.put(`/v1/mcp_project/${projectId}`, {
+            project_image: url,
+            project_id: projectId,
+          });
+          console.log("[preview screenshot] mcp_project updated with project_image");
+        } catch (putErr) {
+          console.error("[preview screenshot] mcp_project update failed:", putErr);
+        }
+      }
+    } catch (err) {
+      console.error("[preview screenshot] failed:", err);
+    } finally {
+      hidden.remove();
+    }
+  };
 
   useEffect(() => {
     if (iframeRef.current?.contentWindow) {
@@ -1400,6 +1489,17 @@ export const ProjectPreviewViewer = ({
             </PopoverContent>
           </Popover>
         )}
+        {!isVersionHistory && (
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            title="Rebuild preview"
+            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-6 w-6 items-center justify-center rounded-md transition-colors disabled:opacity-50"
+          >
+            <RotateCcw size={13} className={cn(isLoading && "animate-spin")} />
+          </button>
+        )}
       </div>
 
       {/* Right: Save (when dirty) + Device Picker + Fullscreen */}
@@ -1738,6 +1838,11 @@ export const ProjectPreviewViewer = ({
                 clearThemeOverride();
                 // If the popover is still open (e.g. user kept it open through a save), re-inject.
                 if (themeOpen) injectThemeOverride();
+                // After an SSE-done build, capture the rendered preview and upload it.
+                if (screenshotPendingRef.current && !runtimeError?.isBuildError) {
+                  screenshotPendingRef.current = false;
+                  captureAndUploadScreenshot();
+                }
               }}
             />
           </div>

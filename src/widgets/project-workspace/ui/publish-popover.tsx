@@ -229,7 +229,7 @@ export const PublishPopover = ({
       const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
       const { data } = await api.post(
         '/v2/functions/micro-frontend/promote',
-        { repo_id: Number(repoId) },
+        { repo_id: Number(repoId), mcp_project_id: projectId },
         { headers }
       )
       const pipelineId = data?.data?.pipeline_id as number | undefined
