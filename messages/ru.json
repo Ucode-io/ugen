@@ -36,6 +36,7 @@
   },
   "Templates": {
     "title": "Шаблоны",
+    "demo": "Демо",
     "use_template": "Использовать шаблон",
     "cards": {
       "lovable_slides": {

@@ -1,10 +1,20 @@
 import { Layers } from 'lucide-react'
+import type { ReactNode } from 'react'
 
-export const TEMPLATES = [
+export type Template = {
+  id: string
+  bg: string
+  link: string
+  request: string
+  content: ReactNode
+}
+
+export const TEMPLATES: Template[] = [
   {
     id: 'lovable_slides',
     bg: 'bg-gradient-to-br from-[#E066FF] via-[#FF66B2] to-[#FF9966] text-white',
     link: 'https://stark-architect-showcase.lovable.app/',
+    request: 'Create a demo-ready interactive presentation builder called LovableSlides. Include a slide editor, theme picker, code-powered animations, speaker notes, and a polished shareable presentation preview.',
     content: (
       <div className="flex flex-col items-center justify-center h-full p-6 text-center">
         <div className="w-10 h-10 rounded-xl bg-white/20 mb-4 flex items-center justify-center backdrop-blur-sm">
@@ -19,6 +29,7 @@ export const TEMPLATES = [
     id: 'architect_portfolio',
     bg: 'bg-zinc-200 dark:bg-zinc-800 relative',
     link: 'https://stark-architect-showcase.lovable.app/',
+    request: 'Create a demo-ready minimal architecture portfolio website. Include a dramatic project gallery, studio profile, services, featured case studies, awards, contact form, and an elegant responsive visual style.',
     content: (
       <div className="flex flex-col h-full relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop')] bg-cover bg-center brightness-50 dark:brightness-40"></div>
@@ -33,6 +44,7 @@ export const TEMPLATES = [
     id: 'ecommerce_store',
     bg: 'bg-[#FDFBF7] dark:bg-zinc-900 border border-border-subtle overflow-hidden',
     link: 'https://stark-architect-showcase.lovable.app/',
+    request: 'Create a demo-ready premium ecommerce storefront called Linea. Include product listing, product detail, cart, checkout summary, filters, featured collection, customer reviews, and responsive shopping flows.',
     content: (
       <div className="flex flex-col h-full relative">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=800&auto=format&fit=crop')] bg-cover bg-center"></div>
@@ -46,6 +58,7 @@ export const TEMPLATES = [
     id: 'event_platform',
     bg: 'bg-white dark:bg-black border border-border-subtle',
     link: 'https://stark-architect-showcase.lovable.app/',
+    request: 'Create a demo-ready event discovery platform. Include event search, category filters, event cards, detailed event pages, registration flow, host dashboard preview, attendee list, and a bold modern visual style.',
     content: (
       <div className="flex flex-col items-center justify-center h-full p-6 text-center relative overflow-hidden">
         <div className="absolute top-4 right-4 w-12 h-12 rounded-full border border-pink-500 flex items-center justify-center rotate-12">
@@ -68,6 +81,7 @@ export const TEMPLATES = [
     id: 'lifestyle_blog',
     bg: 'bg-[#EFECE8] dark:bg-zinc-800 border border-border-subtle',
     link: 'https://stark-architect-showcase.lovable.app/',
+    request: 'Create a demo-ready sophisticated lifestyle blog called Nexus. Include featured articles, category navigation, author profiles, newsletter signup, article detail pages, reading lists, and editorial imagery.',
     content: (
       <div className="flex flex-col h-full p-6 relative">
         <div className="flex justify-between items-center mb-6">
@@ -92,6 +106,7 @@ export const TEMPLATES = [
     id: 'visual_landing',
     bg: 'bg-zinc-900 border border-border-subtle relative overflow-hidden',
     link: 'https://stark-architect-showcase.lovable.app/',
+    request: 'Create a demo-ready visual landing page for an AI film production company. Include a cinematic hero, project showcase, service sections, process timeline, testimonials, pricing teaser, and contact CTA.',
     content: (
       <div className="flex flex-col h-full">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop')] bg-cover bg-center brightness-75"></div>
@@ -102,3 +117,8 @@ export const TEMPLATES = [
     )
   }
 ]
+
+export const getTemplateById = (id: string | null | undefined) => {
+  if (!id) return null
+  return TEMPLATES.find((template) => template.id === id) ?? null
+}

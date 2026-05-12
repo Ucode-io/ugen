@@ -1,15 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, ExternalLink, Image as ImageIcon, Briefcase, ShoppingBag, CalendarDays, BookOpen, Layers } from 'lucide-react'
+import { ExternalLink, Loader2, X } from 'lucide-react'
 
-import { TEMPLATES } from '../model/templates'
+import { useRouter } from '@/shared/lib/i18n/navigation'
+
+import { getTemplateById, TEMPLATES, type Template } from '../model/templates'
+import { useTemplateLaunch } from '../model/use-template-launch'
 
 export const TemplatesBoard = () => {
   const t = useTranslations('Templates')
-  const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATES[0] | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  const { launchTemplate, launchingTemplateId } = useTemplateLaunch()
+
+  useEffect(() => {
+    setSelectedTemplate(getTemplateById(searchParams.get('template')))
+  }, [searchParams])
+
+  const handleSelectTemplate = (template: Template) => {
+    setSelectedTemplate(template)
+    router.push(`/dashboard/templates?template=${template.id}`, { scroll: false })
+  }
+
+  const handleOpenChange = (open: boolean) => {
+    if (open) return
+    setSelectedTemplate(null)
+    router.push('/dashboard/templates', { scroll: false })
+  }
 
   return (
     <div className="p-8 h-full bg-bg-main overflow-y-auto">
@@ -21,7 +43,7 @@ export const TemplatesBoard = () => {
             <div
               key={template.id}
               className="group cursor-pointer flex flex-col gap-3"
-              onClick={() => setSelectedTemplate(template)}
+              onClick={() => handleSelectTemplate(template)}
             >
               <div
                 className={`w-full aspect-[16/10] rounded-xl overflow-hidden shadow-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-md ${template.bg}`}
@@ -41,7 +63,7 @@ export const TemplatesBoard = () => {
         </div>
       </div>
 
-      <Dialog.Root open={!!selectedTemplate} onOpenChange={(open) => !open && setSelectedTemplate(null)}>
+      <Dialog.Root open={!!selectedTemplate} onOpenChange={handleOpenChange}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity" />
           <Dialog.Content
@@ -56,8 +78,23 @@ export const TemplatesBoard = () => {
                   <h2 className="text-xl font-bold text-text-main">
                     {t(`cards.${selectedTemplate.id}.title`)}
                   </h2>
-                  <div className="flex items-center gap-4">
-                    <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={selectedTemplate.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex h-9 items-center gap-2 rounded-lg border border-border-subtle px-3 text-sm font-medium text-text-main transition-colors hover:bg-hover-bg"
+                    >
+                      <ExternalLink size={16} />
+                      {t('demo')}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => launchTemplate(selectedTemplate, { title: t(`cards.${selectedTemplate.id}.title`) })}
+                      disabled={launchingTemplateId === selectedTemplate.id}
+                      className="inline-flex h-9 items-center gap-2 rounded-lg bg-blue-500 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {launchingTemplateId === selectedTemplate.id && <Loader2 size={16} className="animate-spin" />}
                       {t('use_template')}
                     </button>
                     <Dialog.Close asChild>

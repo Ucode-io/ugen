@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { useTranslations } from 'next-intl'
-import { TEMPLATES } from '@/widgets/templates-board/model/templates'
+import { TEMPLATES, type Template } from '@/widgets/templates-board/model/templates'
 import { ArrowRight } from 'lucide-react'
 import { useProjectsList } from '@/entities/project'
 import { ProjectsGrid } from '@/widgets/projects/ui/projects-grid'
@@ -53,6 +53,10 @@ export const DashboardTabs = () => {
     }
   }
 
+  const handleOpenTemplate = (template: Template) => {
+    router.push(`/dashboard/templates?template=${template.id}`)
+  }
+
   return (
     <div className="w-full max-w-5xl mx-auto p-6 z-10 relative bg-bg-main rounded-xl border border-border-subtle">
       <div className="flex items-center justify-between mb-6">
@@ -85,7 +89,7 @@ export const DashboardTabs = () => {
           <div
             key={template.id}
             className="group cursor-pointer flex flex-col gap-3"
-            onClick={() => router.push('/dashboard/templates')}
+            onClick={() => handleOpenTemplate(template)}
           >
             <div
               className={`w-full aspect-[16/10] rounded-xl overflow-hidden shadow-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-md ${template.bg}`}

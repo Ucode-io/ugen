@@ -6,10 +6,21 @@ import {
   LayoutDashboard,
   BrainCircuit,
   Sparkles,
+  BookTemplate,
 } from "lucide-react";
 import type { ChatPosition } from "@/entities/chat"
 import { useTranslations } from "next-intl"
-import { ReusableTabs } from "@/shared/ui"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  ReusableTabs,
+} from "@/shared/ui"
 import { PublishPopover } from "./publish-popover"
 import { GithubPopover } from "./github-popover"
 import { cn } from "@/shared/lib/utils/cn"
@@ -112,6 +123,81 @@ export const ProjectHeader = ({
 
       <div className="flex items-center gap-1.5 justify-end min-w-[135px]">
         <GithubPopover projectId={projectId} />
+        {isUgen && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-[12px] font-medium transition-all"
+                title="Add to template"
+                aria-label="Add to template"
+              >
+                <BookTemplate size={14} className="text-primary/70" />
+                <span className="hidden sm:inline">Add template</span>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[520px] gap-5 overflow-hidden p-0">
+              <div className="border-b border-border-subtle px-5 py-4">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-text-main">
+                    <BookTemplate size={16} className="text-primary" />
+                    Add to templates
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-text-muted">
+                    Create a reusable template from this workspace.
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
+
+              <div className="grid gap-4 px-5">
+                <div className="rounded-lg border border-border-subtle bg-bg-sidebar/50 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <BookTemplate size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-text-main">
+                        {projectTitle}
+                      </div>
+                      <div className="text-[11px] text-text-muted">
+                        Workspace template
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="template-name" className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                    Template name
+                  </label>
+                  <input
+                    id="template-name"
+                    type="text"
+                    defaultValue={projectTitle}
+                    className="h-9 w-full rounded-lg border border-border-subtle bg-bg-main px-3 text-sm text-text-main outline-none transition-all placeholder:text-text-muted focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-border-subtle bg-bg-sidebar/40 px-5 py-3">
+                <DialogClose asChild>
+                  <button
+                    type="button"
+                    className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-text-muted transition-colors hover:bg-hover-bg hover:text-text-main"
+                  >
+                    Cancel
+                  </button>
+                </DialogClose>
+                <button
+                  type="button"
+                  className="rounded-lg bg-primary px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-primary/90"
+                >
+                  Add template
+                </button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
         {toggleButton}
         {isUgen && (
           <>
