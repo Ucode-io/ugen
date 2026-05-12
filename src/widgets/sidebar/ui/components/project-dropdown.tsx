@@ -1,6 +1,7 @@
 'use client'
-import { useState, useRef } from "react"
-import { Settings, ChevronDown, Loader2, Lock, Check, User } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
+import { Settings, ChevronsUpDown, Loader2, Lock, User } from "lucide-react"
 import { useUserProjects, UserCompany, useSwitchProject, useCreateCompany } from "@/entities/project"
 import { useAuthStore } from "@/entities/session"
 import { useRouter } from "@/shared/lib/i18n/navigation"
@@ -9,7 +10,6 @@ import Image from "next/image"
 import { useQueryClient } from "@tanstack/react-query"
 
 interface ProjectPopupProps {
-  isCollapsed: boolean
   project: any
   projectInitial: string
   isProjectPopupOpen: boolean
@@ -32,7 +32,6 @@ function CompanyLogo({ logo, title }: { logo: string; title: string }) {
 }
 
 export const ProjectDropdown = ({
-  isCollapsed,
   project,
   projectInitial,
   isProjectPopupOpen,
@@ -51,6 +50,15 @@ export const ProjectDropdown = ({
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
   const { mutateAsync: createCompany, isPending: isCreating } = useCreateCompany()
   const inputRef = useRef<HTMLInputElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null)
+
+  useEffect(() => {
+    if (isProjectPopupOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + 8, left: rect.left })
+    }
+  }, [isProjectPopupOpen])
 
   const currentCompanyId = activeCompanyId ?? user?.company_id ?? null
   const currentCompany = companies.find((c) => c.id === currentCompanyId)
@@ -76,7 +84,6 @@ export const ProjectDropdown = ({
     const firstProject = company.projects[0]
     if (!firstProject || switchingId) return
 
-    // is_ugen is known directly from the project data
     const is_ugen = firstProject.is_ugen
 
     setSwitchingId(company.id)
@@ -115,38 +122,28 @@ export const ProjectDropdown = ({
   }
 
   return (
-    <div className="relative" ref={projectPopupRef}>
+    <div className="relative min-w-0 flex-1" ref={projectPopupRef}>
       <button
+        ref={buttonRef}
         onClick={() => setIsProjectPopupOpen(!isProjectPopupOpen)}
-        className={`bg-bg-card hover:bg-hover-bg border-border-subtle flex w-full items-center rounded-lg border shadow-sm transition-colors ${
-          isCollapsed ? "justify-center p-2" : "gap-2.5 px-2.5 py-1.5"
-        }`}
+        className="hover:bg-hover-bg flex w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-1 transition-colors"
+        title={displayName}
       >
-        <div
-          className={`flex shrink-0 items-center justify-center rounded bg-[#d946ef] font-bold text-white uppercase ${
-            isCollapsed ? "h-7 w-7 text-xs" : "h-5 w-5 text-[10px]"
-          }`}
-        >
-          {displayInitial}
+        <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#d946ef] text-[10px] font-bold text-white uppercase">
+          {currentCompany?.logo ? (
+            <CompanyLogo logo={currentCompany.logo} title={displayName} />
+          ) : (
+            displayInitial
+          )}
         </div>
-        {!isCollapsed && (
-          <>
-            <span className="text-text-main flex-1 truncate text-left text-sm whitespace-nowrap">
-              {displayName}
-            </span>
-            <ChevronDown
-              size={14}
-              className={`text-text-muted shrink-0 transition-transform ${isProjectPopupOpen ? "rotate-180" : ""}`}
-            />
-          </>
-        )}
+        <span className="text-text-main min-w-0 flex-1 truncate text-sm">{displayName}</span>
+        <ChevronsUpDown size={13} className="text-text-muted shrink-0" />
       </button>
 
-      {isProjectPopupOpen && (
+      {isProjectPopupOpen && dropdownPos && createPortal(
         <div
-          className={`absolute top-[calc(100%+8px)] ${
-            isCollapsed ? "left-[calc(100%+8px)]" : "left-0"
-          } bg-bg-card border-border-subtle z-[100] w-64 overflow-hidden rounded-xl border shadow-lg`}
+          className="bg-bg-card border-border-subtle fixed z-[200] w-64 overflow-hidden rounded-xl border shadow-lg"
+          style={{ top: dropdownPos.top, left: dropdownPos.left }}
         >
           {/* Header */}
           <div className="border-border-subtle bg-bg-sidebar/50 flex items-center justify-between border-b p-3">
@@ -166,7 +163,7 @@ export const ProjectDropdown = ({
             </button>
           </div>
 
-          {/* Company list — flat, names only */}
+          {/* Company list */}
           <div className="max-h-64 space-y-0.5 overflow-y-auto p-1.5">
             <div className="text-text-muted/70 px-2 py-1 text-xs font-semibold uppercase">
               {t("allWorkspaces")}
@@ -209,9 +206,6 @@ export const ProjectDropdown = ({
                     ) : (
                       <Lock size={12} className="text-text-muted shrink-0" />
                     )}
-                    {/* {isCurrent && (
-                      <Check size={14} className="text-primary shrink-0" />
-                    )} */}
                     {switchingId === company.id && (
                       <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
                     )}
@@ -264,7 +258,8 @@ export const ProjectDropdown = ({
               </button>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

@@ -13,6 +13,8 @@
     "search": "Qidiruv",
     "resources": "Resurslar",
     "projects": "Loyihalar",
+    "chats": "Suhbatlar",
+    "new_chat": "Yangi suhbat",
     "all_projects": "Barcha loyihalar",
     "new_folder": "Yangi jild",
     "test": "test",
@@ -491,6 +493,20 @@
       "environmentManagement": "Muhitni boshqarish",
       "envDescription": "Loyiha muhitlarini sozlang va ular orasida almashing.",
       "unknownDevice": "Noma'lum qurilma"
+    },
+    "chats": {
+      "title": "Suhbatlar",
+      "searchPlaceholder": "Suhbatlarni qidirish...",
+      "filter": "Filtr",
+      "sortBy": "Saralash",
+      "noChats": "Hali suhbatlar yo'q",
+      "noProject": "Loyiha yo'q",
+      "untitledChat": "Nomsiz suhbat",
+      "columns": {
+        "name": "Nomi",
+        "project": "Loyiha",
+        "updated": "Yangilangan"
+      }
     },
     "projects": {
       "title": "Loyihalar",

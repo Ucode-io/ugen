@@ -88,7 +88,9 @@ export const PublishPopover = ({
   const [publishStatusOpen, setPublishStatusOpen] = useState(false);
   const [publishStatus, setPublishStatus] = useState<PublishStatus>("idle");
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [isLiveLoading, setIsLiveLoading] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const liveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCancelledRef = useRef(false);
 
   const [hasChanges, setHasChanges] = useState<boolean | null>(null);
@@ -160,6 +162,24 @@ export const PublishPopover = ({
     }
   }
 
+  const stopLiveLoading = () => {
+    if (liveTimerRef.current) {
+      clearTimeout(liveTimerRef.current)
+      liveTimerRef.current = null
+    }
+    setIsLiveLoading(false)
+  }
+
+  const startLiveLoading = () => {
+    if (liveTimerRef.current) clearTimeout(liveTimerRef.current)
+    setIsLiveLoading(true)
+    const duration = 7000 + Math.random() * 3000
+    liveTimerRef.current = setTimeout(() => {
+      setIsLiveLoading(false)
+      liveTimerRef.current = null
+    }, duration)
+  }
+
   const pollPipelineStatus = async (pipelineId: number, repoId: number) => {
     if (pollCancelledRef.current) return
     try {
@@ -181,6 +201,7 @@ export const PublishPopover = ({
         if (status === 'success') {
           setPublishDone(true)
           setTimeout(() => setPublishDone(false), 3000)
+          startLiveLoading()
           loadChanges()
         }
       }
@@ -230,6 +251,7 @@ export const PublishPopover = ({
         if (initialStatus === 'success') {
           setPublishDone(true)
           setTimeout(() => setPublishDone(false), 3000)
+          startLiveLoading()
         }
       }
     } catch (err) {
@@ -244,6 +266,7 @@ export const PublishPopover = ({
     setPublishStatusOpen(open)
     if (!open) {
       stopPolling()
+      stopLiveLoading()
       // reset only when terminal so user doesn't lose in-progress info
       if (
         publishStatus === 'success' ||
@@ -257,7 +280,10 @@ export const PublishPopover = ({
   }
 
   useEffect(() => {
-    return () => stopPolling()
+    return () => {
+      stopPolling()
+      stopLiveLoading()
+    }
   }, [])
 
 
@@ -799,8 +825,9 @@ export const PublishPopover = ({
                   },
                   {
                     label: "Live",
-                    done: publishStatus === "success",
+                    done: publishStatus === "success" && !isLiveLoading,
                     active: false,
+                    running: publishStatus === "success" && isLiveLoading,
                     failed: publishStatus === "failed",
                     canceled: publishStatus === "canceled",
                   },
@@ -885,18 +912,33 @@ export const PublishPopover = ({
 
             {/* Success: show deploy URL */}
             {publishStatus === "success" && mfUrl && (
-              <a
-                href={shortUrl ?? finalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2 group transition-colors hover:border-green-500/40"
-              >
-                <Globe size={13} className="text-green-500 shrink-0" />
-                <span className="text-primary flex-1 truncate font-mono text-xs group-hover:underline">
-                  {shortUrl ?? displayMfUrl}
-                </span>
-                <ExternalLink size={12} className="text-green-500/50 shrink-0" />
-              </a>
+              isLiveLoading ? (
+                <div
+                  title="Waiting for live deployment…"
+                  className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-main px-3 py-2 cursor-not-allowed opacity-60 select-none"
+                >
+                  <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
+                  <span className="text-text-muted flex-1 truncate font-mono text-xs">
+                    {shortUrl ?? displayMfUrl}
+                  </span>
+                  <span className="text-[10px] text-text-muted/70 font-mono">
+                    going live…
+                  </span>
+                </div>
+              ) : (
+                <a
+                  href={shortUrl ?? finalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2 group transition-colors hover:border-green-500/40"
+                >
+                  <Globe size={13} className="text-green-500 shrink-0" />
+                  <span className="text-primary flex-1 truncate font-mono text-xs group-hover:underline">
+                    {shortUrl ?? displayMfUrl}
+                  </span>
+                  <ExternalLink size={12} className="text-green-500/50 shrink-0" />
+                </a>
+              )
             )}
           </div>
 

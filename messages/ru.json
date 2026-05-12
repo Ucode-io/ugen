@@ -13,6 +13,8 @@
     "search": "Поиск",
     "resources": "Ресурсы",
     "projects": "Проекты",
+    "chats": "Чаты",
+    "new_chat": "Новый чат",
     "all_projects": "Все проекты",
     "new_folder": "Новая папка",
     "test": "test",
@@ -491,6 +493,20 @@
       "environmentManagement": "Управление окружением",
       "envDescription": "Настраивайте и переключайтесь между окружениями проекта.",
       "unknownDevice": "Неизвестное устройство"
+    },
+    "chats": {
+      "title": "Чаты",
+      "searchPlaceholder": "Поиск чатов...",
+      "filter": "Фильтр",
+      "sortBy": "Сортировать по",
+      "noChats": "Чатов пока нет",
+      "noProject": "Без проекта",
+      "untitledChat": "Без названия",
+      "columns": {
+        "name": "Название",
+        "project": "Проект",
+        "updated": "Обновлено"
+      }
     },
     "projects": {
       "title": "Проекты",

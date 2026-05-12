@@ -28,7 +28,11 @@ const FONT_FAMILIES = [
   'Libre Baskerville', 'Cormorant Garamond', 'Cinzel', 'Spectral',
 ]
 
-// Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper)
+// Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
+// Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
+// We detect the format per-variable on read and write back in the same shape.
+type ColorFormat = 'hex' | 'hsl'
+
 function hslStringToHex(hsl: string): string {
   const [hStr, sStr, lStr] = hsl.trim().split(/\s+/)
   const h = parseFloat(hStr)
@@ -67,29 +71,237 @@ function hexToHslString(hex: string): string {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
 }
 
-function parseCssTheme(css: string) {
-  const readVar = (name: string) => css.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].trim() ?? null
-  const fontBodyRaw = css.match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1].trim().replace(/^['"]|['"]$/g, '') ?? 'Inter'
-  return {
-    background: readVar('background') ? hslStringToHex(readVar('background')!) : '#F6F7F9',
-    primary:    readVar('primary')    ? hslStringToHex(readVar('primary')!)    : '#493CDD',
-    foreground: readVar('foreground') ? hslStringToHex(readVar('foreground')!) : '#151A28',
-    fontFamily: fontBodyRaw,
-  }
+function detectColorFormat(raw: string): ColorFormat {
+  return raw.trim().startsWith('#') ? 'hex' : 'hsl'
 }
 
-function applyThemeToCss(css: string, colors: { background: string; primary: string; foreground: string }, font: string): string {
+function parseColorToHex(raw: string): string {
+  const trimmed = raw.trim()
+  if (trimmed.startsWith('#')) {
+    if (trimmed.length === 4) {
+      // #rgb → #rrggbb
+      return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`.toLowerCase()
+    }
+    return trimmed.slice(0, 7).toLowerCase()
+  }
+  return hslStringToHex(trimmed).toLowerCase()
+}
+
+function formatColorFromHex(hex: string, format: ColorFormat): string {
+  return format === 'hex' ? hex.toLowerCase() : hexToHslString(hex)
+}
+
+interface ColorDefinition {
+  cssVar: string
+  label: string
+}
+
+interface ColorGroup {
+  title: string
+  colors: ColorDefinition[]
+}
+
+// Known shadcn-style variables. We use these to keep nicer labels and a stable
+// section order; anything else discovered in the CSS lands in the "Custom" group.
+const PREDEFINED_GROUPS: ColorGroup[] = [
+  {
+    title: 'Base',
+    colors: [
+      { cssVar: 'background', label: 'Background' },
+      { cssVar: 'foreground', label: 'Foreground' },
+    ],
+  },
+  {
+    title: 'Card',
+    colors: [
+      { cssVar: 'card',            label: 'Card' },
+      { cssVar: 'card-foreground', label: 'Card Text' },
+    ],
+  },
+  {
+    title: 'Primary',
+    colors: [
+      { cssVar: 'primary',            label: 'Primary' },
+      { cssVar: 'primary-foreground', label: 'Primary Text' },
+    ],
+  },
+  {
+    title: 'Secondary',
+    colors: [
+      { cssVar: 'secondary',            label: 'Secondary' },
+      { cssVar: 'secondary-foreground', label: 'Secondary Text' },
+    ],
+  },
+  {
+    title: 'Muted',
+    colors: [
+      { cssVar: 'muted',            label: 'Muted' },
+      { cssVar: 'muted-foreground', label: 'Muted Text' },
+    ],
+  },
+  {
+    title: 'Accent',
+    colors: [
+      { cssVar: 'accent',            label: 'Accent' },
+      { cssVar: 'accent-foreground', label: 'Accent Text' },
+    ],
+  },
+  {
+    title: 'Popover',
+    colors: [
+      { cssVar: 'popover',            label: 'Popover' },
+      { cssVar: 'popover-foreground', label: 'Popover Text' },
+    ],
+  },
+  {
+    title: 'Destructive',
+    colors: [
+      { cssVar: 'destructive',            label: 'Destructive' },
+      { cssVar: 'destructive-foreground', label: 'Destructive Text' },
+    ],
+  },
+  {
+    title: 'Status',
+    colors: [
+      { cssVar: 'success',            label: 'Success' },
+      { cssVar: 'success-foreground', label: 'Success Text' },
+      { cssVar: 'warning',            label: 'Warning' },
+      { cssVar: 'warning-foreground', label: 'Warning Text' },
+      { cssVar: 'info',               label: 'Info' },
+      { cssVar: 'info-foreground',    label: 'Info Text' },
+    ],
+  },
+  {
+    title: 'UI',
+    colors: [
+      { cssVar: 'border', label: 'Border' },
+      { cssVar: 'input',  label: 'Input' },
+      { cssVar: 'ring',   label: 'Ring' },
+    ],
+  },
+  {
+    title: 'Sidebar',
+    colors: [
+      { cssVar: 'sidebar-background',         label: 'Background' },
+      { cssVar: 'sidebar-foreground',         label: 'Foreground' },
+      { cssVar: 'sidebar-primary',            label: 'Primary' },
+      { cssVar: 'sidebar-primary-foreground', label: 'Primary Text' },
+      { cssVar: 'sidebar-accent',             label: 'Accent' },
+      { cssVar: 'sidebar-accent-foreground',  label: 'Accent Text' },
+      { cssVar: 'sidebar-border',             label: 'Border' },
+      { cssVar: 'sidebar-ring',               label: 'Ring' },
+    ],
+  },
+]
+
+const PREDEFINED_VAR_NAMES: Set<string> = new Set(
+  PREDEFINED_GROUPS.flatMap((g) => g.colors).map((c) => c.cssVar),
+)
+
+function isColorValue(value: string): boolean {
+  const v = value.trim()
+  if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return true
+  // shadcn HSL: "H S% L%" — hue allows decimals; saturation/lightness end with %
+  if (/^[\d.]+\s+[\d.]+%\s+[\d.]+%$/.test(v)) return true
+  return false
+}
+
+interface ExtractedColor {
+  cssVar: string
+  rawValue: string
+  format: ColorFormat
+  hex: string
+}
+
+function extractColorVarsFromCss(css: string): ExtractedColor[] {
+  const out: ExtractedColor[] = []
+  // Capture order is preserved by RegExp.exec on a global pattern.
+  const regex = /--([\w-]+)\s*:\s*([^;]+);/g
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(css)) !== null) {
+    const cssVar = match[1]
+    const rawValue = match[2].trim()
+    if (!isColorValue(rawValue)) continue
+    out.push({
+      cssVar,
+      rawValue,
+      format: detectColorFormat(rawValue),
+      hex: parseColorToHex(rawValue),
+    })
+  }
+  return out
+}
+
+function humanizeVarName(cssVar: string): string {
+  return cssVar
+    .split('-')
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(' ')
+}
+
+function parseCssTheme(css: string): {
+  colors: Record<string, string>
+  formats: Record<string, ColorFormat>
+  groups: ColorGroup[]
+  fontFamily: string
+} {
+  const found = extractColorVarsFromCss(css)
+  const foundMap = new Map(found.map((c) => [c.cssVar, c]))
+
+  const colors: Record<string, string> = {}
+  const formats: Record<string, ColorFormat> = {}
+  for (const c of found) {
+    colors[c.cssVar] = c.hex
+    formats[c.cssVar] = c.format
+  }
+
+  // Build groups: keep predefined order, drop sections with nothing in CSS,
+  // then append a "Custom" group for any color vars we didn't predefine.
+  const groups: ColorGroup[] = []
+  const usedVars = new Set<string>()
+  for (const group of PREDEFINED_GROUPS) {
+    const present = group.colors.filter((c) => foundMap.has(c.cssVar))
+    if (present.length === 0) continue
+    groups.push({ title: group.title, colors: present })
+    present.forEach((c) => usedVars.add(c.cssVar))
+  }
+  const custom: ColorDefinition[] = []
+  for (const c of found) {
+    if (usedVars.has(c.cssVar)) continue
+    custom.push({ cssVar: c.cssVar, label: humanizeVarName(c.cssVar) })
+  }
+  if (custom.length > 0) groups.push({ title: 'Custom', colors: custom })
+
+  const fontBodyRaw =
+    css.match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1].trim().replace(/^['"]|['"]$/g, '') ?? 'Inter'
+
+  return { colors, formats, groups, fontFamily: fontBodyRaw }
+}
+
+function applyThemeToCss(
+  css: string,
+  colors: Record<string, string>,
+  formats: Record<string, ColorFormat>,
+  font: string,
+): string {
   let result = css
 
-  const replaceVar = (name: string, hslStr: string) => {
-    result = result.replace(
-      new RegExp(`(--${name}:\\s*)[\\d.]+\\s+[\\d.]+%\\s+[\\d.]+%`),
-      `$1${hslStr}`
-    )
+  for (const [cssVar, hex] of Object.entries(colors)) {
+    if (!hex) continue
+    const format = formats[cssVar] ?? 'hex'
+    const formatted = formatColorFromHex(hex, format)
+    if (format === 'hex') {
+      result = result.replace(
+        new RegExp(`(--${cssVar}:\\s*)#[0-9a-fA-F]{3,8}`),
+        `$1${formatted}`,
+      )
+    } else {
+      result = result.replace(
+        new RegExp(`(--${cssVar}:\\s*)[\\d.]+\\s+[\\d.]+%\\s+[\\d.]+%`),
+        `$1${formatted}`,
+      )
+    }
   }
-  replaceVar('background', hexToHslString(colors.background))
-  replaceVar('primary',    hexToHslString(colors.primary))
-  replaceVar('foreground', hexToHslString(colors.foreground))
 
   // Update font-body variable and its Google Fonts import
   const currentFont = css.match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1].trim().replace(/^['"]|['"]$/g, '')
@@ -324,8 +536,6 @@ export const ProjectPreviewViewer = ({
     dirtyMap,
   ]);
 
-  console.log({ storeFiles, files });
-
   const handlePickMicrofrontend = (mf: {
     id: string;
     name: string;
@@ -395,12 +605,20 @@ export const ProjectPreviewViewer = ({
 
   // Theme popover state
   const [themeOpen, setThemeOpen] = useState(false);
-  const [themeSettings, setThemeSettings] = useState({
-    background: "#F6F7F9",
-    primary: "#493CDD",
-    foreground: "#151A28",
+  const [themeSettings, setThemeSettings] = useState<{
+    colors: Record<string, string>;
+    logoUrl: string;
+  }>(() => ({
+    colors: {},
     logoUrl: "",
-  });
+  }));
+  // Groups derived from the CSS — only includes variables actually present in
+  // the file (predefined shadcn vars in known order, plus a "Custom" group at
+  // the end for anything else).
+  const [colorGroups, setColorGroups] = useState<ColorGroup[]>([]);
+  // Per-variable color format detected from the CSS file ('hex' or 'hsl').
+  // Used to write each variable back in its original form. Keyed by cssVar name.
+  const colorFormatsRef = useRef<Record<string, ColorFormat>>({});
   const [fontFamily, setFontFamily] = useState("Inter");
   const [fontSearch, setFontSearch] = useState("");
   const [fontDropdownOpen, setFontDropdownOpen] = useState(false);
@@ -419,13 +637,13 @@ export const ProjectPreviewViewer = ({
     document.head.appendChild(link);
   }, [fontDropdownOpen]);
   // Snapshot of theme at the moment the popover opens — used to restore on Cancel
-  const themeSnapshotRef = useRef({
-    ...{
-      background: "#F6F7F9",
-      primary: "#493CDD",
-      foreground: "#151A28",
-      logoUrl: "",
-    },
+  const themeSnapshotRef = useRef<{
+    colors: Record<string, string>;
+    logoUrl: string;
+    fontFamily: string;
+  }>({
+    colors: {},
+    logoUrl: "",
     fontFamily: "Inter",
   });
 
@@ -449,11 +667,11 @@ export const ProjectPreviewViewer = ({
     const cssFile = files.find((f) => f.path === "src/index.css");
     if (!cssFile?.content) return;
     const parsed = parseCssTheme(cssFile.content);
+    colorFormatsRef.current = parsed.formats;
+    setColorGroups(parsed.groups);
     setThemeSettings((prev) => ({
       ...prev,
-      background: parsed.background,
-      primary: parsed.primary,
-      foreground: parsed.foreground,
+      colors: parsed.colors,
     }));
     setFontFamily(parsed.fontFamily);
   }, [files, themeOpen]);
@@ -488,9 +706,14 @@ export const ProjectPreviewViewer = ({
     // <style>, including the bundle's runtime-injected text/tailwindcss block
     // (which lands later async via esm.sh and would otherwise overwrite us).
     const root = doc.documentElement;
-    root.style.setProperty("--background", hexToHslString(settings.background));
-    root.style.setProperty("--foreground", hexToHslString(settings.foreground));
-    root.style.setProperty("--primary", hexToHslString(settings.primary));
+    const formats = colorFormatsRef.current;
+    for (const [cssVar, hex] of Object.entries(settings.colors)) {
+      if (!hex) continue;
+      root.style.setProperty(
+        `--${cssVar}`,
+        formatColorFromHex(hex, formats[cssVar] ?? 'hex'),
+      );
+    }
     root.style.setProperty("--font-body", `'${font}', sans-serif`);
     if (doc.body) doc.body.style.fontFamily = `'${font}', sans-serif`;
 
@@ -512,9 +735,11 @@ export const ProjectPreviewViewer = ({
   const clearThemeOverride = () => {
     const root = iframeRef.current?.contentDocument?.documentElement;
     if (!root) return;
-    root.style.removeProperty("--background");
-    root.style.removeProperty("--foreground");
-    root.style.removeProperty("--primary");
+    // Remove every var we may have set — formats ref is keyed by every var
+    // discovered when last parsing the CSS, so it covers everything we injected.
+    for (const cssVar of Object.keys(colorFormatsRef.current)) {
+      root.style.removeProperty(`--${cssVar}`);
+    }
     root.style.removeProperty("--font-body");
     const body = iframeRef.current?.contentDocument?.body;
     if (body) body.style.removeProperty("font-family");
@@ -538,19 +763,20 @@ export const ProjectPreviewViewer = ({
   const handleThemeOpenChange = (open: boolean) => {
     if (open) {
       // Fresh editing session: snapshot current state and reset save flag.
-      themeSnapshotRef.current = { ...themeSettings, fontFamily };
+      themeSnapshotRef.current = {
+        colors: { ...themeSettings.colors },
+        logoUrl: themeSettings.logoUrl,
+        fontFamily,
+      };
       themeSavePendingRef.current = false;
     } else if (!themeSavePendingRef.current) {
       // Closing without Save (outside click / Esc / Cancel) → revert to snapshot
       // so the effect clears inline overrides cleanly.
       const snap = themeSnapshotRef.current;
-      setThemeSettings((prev) => ({
-        ...prev,
-        background: snap.background,
-        primary: snap.primary,
-        foreground: snap.foreground,
+      setThemeSettings({
+        colors: { ...snap.colors },
         logoUrl: snap.logoUrl,
-      }));
+      });
       setFontFamily(snap.fontFamily);
     }
     setThemeOpen(open);
@@ -566,7 +792,8 @@ export const ProjectPreviewViewer = ({
     }
     const newContent = applyThemeToCss(
       cssFile.content,
-      themeSettings,
+      themeSettings.colors,
+      colorFormatsRef.current,
       fontFamily,
     );
 
@@ -574,11 +801,11 @@ export const ProjectPreviewViewer = ({
       // Microfrontend: route through dirty store + auto-commit (like ElementStyleToolbar)
       const snap = themeSnapshotRef.current;
       const changed: string[] = [];
-      if (snap.background !== themeSettings.background)
-        changed.push("background");
-      if (snap.primary !== themeSettings.primary) changed.push("primary");
-      if (snap.foreground !== themeSettings.foreground)
-        changed.push("foreground");
+      for (const cssVar of Object.keys(themeSettings.colors)) {
+        if (snap.colors[cssVar] !== themeSettings.colors[cssVar]) {
+          changed.push(cssVar);
+        }
+      }
       if (snap.fontFamily !== fontFamily) changed.push("fontFamily");
       setDirtyFile(dirtyKey, "src/index.css", newContent);
       autoCommit(
@@ -901,50 +1128,54 @@ export const ProjectPreviewViewer = ({
                 </p>
               </div>
 
-              <div className="space-y-4 px-4 py-3">
-                {/* Colors */}
-                <div className="space-y-2">
-                  <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
-                    Colors
+              <div className="max-h-[420px] space-y-4 overflow-y-auto px-4 py-3">
+                {/* Colors — groups derived from the CSS file */}
+                {colorGroups.length === 0 && (
+                  <p className="text-text-muted text-[12px]">
+                    No CSS color variables found in src/index.css.
                   </p>
-                  {(
-                    [
-                      { key: "background", label: "Background" },
-                      { key: "primary", label: "Primary" },
-                      { key: "foreground", label: "Foreground" },
-                    ] as const
-                  ).map(({ key, label }) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="text-text-main text-[13px]">
-                        {label}
-                      </span>
-                      <label className="group flex cursor-pointer items-center gap-2">
-                        <span className="text-text-muted group-hover:text-text-main font-mono text-[12px] transition-colors">
-                          {themeSettings[key].toUpperCase()}
+                )}
+                {colorGroups.map((group) => (
+                  <div key={group.title} className="space-y-2">
+                    <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
+                      {group.title}
+                    </p>
+                    {group.colors.map(({ cssVar, label }) => (
+                      <div
+                        key={cssVar}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="text-text-main text-[13px]">
+                          {label}
                         </span>
-                        <div
-                          className="border-border-subtle relative h-6 w-6 overflow-hidden rounded border shadow-sm"
-                          style={{ backgroundColor: themeSettings[key] }}
-                        >
-                          <input
-                            type="color"
-                            value={themeSettings[key]}
-                            onChange={(e) =>
-                              setThemeSettings((prev) => ({
-                                ...prev,
-                                [key]: e.target.value,
-                              }))
-                            }
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                          />
-                        </div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                        <label className="group flex cursor-pointer items-center gap-2">
+                          <span className="text-text-muted group-hover:text-text-main font-mono text-[12px] transition-colors">
+                            {(themeSettings.colors[cssVar] ?? '').toUpperCase()}
+                          </span>
+                          <div
+                            className="border-border-subtle relative h-6 w-6 overflow-hidden rounded border shadow-sm"
+                            style={{ backgroundColor: themeSettings.colors[cssVar] }}
+                          >
+                            <input
+                              type="color"
+                              value={themeSettings.colors[cssVar] ?? '#000000'}
+                              onChange={(e) =>
+                                setThemeSettings((prev) => ({
+                                  ...prev,
+                                  colors: {
+                                    ...prev.colors,
+                                    [cssVar]: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            />
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                ))}
 
                 {/* Logo */}
                 <div className="space-y-2">

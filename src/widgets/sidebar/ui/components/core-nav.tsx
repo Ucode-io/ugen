@@ -1,56 +1,65 @@
 'use client'
 import { Link } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
-import { Home, Search, Layers, BarChart2 } from "lucide-react"
+import { Home, Search, LayoutGrid, MessagesSquare, LayoutTemplate } from "lucide-react"
 import { usePathname } from "@/shared/lib/i18n/navigation"
+import { useAuthStore } from "@/entities/session"
 
 interface CoreNavProps {
-  isCollapsed: boolean;
   onSearchClick: () => void;
   isUgen?: boolean;
 }
 
-export const CoreNav = ({ isCollapsed, onSearchClick, isUgen = true }: CoreNavProps) => {
+export const CoreNav = ({ onSearchClick, isUgen = true }: CoreNavProps) => {
   const t = useTranslations('Navigation')
   const pathname = usePathname()
+  const { activeCompanyId } = useAuthStore()
+
+  const projectsHref = activeCompanyId ? `/projects?company_id=${activeCompanyId}` : "/projects"
 
   const allItems = [
-    { key: "home", href: "/", icon: Home },
-    { key: "search", href: "/search", icon: Search },
+    { key: "search", href: "/search", icon: Search, action: "search" as const },
+    { key: "home", href: "/", icon: Home, action: "link" as const, requiresUgen: true },
+    { key: "projects", href: projectsHref, icon: LayoutGrid, action: "link" as const },
+    { key: "chats", href: "/chats", icon: MessagesSquare, action: "link" as const, requiresUgen: true },
+    { key: "templates", href: "/dashboard/templates", icon: LayoutTemplate, action: "link" as const },
   ]
 
-  const items = allItems.filter(item => isUgen || item.key !== "home")
+  const items = allItems.filter(item => !item.requiresUgen || isUgen)
 
   return (
     <nav className="space-y-0.5">
       {items.map((item) => {
-        if (item.key === "search") {
+        const Icon = item.icon
+        if (item.action === "search") {
           return (
             <button
               key={item.key}
               onClick={onSearchClick}
-              className={`flex w-full items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} text-text-muted hover:bg-hover-bg hover:text-text-main`}
-              title={isCollapsed ? t(item.key) : undefined}
+              className="text-text-muted hover:bg-hover-bg hover:text-text-main flex w-full items-center gap-3 rounded-lg px-3 py-1.5 transition-colors"
             >
-              <item.icon size={16} strokeWidth={2} />
-              {!isCollapsed && <span>{t(item.key)}</span>}
+              <Icon size={16} strokeWidth={2} />
+              <span>{t(item.key)}</span>
             </button>
           );
         }
 
-        const isActive = pathname === item.href;
+        // Match exact path or path with query string for projects
+        const isActive = item.key === "projects"
+          ? pathname === "/projects"
+          : pathname === item.href.split("?")[0];
+
         return (
           <Link
             key={item.key}
-            href={item.href}
-            className={`flex items-center rounded-lg transition-colors ${isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${isActive
-              ? "bg-hover-bg text-text-main font-semibold"
+            href={item.href as any}
+            className={`flex items-center gap-3 rounded-lg px-3 py-1.5 transition-colors ${isActive
+              ? "bg-bg-card text-text-main font-semibold"
               : "text-text-muted hover:bg-hover-bg hover:text-text-main"
-              } `}
-            title={isCollapsed ? t(item.key) : undefined}
+              }`}
           >
-            <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-            {!isCollapsed && <span>{t(item.key)}</span>}
+            <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+            <span>{t(item.key)}</span>
           </Link>
         );
       })}

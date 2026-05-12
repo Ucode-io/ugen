@@ -13,6 +13,8 @@
     "search": "Search",
     "resources": "Resources",
     "projects": "Projects",
+    "chats": "Chats",
+    "new_chat": "New Chat",
     "all_projects": "All projects",
     "new_folder": "New folder",
     "test": "test",
@@ -491,6 +493,20 @@
       "environmentManagement": "Environment Management",
       "envDescription": "Configure and switch between project environments.",
       "unknownDevice": "Unknown Device"
+    },
+    "chats": {
+      "title": "Chats",
+      "searchPlaceholder": "Search chats...",
+      "filter": "Filter",
+      "sortBy": "Sort by",
+      "noChats": "No chats yet",
+      "noProject": "No project",
+      "untitledChat": "Untitled chat",
+      "columns": {
+        "name": "Name",
+        "project": "Project",
+        "updated": "Updated"
+      }
     },
     "projects": {
       "title": "Projects",
