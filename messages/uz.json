@@ -131,6 +131,11 @@
         "ariaClose": "Yopish",
         "selectConnections": "Ulanishlarni tanlang",
         "configureConnections": "Tizimga kirishdan oldin ulanishlarni sozlang."
+      },
+      "google": {
+        "continue": "Google bilan davom etish",
+        "signUp": "Google bilan roʻyxatdan oʻtish",
+        "or": "yoki"
       }
     },
     "appVisibility": {

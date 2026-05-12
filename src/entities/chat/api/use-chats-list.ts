@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query"
 import { api } from "@/shared/api"
 
 export interface ChatListItem {
   id: string
   title: string
+  description?: string
+  model?: string
   project_id: string
   project_name?: string
   project_title?: string
@@ -32,7 +34,7 @@ const cleanParams = (params?: FetchChatsListParams) => {
 
 export const fetchChatsList = async (params?: FetchChatsListParams) => {
   const cleaned = cleanParams(params)
-  const { data } = await api.get('/v1/ai-chat', { params: cleaned })
+  const { data } = await api.get('/v1/ai-chat/list', { params: cleaned })
   return data
 }
 
@@ -44,6 +46,32 @@ export const useChatsList = (
   return useQuery({
     queryKey: ['chats', 'list', params],
     queryFn: () => fetchChatsList(params),
+    enabled: options?.enabled !== undefined ? options.enabled : true,
+  })
+}
+
+const CHATS_PAGE_SIZE = 20
+
+export const useChatsListInfinite = (
+  rawParams?: Omit<FetchChatsListParams, 'offset' | 'limit'>,
+  options?: { enabled?: boolean }
+) => {
+  const base = cleanParams(rawParams) ?? {}
+  return useInfiniteQuery({
+    queryKey: ['chats', 'list', 'infinite', base],
+    queryFn: ({ pageParam = 0 }) =>
+      fetchChatsList({ ...base, limit: CHATS_PAGE_SIZE, offset: pageParam as number }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const chats = lastPage?.data?.chats ?? []
+      if (chats.length < CHATS_PAGE_SIZE) return undefined
+      const loaded = allPages.reduce(
+        (acc, p) => acc + (p?.data?.chats?.length ?? 0),
+        0
+      )
+      const total = lastPage?.data?.count ?? 0
+      return loaded < total ? loaded : undefined
+    },
     enabled: options?.enabled !== undefined ? options.enabled : true,
   })
 }

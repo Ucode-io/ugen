@@ -307,9 +307,13 @@ export const PublishPopover = ({
   useEffect(() => {
     if (isOpen) {
       loadVisibility()
-      loadChanges()
     }
   }, [isOpen, projectId])
+
+  // Re-check when repo appears mid-open (first generation completes while popover is open).
+  useEffect(() => {
+    if (isOpen) loadChanges()
+  }, [isOpen, activeCodeSelection?.repoId])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

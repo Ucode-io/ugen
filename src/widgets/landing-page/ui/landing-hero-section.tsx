@@ -46,7 +46,7 @@ export const LandingHeroSection = () => {
     if ((!prompt.trim() && uploadedFiles.length === 0) || isProcessing || isUploading) return
 
     if (!isAuthenticated) {
-      window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))
+      window.dispatchEvent(new CustomEvent('open-auth', { detail: 'login' }))
       return
     }
 

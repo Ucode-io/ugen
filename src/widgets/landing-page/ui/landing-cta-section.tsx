@@ -9,7 +9,7 @@ export const LandingCtaSection = () => {
 
   const handleSubmit = () => {
     if (!prompt.trim()) return
-    window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))
+    window.dispatchEvent(new CustomEvent('open-auth', { detail: 'login' }))
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

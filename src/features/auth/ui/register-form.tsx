@@ -1,10 +1,12 @@
 'use client'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Mail, Lock, User as UserIcon, Building } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { registerSchema, type RegisterFormValues } from '../model/validation'
 import { api, authApi } from '@/shared/api'
+import { GoogleAuthButton, type GoogleUserInfo } from './google-auth-button'
 
 interface RegisterFormProps {
   onSuccess: (login?: string, password?: string) => void
@@ -12,10 +14,22 @@ interface RegisterFormProps {
 
 export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
   const t = useTranslations('features.auth.register')
+  const tAuth = useTranslations('features.auth')
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<RegisterFormValues>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError, setValue } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema)
   })
+
+  const [googleInfo, setGoogleInfo] = useState<GoogleUserInfo | null>(null)
+  const [googleToken, setGoogleToken] = useState<string | null>(null)
+
+  const handleGoogleSignup = async (accessToken: string, userInfo?: GoogleUserInfo) => {
+    setGoogleToken(accessToken)
+    if (userInfo) {
+      setGoogleInfo(userInfo)
+      setValue('user_info.email', userInfo.email, { shouldValidate: true })
+    }
+  }
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
@@ -28,10 +42,16 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
         throw new Error("No fare configuration found")
       }
 
-      // 2. Submit company registration
+      // 2. Submit company registration. Attach google_token when the user
+      // signed up via Google so the backend can link the account.
       const payload = {
         ...data,
         fare_id,
+        user_info: {
+          ...data.user_info,
+          email: googleInfo?.email || data.user_info.email,
+        },
+        ...(googleToken ? { type: 'google', google_token: googleToken } : {}),
       }
       await authApi.post('/company', payload)
 
@@ -81,19 +101,28 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
         {errors.user_info?.login && <p className="text-xs text-red-500">{errors.user_info.login.message}</p>}
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-text-main">{t('emailLabel')}</label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-          <input
-            {...register('user_info.email')}
-            type="email"
-            placeholder={t('emailPlaceholder')}
-            className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-          />
+      {!googleInfo && (
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-text-main">{t('emailLabel')}</label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+            <input
+              {...register('user_info.email')}
+              type="email"
+              placeholder={t('emailPlaceholder')}
+              className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            />
+          </div>
+          {errors.user_info?.email && <p className="text-xs text-red-500">{errors.user_info.email.message}</p>}
         </div>
-        {errors.user_info?.email && <p className="text-xs text-red-500">{errors.user_info.email.message}</p>}
-      </div>
+      )}
+
+      {googleInfo && (
+        <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-sidebar px-3 py-2 text-xs">
+          <img src="/google.svg" alt="" width={14} height={14} />
+          <span className="text-text-muted truncate">{googleInfo.email}</span>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-text-main">{t('passwordLabel')}</label>
@@ -116,6 +145,25 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
       >
         {t('submit')}
       </button>
+
+      <div className="flex items-center gap-3 my-4">
+        <div className="h-px flex-1 bg-border-subtle" />
+        <span className="text-xs text-text-muted">{tAuth('google.or')}</span>
+        <div className="h-px flex-1 bg-border-subtle" />
+      </div>
+
+      <GoogleAuthButton
+        isLogin={false}
+        disabled={isSubmitting || !!googleToken}
+        onToken={handleGoogleSignup}
+        onError={(err) => {
+          console.error(err)
+          setError('root', {
+            type: 'manual',
+            message: (err as any)?.response?.data?.description || (err as Error)?.message || 'Google sign-up failed',
+          })
+        }}
+      />
     </form>
   )
 }

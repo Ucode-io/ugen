@@ -131,6 +131,11 @@
         "ariaClose": "Close",
         "selectConnections": "Select Connections",
         "configureConnections": "Please configure your connections before logging in."
+      },
+      "google": {
+        "continue": "Continue with Google",
+        "signUp": "Sign up with Google",
+        "or": "or"
       }
     },
     "appVisibility": {

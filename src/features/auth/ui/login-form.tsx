@@ -14,6 +14,7 @@ import { Button } from '@/shared/ui'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
+import { GoogleAuthButton } from './google-auth-button'
 
 interface LoginFormProps {
   onSuccess: () => void
@@ -151,39 +152,26 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
 
       await handleLoginResponse(responseData)
       // ────────────────────────────────────────────────────────────────
+    } catch (error: any) {
+      console.error(error)
+      form.setError('root', {
+        type: 'manual',
+        message: error.response?.data?.description || error.message || 'Login failed'
+      })
+    }
+  }
 
-      // ─── OLD LOGIN LOGIC (commented out) ────────────────────────────
-      // const res = await authApi.post('/v3/multicompany/default-login', {
-      //   username: data.login,
-      //   password: data.password
-      // })
-      //
-      // const responseData = res.data?.data
-      // if (!responseData) throw new Error("Invalid response")
-      //
-      // if (Array.isArray(responseData?.response)) {
-      //   setConnections(responseData.response)
-      //   setCredentials(data)
-      //   setExtraLoginData({
-      //     client_type: responseData.client_type,
-      //     environment_id: responseData.environment,
-      //     project_id: responseData.project,
-      //     company_id: responseData.project_data?.company_id,
-      //     project_data: responseData.project_data
-      //   })
-      //   connectionForm.reset({
-      //     tables: responseData.response.map((conn: any) => ({
-      //       object_id: '',
-      //       table_slug: conn?.table_slug || ''
-      //     }))
-      //   })
-      //   setShowModal(true)
-      //   return
-      // }
-      //
-      // handleLoginResponse(responseData)
-      // ────────────────────────────────────────────────────────────────
+  const handleGoogleLogin = async (accessToken: string) => {
+    try {
+      const res = await authApi.post('/v3/ugen/login', {
+        type: 'google',
+        google_token: accessToken,
+      })
 
+      const responseData = res.data?.data
+      if (!responseData) throw new Error('Invalid response')
+
+      await handleLoginResponse(responseData)
     } catch (error: any) {
       console.error(error)
       form.setError('root', {
@@ -268,6 +256,25 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
           {t('login.submit')}
         </Button>
       </form>
+
+      <div className="flex items-center gap-3 my-4">
+        <div className="h-px flex-1 bg-border-subtle" />
+        <span className="text-xs text-text-muted">{t('google.or')}</span>
+        <div className="h-px flex-1 bg-border-subtle" />
+      </div>
+
+      <GoogleAuthButton
+        isLogin
+        disabled={form.formState.isSubmitting}
+        onToken={handleGoogleLogin}
+        onError={(err) => {
+          console.error(err)
+          form.setError('root', {
+            type: 'manual',
+            message: (err as any)?.response?.data?.description || (err as Error)?.message || 'Google sign-in failed',
+          })
+        }}
+      />
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>

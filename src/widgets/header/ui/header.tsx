@@ -1,5 +1,5 @@
 'use client'
-import { Link } from '@/shared/lib/i18n/navigation'
+import { Link, usePathname } from '@/shared/lib/i18n/navigation'
 import Image from 'next/image'
 import { ThemeSwitcher } from '@/features/theme-switcher'
 import { LangSwitcher } from '@/features/lang-switcher'
@@ -15,11 +15,11 @@ const RESOURCES_DROPDOWN = [
   { icon: '🔌', label: 'Connectors', desc: '300+ integrations', href: '/connectors' },
   { icon: '👤', label: 'Hire an Expert', desc: 'Get help building', href: '/hire-expert' },
   { icon: '📖', label: 'Docs', desc: 'Guides & API reference', href: '/docs' },
-  { icon: '✈', label: 'Community', desc: 'Join on Telegram', href: 'https://t.me/ucode_community', external: true },
 ]
 
 export const Header = () => {
   const tNav = useTranslations('Navigation')
+  const pathname = usePathname()
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
   const [resourcesOpen, setResourcesOpen] = useState(false)
@@ -79,13 +79,19 @@ export const Header = () => {
         </Link>
         <nav className="hidden md:flex items-center gap-0.5">
           <Link
+            href="/"
+            className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${pathname === '/' ? 'text-text-main bg-hover-bg' : 'text-text-muted hover:text-text-main hover:bg-hover-bg'}`}
+          >
+            Home
+          </Link>
+          <Link
             href="/pricing"
-            className="text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg px-3 py-1.5 rounded-lg transition-colors"
+            className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${pathname === '/pricing' ? 'text-text-main bg-hover-bg' : 'text-text-muted hover:text-text-main hover:bg-hover-bg'}`}
           >
             Pricing
           </Link>
           <a
-            href="https://t.me/ucode_community"
+            href="https://t.me/asadbekbakhodirov"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg px-3 py-1.5 rounded-lg transition-colors"
