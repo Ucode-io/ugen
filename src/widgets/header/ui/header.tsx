@@ -10,7 +10,15 @@ import { useAuthStore } from '@/entities/session'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
 import { ChevronDown } from 'lucide-react'
 
-const RESOURCES_DROPDOWN = [
+type ResourceItem = {
+  icon: string
+  label: string
+  desc: string
+  href: string
+  external?: boolean
+}
+
+const RESOURCES_DROPDOWN: ResourceItem[] = [
   { icon: '📦', label: 'Templates', desc: 'Ready-made apps', href: '/templates' },
   { icon: '🔌', label: 'Connectors', desc: '300+ integrations', href: '/connectors' },
   { icon: '👤', label: 'Hire an Expert', desc: 'Get help building', href: '/hire-expert' },
