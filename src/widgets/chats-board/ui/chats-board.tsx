@@ -68,35 +68,45 @@ export const ChatsBoard = () => {
     const raw =
       projectsResponse?.response || projectsResponse?.data || projectsResponse;
     const list = Array.isArray(raw) ? raw : raw?.projects || [];
-    const map = new Map<string, string>();
+    const map = new Map<string, { name: string; image?: string }>();
     list.forEach((p: any) => {
       const id = p.id || p.project_id || p.mcp_project_id;
-      if (id) map.set(id, p.name || p.title || tWidgets("untitledProject"));
+      if (id) {
+        map.set(id, {
+          name: p.name || p.title || tWidgets("untitledProject"),
+          image: p.project_image || p.image || p.thumbnail || undefined,
+        });
+      }
     });
     return map;
   }, [projectsResponse, tWidgets]);
 
-  const chats: (ChatListItem & { project_label: string })[] = useMemo(() => {
+  const chats: (ChatListItem & { project_label: string; project_image?: string })[] = useMemo(() => {
     const pages = chatsPages?.pages ?? [];
     const list = pages.flatMap((page) => {
       const raw = page?.data?.chats ?? page?.response ?? page?.chats ?? [];
       return Array.isArray(raw) ? raw : [];
     });
-    return list.map((c: any) => ({
-      id: c.id,
-      title: c.title || c.name || t("untitledChat"),
-      description: c.description,
-      model: c.model,
-      project_id: c.project_id || c.mcp_project_id || "",
-      project_name: c.project_name || c.project_title,
-      updated_at: c.updated_at || c.created_at,
-      created_at: c.created_at,
-      project_label:
-        c.project_name ||
-        c.project_title ||
-        projectsList.get(c.project_id || c.mcp_project_id) ||
-        t("noProject"),
-    }));
+    return list.map((c: any) => {
+      const pid = c.project_id || c.mcp_project_id;
+      const fromMap = pid ? projectsList.get(pid) : undefined;
+      return {
+        id: c.id,
+        title: c.title || c.name || t("untitledChat"),
+        description: c.description,
+        model: c.model,
+        project_id: pid || "",
+        project_name: c.project_name || c.project_title,
+        updated_at: c.updated_at || c.created_at,
+        created_at: c.created_at,
+        project_label:
+          c.project_name ||
+          c.project_title ||
+          fromMap?.name ||
+          t("noProject"),
+        project_image: c.project_image || fromMap?.image,
+      };
+    });
   }, [chatsPages, projectsList, t]);
 
   const sorted = useMemo(() => {
@@ -270,9 +280,17 @@ export const ChatsBoard = () => {
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-                            <MessagesSquare size={14} />
-                          </div>
+                          {chat.project_image ? (
+                            <img
+                              src={chat.project_image}
+                              alt={chat.project_label}
+                              className="border-border-subtle h-7 w-7 shrink-0 rounded-md border object-cover"
+                            />
+                          ) : (
+                            <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
+                              <MessagesSquare size={14} />
+                            </div>
+                          )}
                           <span className="text-text-main truncate font-medium">
                             {chat.project_label}
                           </span>
