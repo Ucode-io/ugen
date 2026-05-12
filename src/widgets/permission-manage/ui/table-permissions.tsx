@@ -8,7 +8,6 @@ import {
   Link as LinkIcon,
   Eye,
   Settings2,
-  ShieldCheck,
   Loader2,
   Trash2,
   Plus
@@ -176,13 +175,8 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId, control, set
   if (isLoading) return <DataLoadingState message={t('fetching')} />
 
   return (
-    <div className="w-full relative flex flex-col p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center gap-2">
-        <ShieldCheck className="w-5 h-5 text-primary" />
-        <span className="text-sm font-bold text-text-main uppercase tracking-tight">{t('title')}</span>
-      </div>
-
-      <WorkspaceTableWrapper className="border border-border-subtle/50 shadow-sm overflow-hidden rounded-[16px] max-w-[1100px]">
+    <div className="w-full relative flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <WorkspaceTableWrapper className="border border-border-subtle/50 shadow-sm overflow-hidden rounded-[10px] max-w-[1100px]">
         <div onScroll={handleScroll} className="overflow-auto max-h-[calc(100vh-320px)] custom-scrollbar">
           <WorkspaceTable className="border-collapse w-full min-w-[1100px]">
             <WorkspaceTableHeader className="sticky top-0 z-50 bg-bg-card">

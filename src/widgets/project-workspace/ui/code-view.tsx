@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Zap, Layers2, ArrowUp } from 'lucide-react'
-import { Button, SubTabs, UsageIndicator } from '@/shared/ui'
+import { Button, ReusableTabs, UsageIndicator } from '@/shared/ui'
 import { FunctionsPage } from './functions-page'
 import { MicrofrontendPage } from './microfrontend-page'
 import { CodeEditorTarget } from '@/entities/session'
@@ -61,12 +61,12 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
             </div>
           </div>
 
-          <SubTabs
+          <ReusableTabs
             activeId={activeTab}
             onTabChange={setActiveTab}
             options={[
-              { id: 'microfrontend', label: 'Frontend', icon: Layers2 },
-              { id: 'functions', label: 'Server Functions', icon: Zap },
+              { id: 'microfrontend', label: 'Frontend', icon: <Layers2 size={14} /> },
+              { id: 'functions', label: 'Server Functions', icon: <Zap size={14} /> },
             ]}
           />
         </>

@@ -21,7 +21,7 @@ import {
   LayoutGrid,
   ChevronRight
 } from 'lucide-react'
-import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, Skeleton, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, SubTabs, UsageIndicator } from '@/shared/ui'
+import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Switch, Skeleton, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, ReusableTabs, UsageIndicator } from '@/shared/ui'
 import { WorkspaceDataTable } from './workspace-data-table'
 import { ApiIntegrationsPage } from './api-integrations-page'
 import { ApiKeysPage } from './api-keys-page'
@@ -781,7 +781,8 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
           </div>
         </div>
 
-        <SubTabs
+        <ReusableTabs
+          className="w-fit"
           activeId={activeTab}
           onTabChange={setActiveTab}
           options={[

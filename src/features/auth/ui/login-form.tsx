@@ -14,13 +14,6 @@ import { Button } from '@/shared/ui'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui'
-import axios from 'axios'
-
-// New ugen auth API instance
-const ugenApi = axios.create({
-  baseURL: 'https://auth-api.ucode.run',
-  headers: { 'Content-Type': 'application/json' }
-})
 
 interface LoginFormProps {
   onSuccess: () => void
@@ -148,7 +141,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       // ─── NEW LOGIN LOGIC ────────────────────────────────────────────
-      const res = await ugenApi.post('/v3/ugen/login', {
+      const res = await authApi.post('/v3/ugen/login', {
         login: data.login,
         password: data.password
       })

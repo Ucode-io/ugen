@@ -342,8 +342,8 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
             : chatPosition === 'right' ? '1fr auto' : 'auto 1fr',
           gridTemplateRows: 'auto 1fr',
           gridTemplateAreas: chatPosition === 'right'
-            ? '"header chat" "preview chat"'
-            : '"chat header" "chat preview"',
+            ? '"header header" "preview chat"'
+            : '"header header" "chat preview"',
         }}
       >
         {/* Chat — spans full height */}
