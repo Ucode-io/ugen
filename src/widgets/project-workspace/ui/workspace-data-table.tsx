@@ -47,6 +47,7 @@ interface WorkspaceDataTableProps<TData, TValue> {
   onLimitChange?: (limit: number) => void;
   isLoading?: boolean;
   className?: string;
+  tableClassName?: string;
   containerClassName?: string;
   emptyMessage?: string;
   onRowClick?: (data: TData) => void;
@@ -62,6 +63,7 @@ export function WorkspaceDataTable<TData, TValue>({
   onLimitChange,
   isLoading = false,
   className,
+  tableClassName,
   containerClassName,
   emptyMessage,
   onRowClick,
@@ -130,9 +132,9 @@ export function WorkspaceDataTable<TData, TValue>({
   const showFooter = totalCount > 0 && onPageChange && onLimitChange;
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
-      <WorkspaceTableWrapper className={cn("flex-1", containerClassName)}>
-        <WorkspaceTable>
+    <div className={cn("flex min-w-0 flex-col gap-4", className)}>
+      <WorkspaceTableWrapper className={cn("min-w-0 max-w-full flex-1", containerClassName)}>
+        <WorkspaceTable className={tableClassName}>
           <WorkspaceTableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <WorkspaceTableRow key={headerGroup.id}>

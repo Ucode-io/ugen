@@ -2,64 +2,58 @@
 
 import { useCallback, useState } from 'react'
 
-import { useChatStore } from '@/entities/chat'
-import { DEFAULT_MODEL_ID } from '@/entities/ai-model'
-import { api } from '@/shared/api'
+import { useAuthStore } from '@/entities/session'
+import { githubApi } from '@/shared/api'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 
 import type { Template } from './templates'
 
 type LaunchTemplateOptions = {
   title: string
-  model?: string
 }
 
 export const useTemplateLaunch = () => {
   const router = useRouter()
-  const clearChat = useChatStore((state) => state.clearChat)
-  const setChatId = useChatStore((state) => state.setChatId)
-  const setProjectId = useChatStore((state) => state.setProjectId)
-  const setPendingPrompt = useChatStore((state) => state.setPendingPrompt)
   const [launchingTemplateId, setLaunchingTemplateId] = useState<string | null>(null)
 
   const launchTemplate = useCallback(async (template: Template, options: LaunchTemplateOptions) => {
     if (launchingTemplateId) return
 
+    const project = useAuthStore.getState().project
+    if (!project?.project_id || !project?.environment_id) {
+      console.error('Cannot launch template: missing target project_id or environment_id')
+      return
+    }
+
     setLaunchingTemplateId(template.id)
 
     try {
-      const title = options.title.trim() || 'Template project'
-      const model = options.model || DEFAULT_MODEL_ID
+      const projectName = (options.title || 'Template project').trim().slice(0, 60)
 
-      clearChat()
+      const { data } = await githubApi.post(
+        '/v1/ugen-template/create-project',
+        {
+          template_id: template.id,
+          project_name: projectName,
+        },
+        {
+          params: { 'project-id': project.project_id },
+          headers: { 'Environment-Id': project.environment_id },
+        },
+      )
 
-      const { data } = await api.post('/v1/ai-chat', {
-        title: title.slice(0, 30),
-        project_name: title.slice(0, 20),
-        description: `Template: ${template.id}`,
-        model,
-      })
+      const mcpProjectId = data?.data?.mcp_project_id
 
-      const chatId = data?.data?.id
-      const projectId = data?.data?.project_id
-
-      if (!chatId || !projectId) {
-        throw new Error('Template project creation response is missing chat or project id')
+      if (!mcpProjectId) {
+        throw new Error('create-project response is missing mcp_project_id')
       }
 
-      setChatId(chatId)
-      setProjectId(projectId)
-      setPendingPrompt({
-        content: template.request,
-        model,
-      })
-
-      router.push(`/projects/${projectId}?template=${template.id}&tab=preview`)
+      router.push(`/projects/${mcpProjectId}`)
     } catch (error) {
       console.error('Failed to launch template', error)
       setLaunchingTemplateId(null)
     }
-  }, [clearChat, launchingTemplateId, router, setChatId, setPendingPrompt, setProjectId])
+  }, [launchingTemplateId, router])
 
   return {
     launchTemplate,
