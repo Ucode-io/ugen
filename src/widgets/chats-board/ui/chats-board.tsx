@@ -283,7 +283,7 @@ export const ChatsBoard = () => {
                           {chat.project_image ? (
                             <img
                               src={chat.project_image}
-                              alt={chat.project_label}
+                              alt={chat.title}
                               className="border-border-subtle h-7 w-7 shrink-0 rounded-md border object-cover"
                             />
                           ) : (
@@ -292,7 +292,7 @@ export const ChatsBoard = () => {
                             </div>
                           )}
                           <span className="text-text-main truncate font-medium">
-                            {chat.project_label}
+                            {chat.title}
                           </span>
                         </div>
                       </td>

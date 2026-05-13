@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Sparkles,
 } from "lucide-react";
+import { useState } from "react"
 import type { ChatPosition } from "@/entities/chat"
 import { useTranslations } from "next-intl"
 import { ReusableTabs } from "@/shared/ui"
@@ -12,6 +13,7 @@ import { PublishPopover } from "./publish-popover"
 import { GithubPopover } from "./github-popover"
 import { LogoPopover } from "@/widgets/workspace-chat/ui/logo-popover"
 import { Sidebar } from "@/widgets/sidebar"
+import { cn } from "@/shared/lib/utils/cn"
 
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
@@ -48,6 +50,11 @@ export const ProjectHeader = ({
   isUgen = true,
 }: ProjectHeaderProps) => {
   const t = useTranslations('features.project')
+  const [isSidebarForced, setIsSidebarForced] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
+  const [isLogoPopoverOpen, setIsLogoPopoverOpen] = useState(false)
+
+  const isSidebarVisible = (isHovered || isSidebarForced) && !isLogoPopoverOpen
 
   const handleChangeTab = (tab: 'dashboard' | 'code' | 'preview') => {
     if (tab === 'code' && activeTab !== 'code') {
@@ -86,12 +93,27 @@ export const ProjectHeader = ({
   );
 
   return (
-    <header className="bg-bg-main flex items-center justify-between px-4 shrink-0 z-10 transition-all duration-300">
+    <header className="bg-bg-main flex h-12 items-center justify-between px-4 shrink-0 z-10 transition-all duration-300">
       <div className="flex items-center gap-2 min-w-[135px]">
-        <div className="group/sidebar-drawer relative shrink-0">
-          <LogoPopover projectTitle={projectTitle} />
-          <div className="pointer-events-none fixed left-3 top-3 bottom-3 z-[180] -translate-x-4 opacity-0 transition-all duration-200 ease-out group-hover/sidebar-drawer:pointer-events-auto group-hover/sidebar-drawer:translate-x-0 group-hover/sidebar-drawer:opacity-100">
-            <Sidebar className="h-[calc(100vh-24px)] w-72 rounded-2xl border border-border-subtle shadow-2xl" />
+        <div
+          className="relative shrink-0"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <LogoPopover
+            projectTitle={projectTitle}
+            open={isLogoPopoverOpen}
+            onOpenChange={setIsLogoPopoverOpen}
+          />
+          <div className={cn(
+            "pointer-events-none fixed left-0 top-12 bottom-0 z-180 -translate-x-4 opacity-0 transition-all duration-200 ease-out",
+            isSidebarVisible && "pointer-events-auto translate-x-0 opacity-100"
+          )}>
+            <Sidebar
+              className="h-full w-72 rounded-r-2xl border-r border-t border-b border-border-subtle shadow-2xl"
+              hideLogo
+              onProfilePopupChange={setIsSidebarForced}
+            />
           </div>
         </div>
         <span className="text-[15px] font-medium text-text-main truncate max-w-[120px]">
