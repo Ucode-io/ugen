@@ -40,7 +40,7 @@ export const getTemplateDescription = (t: Template) =>
   t.description || ''
 
 export const getTemplateImage = (t: Template) =>
-  t.preview_image || t.image_url || t.image || t.thumbnail || ''
+  t.photo || t.preview_image || t.image_url || t.image || t.thumbnail || ''
 
 export const getTemplateDemoUrl = (t: Template) =>
   t.preview_url || t.demo_url || t.url || t.link || ''

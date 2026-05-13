@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import {
-  List,
   Plus,
   Loader2,
   Settings2
@@ -171,25 +170,8 @@ export const CustomPermissionsTable = ({
   if (isLoading) return <DataLoadingState message={t('fetching')} />
 
   return (
-    <div className="w-full relative flex flex-col p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <List className="w-5 h-5 text-primary" />
-          <span className="text-sm font-bold text-text-main uppercase tracking-tight">Custom Permissions</span>
-        </div>
-        <Button
-          onClick={() => {
-            setSelectedRow(null)
-            setIsAddModalOpen(true)
-          }}
-          className="bg-primary hover:bg-primary/90 text-white h-9 px-4 rounded-xl text-[13px] font-bold"
-        >
-          <Plus size={16} className="mr-2" />
-          Add Permission
-        </Button>
-      </div>
-
-      <WorkspaceTableWrapper className="border border-border-subtle/50 shadow-sm overflow-hidden rounded-[16px] max-w-[1100px]">
+    <div className="w-full relative flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <WorkspaceTableWrapper className="border border-border-subtle/50 shadow-sm overflow-hidden rounded-[10px] max-w-[1100px]">
         <div onScroll={handleScroll} className="overflow-auto max-h-[calc(100vh-320px)] custom-scrollbar">
           <WorkspaceTable className="border-collapse w-full min-w-[1100px]">
             <WorkspaceTableHeader className="sticky top-0 z-50 bg-bg-card">
@@ -245,14 +227,25 @@ export const CustomPermissionsTable = ({
               ))}
               {(!custom || custom.length === 0) && (
                 <WorkspaceTableRow>
-                  <WorkspaceTableCell colSpan={6} className="py-20 text-center text-text-muted">
-                    No custom permissions found. Click "Add Permission" to create one.
+                  <WorkspaceTableCell colSpan={6} className="py-10 text-center text-text-muted text-[13px]">
+                    No custom permissions found.
                   </WorkspaceTableCell>
                 </WorkspaceTableRow>
               )}
             </WorkspaceTableBody>
           </WorkspaceTable>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedRow(null)
+            setIsAddModalOpen(true)
+          }}
+          className="w-full flex items-center gap-2 px-6 py-2.5 border-t border-border-subtle/50 bg-bg-card hover:bg-primary/5 text-text-muted hover:text-primary transition-colors group/add"
+        >
+          <Plus size={14} />
+          <span className="text-[12px] font-medium">Add Permission</span>
+        </button>
       </WorkspaceTableWrapper>
 
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>

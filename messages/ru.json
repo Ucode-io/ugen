@@ -132,6 +132,11 @@
         "ariaClose": "Закрыть",
         "selectConnections": "Выберите подключения",
         "configureConnections": "Пожалуйста, настройте подключения перед входом в систему."
+      },
+      "google": {
+        "continue": "Продолжить с Google",
+        "signUp": "Регистрация с Google",
+        "or": "или"
       }
     },
     "appVisibility": {

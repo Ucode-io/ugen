@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>u-code — Build your own product in 15 minutes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Hero ── */
+    .hero {
+      padding: calc(var(--nav-h) + 72px) 24px 80px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 100px; padding: 5px 14px;
+      font-size: .72rem; font-weight: 600; color: var(--text2);
+      margin-bottom: 28px; letter-spacing: .03em;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #22c55e; animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .hero h1 {
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 900; letter-spacing: -.05em; line-height: 1.02;
+      color: var(--text); margin-bottom: 18px;
+      max-width: 840px; margin-left: auto; margin-right: auto;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.05rem; color: var(--text2); margin-bottom: 44px;
+      max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.7;
+    }
+
+    /* Chat bar */
+    .chat-wrap { max-width: 680px; margin: 0 auto 20px; }
+    .chat-bar {
+      display: flex; align-items: center;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 5px 5px 5px 18px;
+      box-shadow: var(--shadow); transition: border-color .2s, box-shadow .2s;
+    }
+    .chat-bar:focus-within { border-color: #999; box-shadow: var(--shadow-md); }
+    .chat-bar input {
+      flex: 1; background: none; border: none; outline: none;
+      font-family: inherit; font-size: .95rem; color: var(--text);
+      caret-color: var(--purple); padding: 9px 0;
+    }
+    .chat-bar input::placeholder { color: var(--text3); }
+    .chat-send {
+      display: flex; align-items: center; gap: 6px;
+      background: #004eea; border: none; border-radius: 8px;
+      padding: 10px 18px;
+      font-family: inherit; font-size: .85rem; font-weight: 600;
+      color: #fff; cursor: pointer; white-space: nowrap;
+      transition: opacity .15s; flex-shrink: 0;
+    }
+    .chat-send:hover { opacity: .8; }
+    .chat-send svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.5; flex-shrink: 0; }
+
+    /* Chips */
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 7px;
+      justify-content: center; max-width: 680px; margin: 0 auto;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 100px; padding: 5px 13px;
+      font-size: .78rem; color: var(--text2); font-family: inherit;
+      cursor: pointer; transition: all .14s; white-space: nowrap;
+    }
+    .chip:hover { border-color: #999; color: var(--text); background: var(--bg2); }
+
+    /* ── Trusted ── */
+    .trusted {
+      padding: 44px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      text-align: center;
+    }
+    .trusted-lbl {
+      font-size: .68rem; font-weight: 600; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--text3);
+      display: block; margin-bottom: 28px;
+    }
+    .logo-row {
+      display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap;
+    }
+    .logo-card {
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px 36px; border-right: 1px solid var(--border);
+      text-decoration: none; transition: opacity .2s;
+    }
+    .logo-card:last-child { border-right: none; }
+    .logo-text {
+      font-size: 1.1rem; font-weight: 800; letter-spacing: -.03em;
+      color: var(--text3); transition: color .2s;
+    }
+    .logo-card:hover .logo-text { color: var(--text); }
+
+    /* ── Steps ── */
+    .steps-wrap {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; margin-top: 48px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+    }
+    .step-block {
+      padding: 36px 30px; position: relative; overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .step-block:last-child { border-right: none; }
+    .step-block::before {
+      content: attr(data-n); position: absolute;
+      top: -8px; right: 14px; font-size: 5rem; font-weight: 900;
+      color: var(--border2); line-height: 1; user-select: none;
+    }
+    .step-ico {
+      width: 40px; height: 40px; border-radius: 8px; margin-bottom: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; border: 1px solid var(--border); background: var(--bg2);
+    }
+    .step-block h3 { font-size: .98rem; font-weight: 700; color: var(--text); margin-bottom: 9px; line-height: 1.3; }
+    .step-block p  { font-size: .85rem; color: var(--text2); line-height: 1.7; }
+    .step-lnk { display: inline-block; margin-top: 16px; font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--purple); }
+
+    /* ── Templates grid ── */
+    .tmpl-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 32px; }
+    .see-all { font-size: .82rem; font-weight: 600; color: var(--text2); text-decoration: none; border: 1px solid var(--border); padding: 7px 16px; border-radius: 7px; transition: all .15s; }
+    .see-all:hover { border-color: #999; color: var(--text); }
+    .tmpl-home {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .tc {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      text-decoration: none; color: inherit; display: block;
+      transition: border-color .18s, box-shadow .18s, transform .18s;
+    }
+    .tc:hover { border-color: #bbb; box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .tc-thumb {
+      aspect-ratio: 16/9; display: flex; align-items: center;
+      justify-content: center; font-size: 2rem;
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+    }
+    .tc-body { padding: 13px 15px; }
+    .tc-body h4 { font-size: .83rem; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .tc-body p  { font-size: .74rem; color: var(--text2); line-height: 1.5; }
+    .tc-foot { padding: 0 15px 13px; display: flex; gap: 5px; flex-wrap: wrap; }
+    .tc-tag { font-size: .66rem; font-weight: 600; padding: 2px 8px; border-radius: 100px; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); }
+
+    /* ── Stats ── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+      margin-top: 48px;
+    }
+    .stat {
+      padding: 48px 36px; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-n { font-size: clamp(2.2rem, 4vw, 3.4rem); font-weight: 900; letter-spacing: -.05em; color: var(--text); margin-bottom: 7px; }
+    .stat-l { font-size: .88rem; font-weight: 600; color: var(--text2); }
+    .stat-s { font-size: .75rem; color: var(--text3); margin-top: 4px; }
+
+    /* ── Bottom CTA ── */
+    .cta-home {
+      background: #111111; padding: 96px 24px; text-align: center;
+    }
+    .cta-home h2 { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 900; letter-spacing: -.04em; color: #fff; margin-bottom: 12px; }
+    .cta-home p  { font-size: .95rem; color: rgba(255,255,255,.5); margin-bottom: 36px; }
+    .cta-home .chat-bar-v2 {
+      background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12);
+      max-width: 620px; margin: 0 auto;
+    }
+    .cta-home .chat-bar-v2:focus-within { border-color: rgba(255,255,255,.3); box-shadow: 0 0 0 3px rgba(255,255,255,.06); }
+    .cta-home .chat-bar-v2 input { color: #fff; }
+    .cta-home .chat-bar-v2 input::placeholder { color: rgba(255,255,255,.25); }
+    .cta-home .chat-toolbar { border-top-color: rgba(255,255,255,.1); }
+    .cta-home .chat-tool-btn { color: rgba(255,255,255,.45); }
+    .cta-home .chat-tool-btn:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.8); }
+    .cta-home .chat-model-btn { color: rgba(255,255,255,.45); }
+    .cta-home .chat-model-btn:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.8); }
+    .cta-home .chat-plan-btn { color: rgba(255,255,255,.45); }
+    .cta-home .chat-plan-btn:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.8); }
+    .cta-note { font-size: .74rem; color: rgba(255,255,255,.25); margin-top: 12px; }
+
+    /* Responsive */
+    @media (max-width: 960px) {
+      .steps-wrap { grid-template-columns: 1fr; }
+      .step-block { border-right: none; border-bottom: 1px solid var(--border); }
+      .step-block:last-child { border-bottom: none; }
+      .tmpl-home { grid-template-columns: repeat(2,1fr); }
+      .stats-row { grid-template-columns: 1fr; }
+      .stat { border-right: none; border-bottom: 1px solid var(--border); }
+      .stat:last-child { border-bottom: none; }
+    }
+    @media (max-width: 560px) {
+      .tmpl-home { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="fade-in">
+<script>window.CURRENT_PAGE = 'index.html';</script>
+<script src="nav.js"></script>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    AI-powered development platform
+  </div>
+
+  <h1>Build your own product <em>in 15 minutes</em></h1>
+
+  <p>Create apps and websites with AI — no engineering degree required.</p>
+
+  <div class="chat-wrap">
+    <div class="chat-bar-v2" id="hero-bar">
+      <input id="hero-input" type="text"
+        placeholder="Ask u-code to build your app…"
+        onkeydown="if(event.key==='Enter')goChat()"
+        autocomplete="off" />
+      <div class="chat-toolbar">
+        <button class="chat-tool-btn" title="Attach">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="chat-model-btn">
+          <span class="chat-model-icon">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2l2.09 6.26L21 10l-6.91 2.09L12 22l-2.09-7.91L3 12l6.91-1.74z"/></svg>
+          </span>
+          u-code AI
+          <span class="chat-model-chevron">
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </button>
+        <div class="chat-toolbar-spacer"></div>
+        <button class="chat-plan-btn">Build</button>
+        <button class="chat-tool-btn" title="Voice">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button class="chat-send-v2" onclick="goChat()">
+          <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="chips">
+    <button class="chip" onclick="fill('A SaaS dashboard for tracking sales')">💼 Sales dashboard</button>
+    <button class="chip" onclick="fill('A booking app with Stripe payments')">📅 Booking app</button>
+    <button class="chip" onclick="fill('An employee onboarding portal')">🎉 HR onboarding</button>
+    <button class="chip" onclick="fill('A landing page with email capture')">📣 Landing page</button>
+    <button class="chip" onclick="fill('An inventory management system')">📦 Inventory tool</button>
+  </div>
+</section>
+
+<!-- ── TRUSTED ── -->
+<div class="trusted">
+  <span class="trusted-lbl">Trusted by growing companies</span>
+  <div class="logo-row">
+    <a href="https://wayll.uz/en" target="_blank" rel="noopener" class="logo-card">
+      <span class="logo-text">wayll</span>
+    </a>
+    <a href="https://qwatt.uz/" target="_blank" rel="noopener" class="logo-card">
+      <span class="logo-text">qwatt</span>
+    </a>
+    <a href="https://www.lodify.io/" target="_blank" rel="noopener" class="logo-card">
+      <span class="logo-text">lodify</span>
+    </a>
+  </div>
+</div>
+
+<!-- ── TEMPLATES ── -->
+<section class="section-alt" style="padding:80px 24px">
+  <div class="section-inner">
+    <div class="tmpl-header">
+      <div>
+        <span class="section-label">Templates</span>
+        <h2 class="section-title" style="margin-top:10px">Discover <em>templates</em></h2>
+        <p class="section-sub">Start from a production-ready template and customise in minutes.</p>
+      </div>
+      <a href="templates.html" class="see-all">Browse all →</a>
+    </div>
+    <div class="tmpl-home">
+      <a href="template-detail.html" class="tc">
+        <div class="tc-thumb">📊</div>
+        <div class="tc-body"><h4>CRM Dashboard</h4><p>Pipeline management with deal tracking</p></div>
+        <div class="tc-foot"><span class="tc-tag">SaaS</span><span class="tc-tag">Sales</span></div>
+      </a>
+      <a href="template-detail.html" class="tc">
+        <div class="tc-thumb">🛒</div>
+        <div class="tc-body"><h4>Online Store</h4><p>E-commerce with Stripe checkout</p></div>
+        <div class="tc-foot"><span class="tc-tag">E-commerce</span><span class="tc-tag">Payments</span></div>
+      </a>
+      <a href="template-detail.html" class="tc">
+        <div class="tc-thumb">📣</div>
+        <div class="tc-body"><h4>Landing Page</h4><p>High-converting page with A/B testing</p></div>
+        <div class="tc-foot"><span class="tc-tag">Marketing</span><span class="tc-tag">Leads</span></div>
+      </a>
+      <a href="template-detail.html" class="tc">
+        <div class="tc-thumb">🎉</div>
+        <div class="tc-body"><h4>HR Onboarding Hub</h4><p>New hire portal with task flows</p></div>
+        <div class="tc-foot"><span class="tc-tag">HR</span><span class="tc-tag">People</span></div>
+      </a>
+      <a href="template-detail.html" class="tc">
+        <div class="tc-thumb">📅</div>
+        <div class="tc-body"><h4>Booking System</h4><p>Calendar bookings with payments</p></div>
+        <div class="tc-foot"><span class="tc-tag">SaaS</span><span class="tc-tag">Stripe</span></div>
+      </a>
+      <a href="template-detail.html" class="tc">
+        <div class="tc-thumb">🤝</div>
+        <div class="tc-body"><h4>Client Portal</h4><p>Branded portal for project updates</p></div>
+        <div class="tc-foot"><span class="tc-tag">Agency</span><span class="tc-tag">B2B</span></div>
+      </a>
+      <a href="template-detail.html" class="tc">
+        <div class="tc-thumb">📦</div>
+        <div class="tc-body"><h4>Inventory Manager</h4><p>Stock tracking with auto-reorder</p></div>
+        <div class="tc-foot"><span class="tc-tag">Ops</span><span class="tc-tag">Internal</span></div>
+      </a>
+      <a href="template-detail.html" class="tc">
+        <div class="tc-thumb">📈</div>
+        <div class="tc-body"><h4>Analytics Dashboard</h4><p>Real-time KPI reporting</p></div>
+        <div class="tc-foot"><span class="tc-tag">Data</span><span class="tc-tag">BI</span></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── BOTTOM CTA ── -->
+<section class="cta-home">
+  <h2>Ready to build?</h2>
+  <p>Describe your idea and u-code will build it in 15 minutes — for free.</p>
+  <div class="chat-bar-v2" id="cta-bar">
+    <input id="cta-input" type="text"
+      placeholder="Ask u-code to build your app…"
+      onkeydown="if(event.key==='Enter')goCta()"
+      autocomplete="off" />
+    <div class="chat-toolbar">
+      <button class="chat-tool-btn" title="Attach">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="chat-model-btn">
+        <span class="chat-model-icon">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2l2.09 6.26L21 10l-6.91 2.09L12 22l-2.09-7.91L3 12l6.91-1.74z"/></svg>
+        </span>
+        u-code AI
+        <span class="chat-model-chevron">
+          <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </span>
+      </button>
+      <div class="chat-toolbar-spacer"></div>
+      <button class="chat-plan-btn">Build</button>
+      <button class="chat-tool-btn" title="Voice">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <button class="chat-send-v2" onclick="goCta()">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </div>
+  </div>
+  <p class="cta-note">No credit card required · Free forever on starter plan</p>
+</section>
+
+<script src="footer.js"></script>
+<script>
+  function fill(txt) {
+    var inp = document.getElementById('hero-input');
+    inp.value = txt; inp.focus();
+  }
+  function goChat() {
+    if (!document.getElementById('hero-input').value.trim()) {
+      document.getElementById('hero-input').focus(); return;
+    }
+    window.location.href = 'pricing.html';
+  }
+  function goCta() { window.location.href = 'pricing.html'; }
+</script>
+</body>
+</html>

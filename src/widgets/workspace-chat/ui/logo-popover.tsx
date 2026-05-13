@@ -34,7 +34,15 @@ function TokenBar({ label, item, color }: { label: string; item: any; color: str
   )
 }
 
-export const LogoPopover = ({ projectTitle }: { projectTitle?: string }) => {
+export const LogoPopover = ({
+  projectTitle,
+  open,
+  onOpenChange,
+}: {
+  projectTitle?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) => {
   const router = useRouter()
   const project = useAuthStore((state) => state.project)
   const workspaceName = project?.title || 'Workspace'
@@ -57,7 +65,7 @@ export const LogoPopover = ({ projectTitle }: { projectTitle?: string }) => {
   const monthlyTokens = d.monthly_tokens
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button className="h-8 flex items-center justify-center rounded-lg hover:bg-hover-bg transition-all px-1.5">
           <img src="/logo.svg" className="h-5 w-auto block shrink-0" alt="ugen" />

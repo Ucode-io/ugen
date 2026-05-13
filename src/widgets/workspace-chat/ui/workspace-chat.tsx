@@ -1,8 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react";
 import { History, Loader2, PanelLeft, PanelRight } from "lucide-react";
-import { LogoPopover } from "./logo-popover";
-import { Sidebar } from "@/widgets/sidebar";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
@@ -137,7 +135,7 @@ const PendingActionConfirm = ({
   )
 }
 
-export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVersionHistory, onToggleVersionHistory, onSelectVersion, onViewVersionCode, onVersionReverted, onSelectFunction, onSelectMicrofrontend }: WorkspaceChatProps) => {
+export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, onToggleVersionHistory, onSelectVersion, onViewVersionCode, onVersionReverted, onSelectFunction, onSelectMicrofrontend }: WorkspaceChatProps) => {
   const t = useTranslations('widgets.workspaceChat');
 
   const MOCK_CHAT: Message[] = [
@@ -684,40 +682,32 @@ export const WorkspaceChat = ({ projectId, projectTitle, isChatCollapsed, isVers
         >
           <div className="w-1 h-12 bg-border-subtle group-hover:bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm" />
         </div>
-        {/* Header — logo + project title, aligned with ProjectHeader height */}
-        <div className="flex items-center gap-2 px-4 py-3 shrink-0">
-          {chatPosition === 'left' && (
-            <>
-              <div className="group/sidebar-drawer relative shrink-0">
-                <LogoPopover projectTitle={projectTitle} />
-                <div className="pointer-events-none fixed left-3 top-3 bottom-3 z-[180] -translate-x-4 opacity-0 transition-all duration-200 ease-out group-hover/sidebar-drawer:pointer-events-auto group-hover/sidebar-drawer:translate-x-0 group-hover/sidebar-drawer:opacity-100">
-                  <Sidebar className="h-[calc(100vh-24px)] w-72 rounded-2xl border border-border-subtle shadow-2xl" />
-                </div>
-              </div>
-              <span className="text-[15px] font-medium text-text-main truncate flex-1">
-                {projectTitle}
-              </span>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={onToggleVersionHistory}
-            className={cn(
-              "flex items-center justify-center w-7 h-7 rounded-lg transition-colors shrink-0",
-              isVersionHistory
-                ? "bg-bg-sidebar text-text-main"
-                : "text-text-muted hover:bg-hover-bg hover:text-text-main"
-            )}
-          >
-            <History size={15} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setChatPosition(chatPosition === 'left' ? 'right' : 'left')}
-            className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors shrink-0 text-text-muted hover:bg-hover-bg hover:text-text-main"
-          >
-            {chatPosition === 'left' ? <PanelRight size={15} /> : <PanelLeft size={15} />}
-          </button>
+
+        <div className="flex h-10 shrink-0 items-center justify-between gap-2 px-2">
+          <div />
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={onToggleVersionHistory}
+              title="Version History"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+                isVersionHistory
+                  ? "bg-bg-sidebar text-text-main"
+                  : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+              )}
+            >
+              <History size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setChatPosition(chatPosition === 'left' ? 'right' : 'left')}
+              title="Toggle chat position"
+              className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors text-text-muted hover:bg-hover-bg hover:text-text-main"
+            >
+              {chatPosition === 'left' ? <PanelRight size={14} /> : <PanelLeft size={14} />}
+            </button>
+          </div>
         </div>
 
         <div

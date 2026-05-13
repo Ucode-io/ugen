@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Popover, PopoverContent, PopoverTrigger, Checkbox, MultiSelect, SubTabs, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/shared/ui'
+import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Popover, PopoverContent, PopoverTrigger, Checkbox, MultiSelect, ReusableTabs, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import {
   Camera, ChevronDown, ChevronUp, Loader2,
@@ -286,9 +286,9 @@ export const AppSettingsPage = () => {
 
   const tabs = useMemo(() => {
     return [
-      { id: 'project', label: 'Project Settings', icon: Settings },
-      { id: 'envs', label: tWidgets('environmentManagement'), icon: Server },
-      { id: 'i18n', label: tWidgets('languageKeys'), icon: Globe },
+      { id: 'project', label: 'Project Settings', icon: <Settings size={14} /> },
+      { id: 'envs', label: tWidgets('environmentManagement'), icon: <Server size={14} /> },
+      { id: 'i18n', label: tWidgets('languageKeys'), icon: <Globe size={14} /> },
     ]
   }, [tWidgets])
 
@@ -314,12 +314,11 @@ export const AppSettingsPage = () => {
         <p className="text-text-muted text-[13px]">Configure your project details and preferences</p>
       </div>
 
-      <SubTabs
+      <ReusableTabs
         options={tabs}
         activeId={activeTab}
         onTabChange={setActiveTab}
-        containerClassName="shrink-0 pb-0 mb-5"
-        tabClassName="pb-2.5"
+        className="shrink-0 mb-5 w-fit"
       />
 
       <div className="flex-1 overflow-y-auto pb-8 custom-scrollbar">

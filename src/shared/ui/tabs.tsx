@@ -86,7 +86,7 @@ const ReusableTabs = ({
   }
 
   return (
-    <div className={cn("flex items-center gap-1.5 bg-bg-main p-1 rounded-lg border border-border-subtle", className)}>
+    <div className={cn("flex items-center gap-1.5 bg-bg-main p-1 rounded-lg border border-border-subtle w-fit", className)}>
       {options.map((option) => {
         const isActive = activeId === option.id
 

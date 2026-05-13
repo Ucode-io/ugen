@@ -1,244 +1,252 @@
 import React from 'react'
 import { Link } from '@/shared/lib/i18n/navigation'
-import { Check, CheckCircle2, Database, Rocket, Server, Smartphone, Globe, Code, Key, Box, ShieldCheck, Cpu, HardDrive, Filter, Workflow, Layers } from 'lucide-react'
-import { Button } from '@/shared/ui'
-import { StartProjectButton } from './start-project-button'
 import { Footer } from '@/widgets/footer'
-import { getTranslations } from 'next-intl/server'
+import { LandingHeroSection } from './landing-hero-section'
+import { LandingCtaSection } from './landing-cta-section'
 
-const HeroSection = async () => {
-  const t = await getTranslations('widgets.landingPage')
-  
-  return (
-    <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden flex flex-col items-center justify-center text-center px-4">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-bg-main to-bg-main"></div>
-      
-      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary mb-8 border border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <Cpu size={14} className="animate-pulse" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.2em]">{t('aiBasedPlatform')}</span>
-      </div>
+const LANDING_TEMPLATES = [
+  { id: 'crm',       emoji: '📊', title: 'CRM Dashboard',       desc: 'Pipeline management with deal tracking',    tags: ['SaaS', 'Sales'] },
+  { id: 'store',     emoji: '🛒', title: 'Online Store',         desc: 'E-commerce with Stripe checkout',           tags: ['E-commerce', 'Payments'] },
+  { id: 'landing',   emoji: '📣', title: 'Landing Page',         desc: 'High-converting page with A/B testing',     tags: ['Marketing', 'Leads'] },
+  { id: 'onboard',   emoji: '🎉', title: 'HR Onboarding Hub',    desc: 'New hire portal with task flows',           tags: ['HR', 'People'] },
+  { id: 'booking',   emoji: '📅', title: 'Booking System',       desc: 'Calendar bookings with payments',           tags: ['SaaS', 'Stripe'] },
+  { id: 'client',    emoji: '🤝', title: 'Client Portal',        desc: 'Branded portal for project updates',        tags: ['Agency', 'B2B'] },
+  { id: 'inventory', emoji: '📦', title: 'Inventory Manager',    desc: 'Stock tracking with auto-reorder',          tags: ['Ops', 'Internal'] },
+  { id: 'analytics', emoji: '📈', title: 'Analytics Dashboard',  desc: 'Real-time KPI reporting',                   tags: ['Data', 'BI'] },
+]
 
-      <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight text-text-main mb-6 max-w-4xl animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 whitespace-pre-line">
-        {t('heroTitle')}
-      </h1>
-      
-      <p className="text-lg lg:text-xl text-text-muted max-w-2xl mb-10 text-balance animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
-        {t('heroSubtitle')}
-      </p>
+/* ── Trusted logos ── */
+const WayTwoLogo = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" version="1.2" viewBox="0 0 429 106" className="h-5 w-auto"><style>{'.a{fill:#d42427}'}</style><path d="m304.2 22.1v-13.1h2v73.5h-2z"/><path d="m386.5 77.4v-8.4c0-2.6 1.9-4.5 4.5-4.5h10.5v23.3h-4v-7.6h-0.1c-0.3 0.3-0.6 0.6-0.9 0.9-0.6 0.4-1.5 0.8-2.6 0.8h-2.9c-2.5 0-4.5-2-4.5-4.5zm6 0.9h2.3c1.7 0 2.7-1 2.7-2.8v-7.4h-5q-2 0-2 2.1v6q0 2.1 2 2.1z"/><path d="m379.4 81.9v-17.4h4v17.4zm0-19.8v-4.5h4v4.5z"/><path d="m361.5 81.9v-23.6h4v7.9h0.1q0.3-0.5 0.9-1c0.6-0.5 1.6-1 2.9-1h2.1c2.6 0 4.5 1.8 4.5 4.4v13.3h-4v-12q0-2.1-2-2.1h-1.6q-2.9 0-2.9 2.9v11.2z"/><path d="m346.3 77.4v-8.4c0-2.6 1.9-4.5 4.5-4.5h8.3v2.4l-1.2 1.2h-5.5q-2.1 0-2.1 2.1v6q0 2.1 2.1 2.1h6.7v3.6h-8.3c-2.6 0-4.5-1.8-4.5-4.5z"/><path d="m328.4 77.8v-9.2c0-2.6 1.9-4.4 4.5-4.4h6.2c2.6 0 4.5 1.8 4.5 4.4v9.2c0 2.6-2 4.5-4.5 4.5h-6.2c-2.6 0-4.5-1.9-4.5-4.5zm6 0.8h3.1q2.1 0 2.1-2v-6.7q0-2.1-2.1-2.1h-3.1q-2 0-2 2.1v6.7q0 2 2 2z"/><path d="m407.5 40.5v-2.1c0-2.6 1.9-4.5 4.5-4.5h5.9v-1c0-1.4-0.8-2.1-2.1-2.1h-6.9v-3.6h8.4c2.7 0 4.5 1.9 4.5 4.5v12.9h-2.7l-0.6-1.9h-0.1c-0.3 0.5-0.5 0.9-0.9 1.2-0.7 0.5-1.6 1.1-3.1 1.1h-2.4c-2.6 0-4.5-1.9-4.5-4.5zm5.9 0.9h1.7c1.8 0 2.8-1 2.8-2.8v-1.2h-4.5q-1.9 0-1.9 1.7v0.4q0 1.9 1.9 1.9z"/><path d="m389.9 40.1v-8.4c0-2.6 2-4.5 4.5-4.5h10.5v23.3h-3.9v-7.6h-0.2c-0.2 0.3-0.6 0.6-0.9 0.9-0.6 0.4-1.4 0.8-2.6 0.8h-2.9c-2.5 0-4.5-2-4.5-4.5zm6.1 0.9h2.2c1.8 0 2.8-1 2.8-2.8v-7.4h-5q-2.1 0-2.1 2.1v6q0 2.1 2.1 2.1z"/><path d="m371.8 40.1v-8.4c0-2.6 2-4.5 4.5-4.5h10.5v23.3h-3.9v-7.6h-0.2c-0.2 0.3-0.5 0.6-0.9 0.9-0.6 0.4-1.4 0.8-2.5 0.8h-3c-2.5 0-4.5-2-4.5-4.5zm6.1 0.9h2.2c1.8 0 2.8-1 2.8-2.8v-7.4h-5q-2.1 0-2.1 2.1v6q0 2.1 2.1 2.1z"/><path d="m364.6 44.6v-23.6h4v23.6z"/><path d="m346.7 40.5v-2.1c0-2.6 1.8-4.5 4.5-4.5h5.8v-1c0-1.4-0.7-2.1-2-2.1h-6.9v-3.6h8.4c2.6 0 4.5 1.9 4.5 4.5v12.9h-2.8l-0.5-1.9h-0.1c-0.3 0.5-0.6 0.9-0.9 1.2-0.7 0.5-1.6 1.1-3.1 1.1h-2.4c-2.7 0-4.5-1.9-4.5-4.5zm5.8 0.9h1.8c1.7 0 2.7-1 2.7-2.8v-1.2h-4.5q-1.9 0-1.8 1.7v0.4q-0.1 1.9 1.8 1.9z"/><path d="m327.2 44.6v-2l5.9-10-5.2-10v-2.1h3.9l4.5 9.5h0.2l4.5-9.5h4v2.1l-5.2 9.8 5.8 10.2v2h-3.9l-5.2-9.8h-0.2l-5.1 9.8z"/><path fill="#d42427" d="m6.3 9.1h16.3l11.8 50.2 12.9-50.2h15.3l12.7 50.8 12.2-50.8h16l-19.9 73.8h-16.2l-12.6-50.4-12.4 50.4h-16.5zm145.9 73.7h-14.9q-0.8-2-1.1-5.1-6.7 6.7-17.3 6.7-8.9 0-14-4.3-5-4.3-5-11.9 0-3.4 0.8-6 0.9-2.6 2.9-4.3 2.1-1.8 3.8-2.9 1.9-1.2 5.1-1.9 3.2-0.7 5.2-1 2-0.5 5.5-0.9 7.8-1 10.3-2.1 2.7-1.2 2.7-4.3 0-7.1-9.6-7.1-5.1 0-7.5 1.8-2.3 1.8-3.1 6.3h-13.7q1.2-18 24.7-18 23.3 0 23.3 17.4v23.1q0 10.2 1.9 14.5zm-16.1-26q-2.6 1.6-10.3 2.8-6.6 1.1-8.5 2.6-2.3 1.9-2.3 5.4 0 3.3 2.1 5.3 2.1 1.9 6 1.9 5.9 0 9.4-3.2 3.6-3.2 3.6-8.8zm71.3-27.4l-19.7 53.2q-1.4 4.1-2.1 5.6-0.7 1.7-2.1 4.6-1.3 2.9-2.6 4-1.1 1.2-3.2 2.6-2 1.5-4.6 2-2.4 0.5-5.8 0.5-2.7 0-9.8-0.1v-12.1h7.1q3.7 0 5.5-1.9 2-1.9 2-5.3 0-0.8-0.4-2l-19.4-51.1h15.9l12.2 36.3 11.8-36.3zm42.9-20.3v73.7h-14.7v-73.7zm23.6 0v73.7h-14.7v-73.7z"/><path fill="#d42427" d="m288.6 13.1q0 0.8-0.3 1.6-0.4 0.7-0.9 1.3-0.6 0.5-1.3 0.8-0.7 0.3-1.6 0.3-0.9 0-1.6-0.3-0.7-0.3-1.3-0.8-0.6-0.6-0.9-1.3-0.3-0.8-0.3-1.6 0-0.9 0.3-1.6 0.3-0.8 0.9-1.3 0.6-0.6 1.3-0.9 0.7-0.3 1.6-0.3 0.9 0 1.6 0.3 0.7 0.3 1.3 0.9 0.5 0.5 0.9 1.3 0.3 0.7 0.3 1.6zm-7.1 0q0 0.6 0.2 1.2 0.3 0.5 0.7 0.9 0.4 0.4 0.9 0.7 0.6 0.2 1.2 0.2 0.6 0 1.2-0.2 0.5-0.3 0.9-0.7 0.4-0.4 0.6-0.9 0.3-0.6 0.3-1.2 0-0.7-0.3-1.2-0.2-0.6-0.6-1-0.4-0.4-0.9-0.7-0.6-0.2-1.2-0.2-0.6 0-1.2 0.2-0.5 0.3-0.9 0.7-0.4 0.4-0.7 1-0.2 0.5-0.2 1.2zm4.7-0.7q0 0.3-0.1 0.5-0.2 0.2-0.3 0.4-0.2 0.1-0.5 0.2l1.2 1.7h-1.2l-0.9-1.4h-0.3v1.4h-1.1v-4.2h1.7q0.3 0 0.6 0.1 0.3 0.1 0.5 0.3 0.2 0.2 0.3 0.4 0.1 0.3 0.1 0.6zm-1.6 0.4q0.3 0 0.5-0.1 0.1-0.2 0.1-0.3 0-0.2-0.1-0.4-0.2-0.1-0.5-0.1h-0.5v0.9z"/></svg>
+)
 
-      <div className="flex flex-col sm:flex-row items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-        <StartProjectButton />
-      </div>
-    </section>
-  )
-}
+{/* <svg xmlns="http://www.w3.org/2000/svg" version="1.2" viewBox="0 0 429 106" width="429" height="106" data-locator-target="cursor://file/${projectPath}${filePath}:${line}:${column}"><style>.a{fill:#d42427}</style><path d="m304.2 22.1v-13.1h2v73.5h-2z"/><path d="m386.5 77.4v-8.4c0-2.6 1.9-4.5 4.5-4.5h10.5v23.3h-4v-7.6h-0.1c-0.3 0.3-0.6 0.6-0.9 0.9-0.6 0.4-1.5 0.8-2.6 0.8h-2.9c-2.5 0-4.5-2-4.5-4.5zm6 0.9h2.3c1.7 0 2.7-1 2.7-2.8v-7.4h-5q-2 0-2 2.1v6q0 2.1 2 2.1z"/><path d="m379.4 81.9v-17.4h4v17.4zm0-19.8v-4.5h4v4.5z"/><path d="m361.5 81.9v-23.6h4v7.9h0.1q0.3-0.5 0.9-1c0.6-0.5 1.6-1 2.9-1h2.1c2.6 0 4.5 1.8 4.5 4.4v13.3h-4v-12q0-2.1-2-2.1h-1.6q-2.9 0-2.9 2.9v11.2z"/><path d="m346.3 77.4v-8.4c0-2.6 1.9-4.5 4.5-4.5h8.3v2.4l-1.2 1.2h-5.5q-2.1 0-2.1 2.1v6q0 2.1 2.1 2.1h6.7v3.6h-8.3c-2.6 0-4.5-1.8-4.5-4.5z"/><path d="m328.4 77.8v-9.2c0-2.6 1.9-4.4 4.5-4.4h6.2c2.6 0 4.5 1.8 4.5 4.4v9.2c0 2.6-2 4.5-4.5 4.5h-6.2c-2.6 0-4.5-1.9-4.5-4.5zm6 0.8h3.1q2.1 0 2.1-2v-6.7q0-2.1-2.1-2.1h-3.1q-2 0-2 2.1v6.7q0 2 2 2z"/><path d="m407.5 40.5v-2.1c0-2.6 1.9-4.5 4.5-4.5h5.9v-1c0-1.4-0.8-2.1-2.1-2.1h-6.9v-3.6h8.4c2.7 0 4.5 1.9 4.5 4.5v12.9h-2.7l-0.6-1.9h-0.1c-0.3 0.5-0.5 0.9-0.9 1.2-0.7 0.5-1.6 1.1-3.1 1.1h-2.4c-2.6 0-4.5-1.9-4.5-4.5zm5.9 0.9h1.7c1.8 0 2.8-1 2.8-2.8v-1.2h-4.5q-1.9 0-1.9 1.7v0.4q0 1.9 1.9 1.9z"/><path d="m389.9 40.1v-8.4c0-2.6 2-4.5 4.5-4.5h10.5v23.3h-3.9v-7.6h-0.2c-0.2 0.3-0.6 0.6-0.9 0.9-0.6 0.4-1.4 0.8-2.6 0.8h-2.9c-2.5 0-4.5-2-4.5-4.5zm6.1 0.9h2.2c1.8 0 2.8-1 2.8-2.8v-7.4h-5q-2.1 0-2.1 2.1v6q0 2.1 2.1 2.1z"/><path d="m371.8 40.1v-8.4c0-2.6 2-4.5 4.5-4.5h10.5v23.3h-3.9v-7.6h-0.2c-0.2 0.3-0.5 0.6-0.9 0.9-0.6 0.4-1.4 0.8-2.5 0.8h-3c-2.5 0-4.5-2-4.5-4.5zm6.1 0.9h2.2c1.8 0 2.8-1 2.8-2.8v-7.4h-5q-2.1 0-2.1 2.1v6q0 2.1 2.1 2.1z"/><path d="m364.6 44.6v-23.6h4v23.6z"/><path d="m346.7 40.5v-2.1c0-2.6 1.8-4.5 4.5-4.5h5.8v-1c0-1.4-0.7-2.1-2-2.1h-6.9v-3.6h8.4c2.6 0 4.5 1.9 4.5 4.5v12.9h-2.8l-0.5-1.9h-0.1c-0.3 0.5-0.6 0.9-0.9 1.2-0.7 0.5-1.6 1.1-3.1 1.1h-2.4c-2.7 0-4.5-1.9-4.5-4.5zm5.8 0.9h1.8c1.7 0 2.7-1 2.7-2.8v-1.2h-4.5q-1.9 0-1.8 1.7v0.4q-0.1 1.9 1.8 1.9z"/><path d="m327.2 44.6v-2l5.9-10-5.2-10v-2.1h3.9l4.5 9.5h0.2l4.5-9.5h4v2.1l-5.2 9.8 5.8 10.2v2h-3.9l-5.2-9.8h-0.2l-5.1 9.8z"/><path class="a" d="m6.3 9.1h16.3l11.8 50.2 12.9-50.2h15.3l12.7 50.8 12.2-50.8h16l-19.9 73.8h-16.2l-12.6-50.4-12.4 50.4h-16.5zm145.9 73.7h-14.9q-0.8-2-1.1-5.1-6.7 6.7-17.3 6.7-8.9 0-14-4.3-5-4.3-5-11.9 0-3.4 0.8-6 0.9-2.6 2.9-4.3 2.1-1.8 3.8-2.9 1.9-1.2 5.1-1.9 3.2-0.7 5.2-1 2-0.5 5.5-0.9 7.8-1 10.3-2.1 2.7-1.2 2.7-4.3 0-7.1-9.6-7.1-5.1 0-7.5 1.8-2.3 1.8-3.1 6.3h-13.7q1.2-18 24.7-18 23.3 0 23.3 17.4v23.1q0 10.2 1.9 14.5zm-16.1-26q-2.6 1.6-10.3 2.8-6.6 1.1-8.5 2.6-2.3 1.9-2.3 5.4 0 3.3 2.1 5.3 2.1 1.9 6 1.9 5.9 0 9.4-3.2 3.6-3.2 3.6-8.8zm71.3-27.4l-19.7 53.2q-1.4 4.1-2.1 5.6-0.7 1.7-2.1 4.6-1.3 2.9-2.6 4-1.1 1.2-3.2 2.6-2 1.5-4.6 2-2.4 0.5-5.8 0.5-2.7 0-9.8-0.1v-12.1h7.1q3.7 0 5.5-1.9 2-1.9 2-5.3 0-0.8-0.4-2l-19.4-51.1h15.9l12.2 36.3 11.8-36.3zm42.9-20.3v73.7h-14.7v-73.7zm23.6 0v73.7h-14.7v-73.7z"/><path class="a" d="m288.6 13.1q0 0.8-0.3 1.6-0.4 0.7-0.9 1.3-0.6 0.5-1.3 0.8-0.7 0.3-1.6 0.3-0.9 0-1.6-0.3-0.7-0.3-1.3-0.8-0.6-0.6-0.9-1.3-0.3-0.8-0.3-1.6 0-0.9 0.3-1.6 0.3-0.8 0.9-1.3 0.6-0.6 1.3-0.9 0.7-0.3 1.6-0.3 0.9 0 1.6 0.3 0.7 0.3 1.3 0.9 0.5 0.5 0.9 1.3 0.3 0.7 0.3 1.6zm-7.1 0q0 0.6 0.2 1.2 0.3 0.5 0.7 0.9 0.4 0.4 0.9 0.7 0.6 0.2 1.2 0.2 0.6 0 1.2-0.2 0.5-0.3 0.9-0.7 0.4-0.4 0.6-0.9 0.3-0.6 0.3-1.2 0-0.7-0.3-1.2-0.2-0.6-0.6-1-0.4-0.4-0.9-0.7-0.6-0.2-1.2-0.2-0.6 0-1.2 0.2-0.5 0.3-0.9 0.7-0.4 0.4-0.7 1-0.2 0.5-0.2 1.2zm4.7-0.7q0 0.3-0.1 0.5-0.2 0.2-0.3 0.4-0.2 0.1-0.5 0.2l1.2 1.7h-1.2l-0.9-1.4h-0.3v1.4h-1.1v-4.2h1.7q0.3 0 0.6 0.1 0.3 0.1 0.5 0.3 0.2 0.2 0.3 0.4 0.1 0.3 0.1 0.6zm-1.6 0.4q0.3 0 0.5-0.1 0.1-0.2 0.1-0.3 0-0.2-0.1-0.4-0.2-0.1-0.5-0.1h-0.5v0.9z"/></svg> */}
 
-const DatabasesSection = async () => {
-  const t = await getTranslations('widgets.landingPage.databases')
-  
-  return (
-    <section id="databases" className="py-24 bg-bg-card scroll-mt-16">
-      <div className="container mx-auto px-6 lg:px-8 max-w-7xl">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-              <Database className="text-primary" size={24} />
-            </div>
-            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-text-main mb-4">
-              {t('title')}
-            </h2>
-            <p className="text-lg text-text-muted mb-6">
-              {t('description')}
-            </p>
-            <ul className="space-y-4">
-              {[
-                t('list.manageData'),
-                t('list.scalable'),
-                t('list.lowcode')
-              ].map((text, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  <CheckCircle2 className="text-primary flex-shrink-0" size={20} />
-                  <span className="text-text-main font-medium">{text}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="relative">
-            <div className="absolute -inset-4 bg-gradient-to-tr from-primary/10 to-accent/10 rounded-3xl blur-2xl -z-10"></div>
-            <div className="ai-card p-8 flex flex-col gap-4 border border-border-subtle/40 shadow-xl shadow-primary/[0.02]">
-              <div className="bg-bg-main border border-border-subtle/60 rounded-xl p-5 flex items-center justify-between shadow-sm transition-all hover:border-primary/30 hover:shadow-primary/5">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#336791]/10 flex items-center justify-center border border-[#336791]/20">
-                    <Database className="text-[#336791]" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-text-main text-base">{t('postgresql')}</h3>
-                    <p className="text-xs text-text-muted mt-0.5">{t('relational')}</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md uppercase tracking-wider">{t('ready')}</span>
-              </div>
-              <div className="bg-bg-main border border-border-subtle/60 rounded-xl p-5 flex items-center justify-between shadow-sm transition-all hover:border-green-500/30 hover:shadow-green-500/5">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#47A248]/10 flex items-center justify-center border border-[#47A248]/20">
-                    <Database className="text-[#47A248]" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-text-main text-base">{t('mongodb')}</h3>
-                    <p className="text-xs text-text-muted mt-0.5">{t('document')}</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md uppercase tracking-wider">{t('ready')}</span>
-              </div>
-              <div className="bg-bg-main border border-border-subtle/60 rounded-xl p-5 flex items-center justify-between shadow-sm transition-all hover:border-yellow-500/30 hover:shadow-yellow-500/5">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
-                    <Database className="text-yellow-500" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-text-main text-base">{t('clickhouse')}</h3>
-                    <p className="text-xs text-text-muted mt-0.5">{t('analytics')}</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md uppercase tracking-wider">{t('ready')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
+const QwattLogo = () => (
+  <svg viewBox="0 0 240 70" className="h-6 w-auto" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#fed139" d="M26.84,25.76a1.83,1.83,0,0,0,.44-1.19,1.86,1.86,0,1,0-.44,1.2Z" />
+    <path fill="#fed139" d="M25.53,44.64A1.87,1.87,0,1,0,27,44a1.85,1.85,0,0,0-1.43.66Z" />
+    <path fill="#fed139" d="M51.26,29.14H34.9L30,42.45a4.57,4.57,0,0,1-2.89,7.95H27a4.57,4.57,0,0,1-.2-9.14L41.26,1.5A1.11,1.11,0,0,0,39.43.33l-39.1,39a1.11,1.11,0,0,0,.79,1.9H17.48L22.33,28A4.57,4.57,0,0,1,25.22,20h.2a4.58,4.58,0,0,1,.19,9.15L11.11,68.91a1.11,1.11,0,0,0,1.83,1.16l39.1-39a1.11,1.11,0,0,0-.79-1.9Z" />
+    <path fill="#313131" d="M75.14,34.1c0,3.77,1.13,4.48,7.32,4.48,3.7,0,5.32-.31,6.18-1.08s.91-1.48.91-4.44c0-4.35-1-5-7.23-5s-7.18.67-7.18,5.29Zm14.32,6.1a5.59,5.59,0,0,1-3.34,3.32c-1.36.58-2.89.76-6.37.76-5.87,0-8.76-.68-10.57-2.47-1.45-1.44-1.9-3.46-1.9-8.21s.5-7.13,2-8.61c1.9-1.93,5-2.65,11.34-2.65,4.11,0,6.27.49,7.54,1.66.67.63.9,1,1.67,3.5V26.38c-.09-2.2,1.13-3.55,3.25-3.55H94a3.09,3.09,0,0,1,3.25,3.64V49.25a3.09,3.09,0,0,1-3.3,3.64H92.75a3.07,3.07,0,0,1-3.3-3.64V40.19Z" />
+    <path fill="#313131" d="M110.56,40.42c0,2.15-1.26,3.41-3.52,3.37H105.1c-2.26.09-3.57-1.17-3.53-3.37V38.81c0-2.2,1.27-3.46,3.53-3.37H107c2.26-.09,3.57,1.16,3.52,3.37Z" />
+    <path fill="#313131" d="M128.68,25.76a3.57,3.57,0,0,1,3.93-2.92h1.76c2.08,0,3.25.85,3.93,2.92L143,38.45l4.11-12.61a3.51,3.51,0,0,1,4-3h1.68A2.37,2.37,0,0,1,155.32,25a4.33,4.33,0,0,1-.36,1.44l-5.37,14.44a3.68,3.68,0,0,1-4.24,2.92h-4.52c-2.3.13-3.57-.76-4.16-3l-3.2-9.51-3.3,9.51a3.58,3.58,0,0,1-4.15,3h-4.38a3.69,3.69,0,0,1-4.25-2.92l-5.32-14.44a4.91,4.91,0,0,1-.32-1.44,2.38,2.38,0,0,1,2.62-2.15H116a3.51,3.51,0,0,1,4,3l3.93,12.61,4.79-12.69Z" />
+    <path fill="#313131" d="M164.66,37.1c0,1.26.76,2,2.39,2.25a33.85,33.85,0,0,0,4.34.13,16.9,16.9,0,0,0,4.78-.36,2.07,2.07,0,0,0,1.49-2c0-1.93-1.17-2.33-6.91-2.33C165.92,34.77,164.66,35.26,164.66,37.1Zm13.09,3c-1,3.41-2.89,4.22-9.84,4.22-8.85,0-10.93-1.3-10.93-6.77,0-4,1.4-6,4.7-6.6a46.8,46.8,0,0,1,8.22-.45c5.23,0,6.82.54,7.63,2.65V30.78c0-3.14-.72-3.59-6-3.59-1.85,0-3.07,0-3.57,0a17.51,17.51,0,0,0-3.93,1.4,3.15,3.15,0,0,1-1.58.26h-.68a2.64,2.64,0,0,1-2.66-2.55,2.83,2.83,0,0,1,1.9-2.6c2-1.08,4.47-1.4,11.42-1.4,4.34,0,7.09.23,8.76.81a6.14,6.14,0,0,1,4.34,6.15V40.11c.18,2.24-1.13,3.72-3.3,3.68h-1.17a3,3,0,0,1-3.3-3.23Z" />
+    <path fill="#313131" d="M191.29,28.09c-1.89,0-3.07-1-3.07-2.65s1.18-2.6,3.07-2.6h.91v-2a3.1,3.1,0,0,1,3.38-3h1.23a3.13,3.13,0,0,1,3.34,3.68v1.3h9.43a3,3,0,0,1,2.49.77,2.61,2.61,0,0,1,.76,1.84,2.65,2.65,0,0,1-.76,1.88,3,3,0,0,1-2.49.76h-9.43V35c0,3,.67,3.77,3.47,3.77,2,0,2.85-.45,3.21-1.71a3,3,0,0,1,2.93-2.24h.09a2.93,2.93,0,0,1,3,3v.09c0,4.66-2.53,6.41-9.21,6.41-4.88,0-6.91-.27-8.44-1.21-2.22-1.26-2.94-2.87-2.94-6.46V28.09Z" />
+    <path fill="#313131" d="M218.46,28.09c-1.9,0-3.07-1-3.07-2.65s1.18-2.6,3.07-2.6h.9v-2a3.11,3.11,0,0,1,3.39-3H224a3.12,3.12,0,0,1,3.34,3.68v1.3h9.44a3,3,0,0,1,2.48.77,2.58,2.58,0,0,1,.77,1.84,2.62,2.62,0,0,1-.77,1.88,3,3,0,0,1-2.48.76h-9.44V35c0,3,.68,3.77,3.48,3.77,2,0,2.85-.45,3.21-1.71a2.94,2.94,0,0,1,2.93-2.24H237a2.93,2.93,0,0,1,3,3v.09c0,4.66-2.53,6.41-9.21,6.41-4.88,0-6.91-.27-8.45-1.21-2.21-1.26-2.93-2.87-2.93-6.46V28.09Z" />
+  </svg>
+)
 
-const EdgeFunctionsSection = async () => {
-  const t = await getTranslations('widgets.landingPage.edgeFunctions')
-  
-  return (
-    <section id="edge-functions" className="py-24 bg-bg-sidebar/30 border-y border-border-subtle/40 scroll-mt-16">
-      <div className="container mx-auto px-6 lg:px-8 max-w-7xl text-center">
-        <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center mb-6 mx-auto">
-          <Code className="text-accent" size={24} />
-        </div>
-        <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-text-main mb-4">
-          {t('title')}
-        </h2>
-        <p className="text-lg text-text-muted mb-6 max-w-2xl mx-auto">
-          {t('description')}
-        </p>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16 text-left">
-          {[
-            { title: t('platforms.mobile'), desc: 'Flutter, Android, SWIFT, Dart', icon: Smartphone },
-            { title: t('platforms.web'), desc: 'React JS, Vue JS, Angular, JS', icon: Globe },
-            { title: t('platforms.backend'), desc: 'Go, Java, C++, C, Php, Python', icon: Server },
-            { title: t('platforms.microfrontend'), desc: 'Angular, React.JS, Vue.JS', icon: Layers }
-          ].map((platform, i) => (
-            <div key={i} className="ai-card p-6 border-border-subtle hover:border-primary/30 transition-all hover:-translate-y-1">
-              <div className="w-10 h-10 rounded-xl bg-bg-main flex items-center justify-center border border-border-subtle mb-4 shadow-sm">
-                <platform.icon size={20} className="text-text-main" />
-              </div>
-              <h3 className="font-bold text-text-main text-lg mb-2">{platform.title}</h3>
-              <p className="text-sm text-text-muted leading-relaxed select-all">{platform.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
+const LodifyLogo = () => (
+  <svg viewBox="0 0 124.499 35.673" className="h-6 w-auto" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#003B63" d="M51.373 4.426h-3.322V28.59h3.322z" />
+    <path fill="#003B63" d="M66.26 13.369c-1.268-.723-2.704-1.08-4.318-1.08s-3.05.357-4.318 1.08c-1.267.722-2.271 1.698-2.994 2.927-.732 1.239-1.098 2.656-1.098 4.27s.366 3.04 1.098 4.288a7.9 7.9 0 0 0 2.994 2.947q1.899 1.081 4.318 1.079c2.419-.002 3.05-.357 4.318-1.08a8 8 0 0 0 2.994-2.946c.732-1.248 1.098-2.674 1.098-4.288s-.366-3.003-1.098-4.251a8 8 0 0 0-2.995-2.946m-.02 9.956a4.6 4.6 0 0 1-1.736 1.839q-1.112.658-2.562.657c-.967 0-1.82-.216-2.562-.657a4.56 4.56 0 0 1-1.737-1.84c-.422-.788-.629-1.689-.629-2.72 0-1.033.207-1.971.63-2.76a4.6 4.6 0 0 1 1.736-1.839q1.111-.658 2.562-.656c.967 0 1.849.225 2.581.656a4.66 4.66 0 0 1 1.727 1.84c.422.788.629 1.698.629 2.758s-.207 1.943-.629 2.721z" />
+    <path fill="#003B63" d="M84.403 14.673a7.1 7.1 0 0 0-1.502-1.304c-1.108-.723-2.365-1.08-3.783-1.08-1.501 0-2.844.357-4.017 1.08-1.173.722-2.102 1.698-2.806 2.946-.695 1.248-1.052 2.665-1.052 4.25 0 1.587.348 3.041 1.052 4.29.694 1.247 1.633 2.232 2.806 2.945 1.173.723 2.506 1.08 4.017 1.08 1.418 0 2.675-.357 3.783-1.08a7 7 0 0 0 1.595-1.426l.132 2.224h3.125V4.426h-3.35zm-.592 8.652a4.43 4.43 0 0 1-1.68 1.839q-1.084.658-2.562.657c-.986 0-1.812-.216-2.535-.657a4.5 4.5 0 0 1-1.689-1.84c-.413-.788-.61-1.698-.61-2.758s.207-1.943.61-2.721a4.6 4.6 0 0 1 1.69-1.84q1.083-.658 2.534-.656c.966 0 1.84.225 2.562.656.723.441 1.277 1.051 1.68 1.84.394.788.6 1.689.6 2.72 0 1.033-.196 1.971-.6 2.76" />
+    <path fill="#003B63" d="M92.784 5.261c-.6 0-1.107.197-1.511.6-.413.395-.61.902-.61 1.502s.206 1.107.61 1.51c.413.414.91.61 1.511.61s1.136-.206 1.549-.61c.403-.403.61-.91.61-1.51s-.207-1.098-.61-1.501c-.413-.394-.92-.6-1.549-.6" />
+    <path fill="#003B63" d="M94.464 12.571h-3.322v16.018h3.322z" />
+    <path fill="#003B63" d="M103.343 7.776c.46-.45 1.127-.676 1.981-.676.3 0 .582.029.835.094.254.066.535.15.835.263l.676-2.871a6.6 6.6 0 0 0-1.342-.357 9 9 0 0 0-1.305-.094q-1.604-.002-2.9.713c-.863.47-1.539 1.145-2.046 2.018q-.76 1.308-.76 3.04v2.674h-2.028l-1.773 2.027v.873h3.8v13.118h3.323V15.48h4.393v-2.9h-4.393V9.878c0-.948.235-1.642.695-2.093z" />
+    <path fill="#003B63" d="m121.017 12.571-4.439 11.683-4.937-11.683h-3.708l6.88 15.914-2.788 7.188h3.445l9.029-23.102z" />
+    <path fill="#FF5B04" d="M15.76 13.34c5.737 0 10.389-2.986 10.389-6.67S21.497 0 15.759 0 5.37 2.986 5.37 6.67s4.652 6.67 10.39 6.67" />
+    <path fill="#003B63" d="M12.566 30.315c2.769-1.601 2.647-7.003-.27-12.065-2.919-5.062-7.529-7.868-10.297-6.267s-2.646 7.002.272 12.064 7.527 7.868 10.295 6.267" />
+    <path fill="#00707A" d="M28.417 24.439c3.146-4.923 3.514-10.313.821-12.04-2.692-1.725-7.425.867-10.57 5.79-3.147 4.924-3.514 10.314-.822 12.04s7.425-.867 10.57-5.79" />
+  </svg>
+)
 
-const FeaturesGrid = async () => {
-  const t = await getTranslations('widgets.landingPage.features')
-  
-  const features = [
-    { title: t('list.storage.title'), desc: t('list.storage.description'), icon: HardDrive },
-    { title: t('list.dataApi.title'), desc: t('list.dataApi.description'), icon: Workflow },
-    { title: t('list.auth.title'), desc: t('list.auth.description'), icon: Key },
-    { title: t('list.role.title'), desc: t('list.role.description'), icon: ShieldCheck },
-  ]
+const TRUSTED_COMPANIES = [
+  { name: 'wayll',  href: 'https://wayll.uz/en',   Logo: WayTwoLogo },
+  { name: 'qwatt',  href: 'https://qwatt.uz/',      Logo: QwattLogo },
+  { name: 'lodify', href: 'https://www.lodify.io/', Logo: LodifyLogo },
+]
 
-  return (
-    <section id="features" className="py-24 bg-bg-card scroll-mt-16">
-      <div className="container mx-auto px-6 lg:px-8 max-w-7xl">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-text-main mb-4">
-            {t('title')}
+/* ── How It Works ── */
+const STEPS = [
+  {
+    n: '01',
+    icon: '✏️',
+    title: 'Describe your idea',
+    desc: 'Write what you need in plain English — no technical knowledge required. Be as detailed or as brief as you like.',
+    tag: 'Natural language',
+  },
+  {
+    n: '02',
+    icon: '⚡',
+    title: 'AI builds it for you',
+    desc: 'Our AI generates your complete app — database schema, REST API, and a polished frontend — in minutes.',
+    tag: 'Instant generation',
+  },
+  {
+    n: '03',
+    icon: '🚀',
+    title: 'Deploy & share',
+    desc: 'One-click deployment. Share your live URL with teammates, clients, or the world immediately.',
+    tag: 'One-click deploy',
+  },
+]
+
+/* ── Stats ── */
+const STATS = [
+  { n: '12,000+', label: 'Projects built', sub: 'by founders & teams' },
+  { n: '99.9%', label: 'Platform uptime', sub: 'across all regions' },
+  { n: '< 15 min', label: 'Average build time', sub: 'from idea to live app' },
+]
+
+/* ── Templates section ── */
+const TemplatesSection = () => (
+  <section className="py-20 px-6 bg-bg-card border-y border-border-subtle">
+    <div className="max-w-[1100px] mx-auto">
+      <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
+        <div>
+          <span className="inline-flex items-center bg-bg-main border border-border-subtle rounded-full px-[11px] py-[3px] text-[0.67rem] font-semibold uppercase tracking-[0.08em] text-text-muted mb-3">
+            Templates
+          </span>
+          <h2 className="font-extrabold tracking-[-0.04em] leading-[1.12] text-text-main mb-2.5"
+            style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}>
+            Discover{' '}
+            <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              templates
+            </em>
           </h2>
-          <p className="text-lg text-text-muted">{t('subtitle')}</p>
+          <p className="text-[0.95rem] text-text-muted max-w-[560px] leading-[1.75]">
+            Start from a production-ready template and customize in minutes.
+          </p>
         </div>
-        
-        <div className="grid md:grid-cols-2 gap-6">
-          {features.map((feature, i) => (
-            <div key={i} className="ai-card p-8 flex gap-6 hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-bg-sidebar flex items-center justify-center border border-border-subtle shrink-0">
-                <feature.icon size={24} className="text-primary" />
-              </div>
-              <div>
-                <h3 className="font-bold text-text-main text-xl mb-2">{feature.title}</h3>
-                <p className="text-text-muted leading-relaxed">{feature.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Link
+          href="/templates"
+          className="text-[0.82rem] font-semibold text-text-muted border border-border-subtle px-4 py-2 rounded-lg hover:border-border-subtle/60 hover:text-text-main transition-all no-underline"
+        >
+          Browse all →
+        </Link>
       </div>
-    </section>
-  )
-}
 
-const IntegrationsSection = async () => {
-  const t = await getTranslations('widgets.landingPage.integrations')
-  
-  const integrationCategories = [
-    { name: t('categories.databases'), items: 'MongoDB, PostgreSQL, ClickHouse' },
-    { name: t('categories.storage'), items: 'Minio, Amazon S3, R3' },
-    { name: t('categories.apis'), items: 'SMS, Rest API, Mail' },
-    { name: t('categories.versionControl'), items: 'Github, Gitlab, Bitbucket' },
-    { name: t('categories.maps'), items: 'Yandex maps, Google maps, Mapbox' },
-    { name: t('categories.customFunctions'), items: 'Go, Node Js, Java, JS, C++, C, Php, Python' }
-  ]
-
-  return (
-    <section id="integrations" className="py-24 bg-bg-card border-y border-border-subtle/40 scroll-mt-16">
-      <div className="container mx-auto px-6 lg:px-8 max-w-7xl">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-          <div>
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-              <Box className="text-primary" size={24} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {LANDING_TEMPLATES.map((template) => (
+          <Link
+            key={template.id}
+            href={`/templates/${template.id}` as any}
+            className="bg-bg-main border border-border-subtle rounded-[10px] overflow-hidden no-underline text-current block transition-all hover:border-border-subtle/60 hover:shadow-md hover:-translate-y-0.5"
+          >
+            <div className="aspect-video flex items-center justify-center text-[2rem] bg-hover-bg border-b border-border-subtle">
+              {template.emoji}
             </div>
-            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-text-main mb-4">
-              {t('title')}
-            </h2>
-            <p className="text-lg text-text-muted">{t('description')}</p>
+            <div className="p-[13px_15px]">
+              <h4 className="text-[0.83rem] font-bold text-text-main mb-0.5">{template.title}</h4>
+              <p className="text-[0.74rem] text-text-muted leading-[1.5]">{template.desc}</p>
+            </div>
+            <div className="px-[15px] pb-[13px] flex gap-1.5 flex-wrap">
+              {template.tags.map((tag) => (
+                <span key={tag} className="text-[0.66rem] font-semibold px-2 py-0.5 rounded-full bg-hover-bg border border-border-subtle text-text-muted">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  </section>
+)
+
+/* ── How it works section ── */
+const HowItWorksSection = () => (
+  <section className="py-20 px-6">
+    <div className="max-w-[1100px] mx-auto">
+      <div className="text-center mb-12">
+        <span className="inline-flex items-center bg-bg-card border border-border-subtle rounded-full px-[11px] py-[3px] text-[0.67rem] font-semibold uppercase tracking-[0.08em] text-text-muted mb-3">
+          How it works
+        </span>
+        <h2 className="font-extrabold tracking-[-0.04em] leading-[1.12] text-text-main mb-3.5"
+          style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}>
+          Three steps to your{' '}
+          <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            live product
+          </em>
+        </h2>
+        <p className="text-[0.95rem] text-text-muted max-w-[560px] mx-auto leading-[1.75]">
+          No DevOps. No boilerplate. No waiting weeks for a prototype.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 border border-border-subtle rounded-[10px] overflow-hidden">
+        {STEPS.map((step, i) => (
+          <div
+            key={step.n}
+            className={`bg-bg-main p-9 relative overflow-hidden ${i < STEPS.length - 1 ? 'border-b md:border-b-0 md:border-r border-border-subtle' : ''}`}
+          >
+            {/* Large background number */}
+            <span className="absolute top-[-8px] right-[14px] text-[5rem] font-black leading-none select-none pointer-events-none"
+              style={{ color: 'var(--border)' }}>
+              {step.n}
+            </span>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg mb-[18px] border border-border-subtle bg-bg-card">
+              {step.icon}
+            </div>
+            <h3 className="text-[0.95rem] font-bold text-text-main mb-2">{step.title}</h3>
+            <p className="text-[0.85rem] text-text-muted leading-[1.7] mb-4">{step.desc}</p>
+            <span className="text-[0.7rem] font-bold uppercase tracking-[0.05em] text-primary">
+              {step.tag}
+            </span>
           </div>
-          <Button variant="outline" className="rounded-xl px-6 h-12 font-semibold">
-            {t('viewAll')}
-          </Button>
-        </div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {integrationCategories.map((cat, i) => (
-            <div key={i} className="bg-bg-card border border-border-subtle p-6 rounded-2xl shadow-sm hover:border-primary/20 transition-colors">
-              <h3 className="text-text-main font-bold mb-3 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary/60"></div>
-                {cat.name}
-              </h3>
-              <p className="text-text-muted text-sm leading-relaxed">{cat.items}</p>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
-    </section>
-  )
-}
+    </div>
+  </section>
+)
+
+/* ── Trusted section ── */
+const TrustedSection = () => (
+  <div className="py-14 px-6 border-b border-border-subtle bg-bg-card">
+    <div className="max-w-[1100px] mx-auto">
+      <p className="text-center text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-text-muted/60 mb-8">
+        Trusted by growing companies
+      </p>
+      <div className="flex items-center justify-center gap-4 flex-wrap">
+        {TRUSTED_COMPANIES.map((company) => (
+          <a
+            key={company.name}
+            href={company.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center bg-white rounded-xl px-7 py-3.5 no-underline hover:opacity-80 transition-opacity"
+          >
+            <company.Logo />
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+)
+
+/* ── Stats section ── */
+const StatsSection = () => (
+  <section className="py-20 px-6 bg-bg-card border-b border-border-subtle">
+    <div className="max-w-[1100px] mx-auto">
+      <div className="grid md:grid-cols-3 border border-border-subtle rounded-[10px] overflow-hidden">
+        {STATS.map((stat, i) => (
+          <div
+            key={stat.label}
+            className={`bg-bg-main py-12 px-9 text-center ${i < STATS.length - 1 ? 'border-b md:border-b-0 md:border-r border-border-subtle' : ''}`}
+          >
+            <div className="font-black tracking-[-0.05em] text-text-main mb-[7px]"
+              style={{ fontSize: 'clamp(2.2rem, 4vw, 3.4rem)' }}>
+              {stat.n}
+            </div>
+            <div className="text-[0.88rem] font-semibold text-text-muted">{stat.label}</div>
+            <div className="text-[0.75rem] text-text-muted/60 mt-1">{stat.sub}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+)
 
 export const LandingPage = () => {
   return (
-    <main className="flex flex-col min-h-screen bg-bg-main antialiased selection:bg-primary/20 selection:text-primary">
-      <HeroSection />
-      <DatabasesSection />
-      <EdgeFunctionsSection />
-      <FeaturesGrid />
-      <IntegrationsSection />
+    <main className="flex flex-col min-h-screen bg-bg-main antialiased">
+      <LandingHeroSection />
+      <TrustedSection />
+      <HowItWorksSection />
+      <TemplatesSection />
+      <StatsSection />
+      <LandingCtaSection />
       <Footer />
     </main>
   )

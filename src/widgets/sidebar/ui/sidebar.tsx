@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from "@/shared/lib/i18n/navigation";
 import { Plus } from "lucide-react";
@@ -17,7 +17,13 @@ import { ProfileFooter } from "./components/profile-footer";
 import { ProfileModal } from "./components/profile-modal";
 import { cn } from "@/shared/lib/utils/cn";
 
-export const Sidebar = ({ className }: { className?: string }) => {
+interface SidebarProps {
+  className?: string
+  hideLogo?: boolean
+  onProfilePopupChange?: (isOpen: boolean) => void
+}
+
+export const Sidebar = ({ className, hideLogo, onProfilePopupChange }: SidebarProps) => {
   const router = useRouter();
   const t = useTranslations('Navigation');
   const { user, project, logout, setActiveView } = useAuthStore();
@@ -33,6 +39,10 @@ export const Sidebar = ({ className }: { className?: string }) => {
   const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
   const profilePopupRef = useRef<HTMLDivElement>(null);
   useClickOutside(profilePopupRef, () => setIsProfilePopupOpen(false));
+
+  useEffect(() => {
+    onProfilePopupChange?.(isProfilePopupOpen);
+  }, [isProfilePopupOpen, onProfilePopupChange]);
 
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -57,16 +67,20 @@ export const Sidebar = ({ className }: { className?: string }) => {
       {/* Header Area */}
       <div className="p-3 space-y-2">
         <div className="flex h-8 min-w-0 items-center gap-2 px-1">
-          <Link href="/" className="flex shrink-0 items-center">
-            <Image
-              src="/logo.svg"
-              alt="Logo"
-              width={80}
-              height={24}
-              className="h-5 w-auto"
-            />
-          </Link>
-          <span className="text-text-muted/40 shrink-0 text-sm">/</span>
+          {!hideLogo && (
+            <>
+              <Link href="/" className="flex shrink-0 items-center">
+                <Image
+                  src="/logo.svg"
+                  alt="Logo"
+                  width={80}
+                  height={24}
+                  className="h-5 w-auto"
+                />
+              </Link>
+              <span className="text-text-muted/40 shrink-0 text-sm">/</span>
+            </>
+          )}
           <ProjectDropdown
             project={project}
             projectInitial={projectInitial}

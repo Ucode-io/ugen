@@ -1,15 +1,32 @@
 "use client";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Search, SlidersHorizontal, MessagesSquare, Loader2, ArrowUpDown, Check } from "lucide-react";
+import { Search, SlidersHorizontal, MessagesSquare, Loader2, ArrowUpDown, Check, CircleDashed } from "lucide-react";
 import { useRouter } from "@/shared/lib/i18n/navigation";
-import { useChatsList, ChatListItem } from "@/entities/chat";
+import { useChatsListInfinite, ChatListItem } from "@/entities/chat";
 import { useProjectsList } from "@/entities/project";
 import { useAuthStore } from "@/entities/session";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 
 type SortKey = "updated_at" | "title" | "project";
 type SortDir = "asc" | "desc";
+
+const formatTimeAgo = (raw: string): string => {
+  if (!raw) return "—";
+  try {
+    const diffMs = Date.now() - new Date(raw).getTime();
+    const sec = Math.floor(diffMs / 1000);
+    if (sec < 60) return `${sec}s ago`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h ago`;
+    const days = Math.floor(hr / 24);
+    return `${days}d ago`;
+  } catch {
+    return raw;
+  }
+};
 
 export const ChatsBoard = () => {
   const t = useTranslations("widgets.chats");
@@ -23,14 +40,20 @@ export const ChatsBoard = () => {
   const [sortKey, setSortKey] = useState<SortKey>("updated_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const filterRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const debouncedSearch = useDebounce(searchQuery, 400);
 
-  const { data: chatsResponse, isLoading: isChatsLoading } = useChatsList(
+  const {
+    data: chatsPages,
+    isLoading: isChatsLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useChatsListInfinite(
     {
       order_by: sortKey === "project" ? "updated_at" : sortKey,
       order_direction: sortDir,
-      limit: 200,
       title: debouncedSearch || undefined,
     },
     { enabled: isUgen }
@@ -45,53 +68,74 @@ export const ChatsBoard = () => {
     const raw =
       projectsResponse?.response || projectsResponse?.data || projectsResponse;
     const list = Array.isArray(raw) ? raw : raw?.projects || [];
-    const map = new Map<string, string>();
+    const map = new Map<string, { name: string; image?: string }>();
     list.forEach((p: any) => {
       const id = p.id || p.project_id || p.mcp_project_id;
-      if (id) map.set(id, p.name || p.title || tWidgets("untitledProject"));
+      if (id) {
+        map.set(id, {
+          name: p.name || p.title || tWidgets("untitledProject"),
+          image: p.project_image || p.image || p.thumbnail || undefined,
+        });
+      }
     });
     return map;
   }, [projectsResponse, tWidgets]);
 
-  const chats: ChatListItem[] = useMemo(() => {
-    const raw =
-      chatsResponse?.response || chatsResponse?.data || chatsResponse;
-    const list = Array.isArray(raw) ? raw : raw?.chats || raw?.items || [];
-    return list.map((c: any) => ({
-      id: c.id,
-      title: c.title || c.name || t("untitledChat"),
-      project_id: c.project_id || c.mcp_project_id || "",
-      project_name: c.project_name || c.project_title,
-      updated_at: c.updated_at || c.created_at,
-      created_at: c.created_at,
-    }));
-  }, [chatsResponse, t]);
-
-  const enriched = useMemo(
-    () =>
-      chats.map((c) => ({
-        ...c,
+  const chats: (ChatListItem & { project_label: string; project_image?: string })[] = useMemo(() => {
+    const pages = chatsPages?.pages ?? [];
+    const list = pages.flatMap((page) => {
+      const raw = page?.data?.chats ?? page?.response ?? page?.chats ?? [];
+      return Array.isArray(raw) ? raw : [];
+    });
+    return list.map((c: any) => {
+      const pid = c.project_id || c.mcp_project_id;
+      const fromMap = pid ? projectsList.get(pid) : undefined;
+      return {
+        id: c.id,
+        title: c.title || c.name || t("untitledChat"),
+        description: c.description,
+        model: c.model,
+        project_id: pid || "",
+        project_name: c.project_name || c.project_title,
+        updated_at: c.updated_at || c.created_at,
+        created_at: c.created_at,
         project_label:
-          c.project_name || projectsList.get(c.project_id) || t("noProject"),
-      })),
-    [chats, projectsList, t]
-  );
+          c.project_name ||
+          c.project_title ||
+          fromMap?.name ||
+          t("noProject"),
+        project_image: c.project_image || fromMap?.image,
+      };
+    });
+  }, [chatsPages, projectsList, t]);
 
   const sorted = useMemo(() => {
-    const arr = [...enriched];
+    if (sortKey !== "project") return chats;
+    const arr = [...chats];
     arr.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "title") cmp = a.title.localeCompare(b.title);
-      else if (sortKey === "project")
-        cmp = a.project_label.localeCompare(b.project_label);
-      else
-        cmp =
-          new Date(a.updated_at || 0).getTime() -
-          new Date(b.updated_at || 0).getTime();
+      const cmp = a.project_label.localeCompare(b.project_label);
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
-  }, [enriched, sortKey, sortDir]);
+  }, [chats, sortKey, sortDir]);
+
+  // Infinite scroll sentinel
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  );
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(handleObserver, { threshold: 0.1 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [handleObserver]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -105,31 +149,11 @@ export const ChatsBoard = () => {
     if (isFilterOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isFilterOpen]);
 
   const handleRowClick = (chat: ChatListItem) => {
     if (chat.project_id) router.push(`/projects/${chat.project_id}` as any);
-  };
-
-  const formatDate = (raw: string) => {
-    if (!raw) return "—";
-    try {
-      const d = new Date(raw);
-      const now = new Date();
-      const diffMs = now.getTime() - d.getTime();
-      const diffHr = diffMs / (1000 * 60 * 60);
-      if (diffHr < 24) {
-        return d.toLocaleTimeString(undefined, {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-      return d.toLocaleDateString();
-    } catch {
-      return raw;
-    }
   };
 
   const toggleSort = (key: SortKey) => {
@@ -219,67 +243,81 @@ export const ChatsBoard = () => {
             <p className="text-sm">{t("noChats")}</p>
           </div>
         ) : (
-          <div className="border-border-subtle overflow-hidden rounded-xl border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-bg-sidebar/40 text-text-muted/80 text-xs uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">
-                    <button
-                      onClick={() => toggleSort("title")}
-                      className="hover:text-text-main flex items-center gap-1.5 transition-colors"
-                    >
-                      <span>{t("columns.name")}</span>
-                      <ArrowUpDown size={12} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 font-semibold">
-                    <button
-                      onClick={() => toggleSort("project")}
-                      className="hover:text-text-main flex items-center gap-1.5 transition-colors"
-                    >
+          <>
+            <div className="border-border-subtle overflow-hidden rounded-xl border">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-bg-sidebar/40 text-text-muted/80 text-xs uppercase tracking-wide">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">
+                      <button
+                        onClick={() => toggleSort("project")}
+                        className="hover:text-text-main flex items-center gap-1.5 transition-colors"
+                      >
+                        <span>{t("columns.name")}</span>
+                        <ArrowUpDown size={12} />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 font-semibold">
                       <span>{t("columns.project")}</span>
-                      <ArrowUpDown size={12} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 font-semibold">
-                    <button
-                      onClick={() => toggleSort("updated_at")}
-                      className="hover:text-text-main flex items-center gap-1.5 transition-colors"
-                    >
-                      <span>{t("columns.updated")}</span>
-                      <ArrowUpDown size={12} />
-                    </button>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-border-subtle/60 divide-y">
-                {sorted.map((chat) => (
-                  <tr
-                    key={chat.id}
-                    onClick={() => handleRowClick(chat)}
-                    className="hover:bg-hover-bg group cursor-pointer transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
-                          <MessagesSquare size={14} />
-                        </div>
-                        <span className="text-text-main truncate font-medium">
-                          {chat.title}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="text-text-muted px-4 py-3">
-                      <span className="truncate">{chat.project_label}</span>
-                    </td>
-                    <td className="text-text-muted px-4 py-3 whitespace-nowrap">
-                      {formatDate(chat.updated_at)}
-                    </td>
+                    </th>
+                    <th className="px-4 py-3 font-semibold">
+                      <button
+                        onClick={() => toggleSort("updated_at")}
+                        className="hover:text-text-main flex items-center gap-1.5 transition-colors"
+                      >
+                        <span>{t("columns.updated")}</span>
+                        <ArrowUpDown size={12} />
+                      </button>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-border-subtle/60 divide-y">
+                  {sorted.map((chat) => (
+                    <tr
+                      key={chat.id}
+                      onClick={() => handleRowClick(chat)}
+                      className="hover:bg-hover-bg group cursor-pointer transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          {chat.project_image ? (
+                            <img
+                              src={chat.project_image}
+                              alt={chat.title}
+                              className="border-border-subtle h-7 w-7 shrink-0 rounded-md border object-cover"
+                            />
+                          ) : (
+                            <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
+                              <MessagesSquare size={14} />
+                            </div>
+                          )}
+                          <span className="text-text-main truncate font-medium">
+                            {chat.title}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-text-muted flex items-center gap-1.5 text-xs">
+                          <CircleDashed size={13} className="shrink-0" />
+                          Draft
+                        </span>
+                      </td>
+                      <td className="text-text-muted px-4 py-3 whitespace-nowrap text-xs">
+                        {formatTimeAgo(chat.updated_at)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="py-4 flex justify-center">
+              {isFetchingNextPage && (
+                <Loader2 className="text-primary animate-spin" size={20} />
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

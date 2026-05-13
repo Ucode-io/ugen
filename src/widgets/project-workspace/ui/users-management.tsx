@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { UserPlus, Trash2 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 
-import { SubTabs, UsageIndicator, Input } from "@/shared/ui";
+import { ReusableTabs, UsageIndicator, Input } from "@/shared/ui";
 import { WorkspaceDataTable } from "./workspace-data-table";
 import { Button } from "@/shared/ui";
 import { Search } from "lucide-react";
@@ -234,9 +234,9 @@ export const UsersManagement = ({
         </div>
       </div>
 
-      <div className="border-border-subtle no-scrollbar overflow-x-auto border-b">
+      <div className="border-border-subtle no-scrollbar overflow-x-auto w-fit">
         {subTabOptions.length > 0 && (
-          <SubTabs
+          <ReusableTabs
             options={subTabOptions}
             activeId={activeClientType}
             onTabChange={(id: string) => {

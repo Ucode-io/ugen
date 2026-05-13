@@ -4,8 +4,6 @@ import { GlobalPermissions } from './global-permissions'
 import { MenuPermissions } from './menu-permissions'
 import {
   ShieldAlert,
-  ShieldCheck,
-  ShieldCheck as ShieldCheckIcon,
   List,
   Plus,
   Table,
@@ -33,7 +31,7 @@ import {
   DialogTitle,
   DialogFooter,
   Input,
-  SubTabs
+  ReusableTabs
 } from '@/shared/ui'
 import { ClientTypeModal } from '@/features/client-type-form/ui/client-type-modal'
 import { useForm } from 'react-hook-form'
@@ -309,11 +307,10 @@ export const PermissionManage = ({ projectId }: Props) => {
         <p className="text-text-muted text-[13px]">Configure user type permissions by menu pages and tables</p>
       </div>
 
-      <div className="flex items-end gap-3 mb-5">
-        <div className="space-y-1.5 w-[200px]">
-          <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider block">User Type</label>
+      <div className="flex items-center gap-2 mb-5">
+        <div className="w-[150px]">
           <Select value={selectedClientTypeId} onValueChange={setSelectedClientTypeId}>
-            <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9">
+            <SelectTrigger className="bg-bg-sidebar border-border-subtle h-8 text-[12px]">
               <SelectValue placeholder="Select user type" />
             </SelectTrigger>
             <SelectContent>
@@ -357,10 +354,9 @@ export const PermissionManage = ({ projectId }: Props) => {
           </Select>
         </div>
 
-        <div className="space-y-1.5 w-[200px]">
-          <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wider block">Role</label>
+        <div className="w-[150px]">
           <Select value={selectedRoleId} onValueChange={setSelectedRoleId} disabled={!selectedClientTypeId}>
-            <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9">
+            <SelectTrigger className="bg-bg-sidebar border-border-subtle h-8 text-[12px]">
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
@@ -410,33 +406,31 @@ export const PermissionManage = ({ projectId }: Props) => {
           </Select>
         </div>
 
-        <div className="flex-1" />
+      </div>
 
+      <div className="flex items-center justify-between">
+        <ReusableTabs
+          options={[
+            { id: 'table', label: 'Table Permissions', icon: <Table size={16} /> },
+            { id: 'custom', label: 'Custom Permissions', icon: <List size={16} /> },
+          ]}
+          activeId={activeTab}
+          onTabChange={setActiveTab}
+          className="w-fit"
+        />
         {selectedRoleId && (
           <Button
             disabled={saveAllMutation.isPending || isDetailLoading || isMenusLoading || isCustomLoading}
             onClick={handleSubmit((d) => saveAllMutation.mutate(d))}
-            className="bg-primary hover:bg-primary/90 text-white rounded-xl px-6 h-9"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg px-4 h-8 text-[13px]"
           >
-            {saveAllMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+            {saveAllMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Save size={14} className="mr-1.5" />}
             Save Changes
           </Button>
         )}
       </div>
 
-      <SubTabs
-        options={[
-          { id: 'table', label: 'Table Permissions', icon: Table },
-          { id: 'custom', label: 'Custom Permissions', icon: List },
-          // { id: 'menu', label: 'Menu Permissions', icon: List },
-          // { id: 'global', label: 'Global Permissions', icon: ShieldCheckIcon },
-        ]}
-        activeId={activeTab}
-        onTabChange={setActiveTab}
-        containerClassName="px-0"
-      />
-
-      <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden min-h-[500px]">
+      <div className="min-h-125">
         {selectedRoleId ? (
           <>
             {activeTab === 'table' && (

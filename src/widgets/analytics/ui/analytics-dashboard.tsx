@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api";
-import { SubTabs } from "@/shared/ui";
+import { ReusableTabs } from "@/shared/ui";
 import { UsageLimitsTab } from "./usage-limits";
 import { ProjectStatisticsTab } from "./project-statistics";
 import { useTranslations } from "next-intl";
@@ -31,8 +31,8 @@ export const AnalyticsDashboard = () => {
   });
 
   const tabs = [
-    { id: "usage-limits", label: "Usage Limits", icon: Gauge },
-    { id: "project-statistics", label: "Project Statistics", icon: BarChart },
+    { id: "usage-limits", label: "Usage Limits", icon: <Gauge size={14} /> },
+    { id: "project-statistics", label: "Project Statistics", icon: <BarChart size={14} /> },
     // { id: "overview", label: t("overview") },
     // { id: "health", label: t("health") },
     // { id: "query-performance", label: t("queryPerformance") },
@@ -49,7 +49,7 @@ export const AnalyticsDashboard = () => {
         <p className="text-text-muted text-[13px]">Monitor project performance, API health, and user activity.</p>
       </div>
 
-      <SubTabs options={tabs} activeId={activeTab} onTabChange={setActiveTab} containerClassName="px-0" />
+      <ReusableTabs options={tabs} activeId={activeTab} onTabChange={setActiveTab} />
 
       <div className="animate-in fade-in duration-300">
         {/* {activeTab === "overview" && <OverviewTab />}

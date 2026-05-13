@@ -9,7 +9,7 @@ interface UIState {
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
-      theme: 'light',
+      theme: 'dark',
       setTheme: (theme) => set({ theme }),
     }),
     { name: 'ui-storage' }
