@@ -157,7 +157,9 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
   const [isSending, setIsSending] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const thinkingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [sseEvents, setSseEvents] = useState<SseEvent[]>([]);
+  const sseEvents = useChatStore((state) => state.sseEvents);
+  const addSseEvent = useChatStore((state) => state.addSseEvent);
+  const clearSseEvents = useChatStore((state) => state.clearSseEvents);
   const accumulatedFilesRef = useRef<{ path: string; content: string }[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -346,11 +348,12 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
   useEffect(() => {
     if (projectId) {
       clearChat();
+      clearSseEvents();
       setStoreProjectId(projectId);
       setOffset(0);
       setHasMore(true);
     }
-  }, [projectId, clearChat, setStoreProjectId]);
+  }, [projectId, clearChat, clearSseEvents, setStoreProjectId]);
 
   useEffect(() => {
     if (projectId && offset === 0 && hasMore && !isLoadingHistory) {
@@ -399,7 +402,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
   };
 
   const sendMessageInner = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
-    setSseEvents([]);
+    clearSseEvents();
     accumulatedFilesRef.current = [];
     addMessage({ id: Date.now().toString(), role: "user", content: text, images: files?.map(f => f.url) || [] });
     handleAutoScroll();
@@ -608,7 +611,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
               if (!line.startsWith('data: ')) continue;
               try {
                 const event: SseEvent = JSON.parse(line.slice(6));
-                setSseEvents(prev => [...prev, event]);
+                addSseEvent(event);
 
                 if (event.type === 'chunk_done' && event.data?.files?.length) {
                   accumulatedFilesRef.current = [...accumulatedFilesRef.current, ...event.data.files];

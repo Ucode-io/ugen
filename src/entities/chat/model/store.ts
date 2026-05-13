@@ -16,6 +16,15 @@ export type Message = {
   plan?: any
 }
 
+export interface SseEvent<T = any> {
+  type: string
+  message?: string
+  value?: string
+  icon?: string
+  percent?: number
+  data?: T
+}
+
 interface ChatState {
   chatId: string | null
   projectId: string | null
@@ -24,6 +33,7 @@ interface ChatState {
   chatPosition: ChatPosition
   isStreaming: boolean
   pendingScreenshot: boolean
+  sseEvents: SseEvent[]
   pendingPrompt: {
     content: string
     images?: string[]
@@ -47,6 +57,8 @@ interface ChatState {
   updateMessage: (id: string, updated: Partial<Message>) => void
   setChatWidth: (width: number) => void
   clearChat: () => void
+  addSseEvent: (event: SseEvent) => void
+  clearSseEvents: () => void
 }
 
 export const useChatStore = create<ChatState>()(
@@ -60,6 +72,9 @@ export const useChatStore = create<ChatState>()(
       chatPosition: 'left',
       isStreaming: false,
       pendingScreenshot: false,
+      sseEvents: [],
+      addSseEvent: (event) => set((state) => ({ sseEvents: [...state.sseEvents, event] })),
+      clearSseEvents: () => set({ sseEvents: [] }),
       setChatId: (id) => set({ chatId: id }),
       setProjectId: (id) => set({ projectId: id }),
       setChatPosition: (position) => set({ chatPosition: position }),

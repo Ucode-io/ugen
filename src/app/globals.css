@@ -53,6 +53,42 @@
   }
 }
 
+@keyframes scanner-line {
+  0%, 100% { top: 0%; }
+  50% { top: calc(100% - 2px); }
+}
+
+@keyframes scanner-fill {
+  0%, 100% { clip-path: inset(0% 0% 0% 0%); }
+  50% { clip-path: inset(100% 0% 0% 0%); }
+}
+
+@keyframes code-scroll-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes wireframe-block {
+  0%, 100% { opacity: 0; transform: translateY(10px) scale(0.94); }
+  8% { opacity: 1; transform: translateY(0) scale(1); }
+  88% { opacity: 1; transform: translateY(0) scale(1); }
+  96% { opacity: 0; transform: translateY(-6px) scale(0.97); }
+}
+
+@keyframes tree-item {
+  0%, 100% { opacity: 0; transform: translateX(-10px); }
+  6% { opacity: 1; transform: translateX(0); }
+  88% { opacity: 1; transform: translateX(0); }
+  96% { opacity: 0; transform: translateX(6px); }
+}
+
+@keyframes tree-check {
+  0%, 100% { opacity: 0; transform: scale(0.4); }
+  10% { opacity: 1; transform: scale(1); }
+  88% { opacity: 1; transform: scale(1); }
+  96% { opacity: 0; transform: scale(0.6); }
+}
+
 @layer base {
   :root {
     --color-glow-primary: #3B82F6;

@@ -19,6 +19,7 @@ import { ProjectHeader, DeviceType } from "@/widgets/project-workspace/ui/projec
 import { WorkspaceLoader } from "@/widgets/project-workspace/ui/workspace-loader"
 import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard"
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view"
+import { ProjectBuildingAnimation } from "@/widgets/project-workspace/ui/project-building-animation"
 import { ErrorBoundary, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui"
 import { usePathname, useSearchParams } from "next/navigation"
 import { useChatStore } from "@/entities/chat"
@@ -113,7 +114,9 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
   const clearCodeSelection = useCodeSelectionStore(state => state.clearCodeSelection)
   const activeCodeFiles = useCodeSelectionStore(state => state.activeCodeFiles)
   const chatPosition = useChatStore(state => state.chatPosition)
+  const sseEvents = useChatStore(state => state.sseEvents)
   const hasNoFiles = files.length === 0 && !activeCodeFiles?.length;
+  const isAiBuilding = sseEvents.length >= 3;
   const t = useTranslations('features.project')
   const { project } = useAuthStore()
   const isUgen = project?.is_ugen ?? false
@@ -411,7 +414,11 @@ export const ProjectWorkspaceClient = ({ projectId }: { projectId: string }) => 
               isChatCollapsed={isChatCollapsed}
             />
           ) : hasNoFiles ? (
-            <EmptyProjectView onStartChatting={() => setActiveTab('preview')} />
+            isAiBuilding ? (
+              <ProjectBuildingAnimation />
+            ) : (
+              <EmptyProjectView onStartChatting={() => setActiveTab('preview')} />
+            )
           ) : (
             <ProjectCodeViewer projectId={projectId} getLanguageByPath={getLanguageByPath} versionFiles={versionPreviewFiles} isChatCollapsed={isChatCollapsed} chatPosition={chatPosition} />
           )}

@@ -126,8 +126,7 @@ export const ProjectDropdown = ({
       )
 
       setIsProjectPopupOpen(false)
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-      queryClient.invalidateQueries({ queryKey: ['company-projects'] })
+      queryClient.clear()
       router.push('/projects' as any)
     } catch (err) {
       console.error('Company switch failed', err)
