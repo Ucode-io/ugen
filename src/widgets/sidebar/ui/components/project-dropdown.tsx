@@ -14,7 +14,6 @@ interface ProjectPopupProps {
   projectInitial: string
   isProjectPopupOpen: boolean
   setIsProjectPopupOpen: (val: boolean) => void
-  projectPopupRef: React.RefObject<HTMLDivElement | null>
   onOpenProfileModal: () => void
 }
 
@@ -36,7 +35,6 @@ export const ProjectDropdown = ({
   projectInitial,
   isProjectPopupOpen,
   setIsProjectPopupOpen,
-  projectPopupRef,
   onOpenProfileModal,
 }: ProjectPopupProps) => {
   const t = useTranslations('widgets.sidebar')
@@ -51,6 +49,7 @@ export const ProjectDropdown = ({
   const { mutateAsync: createCompany, isPending: isCreating } = useCreateCompany()
   const inputRef = useRef<HTMLInputElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const portalRef = useRef<HTMLDivElement>(null)
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null)
 
   useEffect(() => {
@@ -59,6 +58,22 @@ export const ProjectDropdown = ({
       setDropdownPos({ top: rect.bottom + 8, left: rect.left })
     }
   }, [isProjectPopupOpen])
+
+  useEffect(() => {
+    if (!isProjectPopupOpen) return
+    const handler = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node
+      if (buttonRef.current?.contains(target)) return
+      if (portalRef.current?.contains(target)) return
+      setIsProjectPopupOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
+  }, [isProjectPopupOpen, setIsProjectPopupOpen])
 
   const currentCompanyId = activeCompanyId ?? user?.company_id ?? null
   const currentCompany = companies.find((c) => c.id === currentCompanyId)
@@ -122,7 +137,7 @@ export const ProjectDropdown = ({
   }
 
   return (
-    <div className="relative min-w-0 flex-1" ref={projectPopupRef}>
+    <div className="relative min-w-0 flex-1">
       <button
         ref={buttonRef}
         onClick={() => setIsProjectPopupOpen(!isProjectPopupOpen)}
@@ -142,6 +157,7 @@ export const ProjectDropdown = ({
 
       {isProjectPopupOpen && dropdownPos && createPortal(
         <div
+          ref={portalRef}
           className="bg-bg-card border-border-subtle fixed z-[200] w-64 overflow-hidden rounded-xl border shadow-lg"
           style={{ top: dropdownPos.top, left: dropdownPos.left }}
         >

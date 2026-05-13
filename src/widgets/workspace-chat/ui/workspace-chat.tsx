@@ -176,6 +176,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
   const chatPosition = useChatStore((state) => state.chatPosition);
   const setChatPosition = useChatStore((state) => state.setChatPosition);
   const setIsStreaming = useChatStore((state) => state.setIsStreaming);
+  const setPendingScreenshot = useChatStore((state) => state.setPendingScreenshot);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -631,6 +632,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         setIsSending(false);
         setIsThinking(false);
         setIsStreaming(false);
+        setPendingScreenshot(true);
         if (thinkingTimeoutRef.current) {
           clearTimeout(thinkingTimeoutRef.current);
           thinkingTimeoutRef.current = null;

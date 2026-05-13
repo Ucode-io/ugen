@@ -2,7 +2,7 @@
 import {
   CodeXml,
   Globe,
-  LayoutDashboard,
+  Settings,
   Sparkles,
 } from "lucide-react";
 import { useState } from "react"
@@ -64,7 +64,7 @@ export const ProjectHeader = ({
   }
 
   const allTabOptions = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
+    { id: 'dashboard', label: 'Settings', icon: <Settings size={16} /> },
     {
       id: 'preview',
       label: 'Preview',

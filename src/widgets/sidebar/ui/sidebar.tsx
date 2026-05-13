@@ -33,8 +33,6 @@ export const Sidebar = ({ className, hideLogo, onProfilePopupChange }: SidebarPr
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const [isProjectPopupOpen, setIsProjectPopupOpen] = useState(false);
-  const projectPopupRef = useRef<HTMLDivElement>(null);
-  useClickOutside(projectPopupRef, () => setIsProjectPopupOpen(false));
 
   const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
   const profilePopupRef = useRef<HTMLDivElement>(null);
@@ -86,7 +84,6 @@ export const Sidebar = ({ className, hideLogo, onProfilePopupChange }: SidebarPr
             projectInitial={projectInitial}
             isProjectPopupOpen={isProjectPopupOpen}
             setIsProjectPopupOpen={setIsProjectPopupOpen}
-            projectPopupRef={projectPopupRef}
             onOpenProfileModal={() => setIsProfileModalOpen(true)}
           />
         </div>

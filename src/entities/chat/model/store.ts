@@ -23,6 +23,7 @@ interface ChatState {
   chatWidth: number
   chatPosition: ChatPosition
   isStreaming: boolean
+  pendingScreenshot: boolean
   pendingPrompt: {
     content: string
     images?: string[]
@@ -39,6 +40,7 @@ interface ChatState {
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void
   setIsStreaming: (isStreaming: boolean) => void
+  setPendingScreenshot: (pendingScreenshot: boolean) => void
   addMessage: (message: Message) => void
   unshiftMessages: (messages: Message[]) => void
   setMessages: (messages: Message[]) => void
@@ -57,11 +59,13 @@ export const useChatStore = create<ChatState>()(
       pendingPrompt: null,
       chatPosition: 'left',
       isStreaming: false,
+      pendingScreenshot: false,
       setChatId: (id) => set({ chatId: id }),
       setProjectId: (id) => set({ projectId: id }),
       setChatPosition: (position) => set({ chatPosition: position }),
       setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
       setIsStreaming: (isStreaming) => set({ isStreaming }),
+      setPendingScreenshot: (pendingScreenshot) => set({ pendingScreenshot }),
       addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
       unshiftMessages: (newMessages) => set((state) => {
         const existingIds = new Set(state.messages.map(m => m.id))
