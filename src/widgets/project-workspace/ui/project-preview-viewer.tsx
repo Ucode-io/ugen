@@ -1,283 +1,377 @@
-import { useState, useEffect, useRef, useMemo } from "react"
-import { useVisualEditorStore } from "@/entities/visual-editor"
-import { MoveablePrompt } from "./moveable-prompt"
-import { ElementStyleToolbar } from "./element-style-toolbar"
-import { useFilesStore } from "@/entities/project/model/files-store"
-import { useChatStore } from "@/entities/chat"
-import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler"
-import { generatePreviewHtml } from "../lib/preview-html"
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useVisualEditorStore } from "@/entities/visual-editor";
+import { MoveablePrompt } from "./moveable-prompt";
+import { ElementStyleToolbar } from "./element-style-toolbar";
+import { useFilesStore } from "@/entities/project/model/files-store";
+import { useChatStore } from "@/entities/chat";
+import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler";
+import { generatePreviewHtml } from "../lib/preview-html";
 import {
-  AlertTriangle, Loader2, Sparkles, Layers2, Zap,
-  MousePointerClick, Monitor, Tablet, Smartphone,
-  ChevronDown, Minimize, Maximize, Check,
-  Palette, Upload, ChevronUp, Search, Save, RotateCcw,
-} from "lucide-react"
-import { useDirtyFilesStore, getDirtyKey } from "@/entities/project/model/dirty-files-store"
-import { autoCommit, requestSave, useGuardedAction } from "../lib/save-flow"
-import { applyVisualEditToCss, buildSelector } from "../lib/visual-edits-css"
-import { toPng } from "html-to-image"
-import { fileService } from "@/shared/api/file-service"
+  AlertTriangle,
+  Loader2,
+  Sparkles,
+  Layers2,
+  Zap,
+  MousePointerClick,
+  Monitor,
+  Tablet,
+  Smartphone,
+  ChevronDown,
+  Minimize,
+  Maximize,
+  Check,
+  Palette,
+  Upload,
+  ChevronUp,
+  Search,
+  Save,
+  RotateCcw,
+} from "lucide-react";
+import {
+  useDirtyFilesStore,
+  getDirtyKey,
+} from "@/entities/project/model/dirty-files-store";
+import { autoCommit, requestSave, useGuardedAction } from "../lib/save-flow";
+import { applyVisualEditToCss, buildSelector } from "../lib/visual-edits-css";
+import { toPng } from "html-to-image";
+import { fileService } from "@/shared/api/file-service";
 
 const FONT_FAMILIES = [
-  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Raleway',
-  'Ubuntu', 'Nunito', 'Playfair Display', 'Merriweather', 'Source Code Pro',
-  'Fira Code', 'DM Sans', 'Space Grotesk', 'Plus Jakarta Sans', 'Manrope',
-  'Outfit', 'Geist', 'Geist Mono', 'Josefin Sans', 'Rubik', 'Work Sans',
-  'Karla', 'Mulish', 'Jost', 'Cabin', 'Quicksand', 'Barlow', 'Archivo',
-  'Figtree', 'Lexend', 'Noto Sans', 'PT Sans', 'Source Sans 3', 'IBM Plex Sans',
-  'IBM Plex Mono', 'Inconsolata', 'DM Mono', 'Pacifico', 'Dancing Script',
-  'Bebas Neue', 'Anton', 'Oswald', 'Crimson Text', 'EB Garamond',
-  'Libre Baskerville', 'Cormorant Garamond', 'Cinzel', 'Spectral',
-]
+  "Inter",
+  "Roboto",
+  "Open Sans",
+  "Lato",
+  "Montserrat",
+  "Poppins",
+  "Raleway",
+  "Ubuntu",
+  "Nunito",
+  "Playfair Display",
+  "Merriweather",
+  "Source Code Pro",
+  "Fira Code",
+  "DM Sans",
+  "Space Grotesk",
+  "Plus Jakarta Sans",
+  "Manrope",
+  "Outfit",
+  "Geist",
+  "Geist Mono",
+  "Josefin Sans",
+  "Rubik",
+  "Work Sans",
+  "Karla",
+  "Mulish",
+  "Jost",
+  "Cabin",
+  "Quicksand",
+  "Barlow",
+  "Archivo",
+  "Figtree",
+  "Lexend",
+  "Noto Sans",
+  "PT Sans",
+  "Source Sans 3",
+  "IBM Plex Sans",
+  "IBM Plex Mono",
+  "Inconsolata",
+  "DM Mono",
+  "Pacifico",
+  "Dancing Script",
+  "Bebas Neue",
+  "Anton",
+  "Oswald",
+  "Crimson Text",
+  "EB Garamond",
+  "Libre Baskerville",
+  "Cormorant Garamond",
+  "Cinzel",
+  "Spectral",
+];
 
 // Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
 // We detect the format per-variable on read and write back in the same shape.
-type ColorFormat = 'hex' | 'hsl'
+type ColorFormat = "hex" | "hsl";
 
 function hslStringToHex(hsl: string): string {
-  const [hStr, sStr, lStr] = hsl.trim().split(/\s+/)
-  const h = parseFloat(hStr)
-  const s = parseFloat(sStr) / 100
-  const l = parseFloat(lStr) / 100
-  const c = (1 - Math.abs(2 * l - 1)) * s
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
-  const m = l - c / 2
-  let r = 0, g = 0, b = 0
-  if (h < 60)       { r = c; g = x; b = 0 }
-  else if (h < 120) { r = x; g = c; b = 0 }
-  else if (h < 180) { r = 0; g = c; b = x }
-  else if (h < 240) { r = 0; g = x; b = c }
-  else if (h < 300) { r = x; g = 0; b = c }
-  else              { r = c; g = 0; b = x }
-  const hex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0')
-  return `#${hex(r)}${hex(g)}${hex(b)}`
+  const [hStr, sStr, lStr] = hsl.trim().split(/\s+/);
+  const h = parseFloat(hStr);
+  const s = parseFloat(sStr) / 100;
+  const l = parseFloat(lStr) / 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (h < 60) {
+    r = c;
+    g = x;
+    b = 0;
+  } else if (h < 120) {
+    r = x;
+    g = c;
+    b = 0;
+  } else if (h < 180) {
+    r = 0;
+    g = c;
+    b = x;
+  } else if (h < 240) {
+    r = 0;
+    g = x;
+    b = c;
+  } else if (h < 300) {
+    r = x;
+    g = 0;
+    b = c;
+  } else {
+    r = c;
+    g = 0;
+    b = x;
+  }
+  const hex = (n: number) =>
+    Math.round((n + m) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
 }
 
 function hexToHslString(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  const max = Math.max(r, g, b), min = Math.min(r, g, b)
-  const l = (max + min) / 2
-  let h = 0, s = 0
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0,
+    s = 0;
   if (max !== min) {
-    const d = max - min
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break
-      case g: h = ((b - r) / d + 2) / 6; break
-      case b: h = ((r - g) / d + 4) / 6; break
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
     }
   }
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
 function detectColorFormat(raw: string): ColorFormat {
-  return raw.trim().startsWith('#') ? 'hex' : 'hsl'
+  return raw.trim().startsWith("#") ? "hex" : "hsl";
 }
 
 function parseColorToHex(raw: string): string {
-  const trimmed = raw.trim()
-  if (trimmed.startsWith('#')) {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("#")) {
     if (trimmed.length === 4) {
       // #rgb → #rrggbb
-      return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`.toLowerCase()
+      return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`.toLowerCase();
     }
-    return trimmed.slice(0, 7).toLowerCase()
+    return trimmed.slice(0, 7).toLowerCase();
   }
-  return hslStringToHex(trimmed).toLowerCase()
+  return hslStringToHex(trimmed).toLowerCase();
 }
 
 function formatColorFromHex(hex: string, format: ColorFormat): string {
-  return format === 'hex' ? hex.toLowerCase() : hexToHslString(hex)
+  return format === "hex" ? hex.toLowerCase() : hexToHslString(hex);
 }
 
 interface ColorDefinition {
-  cssVar: string
-  label: string
+  cssVar: string;
+  label: string;
 }
 
 interface ColorGroup {
-  title: string
-  colors: ColorDefinition[]
+  title: string;
+  colors: ColorDefinition[];
 }
 
 // Known shadcn-style variables. We use these to keep nicer labels and a stable
 // section order; anything else discovered in the CSS lands in the "Custom" group.
 const PREDEFINED_GROUPS: ColorGroup[] = [
   {
-    title: 'Base',
+    title: "Base",
     colors: [
-      { cssVar: 'background', label: 'Background' },
-      { cssVar: 'foreground', label: 'Foreground' },
+      { cssVar: "background", label: "Background" },
+      { cssVar: "foreground", label: "Foreground" },
     ],
   },
   {
-    title: 'Card',
+    title: "Card",
     colors: [
-      { cssVar: 'card',            label: 'Card' },
-      { cssVar: 'card-foreground', label: 'Card Text' },
+      { cssVar: "card", label: "Card" },
+      { cssVar: "card-foreground", label: "Card Text" },
     ],
   },
   {
-    title: 'Primary',
+    title: "Primary",
     colors: [
-      { cssVar: 'primary',            label: 'Primary' },
-      { cssVar: 'primary-foreground', label: 'Primary Text' },
+      { cssVar: "primary", label: "Primary" },
+      { cssVar: "primary-foreground", label: "Primary Text" },
     ],
   },
   {
-    title: 'Secondary',
+    title: "Secondary",
     colors: [
-      { cssVar: 'secondary',            label: 'Secondary' },
-      { cssVar: 'secondary-foreground', label: 'Secondary Text' },
+      { cssVar: "secondary", label: "Secondary" },
+      { cssVar: "secondary-foreground", label: "Secondary Text" },
     ],
   },
   {
-    title: 'Muted',
+    title: "Muted",
     colors: [
-      { cssVar: 'muted',            label: 'Muted' },
-      { cssVar: 'muted-foreground', label: 'Muted Text' },
+      { cssVar: "muted", label: "Muted" },
+      { cssVar: "muted-foreground", label: "Muted Text" },
     ],
   },
   {
-    title: 'Accent',
+    title: "Accent",
     colors: [
-      { cssVar: 'accent',            label: 'Accent' },
-      { cssVar: 'accent-foreground', label: 'Accent Text' },
+      { cssVar: "accent", label: "Accent" },
+      { cssVar: "accent-foreground", label: "Accent Text" },
     ],
   },
   {
-    title: 'Popover',
+    title: "Popover",
     colors: [
-      { cssVar: 'popover',            label: 'Popover' },
-      { cssVar: 'popover-foreground', label: 'Popover Text' },
+      { cssVar: "popover", label: "Popover" },
+      { cssVar: "popover-foreground", label: "Popover Text" },
     ],
   },
   {
-    title: 'Destructive',
+    title: "Destructive",
     colors: [
-      { cssVar: 'destructive',            label: 'Destructive' },
-      { cssVar: 'destructive-foreground', label: 'Destructive Text' },
+      { cssVar: "destructive", label: "Destructive" },
+      { cssVar: "destructive-foreground", label: "Destructive Text" },
     ],
   },
   {
-    title: 'Status',
+    title: "Status",
     colors: [
-      { cssVar: 'success',            label: 'Success' },
-      { cssVar: 'success-foreground', label: 'Success Text' },
-      { cssVar: 'warning',            label: 'Warning' },
-      { cssVar: 'warning-foreground', label: 'Warning Text' },
-      { cssVar: 'info',               label: 'Info' },
-      { cssVar: 'info-foreground',    label: 'Info Text' },
+      { cssVar: "success", label: "Success" },
+      { cssVar: "success-foreground", label: "Success Text" },
+      { cssVar: "warning", label: "Warning" },
+      { cssVar: "warning-foreground", label: "Warning Text" },
+      { cssVar: "info", label: "Info" },
+      { cssVar: "info-foreground", label: "Info Text" },
     ],
   },
   {
-    title: 'UI',
+    title: "UI",
     colors: [
-      { cssVar: 'border', label: 'Border' },
-      { cssVar: 'input',  label: 'Input' },
-      { cssVar: 'ring',   label: 'Ring' },
+      { cssVar: "border", label: "Border" },
+      { cssVar: "input", label: "Input" },
+      { cssVar: "ring", label: "Ring" },
     ],
   },
   {
-    title: 'Sidebar',
+    title: "Sidebar",
     colors: [
-      { cssVar: 'sidebar-background',         label: 'Background' },
-      { cssVar: 'sidebar-foreground',         label: 'Foreground' },
-      { cssVar: 'sidebar-primary',            label: 'Primary' },
-      { cssVar: 'sidebar-primary-foreground', label: 'Primary Text' },
-      { cssVar: 'sidebar-accent',             label: 'Accent' },
-      { cssVar: 'sidebar-accent-foreground',  label: 'Accent Text' },
-      { cssVar: 'sidebar-border',             label: 'Border' },
-      { cssVar: 'sidebar-ring',               label: 'Ring' },
+      { cssVar: "sidebar-background", label: "Background" },
+      { cssVar: "sidebar-foreground", label: "Foreground" },
+      { cssVar: "sidebar-primary", label: "Primary" },
+      { cssVar: "sidebar-primary-foreground", label: "Primary Text" },
+      { cssVar: "sidebar-accent", label: "Accent" },
+      { cssVar: "sidebar-accent-foreground", label: "Accent Text" },
+      { cssVar: "sidebar-border", label: "Border" },
+      { cssVar: "sidebar-ring", label: "Ring" },
     ],
   },
-]
+];
 
 const PREDEFINED_VAR_NAMES: Set<string> = new Set(
   PREDEFINED_GROUPS.flatMap((g) => g.colors).map((c) => c.cssVar),
-)
+);
 
 function isColorValue(value: string): boolean {
-  const v = value.trim()
-  if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return true
+  const v = value.trim();
+  if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return true;
   // shadcn HSL: "H S% L%" — hue allows decimals; saturation/lightness end with %
-  if (/^[\d.]+\s+[\d.]+%\s+[\d.]+%$/.test(v)) return true
-  return false
+  if (/^[\d.]+\s+[\d.]+%\s+[\d.]+%$/.test(v)) return true;
+  return false;
 }
 
 interface ExtractedColor {
-  cssVar: string
-  rawValue: string
-  format: ColorFormat
-  hex: string
+  cssVar: string;
+  rawValue: string;
+  format: ColorFormat;
+  hex: string;
 }
 
 function extractColorVarsFromCss(css: string): ExtractedColor[] {
-  const out: ExtractedColor[] = []
+  const out: ExtractedColor[] = [];
   // Capture order is preserved by RegExp.exec on a global pattern.
-  const regex = /--([\w-]+)\s*:\s*([^;]+);/g
-  let match: RegExpExecArray | null
+  const regex = /--([\w-]+)\s*:\s*([^;]+);/g;
+  let match: RegExpExecArray | null;
   while ((match = regex.exec(css)) !== null) {
-    const cssVar = match[1]
-    const rawValue = match[2].trim()
-    if (!isColorValue(rawValue)) continue
+    const cssVar = match[1];
+    const rawValue = match[2].trim();
+    if (!isColorValue(rawValue)) continue;
     out.push({
       cssVar,
       rawValue,
       format: detectColorFormat(rawValue),
       hex: parseColorToHex(rawValue),
-    })
+    });
   }
-  return out
+  return out;
 }
 
 function humanizeVarName(cssVar: string): string {
   return cssVar
-    .split('-')
+    .split("-")
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(' ')
+    .join(" ");
 }
 
 function parseCssTheme(css: string): {
-  colors: Record<string, string>
-  formats: Record<string, ColorFormat>
-  groups: ColorGroup[]
-  fontFamily: string
+  colors: Record<string, string>;
+  formats: Record<string, ColorFormat>;
+  groups: ColorGroup[];
+  fontFamily: string;
 } {
-  const found = extractColorVarsFromCss(css)
-  const foundMap = new Map(found.map((c) => [c.cssVar, c]))
+  const found = extractColorVarsFromCss(css);
+  const foundMap = new Map(found.map((c) => [c.cssVar, c]));
 
-  const colors: Record<string, string> = {}
-  const formats: Record<string, ColorFormat> = {}
+  const colors: Record<string, string> = {};
+  const formats: Record<string, ColorFormat> = {};
   for (const c of found) {
-    colors[c.cssVar] = c.hex
-    formats[c.cssVar] = c.format
+    colors[c.cssVar] = c.hex;
+    formats[c.cssVar] = c.format;
   }
 
   // Build groups: keep predefined order, drop sections with nothing in CSS,
   // then append a "Custom" group for any color vars we didn't predefine.
-  const groups: ColorGroup[] = []
-  const usedVars = new Set<string>()
+  const groups: ColorGroup[] = [];
+  const usedVars = new Set<string>();
   for (const group of PREDEFINED_GROUPS) {
-    const present = group.colors.filter((c) => foundMap.has(c.cssVar))
-    if (present.length === 0) continue
-    groups.push({ title: group.title, colors: present })
-    present.forEach((c) => usedVars.add(c.cssVar))
+    const present = group.colors.filter((c) => foundMap.has(c.cssVar));
+    if (present.length === 0) continue;
+    groups.push({ title: group.title, colors: present });
+    present.forEach((c) => usedVars.add(c.cssVar));
   }
-  const custom: ColorDefinition[] = []
+  const custom: ColorDefinition[] = [];
   for (const c of found) {
-    if (usedVars.has(c.cssVar)) continue
-    custom.push({ cssVar: c.cssVar, label: humanizeVarName(c.cssVar) })
+    if (usedVars.has(c.cssVar)) continue;
+    custom.push({ cssVar: c.cssVar, label: humanizeVarName(c.cssVar) });
   }
-  if (custom.length > 0) groups.push({ title: 'Custom', colors: custom })
+  if (custom.length > 0) groups.push({ title: "Custom", colors: custom });
 
   const fontBodyRaw =
-    css.match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1].trim().replace(/^['"]|['"]$/g, '') ?? 'Inter'
+    css
+      .match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1]
+      .trim()
+      .replace(/^['"]|['"]$/g, "") ?? "Inter";
 
-  return { colors, formats, groups, fontFamily: fontBodyRaw }
+  return { colors, formats, groups, fontFamily: fontBodyRaw };
 }
 
 function applyThemeToCss(
@@ -286,94 +380,108 @@ function applyThemeToCss(
   formats: Record<string, ColorFormat>,
   font: string,
 ): string {
-  let result = css
+  let result = css;
 
   for (const [cssVar, hex] of Object.entries(colors)) {
-    if (!hex) continue
-    const format = formats[cssVar] ?? 'hex'
-    const formatted = formatColorFromHex(hex, format)
-    if (format === 'hex') {
+    if (!hex) continue;
+    const format = formats[cssVar] ?? "hex";
+    const formatted = formatColorFromHex(hex, format);
+    if (format === "hex") {
       result = result.replace(
         new RegExp(`(--${cssVar}:\\s*)#[0-9a-fA-F]{3,8}`),
         `$1${formatted}`,
-      )
+      );
     } else {
       result = result.replace(
         new RegExp(`(--${cssVar}:\\s*)[\\d.]+\\s+[\\d.]+%\\s+[\\d.]+%`),
         `$1${formatted}`,
-      )
+      );
     }
   }
 
   // Update font-body variable and its Google Fonts import
-  const currentFont = css.match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1].trim().replace(/^['"]|['"]$/g, '')
+  const currentFont = css
+    .match(/--font-body:\s*['"]?([^'",;\n]+)/)?.[1]
+    .trim()
+    .replace(/^['"]|['"]$/g, "");
   if (currentFont && currentFont !== font) {
-    result = result.replace(/--font-body:\s*[^;]+;/, `--font-body: '${font}', sans-serif;`)
-    const encodedCurrent = currentFont.replace(/\s+/g, '+')
-    const encodedNew = font.replace(/\s+/g, '+')
     result = result.replace(
-      new RegExp(`@import url\\(['"]https://fonts\\.googleapis\\.com/css2\\?family=${encodedCurrent}[^'"]*['"]\\);`),
-      `@import url('https://fonts.googleapis.com/css2?family=${encodedNew}:wght@300;400;500;600;700&display=swap');`
-    )
+      /--font-body:\s*[^;]+;/,
+      `--font-body: '${font}', sans-serif;`,
+    );
+    const encodedCurrent = currentFont.replace(/\s+/g, "+");
+    const encodedNew = font.replace(/\s+/g, "+");
+    result = result.replace(
+      new RegExp(
+        `@import url\\(['"]https://fonts\\.googleapis\\.com/css2\\?family=${encodedCurrent}[^'"]*['"]\\);`,
+      ),
+      `@import url('https://fonts.googleapis.com/css2?family=${encodedNew}:wght@300;400;500;600;700&display=swap');`,
+    );
   }
 
-  return result
+  return result;
 }
-import type { DeviceType } from "./project-header"
-import { useAuthStore } from "@/entities/session"
-import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store"
-import type { CodeSelectionFile } from "@/entities/project/model/code-selection-store"
-import { api } from "@/shared/api"
-import { useQuery } from "@tanstack/react-query"
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
-import { cn } from "@/shared/lib/utils/cn"
-import { WorkspaceLoader } from "./workspace-loader"
+import type { DeviceType } from "./project-header";
+import { useAuthStore } from "@/entities/session";
+import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
+import type { CodeSelectionFile } from "@/entities/project/model/code-selection-store";
+import { api } from "@/shared/api";
+import { useQuery } from "@tanstack/react-query";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
+import { cn } from "@/shared/lib/utils/cn";
+import { WorkspaceLoader } from "./workspace-loader";
 
 interface PreviewRuntimeError {
-  message: string
-  stack?: string | null
-  filename?: string | null
-  lineno?: number | null
-  colno?: number | null
+  message: string;
+  stack?: string | null;
+  filename?: string | null;
+  lineno?: number | null;
+  colno?: number | null;
 }
 
 const DEVICE_WIDTHS: Record<DeviceType, string> = {
-  desktop: '100%',
-  tablet: '768px',
-  mobile: '375px',
-}
+  desktop: "100%",
+  tablet: "768px",
+  mobile: "375px",
+};
 
 const DEVICES: { id: DeviceType; label: string; icon: React.ReactNode }[] = [
-  { id: 'desktop', label: 'Desktop', icon: <Monitor size={14} /> },
-  { id: 'tablet',  label: 'Tablet',  icon: <Tablet size={14} /> },
-  { id: 'mobile',  label: 'Mobile',  icon: <Smartphone size={14} /> },
-]
+  { id: "desktop", label: "Desktop", icon: <Monitor size={14} /> },
+  { id: "tablet", label: "Tablet", icon: <Tablet size={14} /> },
+  { id: "mobile", label: "Mobile", icon: <Smartphone size={14} /> },
+];
 
 interface ProjectPreviewViewerProps {
-  device?: DeviceType
-  isMaximized?: boolean
-  isChatCollapsed?: boolean
-  chatPosition?: 'left' | 'right'
-  versionPreviewFiles?: { path: string; content: string }[] | null
-  projectId?: string
-  onDeviceChange?: (device: DeviceType) => void
-  onToggleMaximize?: () => void
-  isVersionHistory?: boolean
+  device?: DeviceType;
+  isMaximized?: boolean;
+  isChatCollapsed?: boolean;
+  chatPosition?: "left" | "right";
+  versionPreviewFiles?: { path: string; content: string }[] | null;
+  projectId?: string;
+  onDeviceChange?: (device: DeviceType) => void;
+  onToggleMaximize?: () => void;
+  isVersionHistory?: boolean;
 }
 
 const getLanguageByPath = (path: string) => {
-  const ext = path.split('.').pop()?.toLowerCase()
+  const ext = path.split(".").pop()?.toLowerCase();
   switch (ext) {
-    case 'js':
-    case 'jsx': return 'javascript'
-    case 'ts':
-    case 'tsx': return 'typescript'
-    case 'json': return 'json'
-    case 'css': return 'css'
-    case 'html': return 'html'
-    default: return 'javascript'
+    case "js":
+    case "jsx":
+      return "javascript";
+    case "ts":
+    case "tsx":
+      return "typescript";
+    case "json":
+      return "json";
+    case "css":
+      return "css";
+    case "html":
+      return "html";
+    default:
+      return "javascript";
   }
-}
+};
 
 export const ProjectPreviewViewer = ({
   device = `desktop`,
@@ -713,7 +821,7 @@ export const ProjectPreviewViewer = ({
       if (!hex) continue;
       root.style.setProperty(
         `--${cssVar}`,
-        formatColorFromHex(hex, formats[cssVar] ?? 'hex'),
+        formatColorFromHex(hex, formats[cssVar] ?? "hex"),
       );
     }
     root.style.setProperty("--font-body", `'${font}', sans-serif`);
@@ -887,7 +995,12 @@ export const ProjectPreviewViewer = ({
         build(),
         new Promise<never>((_, reject) =>
           setTimeout(
-            () => reject(new Error("Preview build timed out after 30s — esbuild may have failed to load.")),
+            () =>
+              reject(
+                new Error(
+                  "Preview build timed out after 30s — esbuild may have failed to load.",
+                ),
+              ),
             30_000,
           ),
         ),
@@ -1005,13 +1118,16 @@ export const ProjectPreviewViewer = ({
       });
       console.log("[preview screenshot] dataUrl length:", dataUrl.length);
       const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], `preview-${Date.now()}.png`, { type: "image/png" });
+      const file = new File([blob], `preview-${Date.now()}.png`, {
+        type: "image/png",
+      });
       const formData = new FormData();
       formData.append("file", file);
       const result = await fileService.folderUpload(formData, {
         folder_name: projectId || "preview-screenshots",
       });
-      const cdn = process.env.NEXT_PUBLIC_CDN_BASE_URL || "https://cdn.u-code.io";
+      const cdn =
+        process.env.NEXT_PUBLIC_CDN_BASE_URL || "https://cdn.u-code.io";
       const link = result?.data?.link;
       const url = link ? `${cdn}/${link}` : null;
       console.log("[preview screenshot] uploaded:", url, result);
@@ -1021,9 +1137,14 @@ export const ProjectPreviewViewer = ({
             project_image: url,
             project_id: projectId,
           });
-          console.log("[preview screenshot] mcp_project updated with project_image");
+          console.log(
+            "[preview screenshot] mcp_project updated with project_image",
+          );
         } catch (putErr) {
-          console.error("[preview screenshot] mcp_project update failed:", putErr);
+          console.error(
+            "[preview screenshot] mcp_project update failed:",
+            putErr,
+          );
         }
       }
     } catch (err) {
@@ -1240,15 +1361,17 @@ export const ProjectPreviewViewer = ({
                         </span>
                         <label className="group flex cursor-pointer items-center gap-2">
                           <span className="text-text-muted group-hover:text-text-main font-mono text-[12px] transition-colors">
-                            {(themeSettings.colors[cssVar] ?? '').toUpperCase()}
+                            {(themeSettings.colors[cssVar] ?? "").toUpperCase()}
                           </span>
                           <div
                             className="border-border-subtle relative h-6 w-6 overflow-hidden rounded border shadow-sm"
-                            style={{ backgroundColor: themeSettings.colors[cssVar] }}
+                            style={{
+                              backgroundColor: themeSettings.colors[cssVar],
+                            }}
                           >
                             <input
                               type="color"
-                              value={themeSettings.colors[cssVar] ?? '#000000'}
+                              value={themeSettings.colors[cssVar] ?? "#000000"}
                               onChange={(e) =>
                                 setThemeSettings((prev) => ({
                                   ...prev,
@@ -1821,12 +1944,15 @@ export const ProjectPreviewViewer = ({
               />
             )}
             {/* Build loading overlay — hidden when an error is shown */}
-            {isLoading && !runtimeError && !loadingPreviewId && !isMicrofrontendLoading && (
-              <WorkspaceLoader
-                message="Building preview..."
-                subMessage="Running esbuild"
-              />
-            )}
+            {isLoading &&
+              !runtimeError &&
+              !loadingPreviewId &&
+              !isMicrofrontendLoading && (
+                <WorkspaceLoader
+                  message="Building preview..."
+                  subMessage="Running esbuild"
+                />
+              )}
             <iframe
               ref={iframeRef}
               className="w-full flex-1 border-none bg-white"
