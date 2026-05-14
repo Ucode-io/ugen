@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -38,7 +38,7 @@ const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
 
 type DeviceId = "desktop" | "tablet" | "mobile";
 
-const DEVICES: { id: DeviceId; label: string; icon: JSX.Element }[] = [
+const DEVICES: { id: DeviceId; label: string; icon: ReactNode }[] = [
   { id: "desktop", label: "Desktop", icon: <Monitor size={14} /> },
   { id: "tablet", label: "Tablet", icon: <Tablet size={14} /> },
   { id: "mobile", label: "Mobile", icon: <Smartphone size={14} /> },
