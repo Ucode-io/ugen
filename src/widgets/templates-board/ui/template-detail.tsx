@@ -68,9 +68,14 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
   const title = getTemplateTitle(template);
   const description = getTemplateDescription(template);
   const demoUrl = getTemplateDemoUrl(template);
-  const images: string[] = Array.isArray(template.images)
-    ? template.images.map((img: string) => buildImageUrl(img))
+  const photo = getTemplateImage(template);
+  const rawImages: string[] = Array.isArray(template.images)
+    ? template.images
     : [];
+  const images: string[] = [
+    ...(photo ? [photo] : []),
+    ...rawImages.filter((img) => img !== photo),
+  ].map((img) => buildImageUrl(img));
 
   return (
     <div className="bg-bg-main h-full overflow-y-auto">
@@ -105,37 +110,6 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
 
         {/* Full-width preview */}
         <div className="border-border-subtle bg-bg-card mb-3 overflow-hidden rounded-xl border">
-          {/* Browser chrome */}
-          <div className="border-border-subtle bg-bg-sidebar flex items-center gap-2.5 border-b px-3.5 py-2.5">
-            <div className="flex gap-1.5">
-              <span className="h-[11px] w-[11px] rounded-full bg-[#ff5f57]" />
-              <span className="h-[11px] w-[11px] rounded-full bg-[#febc2e]" />
-              <span className="h-[11px] w-[11px] rounded-full bg-[#28c840]" />
-            </div>
-            {demoUrl && (
-              <div
-                className="text-text-muted flex flex-1 items-center gap-1.5 rounded px-3 py-1.5 text-[0.72rem]"
-                style={{
-                  background: "var(--bg-main)",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                {demoUrl.replace(/^https?:\/\//, "")}
-              </div>
-            )}
-          </div>
-
           {/* Preview content */}
           <div className="relative w-full" style={{ height: "550px" }}>
             {!iframeLoaded && demoUrl && (
