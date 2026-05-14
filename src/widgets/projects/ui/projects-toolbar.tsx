@@ -1,22 +1,21 @@
 import { useTranslations } from "next-intl"
-import { Search, SquareDashed, LayoutGrid, List } from "lucide-react"
+import { Search, LayoutGrid, List, Plus } from "lucide-react"
+import { Link } from "@/shared/lib/i18n/navigation"
 
 interface ProjectsToolbarProps {
-  canSelectProject: boolean
-  setCanSelectProject: (val: boolean) => void
   viewType: 'grid' | 'list'
   setViewType: (val: 'grid' | 'list') => void
   searchQuery: string
   setSearchQuery: (val: string) => void
+  isUgen?: boolean
 }
 
 export const ProjectsToolbar = ({
-  canSelectProject,
-  setCanSelectProject,
   viewType,
   setViewType,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  isUgen = false
 }: ProjectsToolbarProps) => {
   const t = useTranslations('widgets.projects')
 
@@ -34,14 +33,6 @@ export const ProjectsToolbar = ({
           />
         </div>
 
-        <button
-          onClick={() => setCanSelectProject(!canSelectProject)}
-          className={`flex items-center justify-center rounded-xl border border-border-subtle p-2 transition-colors ${canSelectProject ? 'bg-bg-secondary text-bg-main' : 'bg-input-bg text-text-muted hover:bg-hover-bg hover:text-text-main'}`}
-          title={t("toggleSelection")}
-        >
-          <SquareDashed size={16} />
-        </button>
-
         <div className="flex items-center rounded-xl border border-border-subtle bg-bg-main p-1 shrink-0">
           <button
             onClick={() => setViewType("grid")}
@@ -58,6 +49,16 @@ export const ProjectsToolbar = ({
             <List size={14} />
           </button>
         </div>
+
+        {isUgen && (
+          <Link
+            href="/?focus=prompt"
+            className="border-border-subtle bg-bg-main text-text-muted hover:bg-hover-bg hover:text-text-main flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors"
+          >
+            <Plus size={14} />
+            {t("createNewProject")}
+          </Link>
+        )}
       </div>
     </div>
   )

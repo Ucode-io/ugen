@@ -36,7 +36,6 @@ export const ProjectsBoard = () => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [canSelectProject, setCanSelectProject] = useState(false);
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -276,12 +275,11 @@ export const ProjectsBoard = () => {
       </div>
 
       <ProjectsToolbar
-        canSelectProject={canSelectProject}
-        setCanSelectProject={setCanSelectProject}
         viewType={viewType}
         setViewType={setViewType}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        isUgen={isUgen}
       />
 
       <div className="mt-6 flex-1 overflow-y-auto">

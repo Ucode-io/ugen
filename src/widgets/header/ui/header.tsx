@@ -20,9 +20,9 @@ type ResourceItem = {
 
 const RESOURCES_DROPDOWN: ResourceItem[] = [
   { icon: '📦', label: 'Templates', desc: 'Ready-made apps', href: '/templates' },
-  { icon: '🔌', label: 'Connectors', desc: '300+ integrations', href: '/connectors' },
+  { icon: '🔌', label: 'Connectors', desc: '300+ integrations', href: 'https://ucode-2d4e6635.mintlify.app/integrations/integrations-list' },
   { icon: '👤', label: 'Hire an Expert', desc: 'Get help building', href: '/hire-expert' },
-  { icon: '📖', label: 'Docs', desc: 'Guides & API reference', href: '/docs' },
+  { icon: '📖', label: 'Docs', desc: 'Guides & API reference', href: 'https://ucode-2d4e6635.mintlify.app/' },
 ]
 
 export const Header = () => {

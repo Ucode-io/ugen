@@ -1,6 +1,6 @@
 // src/widgets/dashboard-home/ui/prompt-input.tsx
 'use client'
-import { Plus, ArrowUp, Loader2, X, FileIcon } from 'lucide-react'
+import { Plus, ArrowUp, Loader2, X, FileIcon, Users, ShoppingCart, Package, ListTodo, UtensilsCrossed } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { useRef, useEffect, useState, ClipboardEvent, DragEvent } from 'react'
 import { useRouter } from '@/shared/lib/i18n/navigation'
@@ -12,11 +12,11 @@ import { DEFAULT_MODEL_ID } from '@/entities/ai-model'
 import { useTranslations } from 'next-intl'
 
 const PRESET_PROMPTS = [
-  'Build a CRM system with contacts and sales pipeline',
-  'Create an e-commerce store with product catalog',
-  'Build an ERP system with inventory and finance modules',
-  'Build a task management app with kanban board',
-  'Create a restaurant website with menu and booking',
+  { text: 'Build a CRM system with contacts and sales pipeline', icon: Users },
+  { text: 'Create an e-commerce store with product catalog', icon: ShoppingCart },
+  { text: 'Build an ERP system with inventory and finance modules', icon: Package },
+  { text: 'Build a task management app with kanban board', icon: ListTodo },
+  { text: 'Create a restaurant website with menu and booking', icon: UtensilsCrossed },
 ]
 
 export const PromptInput = () => {
@@ -235,18 +235,19 @@ export const PromptInput = () => {
 
       {/* Preset prompts */}
       <div className="flex flex-wrap justify-center gap-2">
-        {PRESET_PROMPTS.map((preset) => (
+        {PRESET_PROMPTS.map(({ text, icon: Icon }) => (
           <button
-            key={preset}
+            key={text}
             type="button"
             disabled={isProcessing}
             onClick={() => {
-              setPrompt(preset)
+              setPrompt(text)
               textareaRef.current?.focus()
             }}
-            className="border border-border-subtle rounded-full px-3 py-1.5 text-xs text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors disabled:opacity-50 truncate max-w-65"
+            className="flex items-center gap-1.5 border border-border-subtle rounded-full px-3 py-1.5 text-xs text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors disabled:opacity-50 max-w-65"
           >
-            {preset}
+            <Icon size={14} className="shrink-0" />
+            <span className="truncate">{text}</span>
           </button>
         ))}
       </div>

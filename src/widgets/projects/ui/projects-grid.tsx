@@ -1,9 +1,7 @@
-import { Plus, Star, Link as LinkIcon, Loader2, Folder } from "lucide-react"
+import { Star, Link as LinkIcon, Loader2, Folder } from "lucide-react"
 import { Link } from "@/shared/lib/i18n/navigation"
 import { ProjectCardActions } from "./project-card-actions"
 import { FolderCardActions } from "./folder-card-actions"
-import { useTranslations } from "next-intl"
-import { useAuthStore } from "@/entities/session"
 
 interface ProjectsGridProps {
   projects: any[]
@@ -15,25 +13,10 @@ interface ProjectsGridProps {
 }
 
 export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant = "projects", onProjectClick, switchingProjectId }: ProjectsGridProps) => {
-  const t = useTranslations('widgets.projects')
-  const { project } = useAuthStore()
-  const isUgen = project?.is_ugen ?? false
-
   return (
     <div className={
-      variant === "dashboard" ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+      variant === "dashboard" ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
     }>
-      {(variant === "projects" && isUgen) && (
-        <Link href="/?focus=prompt" className="group cursor-pointer block">
-          <div className="aspect-video w-full rounded-2xl border-2 border-dashed border-border-subtle bg-transparent flex flex-col items-center justify-center transition-colors hover:border-text-muted hover:bg-hover-bg/30">
-            <Plus size={20} className="text-text-muted transition-colors group-hover:text-text-main" />
-          </div>
-          <div className="mt-2">
-            <h3 className="text-[13px] font-medium text-text-main">{t("createNewProject")}</h3>
-          </div>
-        </Link>
-      )}
-
       {folders.map(folder => (
         <div key={folder.id} className="group relative block">
           <Link href={`/projects?folder_id=${folder.id}`} className="block">
