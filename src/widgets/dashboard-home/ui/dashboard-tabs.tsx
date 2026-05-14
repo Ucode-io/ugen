@@ -3,8 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { useTranslations } from 'next-intl'
-import { TEMPLATES } from '@/widgets/templates-board/model/templates'
-import { ArrowRight } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import {
+  fetchTemplates,
+  getTemplateDescription,
+  getTemplateImage,
+  getTemplateTitle,
+  type Template,
+} from '@/widgets/templates-board/model/templates'
+import { ArrowRight, Layers } from 'lucide-react'
 import { useProjectsList } from '@/entities/project'
 import { ProjectsGrid } from '@/widgets/projects/ui/projects-grid'
 
@@ -12,10 +19,15 @@ type TabType = 'recently_viewed' | 'my_projects' | 'templates'
 
 export const DashboardTabs = () => {
   const tNav = useTranslations('Navigation')
-  const tTemp = useTranslations('Templates')
   const tD = useTranslations('widgets.dashboard')
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('my_projects')
+
+  const { data: templates = [], isLoading: isTemplatesLoading } = useQuery({
+    queryKey: ['ugen-templates'],
+    queryFn: fetchTemplates,
+    enabled: activeTab === 'templates',
+  })
 
   const tabs: { id: TabType; label: string }[] = [
     { id: 'recently_viewed', label: tNav('recently_viewed') },
@@ -53,6 +65,10 @@ export const DashboardTabs = () => {
     }
   }
 
+  const handleOpenTemplate = (template: Template) => {
+    router.push(`/dashboard/templates?template=${template.id}`)
+  }
+
   return (
     <div className="w-full max-w-5xl mx-auto p-6 z-10 relative bg-bg-main rounded-xl border border-border-subtle">
       <div className="flex items-center justify-between mb-6">
@@ -81,27 +97,65 @@ export const DashboardTabs = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {activeTab === 'templates' && TEMPLATES.slice(0, 4).map((template) => (
-          <div
-            key={template.id}
-            className="group cursor-pointer flex flex-col gap-3"
-            onClick={() => router.push('/dashboard/templates')}
-          >
-            <div
-              className={`w-full aspect-[16/10] rounded-xl overflow-hidden shadow-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-md ${template.bg}`}
-            >
-              {template.content && template.content}
+        {activeTab === 'templates' && (
+          isTemplatesLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-3">
+                <div className="w-full aspect-16/10 rounded-xl bg-bg-sidebar/60 animate-pulse" />
+                <div className="space-y-1.5">
+                  <div className="h-4 w-1/2 rounded bg-bg-sidebar/60 animate-pulse" />
+                  <div className="h-3 w-2/3 rounded bg-bg-sidebar/40 animate-pulse" />
+                </div>
+              </div>
+            ))
+          ) : templates.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-text-muted border border-dashed border-border-subtle rounded-xl">
+              {tD("nothingToShow")}
             </div>
-            <div>
-              <h3 className="text-[15px] font-semibold text-text-main">
-                {tTemp(`cards.${template.id}.title`)}
-              </h3>
-              <p className="text-[13px] text-text-muted mt-0.5">
-                {tTemp(`cards.${template.id}.description`)}
-              </p>
-            </div>
-          </div>
-        ))}
+          ) : (
+            templates.slice(0, 4).map((template) => {
+              const title = getTemplateTitle(template)
+              const description = getTemplateDescription(template)
+              const image = getTemplateImage(template)
+              return (
+                <div
+                  key={template.id}
+                  className="group cursor-pointer flex flex-col gap-3"
+                  onClick={() => handleOpenTemplate(template)}
+                >
+                  <div className="w-full aspect-16/10 rounded-xl overflow-hidden shadow-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-md bg-bg-sidebar border border-border-subtle relative">
+                    {image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={image}
+                        alt={title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-linear-to-br from-primary/20 via-primary/10 to-bg-sidebar p-6 text-center">
+                        <div className="bg-primary/15 mb-3 flex h-12 w-12 items-center justify-center rounded-xl">
+                          <Layers className="text-primary" size={22} />
+                        </div>
+                        <p className="text-text-main text-sm font-semibold">{title}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-text-main truncate">
+                      {title}
+                    </h3>
+                    {description && (
+                      <p className="text-[13px] text-text-muted mt-0.5 line-clamp-2">
+                        {description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )
+        )}
         {activeTab === 'my_projects' && (
           <div className="col-span-full">
             {isProjectsLoading ? (

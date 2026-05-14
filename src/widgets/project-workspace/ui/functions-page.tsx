@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import {
   ChevronLeft,
   Loader2,
@@ -39,6 +39,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { cn } from '@/shared/lib/utils/cn'
 import { GitlabCodeEditor } from './gitlab-code-view'
 import { PipelineStatus } from './pipeline-status'
+import { useTables, type Table } from '@/entities/database'
 
 interface FunctionItem {
   id: string
@@ -63,6 +64,12 @@ interface FunctionPageProps {
 }
 
 type View = 'list' | 'create' | 'detail'
+type FunctionTiming = 'default' | 'before' | 'after'
+
+type FunctionTriggerConfig = {
+  timing: FunctionTiming
+  tableSlug?: string
+}
 
 const timeData = [
   { label: '5 minutes', value: 300000 },
@@ -71,6 +78,12 @@ const timeData = [
   { label: '1 hour', value: 3600000 },
   { label: '6 hours', value: 21600000 },
   { label: '12 hours', value: 43200000 },
+]
+
+const timingOptions: { label: string; value: FunctionTiming }[] = [
+  { label: 'Default', value: 'default' },
+  { label: 'Before', value: 'before' },
+  { label: 'After', value: 'after' },
 ]
 
 export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
@@ -83,6 +96,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
   const [fnToDelete, setFnToDelete] = useState<FunctionItem | null>(null)
   const [timeFrame, setTimeFrame] = useState(3600000)
   const [lastPublish, setLastPublish] = useState(0)
+  const [triggerConfigs, setTriggerConfigs] = useState<Record<string, FunctionTriggerConfig>>({})
 
   const debouncedSearch = useDebounce(search, 400)
   const queryClient = useQueryClient()
@@ -137,6 +151,8 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
     queryFn: () => fetchGitResources(projectId),
     enabled: view === 'create'
   })
+
+  const { data: tables = [], isLoading: isTablesLoading } = useTables('', 200, 0)
 
   console.log('fnDetailfnDetail', fnDetail)
 
@@ -195,48 +211,154 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
     resource_id: ''
   })
 
+  const hasTableColumn = Object.values(triggerConfigs).some(
+    (config) => config.timing === 'before' || config.timing === 'after'
+  )
+
+  const getTriggerConfig = useCallback((functionId: string): FunctionTriggerConfig => (
+    triggerConfigs[functionId] ?? { timing: 'default' }
+  ), [triggerConfigs])
+
+  const handleTimingChange = useCallback((functionId: string, timing: FunctionTiming) => {
+    setTriggerConfigs((prev) => ({
+      ...prev,
+      [functionId]: {
+        timing,
+        tableSlug: timing === 'default' ? undefined : prev[functionId]?.tableSlug,
+      },
+    }))
+  }, [])
+
+  const handleTableChange = useCallback((functionId: string, tableSlug: string) => {
+    setTriggerConfigs((prev) => ({
+      ...prev,
+      [functionId]: {
+        timing: prev[functionId]?.timing ?? 'before',
+        tableSlug,
+      },
+    }))
+  }, [])
+
   // DataTable Columns
-  const columns: ColumnDef<FunctionItem>[] = useMemo(() => [
-    {
-      accessorKey: 'name',
-      header: 'Name',
-      cell: ({ row }) => <span className="font-bold text-text-main">{row.original.name}</span>
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => {
-        const isActive = row.original.status === 'ACTIVE' || !row.original.status
-        return (
-          <span className={cn(
-            "px-2 py-0.5 rounded-full text-[11px] font-bold uppercase",
-            isActive ? "bg-green-500/10 text-green-600" : "bg-text-muted/10 text-text-muted"
-          )}>
-            {row.original.status || 'ACTIVE'}
+  const columns: ColumnDef<FunctionItem>[] = useMemo(() => {
+    const baseColumns: ColumnDef<FunctionItem>[] = [
+      {
+        accessorKey: 'name',
+        header: 'Name',
+        cell: ({ row }) => <span className="font-bold text-text-main whitespace-nowrap">{row.original.name}</span>
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => {
+          const isActive = row.original.status === 'ACTIVE' || !row.original.status
+          return (
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-[11px] font-bold uppercase",
+              isActive ? "bg-green-500/10 text-green-600" : "bg-text-muted/10 text-text-muted"
+            )}>
+              {row.original.status || 'ACTIVE'}
+            </span>
+          )
+        }
+      },
+      {
+        accessorKey: 'path',
+        header: 'Path',
+        cell: ({ row }) => <span className="font-mono text-xs text-text-muted whitespace-nowrap">{row.original.path ?? '—'}</span>
+      },
+      {
+        accessorKey: 'type',
+        header: 'Type',
+        cell: ({ row }) => (
+          <span className="bg-primary/10 text-primary text-[11px] font-bold px-2 py-0.5 rounded-full uppercase">
+            {row.original.type}
           </span>
         )
-      }
-    },
-    {
-      accessorKey: 'path',
-      header: 'Path',
-      cell: ({ row }) => <span className="font-mono text-xs text-text-muted">{row.original.path ?? '—'}</span>
-    },
-    {
-      accessorKey: 'type',
-      header: 'Type',
-      cell: ({ row }) => (
-        <span className="bg-primary/10 text-primary text-[11px] font-bold px-2 py-0.5 rounded-full uppercase">
-          {row.original.type}
-        </span>
-      )
-    },
-    {
-      accessorKey: 'max_scale',
-      header: 'Replica Count',
-      cell: ({ row }) => <div className="text-center">{row.original.max_scale}</div>
-    },
-    {
+      },
+      {
+        accessorKey: 'max_scale',
+        header: 'Replica Count',
+        cell: ({ row }) => <div className="text-center">{row.original.max_scale}</div>
+      },
+      {
+        id: 'timing',
+        header: 'Timing',
+        cell: ({ row }) => {
+          const activeTiming = getTriggerConfig(row.original.id).timing
+
+          return (
+            <div
+              className="inline-flex h-8 overflow-hidden rounded-lg border border-border-subtle bg-bg-sidebar p-1"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              {timingOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleTimingChange(row.original.id, option.value)}
+                  className={cn(
+                    "h-6 min-w-[58px] rounded-md px-2 text-[11px] font-semibold transition-colors",
+                    activeTiming === option.value
+                      ? "bg-bg-card text-primary shadow-sm"
+                      : "text-text-muted hover:text-text-main"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )
+        },
+      },
+    ]
+
+    if (hasTableColumn) {
+      baseColumns.push({
+        id: 'table',
+        header: 'Tables',
+        cell: ({ row }) => {
+          const config = getTriggerConfig(row.original.id)
+          const needsTable = config.timing === 'before' || config.timing === 'after'
+
+          if (!needsTable) {
+            return <span className="text-text-muted">—</span>
+          }
+
+          return (
+            <div
+              className="min-w-[180px]"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <Select
+                value={config.tableSlug}
+                onValueChange={(value) => handleTableChange(row.original.id, value)}
+                disabled={isTablesLoading || tables.length === 0}
+              >
+                <SelectTrigger className="h-8 bg-bg-sidebar border-border-subtle text-xs w-[180px]">
+                  <SelectValue placeholder={isTablesLoading ? "Loading..." : "Select table"} />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]" position="popper" side="bottom" sideOffset={4} avoidCollisions>
+                  {tables.length === 0 ? (
+                    <SelectItem value="__no_tables__" disabled>No tables found</SelectItem>
+                  ) : (
+                    tables.map((table: Table) => (
+                      <SelectItem key={table.id ?? table.slug} value={table.slug}>
+                        {table.label || table.slug}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )
+        },
+      })
+    }
+
+    baseColumns.push({
       id: 'actions',
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
@@ -267,12 +389,14 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
           </Button>
         </div>
       )
-    }
-  ], [onEditCode])
+    })
+
+    return baseColumns
+  }, [getTriggerConfig, handleTableChange, handleTimingChange, hasTableColumn, isTablesLoading, onEditCode, tables])
 
   if (view === 'list') {
     return (
-      <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="space-y-6 animate-in fade-in duration-500 min-w-0 w-full">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-text-main tracking-tight">Functions</h1>
@@ -312,6 +436,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
           <WorkspaceDataTable
             columns={columns}
             data={(functionsData?.functions ?? []).filter(fn => fn.id !== 'b90d8ad8-553a-4494-8031-660b85a79b45')}
+            tableClassName="min-w-max"
             totalCount={functionsData?.total}
             page={page}
             onPageChange={setPage}

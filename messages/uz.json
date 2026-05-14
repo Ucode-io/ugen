@@ -38,6 +38,7 @@
   },
   "Templates": {
     "title": "Shablonlar",
+    "demo": "Demo",
     "use_template": "Shablondan foydalanish",
     "cards": {
       "lovable_slides": {

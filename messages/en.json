@@ -38,6 +38,7 @@
   },
   "Templates": {
     "title": "Templates",
+    "demo": "Demo",
     "use_template": "Use template",
     "cards": {
       "lovable_slides": {

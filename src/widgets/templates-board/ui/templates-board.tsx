@@ -1,86 +1,115 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useTranslations } from 'next-intl'
-import * as Dialog from '@radix-ui/react-dialog'
-import { X, ExternalLink, Image as ImageIcon, Briefcase, ShoppingBag, CalendarDays, BookOpen, Layers } from 'lucide-react'
+import { useQuery } from "@tanstack/react-query";
 
-import { TEMPLATES } from '../model/templates'
+import { useRouter } from "@/shared/lib/i18n/navigation";
+
+import {
+  fetchTemplates,
+  getTemplateImage,
+  getTemplateTitle,
+  type Template,
+} from "../model/templates";
 
 export const TemplatesBoard = () => {
-  const t = useTranslations('Templates')
-  const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATES[0] | null>(null)
+  const router = useRouter();
+
+  const {
+    data: templates = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["ugen-templates"],
+    queryFn: fetchTemplates,
+    refetchOnWindowFocus: false,
+  });
+
+  const handleSelectTemplate = (template: Template) => {
+    router.push(`/dashboard/templates/${template.id}` as any);
+  };
 
   return (
-    <div className="p-8 h-full bg-bg-main overflow-y-auto">
-      <div className="max-w-[1200px] mx-auto">
-        <h1 className="text-3xl font-bold text-text-main mb-8">{t('title')}</h1>
+    <div className="bg-bg-main h-full overflow-y-auto p-8">
+      <div className="mx-auto max-w-300">
+        <h1 className="text-text-main mb-8 text-3xl font-bold">Templates</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {TEMPLATES.map((template) => (
-            <div
-              key={template.id}
-              className="group cursor-pointer flex flex-col gap-3"
-              onClick={() => setSelectedTemplate(template)}
-            >
-              <div
-                className={`w-full aspect-[16/10] rounded-xl overflow-hidden shadow-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-md ${template.bg}`}
-              >
-                {template.content && template.content}
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-3">
+                <div className="bg-bg-sidebar/60 aspect-16/10 w-full animate-pulse rounded-xl" />
+                <div className="space-y-1.5">
+                  <div className="bg-bg-sidebar/60 h-4 w-1/2 animate-pulse rounded" />
+                </div>
               </div>
-              <div>
-                <h3 className="text-[15px] font-semibold text-text-main">
-                  {t(`cards.${template.id}.title`)}
-                </h3>
-                <p className="text-[13px] text-text-muted mt-0.5">
-                  {t(`cards.${template.id}.description`)}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="border-border-subtle bg-bg-card text-text-muted rounded-xl border p-8 text-center">
+            Failed to load templates. Please try again later.
+          </div>
+        ) : templates.length === 0 ? (
+          <div className="border-border-subtle bg-bg-card text-text-muted rounded-xl border border-dashed p-12 text-center">
+            No templates available yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {templates.map((template) => (
+              <TemplateCard
+                key={template.id}
+                template={template}
+                onSelect={handleSelectTemplate}
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      <Dialog.Root open={!!selectedTemplate} onOpenChange={(open) => !open && setSelectedTemplate(null)}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity" />
-          <Dialog.Content
-            className="fixed left-[50%] top-[50%] z-50 w-[95vw] max-w-[1200px] h-[90vh] translate-x-[-50%] translate-y-[-50%] bg-bg-card border border-border-subtle rounded-xl shadow-2xl overflow-hidden flex flex-col focus:outline-none"
-          >
-            <Dialog.Title className="sr-only">Template Preview</Dialog.Title>
-            <Dialog.Description className="sr-only">Preview of {selectedTemplate ? t(`cards.${selectedTemplate.id}.title`) : ''}</Dialog.Description>
-
-            {selectedTemplate && (
-              <>
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0 bg-bg-card">
-                  <h2 className="text-xl font-bold text-text-main">
-                    {t(`cards.${selectedTemplate.id}.title`)}
-                  </h2>
-                  <div className="flex items-center gap-4">
-                    <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                      {t('use_template')}
-                    </button>
-                    <Dialog.Close asChild>
-                      <button className="text-text-muted hover:text-text-main transition-colors p-1.5 rounded-md hover:bg-hover-bg">
-                        <X size={20} />
-                      </button>
-                    </Dialog.Close>
-                  </div>
-                </div>
-
-                <div className="flex-1 w-full bg-zinc-100 dark:bg-zinc-900 relative">
-                  <iframe
-                    src={selectedTemplate.link}
-                    className="absolute inset-0 w-full h-full border-0"
-                    title={t(`cards.${selectedTemplate.id}.title`)}
-                    sandbox="allow-scripts allow-same-origin"
-                  />
-                </div>
-              </>
-            )}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
     </div>
-  )
-}
+  );
+};
+
+const TemplateCard = ({
+  template,
+  onSelect,
+}: {
+  template: Template;
+  onSelect: (template: Template) => void;
+}) => {
+  const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
+  const title = getTemplateTitle(template);
+  const rawImage = getTemplateImage(template);
+
+  const buildImageUrl = (raw: string) => {
+    const full = raw.includes("https") ? raw : `${cdnBase}/${raw}`;
+    try {
+      return encodeURI(decodeURI(full));
+    } catch {
+      return full;
+    }
+  };
+  const image = rawImage ? buildImageUrl(rawImage) : "";
+
+  return (
+    <div
+      className="group flex cursor-pointer flex-col gap-3"
+      onClick={() => onSelect(template)}
+    >
+      <div className="bg-bg-sidebar border-border-subtle relative aspect-16/10 w-full overflow-hidden rounded-xl border shadow-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-md">
+        {image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={image}
+            alt={title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        )}
+      </div>
+      <div>
+        <h3 className="text-text-main truncate text-[15px] font-semibold">
+          {title}
+        </h3>
+      </div>
+    </div>
+  );
+};

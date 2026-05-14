@@ -248,7 +248,7 @@ export const ProjectDashboard = ({
           {/* Main Content */}
           <main className="min-w-0 flex-1 overflow-y-auto">
             <div className={cn("mx-auto w-full", !['database_studio', 'api_integrations'].includes(activeSection) ? "p-8" : "h-full")}>
-              <div className={cn("grid gap-6", !['database_studio', 'api_integrations'].includes(activeSection) ? '' : 'h-full')}>{renderActiveSection()}</div>
+              <div className={cn("grid grid-cols-1 gap-6", !['database_studio', 'api_integrations'].includes(activeSection) ? '' : 'h-full')}>{renderActiveSection()}</div>
             </div>
           </main>
         </div>
