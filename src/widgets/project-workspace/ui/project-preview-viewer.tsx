@@ -483,6 +483,17 @@ const getLanguageByPath = (path: string) => {
   }
 };
 
+// The preview entry (`/__entry.tsx`) always does `import App from "/src/App"`.
+// The bundler prefixes `src/` to any non-root file, so the entry is satisfied by
+// a file at `src/App.{tsx,jsx,ts,js}` (or a bare `App.{tsx,jsx,ts,js}`).
+const PREVIEW_ENTRY_RE = /^src\/App\.(tsx|jsx|ts|js)$/;
+const hasPreviewEntryFile = (files: { path: string }[]): boolean =>
+  files.some((f) => {
+    let p = f.path.startsWith("/") ? f.path.slice(1) : f.path;
+    if (p !== "package.json" && !p.startsWith("src/")) p = "src/" + p;
+    return PREVIEW_ENTRY_RE.test(p);
+  });
+
 export const ProjectPreviewViewer = ({
   device = `desktop`,
   isMaximized = false,
@@ -702,7 +713,11 @@ export const ProjectPreviewViewer = ({
 
   const setPendingPrompt = useChatStore((s) => s.setPendingPrompt);
   const [srcDoc, setSrcDoc] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // Start in the loading state so the very first render shows the build loader
+  // instead of a blank white iframe — the build effect runs right after mount
+  // and either keeps this true (normal build) or flips it false (when a
+  // microfrontend/stream loader takes over instead).
+  const [isLoading, setIsLoading] = useState(true);
   const [runtimeError, setRuntimeError] = useState<
     (PreviewRuntimeError & { isBuildError?: boolean }) | null
   >(null);
@@ -1051,9 +1066,21 @@ export const ProjectPreviewViewer = ({
     return files.map((f) => f.path + ":" + f.content?.length).join("|");
   }, [files]);
 
+  // `files` can land in more than one store update — e.g. a microfrontend
+  // project first exposes only scaffolding from `project_files`, then the real
+  // codebase (including src/App) arrives later when the codebase is fetched.
+  // Building in that gap throws a spurious "File not found: /src/App" that
+  // self-heals on the next rebuild. Track entry readiness so the build effect
+  // can wait it out.
+  const hasPreviewEntry = useMemo(() => hasPreviewEntryFile(files), [files]);
+
   // Wait for the SSE to fully close before building — `chunk_done`/`done` events
   // arrive mid-stream and would otherwise trigger premature rebuilds.
   const isStreaming = useChatStore((s) => s.isStreaming);
+
+  // First build runs immediately so the preview shows as fast as possible on
+  // open/refresh; later rebuilds stay debounced to coalesce rapid file changes.
+  const hasBuiltRef = useRef(false);
 
   useEffect(() => {
     // Skip while microfrontend codebase is still loading or chat is streaming —
@@ -1064,11 +1091,24 @@ export const ProjectPreviewViewer = ({
       return;
     }
     setIsLoading(true);
-    const timeout = setTimeout(() => {
+
+    // Entry present → first build runs immediately for speed, later ones stay
+    // debounced. Entry not here yet → hold off; if filesHash changes (the entry
+    // lands) the effect re-runs and builds then. As a safety valve, still build
+    // after a grace period so a genuinely broken project surfaces its real
+    // error instead of spinning forever.
+    if (hasPreviewEntry && !hasBuiltRef.current) {
+      hasBuiltRef.current = true;
       runCode();
-    }, 1000);
+      return;
+    }
+    const delay = hasPreviewEntry ? 1000 : 8000;
+    const timeout = setTimeout(() => {
+      hasBuiltRef.current = true;
+      runCode();
+    }, delay);
     return () => clearTimeout(timeout);
-  }, [filesHash, isMicrofrontendLoading, isStreaming]);
+  }, [filesHash, hasPreviewEntry, isMicrofrontendLoading, isStreaming]);
 
   const captureAndUploadScreenshot = async (html: string) => {
     console.log("[preview screenshot] capture started");
@@ -1165,6 +1205,12 @@ export const ProjectPreviewViewer = ({
 
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
+      // Only trust messages coming from THIS viewer's preview iframe. The hidden
+      // screenshot iframe and any iframe left over from a project you just
+      // navigated away from also post to `window.parent` — without this guard a
+      // build/runtime error from the previous project surfaces in the new one.
+      if (e.source !== iframeRef.current?.contentWindow) return;
+
       if (e.data?.type === "ROUTE_CHANGE") {
         const url = e.data.url || "/";
         setCurrentUrl(url);

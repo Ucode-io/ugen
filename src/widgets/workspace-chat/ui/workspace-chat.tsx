@@ -525,7 +525,9 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
               setActiveCodeSelection(target, codebaseFiles);
               onSelectMicrofrontend?.(codebaseFiles);
             })
-            .catch(() => { /* keep partialTarget set above */ });
+            // Keep partialTarget, but resolve files to [] (not null) so the
+            // preview stops waiting — null reads as "codebase still loading".
+            .catch(() => setActiveCodeSelection(partialTarget, []));
         }
 
         queryClient.invalidateQueries({ queryKey: ['attach-microfrontends', projectId] });
