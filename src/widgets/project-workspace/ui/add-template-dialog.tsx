@@ -2,7 +2,7 @@
 import { BookTemplate, ImagePlus, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { githubApi, api } from "@/shared/api";
 import { useRouter } from "@/shared/lib/i18n/navigation";
 import { useAuthStore } from "@/entities/session";
@@ -46,6 +46,7 @@ export const AddTemplateDialog = ({
   projectUrl,
 }: AddTemplateDialogProps) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
   const { project, apiKey } = useAuthStore();
 
@@ -178,6 +179,7 @@ export const AddTemplateDialog = ({
           headers: { "environment-id": project?.environment_id || "" },
         },
       );
+      await queryClient.invalidateQueries({ queryKey: ["ugen-templates"] });
       router.push("/dashboard/templates");
       setIsOpen(false);
     } catch (e) {
