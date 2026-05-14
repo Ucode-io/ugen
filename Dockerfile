@@ -5,7 +5,6 @@ FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@10.29.2 --activate
 WORKDIR /app
 
-# ---------- Dependencies ----------
 FROM base AS deps
 COPY package.json pnpm-lock.yaml .npmrc ./
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
