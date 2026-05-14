@@ -320,7 +320,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               className="text-primary hover:bg-primary/10 rounded-lg h-7 px-2 text-[11px] font-semibold gap-1"
             >
               <Code2 size={13} />
-              Edit
+              Edit with AI
             </Button>
           )}
           <Button

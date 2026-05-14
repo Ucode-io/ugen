@@ -122,11 +122,27 @@ export const ChatInput = ({
   // Attach popover state
   const [attachOpen, setAttachOpen] = useState(false);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
+  const [recentlySelected, setRecentlySelected] = useState(false);
+
+  // Highlight the folder icon for 10s after a microfrontend/function gets selected.
+  useEffect(() => {
+    if (
+      activeCodeSelection?.kind !== "microfrontend" &&
+      activeCodeSelection?.kind !== "function"
+    ) {
+      setRecentlySelected(false);
+      return;
+    }
+    setRecentlySelected(true);
+    const t = setTimeout(() => setRecentlySelected(false), 15_000);
+    return () => clearTimeout(t);
+  }, [activeCodeSelection?.kind, activeCodeSelection?.id]);
 
   const {
     data: functionsList,
     isLoading: isFunctionsLoading,
     isError: isFunctionsError,
+    refetch: refetchFunctions,
   } = useQuery({
     queryKey: ["attach-functions", projectId],
     queryFn: async () => {
@@ -137,12 +153,14 @@ export const ChatInput = ({
       return (data.data?.functions ?? []) as AttachItem[];
     },
     enabled: attachOpen && !!projectId,
+    staleTime: 0,
   });
 
   const {
     data: microfrontendsList,
     isLoading: isMicrofrontendsLoading,
     isError: isMicrofrontendsError,
+    refetch: refetchMicrofrontends,
   } = useQuery({
     queryKey: ["attach-microfrontends", projectId],
     queryFn: async () => {
@@ -513,14 +531,38 @@ export const ChatInput = ({
             )}
           </button>
 
-          <Popover open={attachOpen} onOpenChange={setAttachOpen}>
+          <Popover
+            open={attachOpen}
+            onOpenChange={(open) => {
+              setAttachOpen(open);
+              if (open) {
+                refetchFunctions();
+                refetchMicrofrontends();
+              }
+            }}
+          >
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 w-7 items-center justify-center rounded-full transition-colors"
+                className={cn(
+                  "hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-500",
+                  recentlySelected
+                    ? "text-green-500 hover:text-green-400"
+                    : "text-text-muted hover:text-text-main",
+                )}
                 title={t("input.attach", { fallback: "Attach" })}
               >
-                <Folder size={15} fill={activeCodeSelection?.kind === "new_project" ? "#3b82f6" : "currentColor"} />
+                <Folder
+                  size={15}
+                  className="transition-colors duration-500"
+                  fill={
+                    activeCodeSelection?.kind === "new_project"
+                      ? "#3b82f6"
+                      : recentlySelected
+                        ? "#22c55e"
+                        : "currentColor"
+                  }
+                />
               </button>
             </PopoverTrigger>
             <PopoverContent

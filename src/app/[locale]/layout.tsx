@@ -7,6 +7,7 @@ import { siteConfig } from "@/shared/config";
 import { routing } from "@/shared/lib/i18n";
 import { ThemeProvider, QueryProvider, YandexMetrika, GoogleAuthProvider } from "@/shared/providers";
 import { ViewLayoutWrapper } from "@/shared/ui";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -41,6 +42,7 @@ const RootLayout = async ({ children, params }: Props) => {
                 <ViewLayoutWrapper>
                   {children}
                 </ViewLayoutWrapper>
+                <Toaster richColors position="top-right" />
               </GoogleAuthProvider>
             </NextIntlClientProvider>
           </ThemeProvider>

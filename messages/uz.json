@@ -763,6 +763,7 @@
       },
       "input": {
         "placeholder": "Bugun sizga qanday yordam bera olaman?",
+        "attach": "Biriktirish",
         "attachFile": "Faylni biriktirish",
         "visualEdits": "Vizual tahrirlash",
         "plan": "Reja",

@@ -16,6 +16,7 @@ import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import { useDirtyFilesStore } from "@/entities/project/model/dirty-files-store";
 import { CommitModal } from "@/widgets/project-workspace/ui/commit-modal";
 import { UnsavedChangesModal } from "@/widgets/project-workspace/ui/unsaved-changes-modal";
+import { toast } from "sonner";
 
 import {
   ProjectHeader,
@@ -260,10 +261,35 @@ export const ProjectWorkspaceClient = ({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, []);
 
-  const handleEditCode = (target: CodeEditorTarget) => {
-    console.log({ target });
+  const handleEditCode = async (target: CodeEditorTarget) => {
     setCodeEditorTarget(target);
-    setActiveTab("code");
+    if (!target.id) {
+      useCodeSelectionStore.getState().setActiveCodeSelection(target, null);
+      return;
+    }
+    try {
+      const apiKey = useAuthStore.getState().apiKey;
+      const headers = apiKey
+        ? { Authorization: "API-KEY", "x-api-key": apiKey }
+        : {};
+      const { data } = await api.get(`/v2/function/${target.id}/codebase`, {
+        params: { "project-id": projectId },
+        headers,
+      });
+      const files = (data?.data?.files ?? []) as {
+        path: string;
+        content: string;
+      }[];
+      useCodeSelectionStore.getState().setActiveCodeSelection(target, files);
+      toast.success(
+        target.name
+          ? `“${target.name}” selected for AI edit`
+          : "Function selected for AI edit",
+      );
+    } catch (err) {
+      console.error("Failed to load function for AI edit", err);
+      toast.error("Failed to load function. Please try again.");
+    }
   };
 
   const handlePreviewMicrofrontend = useCallback(() => {

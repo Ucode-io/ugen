@@ -763,6 +763,7 @@
       },
       "input": {
         "placeholder": "How can I help you today?",
+        "attach": "Attach",
         "attachFile": "Attach file",
         "visualEdits": "Visual edits",
         "plan": "Plan",
