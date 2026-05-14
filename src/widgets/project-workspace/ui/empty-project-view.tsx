@@ -16,19 +16,11 @@ export const EmptyProjectView = ({ onStartChatting }: EmptyProjectViewProps) => 
           <Play size={40} className="text-primary ml-1" />
         </div>
         <h2 className="text-3xl font-bold tracking-tight text-text-main">
-          {t('createProject', { fallback: 'Create your project' })}
+          {t('createProject', { fallback: 'Your project will appear here' })}
         </h2>
         <p className="text-text-muted leading-relaxed">
-          {t('emptyProjectDesc', { fallback: 'Your workspace is currently empty. Describe what you want to build in the chat, and the AI will generate the files and architecture for you in seconds.' })}
+          {t('emptyProjectDesc', { fallback: 'As soon as the AI generates your code, the live preview will show up right here. Describe what you want to build in the chat and watch it come to life.' })}
         </p>
-        <div className="pt-4 flex justify-center">
-          <button
-            onClick={onStartChatting}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring gap-2 leading-none"
-          >
-            {t('startChatting', { fallback: 'Start Chatting' })}
-          </button>
-        </div>
       </div>
     </div>
   )

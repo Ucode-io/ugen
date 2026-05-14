@@ -29,7 +29,7 @@ import {
 } from "@/shared/ui";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
 import { useVisualEditorStore } from "@/entities/visual-editor";
-import { ModelSelector, DEFAULT_MODEL_ID } from "@/entities/ai-model";
+import { DEFAULT_MODEL_ID } from "@/entities/ai-model";
 import { cn } from "@/shared/lib/utils/cn";
 import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
@@ -92,7 +92,6 @@ export const ChatInput = ({
   } = useVisualEditorStore();
   const [value, setValue] = useState("");
   const [isPlanOn, setIsPlanOn] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -342,7 +341,7 @@ export const ChatInput = ({
       if (contextItems.length > 0) context = contextItems;
     }
 
-    onSendMessage(messageText, uploadedFiles, selectedModel, context);
+    onSendMessage(messageText, uploadedFiles, DEFAULT_MODEL_ID, context);
     setValue("");
     clearFiles();
     clearSelectedElements();
@@ -601,12 +600,6 @@ export const ChatInput = ({
               )}
             </PopoverContent>
           </Popover>
-
-          <ModelSelector
-            value={selectedModel}
-            onValueChange={setSelectedModel}
-            size="sm"
-          />
         </div>
 
         <div className="flex items-center gap-1">

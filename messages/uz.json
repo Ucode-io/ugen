@@ -98,9 +98,9 @@
       "copy": "Nusxalash",
       "copied": "Nusxalandi",
       "loading": "Loyiha ish maydoni yuklanmoqda...",
-      "createProject": "Loyihangizni yarating",
-      "emptyProjectDesc": "Sizning ish maydoningiz hozirda bo`sh. Chatda nima qurmoqchi ekanligingizni tasvirlab bering va AI siz uchun materiallar va arxitekturani soniyalar ichida yaratib beradi.",
-      "startChatting": "Suhbatni boshlash"
+      "createProject": "Loyihangiz shu yerda paydo bo'ladi",
+      "emptyProjectDesc": "AI kodingizni yaratishi bilanoq, jonli ko'rinish to'g'ridan-to'g'ri shu yerda paydo bo'ladi. Chatda nima qurmoqchi ekanligingizni tasvirlab bering va g'oyangiz hayotga kelishini kuzating.",
+      "startChatting": "Qurishni boshlash"
     },
     "auth": {
       "login": {

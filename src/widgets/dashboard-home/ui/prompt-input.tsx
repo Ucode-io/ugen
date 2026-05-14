@@ -8,8 +8,16 @@ import { api } from '@/shared/api'
 import { useChatStore } from '@/entities/chat'
 import { AudioRecorder } from '@/shared/ui'
 import { useFileUpload } from '@/shared/hooks/useFileUpload'
-import { ModelSelector, DEFAULT_MODEL_ID } from '@/entities/ai-model'
+import { DEFAULT_MODEL_ID } from '@/entities/ai-model'
 import { useTranslations } from 'next-intl'
+
+const PRESET_PROMPTS = [
+  'Build a CRM system with contacts and sales pipeline',
+  'Create an e-commerce store with product catalog',
+  'Build an ERP system with inventory and finance modules',
+  'Build a task management app with kanban board',
+  'Create a restaurant website with menu and booking',
+]
 
 export const PromptInput = () => {
   const t = useTranslations('widgets.dashboard')
@@ -19,8 +27,6 @@ export const PromptInput = () => {
 
   const [prompt, setPrompt] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [isPlanOn, setIsPlanOn] = useState(false)
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID)
 
   const { uploadFile, uploadedFiles, removeFile, isUploading } = useFileUpload()
 
@@ -30,10 +36,6 @@ export const PromptInput = () => {
   const setPendingPrompt = useChatStore(state => state.setPendingPrompt)
   const addMessage = useChatStore(state => state.addMessage)
   const clearChat = useChatStore(state => state.clearChat)
-
-  const handleTogglePlan = () => {
-    setIsPlanOn(!isPlanOn)
-  }
 
   useEffect(() => {
     if (searchParams.get('focus') === 'prompt') {
@@ -62,7 +64,7 @@ export const PromptInput = () => {
         title: prompt.slice(0, 30) || t("newProject"),
         project_name: prompt.slice(0, 20) || t("newProject"),
         description: "",
-        model: selectedModel
+        model: DEFAULT_MODEL_ID
       })
 
       const chatId = createData.data.id
@@ -73,7 +75,7 @@ export const PromptInput = () => {
       setPendingPrompt({
         content: prompt,
         images: uploadedFiles.map(f => f.url),
-        model: selectedModel
+        model: DEFAULT_MODEL_ID
       })
 
       // 2. Navigate
@@ -130,9 +132,19 @@ export const PromptInput = () => {
   }
 
   return (
-    <div className="relative z-10 w-full max-w-3xl px-4 -mt-24">
+    <div className="relative z-10 w-full max-w-3xl px-4 flex flex-col items-center gap-5">
+      {/* Heading */}
+      <div className="text-center">
+        <h1 className="text-[2.5rem] font-bold tracking-tight text-text-main leading-tight mb-2">
+          What will you build today?
+        </h1>
+        <p className="text-text-muted text-base">
+          Describe your idea and let AI turn it into a working product
+        </p>
+      </div>
+
       <div
-        className="relative overflow-hidden flex flex-col rounded-3xl border border-border-subtle bg-bg-card/80 backdrop-blur-xl p-2.5 shadow-2xl transition-all focus-within:border-primary/20 focus-within:ring-4 focus-within:ring-primary/5"
+        className="relative overflow-hidden w-full flex flex-col rounded-3xl border border-border-subtle bg-bg-card/80 backdrop-blur-xl p-2.5 shadow-2xl transition-all focus-within:border-primary/20 focus-within:ring-4 focus-within:ring-primary/5"
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
       >
@@ -199,24 +211,9 @@ export const PromptInput = () => {
             >
               {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={20} />}
             </button>
-
-            <ModelSelector
-              value={selectedModel}
-              onValueChange={setSelectedModel}
-              triggerClassName="h-8"
-            />
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className={
-                `text-sm font-medium text-text-muted hover:text-text-main transition-colors px-3 py-1 rounded-full  ${isPlanOn ? "bg-text-main text-bg-main" : "hover:bg-hover-bg"}`
-              }
-              onClick={handleTogglePlan}
-            >
-              {t("plan")}
-            </button>
             <AudioRecorder
               onTranscription={(text) => setPrompt(prev => prev + (prev ? " " : "") + text)}
             />
@@ -234,6 +231,24 @@ export const PromptInput = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Preset prompts */}
+      <div className="flex flex-wrap justify-center gap-2">
+        {PRESET_PROMPTS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            disabled={isProcessing}
+            onClick={() => {
+              setPrompt(preset)
+              textareaRef.current?.focus()
+            }}
+            className="border border-border-subtle rounded-full px-3 py-1.5 text-xs text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors disabled:opacity-50 truncate max-w-65"
+          >
+            {preset}
+          </button>
+        ))}
       </div>
     </div>
   )

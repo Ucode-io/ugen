@@ -656,8 +656,6 @@ export const ProjectPreviewViewer = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isBuilding = useRef(false);
-  const screenshotPendingRef = useRef(false);
-  const prevStreamingRef = useRef(false);
 
   // Keep a ref to files so message handler always sees the latest value
   const filesRef = useRef(files);
@@ -865,6 +863,7 @@ export const ProjectPreviewViewer = ({
     setIsLoading(true);
     setRuntimeError(null);
 
+    let builtHtml: string | null = null;
     const build = async () => {
       await ensureEsbuild();
       const { code, dependencies } = await buildProjectFromFiles(files, {
@@ -876,6 +875,7 @@ export const ProjectPreviewViewer = ({
         NODE_ENV: "development",
       });
       const html = generatePreviewHtml(code, dependencies, files);
+      builtHtml = html;
       setSrcDoc(html);
     };
 
@@ -907,6 +907,16 @@ export const ProjectPreviewViewer = ({
       setIsLoading(false);
       isBuilding.current = false;
     }
+
+    // Capture the screenshot once the post-SSE build settles. The pending flag
+    // lives in the chat store (not a ref) because the preview viewer remounts
+    // mid-flow when `setActiveCodeSelection(_, null)` briefly flips `hasNoFiles`
+    // to true — a local ref would be wiped between unmount and remount.
+    const { pendingScreenshot, setPendingScreenshot } = useChatStore.getState();
+    if (pendingScreenshot && builtHtml) {
+      setPendingScreenshot(false);
+      captureAndUploadScreenshot(builtHtml);
+    }
   };
 
   const handleRefresh = () => {
@@ -933,15 +943,6 @@ export const ProjectPreviewViewer = ({
   const isStreaming = useChatStore((s) => s.isStreaming);
 
   useEffect(() => {
-    // Mark a pending screenshot only on the streaming → done transition. The
-    // build that follows will trigger the iframe's onLoad, where we capture.
-    if (prevStreamingRef.current && !isStreaming) {
-      screenshotPendingRef.current = true;
-    }
-    prevStreamingRef.current = isStreaming;
-  }, [isStreaming]);
-
-  useEffect(() => {
     // Skip while microfrontend codebase is still loading or chat is streaming —
     // those states have their own loaders. Don't leave "Building preview" hanging
     // when no build is actually scheduled.
@@ -956,10 +957,10 @@ export const ProjectPreviewViewer = ({
     return () => clearTimeout(timeout);
   }, [filesHash, isMicrofrontendLoading, isStreaming]);
 
-  const captureAndUploadScreenshot = async () => {
+  const captureAndUploadScreenshot = async (html: string) => {
     console.log("[preview screenshot] capture started");
-    if (!srcDoc) {
-      console.warn("[preview screenshot] no srcDoc yet — aborting");
+    if (!html) {
+      console.warn("[preview screenshot] no html — aborting");
       return;
     }
     // Mount an off-screen iframe at full desktop size so the screenshot isn't
@@ -976,7 +977,7 @@ export const ProjectPreviewViewer = ({
       "sandbox",
       "allow-scripts allow-same-origin allow-forms allow-modals",
     );
-    hidden.srcdoc = srcDoc;
+    hidden.srcdoc = html;
     document.body.appendChild(hidden);
     try {
       await new Promise<void>((resolve, reject) => {
@@ -1838,11 +1839,6 @@ export const ProjectPreviewViewer = ({
                 clearThemeOverride();
                 // If the popover is still open (e.g. user kept it open through a save), re-inject.
                 if (themeOpen) injectThemeOverride();
-                // After an SSE-done build, capture the rendered preview and upload it.
-                if (screenshotPendingRef.current && !runtimeError?.isBuildError) {
-                  screenshotPendingRef.current = false;
-                  captureAndUploadScreenshot();
-                }
               }}
             />
           </div>

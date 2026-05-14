@@ -1,21 +1,22 @@
-'use client'
+"use client";
 import {
   CodeXml,
   Globe,
   ImagePlus,
   LayoutDashboard,
   Loader2,
+  Settings,
   Sparkles,
   BookTemplate,
   X,
 } from "lucide-react";
-import { useRef, useState } from "react"
-import dynamic from "next/dynamic"
-import type { ChatPosition } from "@/entities/chat"
-import { useTranslations } from "next-intl"
-import { githubApi, api } from "@/shared/api"
-import { useRouter } from "@/shared/lib/i18n/navigation"
-import { useAuthStore } from "@/entities/session"
+import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import type { ChatPosition } from "@/entities/chat";
+import { useTranslations } from "next-intl";
+import { githubApi, api } from "@/shared/api";
+import { useRouter } from "@/shared/lib/i18n/navigation";
+import { useAuthStore } from "@/entities/session";
 import {
   Dialog,
   DialogClose,
@@ -26,47 +27,62 @@ import {
   DialogTitle,
   DialogTrigger,
   ReusableTabs,
-} from "@/shared/ui"
-import { PublishPopover } from "./publish-popover"
-import { GithubPopover } from "./github-popover"
-import { LogoPopover } from "@/widgets/workspace-chat/ui/logo-popover"
-import { Sidebar } from "@/widgets/sidebar"
-import { cn } from "@/shared/lib/utils/cn"
-import 'react-quill-new/dist/quill.snow.css'
+} from "@/shared/ui";
+import { PublishPopover } from "./publish-popover";
+import { GithubPopover } from "./github-popover";
+import { LogoPopover } from "@/widgets/workspace-chat/ui/logo-popover";
+import { Sidebar } from "@/widgets/sidebar";
+import { cn } from "@/shared/lib/utils/cn";
+// import "react-quill-new/dist/quill.snow.css";
 
-const ReactQuill = dynamic(() => import('react-quill-new'), {
+const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
   loading: () => (
-    <div className="h-32 w-full animate-pulse rounded-lg border border-border-subtle bg-bg-sidebar/40" />
+    <div className="border-border-subtle bg-bg-sidebar/40 h-32 w-full animate-pulse rounded-lg border" />
   ),
-})
+});
 
 const QUILL_MODULES = {
   toolbar: [
-    ['bold', 'italic', 'underline'],
-    [{ list: 'ordered' }, { list: 'bullet' }],
-    ['link'],
-    ['clean'],
+    ["bold", "italic", "underline"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["link"],
+    ["clean"],
   ],
+};
+
+export type DeviceType = "desktop" | "tablet" | "mobile";
+
+export interface MicroFrontend {
+  id: string;
+  name: string;
+  url: string;
+  path?: string;
+  description?: string;
+  project_id?: string;
+  environment_id?: string;
+  type?: string;
+  branch?: string;
+  repo_id?: string;
+  max_scale?: number;
 }
 
-export type DeviceType = 'desktop' | 'tablet' | 'mobile'
-
 interface ProjectHeaderProps {
-  projectTitle: string
-  projectId?: string
-  activeTab: 'dashboard' | 'code' | 'preview'
-  setActiveTab: (tab: 'dashboard' | 'code' | 'preview') => void
-  isSidebarCollapsed: boolean
-  onToggleSidebar: () => void
-  isLoading: boolean
-  hasNoFiles: boolean
-  onSave?: () => void
-  isChatCollapsed: boolean
-  onToggleChat: () => void
-  chatPosition?: ChatPosition
-  projectUrl?: string
-  isUgen?: boolean
+  projectTitle: string;
+  projectId?: string;
+  activeTab: "dashboard" | "code" | "preview";
+  setActiveTab: (tab: "dashboard" | "code" | "preview") => void;
+  isSidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
+  isLoading: boolean;
+  hasNoFiles: boolean;
+  onSave?: () => void;
+  isChatCollapsed: boolean;
+  onToggleChat: () => void;
+  chatPosition?: ChatPosition;
+  projectUrl?: string;
+  isUgen?: boolean;
+  microfrontends?: MicroFrontend[];
 }
 
 export const ProjectHeader = ({
@@ -83,141 +99,159 @@ export const ProjectHeader = ({
   onToggleChat,
   projectUrl,
   isUgen = true,
+  microfrontends = [],
 }: ProjectHeaderProps) => {
-  const t = useTranslations('features.project')
-  const router = useRouter()
-  const [isSidebarForced, setIsSidebarForced] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
-  const [isLogoPopoverOpen, setIsLogoPopoverOpen] = useState(false)
-  const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? ''
-  const { project } = useAuthStore()
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
-  const [templateName, setTemplateName] = useState(projectTitle)
-  const [templateDescription, setTemplateDescription] = useState('')
-  const [previewLocalUrl, setPreviewLocalUrl] = useState<string | null>(null)
-  const [previewFilename, setPreviewFilename] = useState<string | null>(null)
-  const [screenshots, setScreenshots] = useState<{ id: string; localUrl: string; cdnUrl: string | null }[]>([])
-  const [isUploadingImage, setIsUploadingImage] = useState(false)
-  const [isUploadingScreenshot, setIsUploadingScreenshot] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const screenshotInputRef = useRef<HTMLInputElement | null>(null)
+  const t = useTranslations("features.project");
+  const router = useRouter();
+  const [isSidebarForced, setIsSidebarForced] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isLogoPopoverOpen, setIsLogoPopoverOpen] = useState(false);
+  const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
+  const { project } = useAuthStore();
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [templateName, setTemplateName] = useState(projectTitle);
+  const [templateDescription, setTemplateDescription] = useState("");
+  const [previewLocalUrl, setPreviewLocalUrl] = useState<string | null>(null);
+  const [previewFilename, setPreviewFilename] = useState<string | null>(null);
+  const [screenshots, setScreenshots] = useState<
+    { id: string; localUrl: string; cdnUrl: string | null }[]
+  >([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingScreenshot, setIsUploadingScreenshot] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
 
-  const previewUrl = previewLocalUrl ?? previewFilename ?? null
+  const previewUrl = previewLocalUrl ?? previewFilename ?? null;
 
   const uploadPhoto = async (file: File): Promise<string> => {
-    const formData = new FormData()
-    formData.append('file', file)
-    const { data } = await api.post('/v1/files/folder_upload', formData, {
-      params: { folder_name: 'Media' },
-    })
-    return `${cdnBase}/${data.data.link}` as string
-  }
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post("/v1/files/folder_upload", formData, {
+      params: { folder_name: "Media" },
+    });
+    return `${cdnBase}/${data.data.link}` as string;
+  };
 
-  const handlePreviewChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setPreviewLocalUrl(URL.createObjectURL(file))
-    setIsUploadingImage(true)
+  const handlePreviewChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setPreviewLocalUrl(URL.createObjectURL(file));
+    setIsUploadingImage(true);
     try {
-      const filename = await uploadPhoto(file)
-      setPreviewFilename(filename)
+      const filename = await uploadPhoto(file);
+      setPreviewFilename(filename);
     } catch (e) {
-      console.error('Image upload failed', e)
+      console.error("Image upload failed", e);
     } finally {
-      setIsUploadingImage(false)
+      setIsUploadingImage(false);
     }
-  }
+  };
 
-  const handleScreenshotChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    if (screenshotInputRef.current) screenshotInputRef.current.value = ''
-    const id = crypto.randomUUID()
-    const localUrl = URL.createObjectURL(file)
-    setScreenshots((prev) => [...prev, { id, localUrl, cdnUrl: null }])
-    setIsUploadingScreenshot(true)
+  const handleScreenshotChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (screenshotInputRef.current) screenshotInputRef.current.value = "";
+    const id = crypto.randomUUID();
+    const localUrl = URL.createObjectURL(file);
+    setScreenshots((prev) => [...prev, { id, localUrl, cdnUrl: null }]);
+    setIsUploadingScreenshot(true);
     try {
-      const filename = await uploadPhoto(file)
+      const filename = await uploadPhoto(file);
       setScreenshots((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, cdnUrl: filename } : s))
-      )
+        prev.map((s) => (s.id === id ? { ...s, cdnUrl: filename } : s)),
+      );
     } catch (e) {
-      console.error('Screenshot upload failed', e)
-      setScreenshots((prev) => prev.filter((s) => s.id !== id))
+      console.error("Screenshot upload failed", e);
+      setScreenshots((prev) => prev.filter((s) => s.id !== id));
     } finally {
-      setIsUploadingScreenshot(false)
+      setIsUploadingScreenshot(false);
     }
-  }
+  };
 
   const handleRemovePreview = () => {
-    setPreviewLocalUrl(null)
-    setPreviewFilename(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
+    setPreviewLocalUrl(null);
+    setPreviewFilename(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleRemoveScreenshot = (id: string) => {
-    setScreenshots((prev) => prev.filter((s) => s.id !== id))
-  }
+    setScreenshots((prev) => prev.filter((s) => s.id !== id));
+  };
 
   const handleAddTemplate = async () => {
-    if (isSubmitting) return
-    setIsSubmitting(true)
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await githubApi.post(
-        '/v1/ugen-template',
+        "/v1/ugen-template",
         {
           name: templateName.trim() || projectTitle,
           description: templateDescription,
-          photo: previewFilename || '',
-          images: screenshots.filter((s) => s.cdnUrl).map((s) => s.cdnUrl as string),
+          photo: previewFilename || "",
+          images: screenshots
+            .filter((s) => s.cdnUrl)
+            .map((s) => s.cdnUrl as string),
           mcp_project_id: projectId,
-          preview_url: projectUrl ?? '',
-          source_project_id: project?.project_id ?? '',
-          source_environment_id: project?.environment_id ?? '',
+          preview_url: projectUrl ?? "",
+          source_project_id: project?.project_id ?? "",
+          source_environment_id: project?.environment_id ?? "",
         },
         {
-          params: { 'project-id': project?.project_id },
-          headers: { 'environment-id': project?.environment_id ?? '' },
-        }
-      )
-      setIsTemplateDialogOpen(false)
-      setTimeout(() => router.push('/dashboard/templates'), 150)
+          params: { "project-id": project?.project_id },
+          headers: { "environment-id": project?.environment_id ?? "" },
+        },
+      );
+      setIsTemplateDialogOpen(false);
+      setTimeout(() => router.push("/dashboard/templates"), 150);
     } catch (e) {
-      console.error('Failed to add template', e)
+      console.error("Failed to add template", e);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  const isSidebarVisible = (isHovered || isSidebarForced) && !isLogoPopoverOpen
+  // "mcp_project_id": "project-id", query id
+  // "preview_url": "https://99366d8b-cc69-4468-ba15-9c281bf76768-test-page.u-code.io",
+  // "source_resource_env_id": "micro-frontend.project_id", microfront.project_id
+  // "source_mcp_resource_env_id": "eda1deb7-54c6-4ac9-b065-adc29eec1801", static
+  // "source_environment_id": "3acc5294-c3a3-456e-9c8c-b0c74043967b", static
+  // "source_function_id": "microfront-end.id", microfront.id
+  // "source_repo_id": "repo-id" microfront.repo_id
 
-  const handleChangeTab = (tab: 'dashboard' | 'code' | 'preview') => {
-    if (tab === 'code' && activeTab !== 'code') {
-      onSave?.()
+  const projectMicrofrontends = microfrontends;
+  const isSidebarVisible = (isHovered || isSidebarForced) && !isLogoPopoverOpen;
+
+  const handleChangeTab = (tab: "dashboard" | "code" | "preview") => {
+    if (tab === "code" && activeTab !== "code") {
+      onSave?.();
     }
-    setActiveTab(tab)
-  }
+    setActiveTab(tab);
+  };
 
   const allTabOptions = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
+    { id: "dashboard", label: "Settings", icon: <Settings size={16} /> },
     {
-      id: 'preview',
-      label: 'Preview',
+      id: "preview",
+      label: "Preview",
       icon: <Globe size={16} />,
-      disabled: isLoading
+      disabled: isLoading,
     },
     {
-      id: 'code',
-      label: 'Code',
+      id: "code",
+      label: "Code",
       icon: <CodeXml size={16} />,
-    }
-  ]
+    },
+  ];
 
   const tabOptions = isUgen
     ? allTabOptions
-    : allTabOptions.filter(t => t.id === 'preview')
+    : allTabOptions.filter((t) => t.id === "preview");
 
   const toggleButton = isUgen && (
     <button
@@ -230,8 +264,8 @@ export const ProjectHeader = ({
   );
 
   return (
-    <header className="bg-bg-main flex h-12 items-center justify-between px-4 shrink-0 z-10 transition-all duration-300">
-      <div className="flex items-center gap-2 min-w-[135px]">
+    <header className="bg-bg-main z-10 flex h-12 shrink-0 items-center justify-between px-4 transition-all duration-300">
+      <div className="flex min-w-[135px] items-center gap-2">
         <div
           className="relative shrink-0"
           onMouseEnter={() => setIsHovered(true)}
@@ -242,18 +276,21 @@ export const ProjectHeader = ({
             open={isLogoPopoverOpen}
             onOpenChange={setIsLogoPopoverOpen}
           />
-          <div className={cn(
-            "pointer-events-none fixed left-0 top-12 bottom-0 z-180 -translate-x-4 opacity-0 transition-all duration-200 ease-out",
-            isSidebarVisible && "pointer-events-auto translate-x-0 opacity-100"
-          )}>
+          <div
+            className={cn(
+              "pointer-events-none fixed top-12 bottom-0 left-0 z-180 -translate-x-4 opacity-0 transition-all duration-200 ease-out",
+              isSidebarVisible &&
+                "pointer-events-auto translate-x-0 opacity-100",
+            )}
+          >
             <Sidebar
-              className="h-full w-72 rounded-r-2xl border-r border-t border-b border-border-subtle shadow-2xl"
+              className="border-border-subtle h-full w-72 rounded-r-2xl border-t border-r border-b shadow-2xl"
               hideLogo
               onProfilePopupChange={setIsSidebarForced}
             />
           </div>
         </div>
-        <span className="text-[15px] font-medium text-text-main truncate max-w-[120px]">
+        <span className="text-text-main max-w-[120px] truncate text-[15px] font-medium">
           {projectTitle}
         </span>
       </div>
@@ -261,13 +298,18 @@ export const ProjectHeader = ({
       <ReusableTabs
         options={tabOptions}
         activeId={activeTab}
-        onTabChange={(id) => handleChangeTab(id as 'dashboard' | 'code' | 'preview')}
+        onTabChange={(id) =>
+          handleChangeTab(id as "dashboard" | "code" | "preview")
+        }
       />
 
-      <div className="flex items-center gap-1.5 justify-end min-w-[135px]">
+      <div className="flex min-w-[135px] items-center justify-end gap-1.5">
         <GithubPopover projectId={projectId} />
         {isUgen && (
-          <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+          <Dialog
+            open={isTemplateDialogOpen}
+            onOpenChange={setIsTemplateDialogOpen}
+          >
             <DialogTrigger asChild>
               <button
                 type="button"
@@ -280,24 +322,26 @@ export const ProjectHeader = ({
               </button>
             </DialogTrigger>
             <DialogContent className="max-w-[760px] gap-0 overflow-hidden p-0">
-              <div className="border-b border-border-subtle px-5 py-4">
+              <div className="border-border-subtle border-b px-5 py-4">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-text-main">
+                  <DialogTitle className="text-text-main flex items-center gap-2">
                     <BookTemplate size={16} className="text-primary" />
                     Add to templates
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-text-muted">
+                  <DialogDescription className="text-text-muted text-xs">
                     Create a reusable template from this workspace.
                   </DialogDescription>
                 </DialogHeader>
               </div>
 
-              <div className="px-5 py-5 flex flex-col gap-5">
-
+              <div className="flex flex-col gap-5 px-5 py-5">
                 {/* Row 1: Preview image + Name & Description */}
                 <div className="flex gap-5">
-                  <div className="flex shrink-0 flex-col" style={{ width: 280 }}>
-                    <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                  <div
+                    className="flex shrink-0 flex-col"
+                    style={{ width: 280 }}
+                  >
+                    <span className="text-text-muted mb-2 block text-[11px] font-semibold tracking-wider uppercase">
                       Preview image
                     </span>
                     <input
@@ -308,12 +352,23 @@ export const ProjectHeader = ({
                       onChange={handlePreviewChange}
                     />
                     {isUploadingImage ? (
-                      <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-border-subtle bg-bg-sidebar/40" style={{ width: 280, minHeight: 240 }}>
-                        <Loader2 size={24} className="animate-spin text-primary/60" />
-                        <p className="text-[11px] text-text-muted">Uploading…</p>
+                      <div
+                        className="border-border-subtle bg-bg-sidebar/40 flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border"
+                        style={{ width: 280, minHeight: 240 }}
+                      >
+                        <Loader2
+                          size={24}
+                          className="text-primary/60 animate-spin"
+                        />
+                        <p className="text-text-muted text-[11px]">
+                          Uploading…
+                        </p>
                       </div>
                     ) : previewUrl ? (
-                      <div className="group relative flex-1 overflow-hidden rounded-xl border border-border-subtle" style={{ width: 280, minHeight: 240 }}>
+                      <div
+                        className="group border-border-subtle relative flex-1 overflow-hidden rounded-xl border"
+                        style={{ width: 280, minHeight: 240 }}
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={previewUrl}
@@ -341,13 +396,17 @@ export const ProjectHeader = ({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-subtle bg-bg-sidebar/40 text-text-muted transition-colors hover:border-primary/50 hover:bg-bg-sidebar/60 hover:text-text-main"
+                        className="border-border-subtle bg-bg-sidebar/40 text-text-muted hover:border-primary/50 hover:bg-bg-sidebar/60 hover:text-text-main flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-colors"
                         style={{ width: 280, minHeight: 240 }}
                       >
                         <ImagePlus size={24} className="text-primary/60" />
                         <div className="text-center">
-                          <p className="text-[12px] font-medium">Upload preview</p>
-                          <p className="text-[10px] text-text-muted mt-0.5">PNG · JPG · 5MB</p>
+                          <p className="text-[12px] font-medium">
+                            Upload preview
+                          </p>
+                          <p className="text-text-muted mt-0.5 text-[10px]">
+                            PNG · JPG · 5MB
+                          </p>
                         </div>
                       </button>
                     )}
@@ -355,7 +414,10 @@ export const ProjectHeader = ({
 
                   <div className="flex min-w-0 flex-1 flex-col gap-4">
                     <div>
-                      <label htmlFor="template-name" className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                      <label
+                        htmlFor="template-name"
+                        className="text-text-muted mb-2 block text-[11px] font-semibold tracking-wider uppercase"
+                      >
                         Template name
                       </label>
                       <input
@@ -364,15 +426,15 @@ export const ProjectHeader = ({
                         value={templateName}
                         onChange={(e) => setTemplateName(e.target.value)}
                         placeholder="e.g. Mercury Bank landing"
-                        className="h-10 w-full rounded-lg border border-border-subtle bg-bg-main px-3 text-sm text-text-main outline-none transition-all placeholder:text-text-muted focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                        className="border-border-subtle bg-bg-main text-text-main placeholder:text-text-muted focus:border-primary/50 focus:ring-primary/20 h-10 w-full rounded-lg border px-3 text-sm transition-all outline-none focus:ring-1"
                       />
                     </div>
 
                     <div className="flex flex-1 flex-col">
-                      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                      <span className="text-text-muted mb-2 block text-[11px] font-semibold tracking-wider uppercase">
                         Description
                       </span>
-                      <div className="template-quill overflow-hidden rounded-lg border border-border-subtle bg-bg-main">
+                      <div className="template-quill border-border-subtle bg-bg-main overflow-hidden rounded-lg border">
                         <ReactQuill
                           theme="snow"
                           value={templateDescription}
@@ -387,7 +449,7 @@ export const ProjectHeader = ({
 
                 {/* Row 2: Screenshots */}
                 <div>
-                  <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                  <span className="text-text-muted mb-2 block text-[11px] font-semibold tracking-wider uppercase">
                     Images
                   </span>
                   <input
@@ -401,7 +463,7 @@ export const ProjectHeader = ({
                     {screenshots.map((s) => (
                       <div
                         key={s.id}
-                        className="group relative shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-bg-card shadow-sm"
+                        className="group border-border-subtle bg-bg-card relative shrink-0 overflow-hidden rounded-lg border shadow-sm"
                         style={{ width: 80, height: 56 }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -412,7 +474,10 @@ export const ProjectHeader = ({
                         />
                         {s.cdnUrl === null && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <Loader2 size={14} className="animate-spin text-white" />
+                            <Loader2
+                              size={14}
+                              className="animate-spin text-white"
+                            />
                           </div>
                         )}
                         {s.cdnUrl !== null && (
@@ -423,8 +488,11 @@ export const ProjectHeader = ({
                             />
                             <button
                               type="button"
-                              onClick={(e) => { e.stopPropagation(); handleRemoveScreenshot(s.id) }}
-                              className="absolute right-0.5 top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-destructive text-white shadow group-hover:flex"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveScreenshot(s.id);
+                              }}
+                              className="bg-destructive absolute top-0.5 right-0.5 hidden h-4 w-4 items-center justify-center rounded-full text-white shadow group-hover:flex"
                             >
                               <X size={8} />
                             </button>
@@ -436,7 +504,7 @@ export const ProjectHeader = ({
                       type="button"
                       onClick={() => screenshotInputRef.current?.click()}
                       disabled={isUploadingScreenshot}
-                      className="flex shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border-subtle bg-bg-sidebar/40 text-text-muted shadow-sm transition-all hover:border-primary/50 hover:bg-bg-sidebar/70 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      className="border-border-subtle bg-bg-sidebar/40 text-text-muted hover:border-primary/50 hover:bg-bg-sidebar/70 hover:text-primary flex shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ width: 80, height: 56 }}
                     >
                       {isUploadingScreenshot ? (
@@ -466,21 +534,20 @@ export const ProjectHeader = ({
                       <button
                         type="button"
                         onClick={() => setLightboxUrl(null)}
-                        className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                        className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
                       >
                         <X size={16} />
                       </button>
                     </div>
                   )}
                 </div>
-
               </div>
 
-              <DialogFooter className="border-t border-border-subtle bg-bg-sidebar/40 px-5 py-3">
+              <DialogFooter className="border-border-subtle bg-bg-sidebar/40 border-t px-5 py-3">
                 <DialogClose asChild>
                   <button
                     type="button"
-                    className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-text-muted transition-colors hover:bg-hover-bg hover:text-text-main"
+                    className="text-text-muted hover:bg-hover-bg hover:text-text-main rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
                   >
                     Cancel
                   </button>
@@ -489,9 +556,11 @@ export const ProjectHeader = ({
                   type="button"
                   onClick={handleAddTemplate}
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSubmitting && <Loader2 size={13} className="animate-spin" />}
+                  {isSubmitting && (
+                    <Loader2 size={13} className="animate-spin" />
+                  )}
                   Add template
                 </button>
               </DialogFooter>
@@ -501,11 +570,14 @@ export const ProjectHeader = ({
         {toggleButton}
         {isUgen && (
           <>
-            <div className="bg-border-subtle w-[1px] h-4 mx-2" />
-            <PublishPopover projectTitle={projectTitle} projectUrl={projectUrl} />
+            <div className="bg-border-subtle mx-2 h-4 w-[1px]" />
+            <PublishPopover
+              projectTitle={projectTitle}
+              projectUrl={projectUrl}
+            />
           </>
         )}
       </div>
     </header>
-  )
-}
+  );
+};
