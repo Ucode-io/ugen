@@ -53,6 +53,32 @@
   }
 }
 
+@keyframes loader-logo-3d-spin {
+  0%   { transform: perspective(180px) rotateY(0deg); }
+  100% { transform: perspective(180px) rotateY(360deg); }
+}
+
+@keyframes loader-glow-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.9; transform: scale(1.5); }
+}
+
+@keyframes loader-halo-pulse {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes loader-orbit-particle {
+  0%   { transform: rotate(0deg)   translateX(38px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(38px) rotate(-360deg); }
+}
+
+@keyframes loader-float {
+  0%, 100% { transform: perspective(180px) rotateY(0deg)   translateY(0px); }
+  33%       { transform: perspective(180px) rotateY(18deg)  translateY(-5px); }
+  66%       { transform: perspective(180px) rotateY(-14deg) translateY(-3px); }
+}
+
 @keyframes scanner-line {
   0%, 100% { top: 0%; }
   50% { top: calc(100% - 2px); }

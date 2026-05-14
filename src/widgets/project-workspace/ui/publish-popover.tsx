@@ -32,6 +32,7 @@ import {
 } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
 import { useRoles, useClientTypes, useUsers } from "../api/users";
+import { AddTemplateDialog } from "./add-template-dialog";
 import { useAuthStore } from "@/entities/session";
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
 import { api } from "@/shared/api";
@@ -525,9 +526,16 @@ export const PublishPopover = ({
       >
         {/* Header + URL + custom domain */}
         <div className="space-y-3 p-5">
-          <h2 className="text-text-main text-base font-semibold">
-            {t("publishTitle")}
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-text-main text-base font-semibold">
+              {t("publishTitle")}
+            </h2>
+            <AddTemplateDialog
+              projectTitle={projectTitle}
+              projectId={projectId}
+              projectUrl={projectUrl}
+            />
+          </div>
 
           {/* Public URL */}
           {visibility === "public" && mfUrl && (
@@ -744,6 +752,7 @@ export const PublishPopover = ({
             )}
           </button>
         </div>
+
       </PopoverContent>
 
       <Dialog open={publishStatusOpen} onOpenChange={handleClosePublishStatus}>
