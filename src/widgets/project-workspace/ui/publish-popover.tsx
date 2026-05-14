@@ -224,7 +224,6 @@ export const PublishPopover = ({
     setPublishDone(false)
     setPublishError(null)
     setPublishStatus('pending')
-    setPublishStatusOpen(true)
     setIsOpen(false)
     try {
       const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
@@ -977,6 +976,18 @@ export const PublishPopover = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Floating publish indicator — visible while the pipeline is in progress */}
+      {isPublishing && (
+        <button
+          type="button"
+          onClick={() => setPublishStatusOpen(true)}
+          title={t("publishStatusRunningTitle")}
+          className="fixed bottom-6 right-6 z-60 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-xl transition-transform hover:scale-105 active:scale-95"
+        >
+          <Loader2 size={22} className="animate-spin" />
+        </button>
+      )}
     </Popover>
   );
 };
