@@ -198,7 +198,10 @@ export const ChatInput = ({
         setActiveCodeSelection(target, files);
         onSelectMicrofrontend?.(files);
       })
-      .catch(() => setActiveCodeSelection(target));
+      // On failure set an empty file array (not null) so consumers can tell the
+      // codebase finished resolving — `null` means "still loading" and would
+      // otherwise leave the preview stuck on a loader forever.
+      .catch(() => setActiveCodeSelection(target, []));
   }, [microfrontendsList, apiKey]);
 
   const handleSelectNewProject = () => {

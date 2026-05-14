@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { WorkspaceChat } from "@/widgets/workspace-chat";
 import { Loader2 } from "lucide-react";
 import { ProjectCodeViewer } from "@/widgets/project-workspace/ui/project-code-viewer";
@@ -34,6 +36,15 @@ import {
 import { usePathname, useSearchParams } from "next/navigation";
 import { useChatStore } from "@/entities/chat";
 import { cn } from "@/shared/lib/utils/cn";
+
+// Tab order as shown in the header (Settings → Preview → Code). Each tab panel
+// is positioned at an x-offset equal to its distance from the active tab, so
+// switching tabs slides every panel by one step in the same direction.
+const TAB_ORDER: Record<string, number> = {
+  dashboard: 0,
+  preview: 1,
+  code: 2,
+};
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split(".").pop()?.toLowerCase();
@@ -149,16 +160,72 @@ export const ProjectWorkspaceClient = ({
   const activeCodeFiles = useCodeSelectionStore(
     (state) => state.activeCodeFiles,
   );
+  const activeCodeSelection = useCodeSelectionStore(
+    (state) => state.activeCodeSelection,
+  );
+  const apiKey = useAuthStore((state) => state.apiKey);
+  const { project } = useAuthStore();
+  const isUgen = project?.is_ugen ?? false;
   const chatPosition = useChatStore((state) => state.chatPosition);
   const sseEvents = useChatStore((state) => state.sseEvents);
   const hasNoFiles = files.length === 0 && !activeCodeFiles?.length;
   const isAiBuilding = sseEvents.length >= 3;
+
+  // The previewable code can arrive from two places: `project_files` on the
+  // mcp_project response (already in `files`), or a microfrontend codebase that
+  // chat-input auto-selects after the page loads. While that second path is
+  // still in flight, `hasNoFiles` is transiently true — without this guard the
+  // EmptyProjectView ("Your project will appear here") flashes, sometimes for
+  // the whole duration of a slow codebase fetch, before the build kicks in.
+  // We mirror chat-input's `attach-microfrontends` query (react-query dedupes
+  // by key) to know whether a microfrontend codebase is still being resolved.
+  const { data: previewMicrofrontends, isFetched: microfrontendsFetched } =
+    useQuery({
+      queryKey: ["attach-microfrontends", projectId],
+      queryFn: async () => {
+        const headers = apiKey
+          ? { Authorization: "API-KEY", "x-api-key": apiKey }
+          : {};
+        const { data } = await api.get("/v2/functions/micro-frontend", {
+          params: { search: "", offset: 0, "project-id": projectId },
+          headers,
+        });
+        return (data.data?.functions ?? []) as Array<{ id: string }>;
+      },
+      enabled: !!projectId && !!apiKey && isUgen,
+      staleTime: 0,
+    });
+
+  // A microfrontend codebase is still loading when either: a microfrontend is
+  // selected but its files haven't landed (`activeCodeFiles === null`), or no
+  // selection exists yet but the microfrontend list has entries waiting to be
+  // auto-selected.
+  const codeSelectionPending =
+    activeCodeSelection === null
+      ? (previewMicrofrontends?.length ?? 0) > 0
+      : activeCodeSelection.kind === "microfrontend" &&
+        activeCodeFiles === null;
+  const isResolvingFiles =
+    hasNoFiles &&
+    !isAiBuilding &&
+    !!apiKey &&
+    (!microfrontendsFetched || codeSelectionPending);
   const t = useTranslations("features.project");
-  const { project } = useAuthStore();
-  const isUgen = project?.is_ugen ?? false;
 
   const activeTab =
     (searchParams.get("tab") as "dashboard" | "code" | "preview") || "preview";
+
+  // Tab panels stay mounted once visited so switching away and back doesn't
+  // remount them — without this, returning to Preview would rebuild the bundle
+  // from scratch every time. A tab is added on first activation and never
+  // removed; inactive panels stay in the DOM but hidden and slid off-screen.
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(
+    () => new Set([activeTab]),
+  );
+  if (!mountedTabs.has(activeTab)) {
+    setMountedTabs((prev) => new Set(prev).add(activeTab));
+  }
+
   const setActiveTab = useCallback(
     (tab: "dashboard" | "code" | "preview") => {
       const params = new URLSearchParams(searchParams.toString());
@@ -335,6 +402,59 @@ export const ProjectWorkspaceClient = ({
       .finally(() => setIsMicrofrontendLoading(false));
   }, [projectId, isUgen]);
 
+  const renderTabContent = (tab: "dashboard" | "code" | "preview") => {
+    if (tab === "dashboard") {
+      return (
+        <ProjectDashboard
+          isSidebarCollapsed={isDashboardSidebarCollapsed}
+          setIsSidebarCollapsed={setIsDashboardSidebarCollapsed}
+          projectInfo={projectInfo}
+          projectId={projectId}
+          onEditCode={handleEditCode}
+          isChatCollapsed={isChatCollapsed}
+        />
+      );
+    }
+
+    // Preview and Code share the same "no files yet" placeholder states.
+    if (hasNoFiles) {
+      return isAiBuilding ? (
+        <ProjectBuildingAnimation />
+      ) : isResolvingFiles ? (
+        <WorkspaceLoader message="Loading project workspace..." />
+      ) : (
+        <EmptyProjectView onStartChatting={() => setActiveTab("preview")} />
+      );
+    }
+
+    if (tab === "preview") {
+      return (
+        <ProjectPreviewViewer
+          key={projectId}
+          device={device}
+          isMaximized={isPreviewMaximized}
+          versionPreviewFiles={versionPreviewFiles}
+          projectId={projectId}
+          onDeviceChange={setDevice}
+          onToggleMaximize={handleTogglePreviewMaximize}
+          isChatCollapsed={isChatCollapsed}
+          chatPosition={chatPosition}
+          isVersionHistory={isVersionHistory}
+        />
+      );
+    }
+
+    return (
+      <ProjectCodeViewer
+        projectId={projectId}
+        getLanguageByPath={getLanguageByPath}
+        versionFiles={versionPreviewFiles}
+        isChatCollapsed={isChatCollapsed}
+        chatPosition={chatPosition}
+      />
+    );
+  };
+
   if (!isUgen) {
     return (
       <ErrorBoundary>
@@ -478,44 +598,25 @@ export const ProjectWorkspaceClient = ({
         >
           {isLoading ? (
             <WorkspaceLoader message="Loading project workspace..." />
-          ) : activeTab === "preview" && !hasNoFiles ? (
-            <ProjectPreviewViewer
-              key={projectId}
-              device={device}
-              isMaximized={isPreviewMaximized}
-              versionPreviewFiles={versionPreviewFiles}
-              projectId={projectId}
-              onDeviceChange={setDevice}
-              onToggleMaximize={handleTogglePreviewMaximize}
-              isChatCollapsed={isChatCollapsed}
-              chatPosition={chatPosition}
-              isVersionHistory={isVersionHistory}
-            />
-          ) : activeTab === "dashboard" ? (
-            <ProjectDashboard
-              isSidebarCollapsed={isDashboardSidebarCollapsed}
-              setIsSidebarCollapsed={setIsDashboardSidebarCollapsed}
-              projectInfo={projectInfo}
-              projectId={projectId}
-              onEditCode={handleEditCode}
-              isChatCollapsed={isChatCollapsed}
-            />
-          ) : hasNoFiles ? (
-            isAiBuilding ? (
-              <ProjectBuildingAnimation />
-            ) : (
-              <EmptyProjectView
-                onStartChatting={() => setActiveTab("preview")}
-              />
-            )
           ) : (
-            <ProjectCodeViewer
-              projectId={projectId}
-              getLanguageByPath={getLanguageByPath}
-              versionFiles={versionPreviewFiles}
-              isChatCollapsed={isChatCollapsed}
-              chatPosition={chatPosition}
-            />
+            (["dashboard", "preview", "code"] as const).map((tab) => {
+              if (!mountedTabs.has(tab)) return null;
+              const isActive = tab === activeTab;
+              const offset = TAB_ORDER[tab] - TAB_ORDER[activeTab];
+              return (
+                <motion.div
+                  key={tab}
+                  initial={false}
+                  animate={{ x: `${offset * 100}%` }}
+                  transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                  className="absolute inset-0 flex min-w-0 overflow-hidden"
+                  style={{ pointerEvents: isActive ? "auto" : "none" }}
+                  aria-hidden={!isActive}
+                >
+                  {renderTabContent(tab)}
+                </motion.div>
+              );
+            })
           )}
         </div>
       </div>

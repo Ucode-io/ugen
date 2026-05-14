@@ -31,6 +31,10 @@ import { getDirtyKey, useDirtyFilesStore } from "@/entities/project/model/dirty-
 import { useGuardedAction, requestSave } from "../lib/save-flow";
 import { cn } from "@/shared/lib/utils/cn";
 
+// Internal/system function hidden from the editor dropdown — mirrors the same
+// exclusion applied to the functions list in functions-page.tsx.
+const HIDDEN_FUNCTION_ID = 'b90d8ad8-553a-4494-8031-660b85a79b45';
+
 // ── Component ───────────────────────────────────────────────────────────────
 export const ProjectCodeViewer = ({
   projectId,
@@ -72,7 +76,7 @@ export const ProjectCodeViewer = ({
   const [isLoadingCodebase, setIsLoadingCodebase] = useState(false);
 
   // ── API Queries for dropdown options ──────────────────────────────────────
-  const { data: microfrontendsData = [] } = useQuery({
+  const { data: microfrontendsData = [], isFetched: microfrontendsFetched } = useQuery({
     queryKey: ['microfrontends-dropdown', projectId],
     queryFn: async () => {
       const { data } = await api.get('/v2/functions/micro-frontend', {
@@ -91,7 +95,7 @@ export const ProjectCodeViewer = ({
     staleTime: 0,
   });
 
-  const { data: functionsData = [] } = useQuery({
+  const { data: functionsData = [], isFetched: functionsFetched } = useQuery({
     queryKey: ['functions-dropdown', projectId],
     queryFn: async () => {
       const { data } = await api.get('/v1/function', {
@@ -128,41 +132,47 @@ export const ProjectCodeViewer = ({
         projectId: mf.project_id,
       },
     })),
-    ...functionsData.map((fn) => ({
-      value: `fn__${fn.id}`,
-      label: fn.name,
-      group: 'function' as const,
-      target: {
-        kind: 'function' as const,
-        id: fn.id,
-        name: fn.name,
-        path: fn.path,
-        branch: fn.branch ?? 'master',
-        type: fn.type,
-        repoId: fn.repo_id,
-      },
-    })),
+    ...functionsData
+      .filter((fn) => fn.id !== HIDDEN_FUNCTION_ID)
+      .map((fn) => ({
+        value: `fn__${fn.id}`,
+        label: fn.name,
+        group: 'function' as const,
+        target: {
+          kind: 'function' as const,
+          id: fn.id,
+          name: fn.name,
+          path: fn.path,
+          branch: fn.branch ?? 'master',
+          type: fn.type,
+          repoId: fn.repo_id,
+        },
+      })),
   ], [microfrontendsData, functionsData]);
+
+  // Both dropdown queries have settled (success or error). Used as the "options
+  // loaded" signal — counting `dropdownOptions.length` is wrong because a
+  // project with a single microfrontend never exceeds 1 entry, which would
+  // leave the matching effects waiting forever.
+  const optionsReady = microfrontendsFetched && functionsFetched;
 
   // Auto-select when codeEditorTarget arrives from the store.
   // We also re-run whenever dropdownOptions changes (API data loads) so we can
   // match even if the queries finish after the tab switch.
   useEffect(() => {
     if (!codeEditorTarget) return;
-    // Wait until at least one non-frontend option has loaded before giving up
-    const hasLoadedOptions = dropdownOptions.length > 1;
     const match = dropdownOptions.find(
       (o) => o.target.kind === codeEditorTarget.kind && o.target.id === codeEditorTarget.id
     );
     if (match) {
       setSelectedValue(match.value);
       setCodeEditorTarget(null); // consumed
-    } else if (hasLoadedOptions) {
+    } else if (optionsReady) {
       // Options loaded but item not found — still clear to avoid stale state
       setCodeEditorTarget(null);
     }
     // If options not yet loaded, keep codeEditorTarget in store and retry on next render
-  }, [codeEditorTarget, dropdownOptions, setCodeEditorTarget]);
+  }, [codeEditorTarget, dropdownOptions, optionsReady, setCodeEditorTarget]);
 
   // The currently active dropdown selection
   const activeOption = useMemo(
@@ -172,25 +182,29 @@ export const ProjectCodeViewer = ({
 
   const isGitlabMode = activeOption?.target?.kind !== 'frontend';
 
-  // ── Init dropdown from activeCodeSelection (set externally, e.g. from chat-input)
-  // Only runs until a match is found; never overwrites a user's manual selection.
-  const selectionInitDoneRef = useRef(false);
+  // ── Keep the dropdown in sync with activeCodeSelection (set externally, e.g.
+  // from chat-input or the preview header). Stays reactive so switching the
+  // microfrontend elsewhere is reflected here too — the code viewer now stays
+  // mounted across tab switches, so a one-shot sync would go stale.
+  // User-initiated changes go through handleDropdownChange, which writes the
+  // same selection back to the store, so this never fights the user.
   useEffect(() => {
-    if (selectionInitDoneRef.current) return;
-    if (!activeCodeSelection || activeCodeSelection.kind === 'frontend') {
-      selectionInitDoneRef.current = true;
+    // Selection not resolved yet (auto-select still in flight) — wait.
+    if (!activeCodeSelection) return;
+    // Frontend selection: fall back to the default FRONTEND_VALUE.
+    if (activeCodeSelection.kind === 'frontend') {
+      setSelectedValue(FRONTEND_VALUE);
       return;
     }
-    // Wait until API data has loaded before trying to match
-    if (dropdownOptions.length <= 1) return;
+    // Wait until the dropdown queries have settled before trying to match.
+    if (!optionsReady) return;
     const match = dropdownOptions.find(
       (o) => o.target.kind === activeCodeSelection.kind && o.target.id === activeCodeSelection.id
     );
     if (match) {
       setSelectedValue(match.value);
     }
-    selectionInitDoneRef.current = true;
-  }, [activeCodeSelection, dropdownOptions]);
+  }, [activeCodeSelection, dropdownOptions, optionsReady]);
 
   const guardedAction = useGuardedAction();
 
@@ -210,7 +224,17 @@ export const ProjectCodeViewer = ({
       setSelectedValue(value);
       const option = dropdownOptions.find((o) => o.value === value);
       if (option?.target) {
-        setActiveCodeSelection(option.target);
+        // When the new selection points at the target we're already showing,
+        // the codebase-fetch effect won't re-run (its id dependency is
+        // unchanged), so hand it the files we already have. Passing the target
+        // alone resets activeCodeFiles to null and the preview would spin
+        // forever on "fetching codebase". For a genuinely different target,
+        // null is correct — the fetch effect re-runs and repopulates.
+        const sameTarget = activeOption?.target?.id === option.target.id;
+        setActiveCodeSelection(
+          option.target,
+          sameTarget && codebaseFiles.length > 0 ? codebaseFiles : null,
+        );
       }
     });
   };
