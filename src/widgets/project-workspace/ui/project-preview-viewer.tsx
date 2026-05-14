@@ -1328,7 +1328,7 @@ export const ProjectPreviewViewer = ({
   // Shared browser header JSX (rendered inside the card)
   const browserHeader = (
     <div className="border-border-subtle bg-bg-card flex h-10 shrink-0 items-center justify-between gap-2 border-b px-2">
-      {/* Left: Logo (fullscreen only) + Visual Edit */}
+      {/* Left: Logo (fullscreen only) + Visual Edit + Theme + Microfrontend Picker */}
       <div className="flex shrink-0 items-center gap-1.5">
         {isMaximized && (
           <>
@@ -1581,12 +1581,6 @@ export const ProjectPreviewViewer = ({
             </PopoverContent>
           </Popover>
         )}
-      </div>
-
-      {/* Center: Microfrontend Picker */}
-      <div
-        className={`flex flex-1 items-center justify-center gap-1 ${device === "mobile" ? "w-[100px]" : ""}`}
-      >
         {!isVersionHistory && microfrontendsList.length > 0 && (
           <Popover open={microfrontendOpen} onOpenChange={setMicrofrontendOpen}>
             <PopoverTrigger asChild>
@@ -1620,7 +1614,7 @@ export const ProjectPreviewViewer = ({
                 )}
               </button>
             </PopoverTrigger>
-            <PopoverContent align="center" sideOffset={6} className="w-44 p-1">
+            <PopoverContent align="start" sideOffset={6} className="w-44 p-1">
               {microfrontendsList.map((mf) => {
                 const isActive =
                   activeCodeSelection?.kind === "microfrontend" &&
@@ -1659,20 +1653,9 @@ export const ProjectPreviewViewer = ({
             </PopoverContent>
           </Popover>
         )}
-        {!isVersionHistory && (
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isLoading}
-            title="Rebuild preview"
-            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-6 w-6 items-center justify-center rounded-md transition-colors disabled:opacity-50"
-          >
-            <RotateCcw size={13} className={cn(isLoading && "animate-spin")} />
-          </button>
-        )}
       </div>
 
-      {/* Right: Save (when dirty) + Device Picker + Fullscreen */}
+      {/* Right: Save (when dirty) + Rebuild + Device Picker + Fullscreen */}
       <div className="flex shrink-0 items-center gap-0.5">
         {!isVersionHistory && hasDirty && (
           <button
@@ -1683,6 +1666,17 @@ export const ProjectPreviewViewer = ({
           >
             <Save size={12} />
             Save ({dirtyPaths.length})
+          </button>
+        )}
+        {!isVersionHistory && (
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            title="Rebuild preview"
+            className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 w-7 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RotateCcw size={13} className={cn(isLoading && "animate-spin")} />
           </button>
         )}
         <Popover open={deviceOpen} onOpenChange={setDeviceOpen}>

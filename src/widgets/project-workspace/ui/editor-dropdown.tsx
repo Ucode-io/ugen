@@ -3,15 +3,12 @@
 import React from "react";
 import {
   Button,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/shared/ui";
-import { Layers2, Zap, Sparkles, Download, Loader2, Save } from "lucide-react";
+import { Layers2, Zap, Download, Loader2, Save, ChevronDown, Check } from "lucide-react";
+import { cn } from "@/shared/lib/utils/cn";
 import type { CodeEditorTarget } from "@/entities/session";
 
 export type DropdownOption = {
@@ -50,62 +47,92 @@ export const EditorDropdown = ({
   onSave,
   hasDirty = false,
 }: EditorDropdownProps) => {
+  const [open, setOpen] = React.useState(false);
+
+  const microfrontendOptions = dropdownOptions.filter((o) => o.group === 'microfrontend');
+  const functionOptions = dropdownOptions.filter((o) => o.group === 'function');
+  const selectedOption = dropdownOptions.find((o) => o.value === selectedValue);
+
+  const renderOption = (o: DropdownOption) => {
+    const isActive = o.value === selectedValue;
+    const isFn = o.group === 'function';
+    return (
+      <button
+        key={o.value}
+        type="button"
+        onClick={() => {
+          setSelectedValue(o.value);
+          setOpen(false);
+        }}
+        className={cn(
+          "flex w-full items-center justify-between gap-1.5 rounded-md px-2 py-1 text-left text-[11px] transition-colors",
+          isActive
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-text-muted hover:bg-hover-bg hover:text-text-main",
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          {isFn ? (
+            <Zap size={11} className="shrink-0 text-amber-500" />
+          ) : (
+            <Layers2 size={11} className="shrink-0 text-blue-500" />
+          )}
+          <span className="truncate">{o.label}</span>
+        </span>
+        {isActive && <Check size={10} className="shrink-0" />}
+      </button>
+    );
+  };
+
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border-subtle bg-bg-card shrink-0 z-10">
-      <Select value={selectedValue} onValueChange={setSelectedValue}>
-        <SelectTrigger className="h-7 w-[260px] text-xs border-border-subtle bg-bg-sidebar rounded-lg gap-1.5 px-2">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="text-xs">
-          {/* <SelectGroup>
-            <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
-              <span className="flex items-center gap-1">
-                <Sparkles size={10} /> Frontend
-              </span>
-            </SelectLabel>
-            <SelectItem value={FRONTEND_VALUE}>
-              <span className="flex items-center gap-1.5">
-                <Sparkles size={12} className="text-primary" />
-                Generated Frontend
-              </span>
-            </SelectItem>
-          </SelectGroup> */}
-
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="border-border-subtle bg-bg-sidebar text-text-main hover:border-primary/40 hover:bg-primary/5 flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-xs transition-colors"
+          >
+            {selectedOption?.group === 'function' ? (
+              <Zap size={12} className="shrink-0 text-amber-500" />
+            ) : (
+              <Layers2 size={12} className="shrink-0 text-blue-500" />
+            )}
+            <span className="max-w-[160px] truncate text-left">
+              {selectedOption?.label ?? 'Select...'}
+            </span>
+            <ChevronDown
+              size={11}
+              className={cn(
+                "shrink-0 text-text-muted transition-transform duration-200",
+                open && "rotate-180",
+              )}
+            />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={6} className="w-44 p-1">
           {hasMicrofrontends && (
-            <SelectGroup>
-              <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
+            <>
+              <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wider text-text-muted">
                 <span className="flex items-center gap-1">
                   <Layers2 size={10} /> Microfrontends
                 </span>
-              </SelectLabel>
-              {dropdownOptions
-                .filter((o) => o.group === 'microfrontend')
-                .map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-            </SelectGroup>
+              </div>
+              {microfrontendOptions.map(renderOption)}
+            </>
           )}
 
           {hasFunctions && (
-            <SelectGroup>
-              <SelectLabel className="text-[10px] uppercase tracking-wider text-text-muted px-2 pt-2">
+            <>
+              <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wider text-text-muted">
                 <span className="flex items-center gap-1">
                   <Zap size={10} /> Functions
                 </span>
-              </SelectLabel>
-              {dropdownOptions
-                .filter((o) => o.group === 'function')
-                .map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-            </SelectGroup>
+              </div>
+              {functionOptions.map(renderOption)}
+            </>
           )}
-        </SelectContent>
-      </Select>
+        </PopoverContent>
+      </Popover>
       <span className="text-[11px] text-text-muted">
         {isGitlabMode ? 'GitLab Repository' : 'AI Generated'}
       </span>
