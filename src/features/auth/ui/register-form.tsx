@@ -1,39 +1,80 @@
 'use client'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Mail, Lock, User as UserIcon, Building } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { useAuthStore } from '@/entities/session'
 import { registerSchema, type RegisterFormValues } from '../model/validation'
 import { api, authApi } from '@/shared/api'
-import { GoogleAuthButton, type GoogleUserInfo } from './google-auth-button'
+import { useRouter } from '@/shared/lib/i18n/navigation'
+import { GoogleAuthButton } from './google-auth-button'
 
 interface RegisterFormProps {
   onSuccess: (login?: string, password?: string) => void
+  onAuthenticated?: () => void
 }
 
-export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
+export const RegisterForm = ({ onSuccess, onAuthenticated }: RegisterFormProps) => {
   const t = useTranslations('features.auth.register')
   const tAuth = useTranslations('features.auth')
+  const { setAuth } = useAuthStore()
+  const router = useRouter()
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError, setValue } = useForm<RegisterFormValues>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema)
   })
 
-  const [googleInfo, setGoogleInfo] = useState<GoogleUserInfo | null>(null)
-  const [googleToken, setGoogleToken] = useState<string | null>(null)
+  const handleGoogleAuth = async () => {
+    try {
+      const res = await authApi.get('/v3/ugen/auth/session', { withCredentials: true })
+      const responseData = res.data?.data
+      if (!responseData) throw new Error('Invalid response')
 
-  const handleGoogleSignup = async (accessToken: string, userInfo?: GoogleUserInfo) => {
-    setGoogleToken(accessToken)
-    if (userInfo) {
-      setGoogleInfo(userInfo)
-      setValue('user_info.email', userInfo.email, { shouldValidate: true })
+      const { project_data } = responseData
+      const response = responseData?.response || responseData
+      const { user, permissions, role, app_permissions, global_permission, environment_id, token } = response
+
+      const userData = {
+        id: user?.id,
+        login: user?.login,
+        email: user?.email,
+        company_id: user?.company_id,
+        environment_id,
+        role,
+      }
+
+      setAuth(
+        userData,
+        { ...project_data, is_ugen: responseData?.is_ugen ?? project_data?.is_ugen ?? false },
+        permissions || [],
+        app_permissions || [],
+        global_permission,
+        token?.access_token,
+        token?.refresh_token,
+      )
+
+      try {
+        const langRes = await api.get('/v1/language?search=Admin')
+        if (langRes.data?.data?.languages) {
+          useAuthStore.getState().setLanguages(langRes.data.data.languages)
+        }
+      } catch (err) {
+        console.error('Failed to fetch languages', err)
+      }
+
+      onAuthenticated?.()
+      router.push('/')
+    } catch (error: any) {
+      console.error(error)
+      setError('root', {
+        type: 'manual',
+        message: error.response?.data?.description || error.message || 'Google sign-up failed',
+      })
     }
   }
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      // 1. Fetch fare_id from admin-api
       const fareRes = await api.get('/v1/fare')
       const fares = fareRes.data?.data?.fares || []
       const fare_id = fares.length > 0 ? fares[0].id : undefined
@@ -42,20 +83,8 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
         throw new Error("No fare configuration found")
       }
 
-      // 2. Submit company registration. Attach google_token when the user
-      // signed up via Google so the backend can link the account.
-      const payload = {
-        ...data,
-        fare_id,
-        user_info: {
-          ...data.user_info,
-          email: googleInfo?.email || data.user_info.email,
-        },
-        ...(googleToken ? { type: 'google', google_token: googleToken } : {}),
-      }
-      await authApi.post('/company', payload)
+      await authApi.post('/company', { ...data, fare_id })
 
-      // 3. Switch to login and prefill inputs
       onSuccess(data.user_info.login, data.user_info.password)
     } catch (error: any) {
       console.error(error)
@@ -101,28 +130,19 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
         {errors.user_info?.login && <p className="text-xs text-red-500">{errors.user_info.login.message}</p>}
       </div>
 
-      {!googleInfo && (
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-text-main">{t('emailLabel')}</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-            <input
-              {...register('user_info.email')}
-              type="email"
-              placeholder={t('emailPlaceholder')}
-              className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-            />
-          </div>
-          {errors.user_info?.email && <p className="text-xs text-red-500">{errors.user_info.email.message}</p>}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-text-main">{t('emailLabel')}</label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+          <input
+            {...register('user_info.email')}
+            type="email"
+            placeholder={t('emailPlaceholder')}
+            className="w-full rounded-lg border border-border-subtle bg-bg-sidebar py-2 pl-9 pr-3 text-sm text-text-main outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+          />
         </div>
-      )}
-
-      {googleInfo && (
-        <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-sidebar px-3 py-2 text-xs">
-          <img src="/google.svg" alt="" width={14} height={14} />
-          <span className="text-text-muted truncate">{googleInfo.email}</span>
-        </div>
-      )}
+        {errors.user_info?.email && <p className="text-xs text-red-500">{errors.user_info.email.message}</p>}
+      </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-text-main">{t('passwordLabel')}</label>
@@ -154,8 +174,8 @@ export const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
 
       <GoogleAuthButton
         isLogin={false}
-        disabled={isSubmitting || !!googleToken}
-        onToken={handleGoogleSignup}
+        disabled={isSubmitting}
+        onSuccess={handleGoogleAuth}
         onError={(err) => {
           console.error(err)
           setError('root', {

@@ -6,15 +6,16 @@ import {
   LayoutDashboard,
   Sparkles,
 } from "lucide-react";
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import type { ChatPosition } from "@/entities/chat"
 import { useTranslations } from "next-intl"
 import { ReusableTabs } from "@/shared/ui"
 import { PublishPopover } from "./publish-popover"
 import { GithubPopover } from "./github-popover"
-import { LogoPopover } from "@/widgets/workspace-chat/ui/logo-popover"
 import { Sidebar } from "@/widgets/sidebar"
 import { cn } from "@/shared/lib/utils/cn"
+import { useAuthStore } from "@/entities/session"
+import { useUserProjects } from "@/entities/project"
 
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
@@ -53,9 +54,26 @@ export const ProjectHeader = ({
   const t = useTranslations('features.project')
   const [isSidebarForced, setIsSidebarForced] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const [isLogoPopoverOpen, setIsLogoPopoverOpen] = useState(false)
+  const [isPinned, setIsPinned] = useState(false)
+  const sidebarWrapRef = useRef<HTMLDivElement>(null)
 
-  const isSidebarVisible = (isHovered || isSidebarForced) && !isLogoPopoverOpen
+  const { user, project, activeCompanyId } = useAuthStore()
+  const { data: companies = [] } = useUserProjects()
+  const currentCompanyId = activeCompanyId ?? user?.company_id ?? null
+  const currentCompany = companies.find((c) => c.id === currentCompanyId)
+  const workspaceName = currentCompany?.name || project?.title || projectTitle
+
+  const isSidebarVisible = isHovered || isSidebarForced || isPinned
+
+  useEffect(() => {
+    if (!isPinned) return
+    const handler = (e: MouseEvent) => {
+      if (sidebarWrapRef.current?.contains(e.target as Node)) return
+      setIsPinned(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [isPinned])
 
   const handleChangeTab = (tab: 'dashboard' | 'code' | 'preview') => {
     if (tab === 'code' && activeTab !== 'code') {
@@ -97,15 +115,19 @@ export const ProjectHeader = ({
     <header className="bg-bg-main flex h-12 items-center justify-between px-4 shrink-0 z-10 transition-all duration-300">
       <div className="flex items-center gap-2 min-w-[135px]">
         <div
+          ref={sidebarWrapRef}
           className="relative shrink-0"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          <LogoPopover
-            projectTitle={projectTitle}
-            open={isLogoPopoverOpen}
-            onOpenChange={setIsLogoPopoverOpen}
-          />
+          <button
+            type="button"
+            onClick={() => setIsPinned(p => !p)}
+            className="h-8 flex items-center justify-center rounded-lg hover:bg-hover-bg transition-all px-1.5"
+            title="Open sidebar"
+          >
+            <img src="/logo.svg" className="h-5 w-auto block shrink-0" alt="ugen" />
+          </button>
           <div className={cn(
             "pointer-events-none fixed left-0 top-12 bottom-0 z-180 -translate-x-4 opacity-0 transition-all duration-200 ease-out",
             isSidebarVisible && "pointer-events-auto translate-x-0 opacity-100"
@@ -117,8 +139,11 @@ export const ProjectHeader = ({
             />
           </div>
         </div>
-        <span className="text-[15px] font-medium text-text-main truncate max-w-[120px]">
-          {projectTitle}
+        <span
+          className="text-[15px] font-medium text-text-main truncate max-w-40"
+          title={workspaceName}
+        >
+          {workspaceName}
         </span>
       </div>
 

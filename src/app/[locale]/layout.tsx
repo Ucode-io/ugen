@@ -5,7 +5,7 @@ import { setRequestLocale } from "next-intl/server";
 import "@/app/globals.css";
 import { siteConfig } from "@/shared/config";
 import { routing } from "@/shared/lib/i18n";
-import { ThemeProvider, QueryProvider, YandexMetrika, GoogleAuthProvider } from "@/shared/providers";
+import { ThemeProvider, QueryProvider, YandexMetrika } from "@/shared/providers";
 import { ViewLayoutWrapper } from "@/shared/ui";
 import { Toaster } from "sonner";
 
@@ -38,12 +38,10 @@ const RootLayout = async ({ children, params }: Props) => {
         <QueryProvider>
           <ThemeProvider>
             <NextIntlClientProvider>
-              <GoogleAuthProvider>
-                <ViewLayoutWrapper>
-                  {children}
-                </ViewLayoutWrapper>
-                <Toaster richColors position="top-right" />
-              </GoogleAuthProvider>
+              <ViewLayoutWrapper>
+                {children}
+              </ViewLayoutWrapper>
+              <Toaster richColors position="top-right" />
             </NextIntlClientProvider>
           </ThemeProvider>
         </QueryProvider>

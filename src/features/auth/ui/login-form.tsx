@@ -161,12 +161,9 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
     }
   }
 
-  const handleGoogleLogin = async (accessToken: string) => {
+  const handleGoogleLogin = async () => {
     try {
-      const res = await authApi.post('/v3/ugen/login', {
-        type: 'google',
-        google_token: accessToken,
-      })
+      const res = await authApi.get('/v3/ugen/auth/session', { withCredentials: true })
 
       const responseData = res.data?.data
       if (!responseData) throw new Error('Invalid response')
@@ -266,7 +263,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
       <GoogleAuthButton
         isLogin
         disabled={form.formState.isSubmitting}
-        onToken={handleGoogleLogin}
+        onSuccess={handleGoogleLogin}
         onError={(err) => {
           console.error(err)
           form.setError('root', {

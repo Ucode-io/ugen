@@ -1247,7 +1247,7 @@ export const ProjectPreviewViewer = ({
   // Shared browser header JSX (rendered inside the card)
   const browserHeader = (
     <div className="border-border-subtle bg-bg-card flex h-10 shrink-0 items-center justify-between gap-2 border-b px-2">
-      {/* Left: Microfrontend Picker + Logo (fullscreen only) + Visual Edit + Theme */}
+      {/* Left: Microfrontend Picker + Visual Edit + Theme */}
       <div className="flex shrink-0 items-center gap-1.5">
         {!isVersionHistory && microfrontendsList.length > 0 && (
           <Popover open={microfrontendOpen} onOpenChange={setMicrofrontendOpen}>
@@ -1320,21 +1320,6 @@ export const ProjectPreviewViewer = ({
               })}
             </PopoverContent>
           </Popover>
-        )}
-        {isMaximized && (
-          <>
-            <img
-              src="/ugen-logo.svg"
-              className="block h-5 w-auto dark:hidden"
-              alt="ugen"
-            />
-            <img
-              src="/ugen-logo-dark.svg"
-              className="hidden h-5 w-auto dark:block"
-              alt="ugen"
-            />
-            <div className="bg-border-subtle mx-0.5 h-4 w-px" />
-          </>
         )}
         {!isVersionHistory && (
           <button

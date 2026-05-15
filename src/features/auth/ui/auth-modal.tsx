@@ -77,7 +77,7 @@ export const AuthModal = ({ isOpen, onOpenChange, defaultTab = 'login' }: AuthMo
                 <p className="text-sm text-text-muted">{t('register.subtitle')}</p>
               </div>
 
-              <RegisterForm onSuccess={handleRegistered} />
+              <RegisterForm onSuccess={handleRegistered} onAuthenticated={handleClose} />
 
               <div className="text-center mt-4">
                 <p className="text-sm text-text-muted">

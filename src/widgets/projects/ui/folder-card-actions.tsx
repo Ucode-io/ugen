@@ -1,5 +1,6 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { MoreHorizontal, Trash2, Edit, MoveRight, Plus } from "lucide-react"
 import * as Dialog from "@radix-ui/react-dialog"
 import {
@@ -30,7 +31,9 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false)
   const [isAddProjectsModalOpen, setIsAddProjectsModalOpen] = useState(false)
 
-  const popoverRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const popoverContentRef = useRef<HTMLDivElement>(null)
+  const [popoverPos, setPopoverPos] = useState<{ top: number; right: number } | null>(null)
 
   const deleteFolder = useDeleteProjectFolder()
   const updateFolder = useUpdateProjectFolder()
@@ -49,14 +52,24 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([])
 
   useEffect(() => {
+    if (!isPopoverOpen) return
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setPopoverPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      })
+    }
     const handleClickOutside = (event: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (
+        buttonRef.current && !buttonRef.current.contains(target) &&
+        popoverContentRef.current && !popoverContentRef.current.contains(target)
+      ) {
         setIsPopoverOpen(false)
       }
     }
-    if (isPopoverOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
+    document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isPopoverOpen])
 
@@ -117,75 +130,77 @@ export const FolderCardActions = ({ folder }: FolderCardActionsProps) => {
 
   return (
     <>
-      <div className="relative" ref={popoverRef}>
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setIsPopoverOpen(!isPopoverOpen)
-          }}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-text-main hover:bg-hover-bg transition-colors"
-        >
-          <MoreHorizontal size={16} />
-        </button>
+      <button
+        ref={buttonRef}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setIsPopoverOpen(!isPopoverOpen)
+        }}
+        className="flex h-7 w-7 items-center justify-center rounded-md text-text-main hover:bg-hover-bg transition-colors"
+      >
+        <MoreHorizontal size={16} />
+      </button>
 
-        {isPopoverOpen && (
-          <div
-            className="absolute right-0 top-full z-[100] mt-1 w-40 overflow-hidden rounded-lg border border-border-subtle bg-bg-card shadow-lg"
-            onClick={(e) => e.stopPropagation()}
+      {isPopoverOpen && popoverPos && typeof document !== "undefined" && createPortal(
+        <div
+          ref={popoverContentRef}
+          style={{ top: popoverPos.top, right: popoverPos.right }}
+          className="fixed z-100 w-40 overflow-hidden rounded-lg border border-border-subtle bg-bg-card shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsAddProjectsModalOpen(true)
+              setIsPopoverOpen(false)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
           >
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setIsAddProjectsModalOpen(true)
-                setIsPopoverOpen(false)
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
-            >
-              <Plus size={14} />
-              {t("addProjects")}
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setIsEditModalOpen(true)
-                setIsPopoverOpen(false)
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
-            >
-              <Edit size={14} />
-              {tNav("edit") || tCommon("edit")}
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setIsMoveModalOpen(true)
-                setIsPopoverOpen(false)
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
-            >
-              <MoveRight size={14} />
-              {t("moveFolder")}
-            </button>
-            <div className="h-px w-full bg-border-subtle/50 my-1" />
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setIsDeleteModalOpen(true)
-                setIsPopoverOpen(false)
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-red-500 hover:bg-red-500/10 transition-colors"
-            >
-              <Trash2 size={14} />
-              {tNav("delete") || tCommon("delete")}
-            </button>
-          </div>
-        )}
-      </div>
+            <Plus size={14} />
+            {t("addProjects")}
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsEditModalOpen(true)
+              setIsPopoverOpen(false)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
+          >
+            <Edit size={14} />
+            {tNav("edit") || tCommon("edit")}
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsMoveModalOpen(true)
+              setIsPopoverOpen(false)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
+          >
+            <MoveRight size={14} />
+            {t("moveFolder")}
+          </button>
+          <div className="h-px w-full bg-border-subtle/50 my-1" />
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsDeleteModalOpen(true)
+              setIsPopoverOpen(false)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-red-500 hover:bg-red-500/10 transition-colors"
+          >
+            <Trash2 size={14} />
+            {tNav("delete") || tCommon("delete")}
+          </button>
+        </div>,
+        document.body
+      )}
 
       {/* Delete Confirmation Modal */}
       <Dialog.Root open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>

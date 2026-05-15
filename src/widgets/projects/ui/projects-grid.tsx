@@ -1,4 +1,4 @@
-import { Star, Link as LinkIcon, Loader2, Folder } from "lucide-react"
+import { Link as LinkIcon, Loader2, Folder } from "lucide-react"
 import { Link } from "@/shared/lib/i18n/navigation"
 import { ProjectCardActions } from "./project-card-actions"
 import { FolderCardActions } from "./folder-card-actions"
@@ -55,14 +55,6 @@ export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant
                   <Loader2 size={24} className="animate-spin text-primary" />
                 </div>
               )}
-              <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
-                <button
-                  className="flex h-6 w-6 items-center justify-center rounded-md bg-bg-main/60 text-text-main hover:bg-bg-main/80 backdrop-blur-sm transition-colors"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
-                >
-                  <Star size={13} />
-                </button>
-              </div>
             </div>
 
             <div className="mt-2 flex items-start gap-2">

@@ -1,12 +1,14 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
-import { MoreHorizontal, Trash2, Edit, MoveRight, FolderMinus } from "lucide-react"
+import { createPortal } from "react-dom"
+import { MoreHorizontal, Trash2, Edit, MoveRight, FolderMinus, X, Plus } from "lucide-react"
 import * as Dialog from "@radix-ui/react-dialog"
 import { useDeleteProject, useUpdateProject } from "@/entities/project"
 import { useProjectFolders, useCreateProjectFolder, useDeleteProjectFolder, ProjectFolder } from "@/entities/project-folder"
 import { useAuthStore } from "@/entities/session"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui"
 
 interface ProjectCardActionsProps {
   project: {
@@ -27,8 +29,12 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false)
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false)
+  const [newFolderName, setNewFolderName] = useState("")
 
-  const popoverRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const popoverContentRef = useRef<HTMLDivElement>(null)
+  const [popoverPos, setPopoverPos] = useState<{ top: number; right: number } | null>(null)
 
   const queryClient = useQueryClient()
 
@@ -45,14 +51,24 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
   const [description, setDescription] = useState(project.description || "")
 
   useEffect(() => {
+    if (!isPopoverOpen) return
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setPopoverPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      })
+    }
     const handleClickOutside = (event: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (
+        buttonRef.current && !buttonRef.current.contains(target) &&
+        popoverContentRef.current && !popoverContentRef.current.contains(target)
+      ) {
         setIsPopoverOpen(false)
       }
     }
-    if (isPopoverOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
+    document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isPopoverOpen])
 
@@ -120,77 +136,108 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
     }
   }
 
+  const handleCreateFolderInline = async () => {
+    const label = newFolderName.trim()
+    if (!label) return
+    try {
+      const result: any = await createFolder.mutateAsync({
+        label,
+        type: "FOLDER",
+        parent_id: null,
+        order_number: (allFoldersData?.filter((f: ProjectFolder) => f.type?.toUpperCase() === 'FOLDER').length || 0) + 1,
+      })
+      const newId =
+        result?.data?.id ||
+        result?.data?.response?.id ||
+        result?.response?.id ||
+        result?.id
+      if (newId) setSelectedParentId(newId)
+      setNewFolderName("")
+      setIsCreatingFolder(false)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const closeMoveModal = () => {
+    setIsMoveModalOpen(false)
+    setIsCreatingFolder(false)
+    setNewFolderName("")
+  }
+
   return (
     <>
-      <div className="relative" ref={popoverRef} >
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setIsPopoverOpen(!isPopoverOpen)
-          }}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-text-main hover:bg-hover-bg transition-colors"
-        >
-          <MoreHorizontal size={16} />
-        </button>
+      <button
+        ref={buttonRef}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setIsPopoverOpen(!isPopoverOpen)
+        }}
+        className="flex h-7 w-7 items-center justify-center rounded-md text-text-main hover:bg-hover-bg transition-colors"
+      >
+        <MoreHorizontal size={16} />
+      </button>
 
-        {isPopoverOpen && (
-          <div
-            className="absolute right-0 top-full z-[100] mt-1 w-38 overflow-hidden rounded-lg border border-border-subtle bg-bg-card shadow-lg"
-            onClick={(e) => e.stopPropagation()}
+      {isPopoverOpen && popoverPos && typeof document !== "undefined" && createPortal(
+        <div
+          ref={popoverContentRef}
+          style={{ top: popoverPos.top, right: popoverPos.right }}
+          className="fixed z-100 w-38 overflow-hidden rounded-lg border border-border-subtle bg-bg-card shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsEditModalOpen(true)
+              setIsPopoverOpen(false)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
           >
+            <Edit size={14} />
+            {tNav("edit") || tCommon("edit")}
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsMoveModalOpen(true)
+              setIsPopoverOpen(false)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors whitespace-nowrap"
+          >
+            <MoveRight size={14} />
+            {t("moveToFolder")}
+          </button>
+          {folderItemId && (
             <button
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                setIsEditModalOpen(true)
-                setIsPopoverOpen(false)
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors"
-            >
-              <Edit size={14} />
-              {tNav("edit") || tCommon("edit")}
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setIsMoveModalOpen(true)
-                setIsPopoverOpen(false)
+                handleRemoveFromFolder()
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors whitespace-nowrap"
             >
-              <MoveRight size={14} />
-              {t("moveToFolder")}
+              <FolderMinus size={14} />
+              {t("removeFromFolder")}
             </button>
-            {folderItemId && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleRemoveFromFolder()
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-text-main hover:bg-hover-bg transition-colors whitespace-nowrap"
-              >
-                <FolderMinus size={14} />
-                {t("removeFromFolder")}
-              </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setIsDeleteModalOpen(true)
-                setIsPopoverOpen(false)
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-red-500 hover:bg-red-500/10 transition-colors"
-            >
-              <Trash2 size={14} />
-              {tNav("delete") || tCommon("delete")}
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsDeleteModalOpen(true)
+              setIsPopoverOpen(false)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-red-500 hover:bg-red-500/10 transition-colors"
+          >
+            <Trash2 size={14} />
+            {tNav("delete") || tCommon("delete")}
+          </button>
+        </div>,
+        document.body
+      )}
 
       {/* Delete Confirmation Modal */}
       <Dialog.Root open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
@@ -286,7 +333,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
       </Dialog.Root>
 
       {/* Move Project Modal */}
-      <Dialog.Root open={isMoveModalOpen} onOpenChange={setIsMoveModalOpen}>
+      <Dialog.Root open={isMoveModalOpen} onOpenChange={(open) => (open ? setIsMoveModalOpen(true) : closeMoveModal())}>
         <Dialog.Portal>
           <Dialog.Overlay
             className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm"
@@ -299,22 +346,82 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
             <Dialog.Title className="text-lg font-semibold text-text-main uppercase">
               {t("moveProjectTitle")}
             </Dialog.Title>
-            <div className="mt-4 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">
+            <div className="mt-5 space-y-3">
+              <div className="space-y-2">
+                <label className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
                   {t("selectFolder")}
                 </label>
-                <select
-                  className="w-full rounded-lg border border-border-subtle bg-bg-main px-3 py-2 text-sm text-text-main outline-none focus:border-primary/50 transition-all"
-                  value={selectedParentId || ''}
-                  onChange={e => setSelectedParentId(e.target.value || null)}
+                <Select
+                  value={selectedParentId ?? "__root__"}
+                  onValueChange={(v) => setSelectedParentId(v === "__root__" ? null : v)}
                 >
-                  <option value="">{t("rootDirectory")}</option>
-                  {allFoldersData?.filter((f: ProjectFolder) => f.type?.toUpperCase() === 'FOLDER').map((f: ProjectFolder) => (
-                    <option key={f.id} value={f.id}>{f.label}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder={t("selectFolder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__root__">{t("rootDirectory")}</SelectItem>
+                    {allFoldersData?.filter((f: ProjectFolder) => f.type?.toUpperCase() === 'FOLDER').map((f: ProjectFolder) => (
+                      <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {isCreatingFolder ? (
+                <div className="border-border-subtle bg-bg-sidebar/40 rounded-lg border p-3">
+                  <div className="text-text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
+                    {t("createFolder")}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      autoFocus
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleCreateFolderInline()
+                        if (e.key === "Escape") {
+                          setIsCreatingFolder(false)
+                          setNewFolderName("")
+                        }
+                      }}
+                      placeholder={t("folderPlaceholder")}
+                      className="border-border-subtle bg-bg-main text-text-main focus:border-primary/50 focus:ring-primary/10 h-9 flex-1 rounded-lg border px-3 text-sm outline-none transition-all focus:ring-4"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateFolderInline}
+                      disabled={createFolder.isPending || !newFolderName.trim()}
+                      className="bg-primary hover:bg-primary-hover h-9 rounded-lg px-3.5 text-xs font-semibold text-white transition-colors disabled:opacity-50"
+                    >
+                      {createFolder.isPending ? t("creating") : t("create")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingFolder(false)
+                        setNewFolderName("")
+                      }}
+                      className="border-border-subtle text-text-muted hover:bg-hover-bg hover:text-text-main flex h-9 w-9 items-center justify-center rounded-lg border transition-colors"
+                      aria-label={tCommon("cancel")}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingFolder(true)}
+                  className="border-border-subtle hover:border-primary/50 hover:bg-primary/5 group flex w-full items-center gap-2.5 rounded-lg border border-dashed px-3 py-2.5 text-left transition-colors"
+                >
+                  <div className="bg-bg-sidebar text-text-muted group-hover:bg-primary group-hover:text-white flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors">
+                    <Plus size={14} strokeWidth={2.5} />
+                  </div>
+                  <span className="text-text-main group-hover:text-primary text-sm font-medium transition-colors">
+                    {t("createFolder")}
+                  </span>
+                </button>
+              )}
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <Dialog.Close asChild>
@@ -324,7 +431,7 @@ export const ProjectCardActions = ({ project, folderItemId }: ProjectCardActions
               </Dialog.Close>
               <button
                 onClick={handleMove}
-                disabled={createFolder.isPending}
+                disabled={createFolder.isPending || isCreatingFolder}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover transition-colors disabled:opacity-50"
               >
                 {createFolder.isPending ? t("moving") : tNav("move") || "Move"}

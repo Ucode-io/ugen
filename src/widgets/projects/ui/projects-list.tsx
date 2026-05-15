@@ -34,9 +34,6 @@ export const ProjectsList = ({
             <th className="text-text-muted px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider uppercase hidden sm:table-cell">
               {t("createdAt")}
             </th>
-            <th className="text-text-muted px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider uppercase hidden sm:table-cell">
-              {t("createdBy")}
-            </th>
             <th className="text-text-muted px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider uppercase hidden md:table-cell">
               {t("projectUrl")}
             </th>
@@ -57,9 +54,6 @@ export const ProjectsList = ({
                     {folder.name}
                   </span>
                 </div>
-              </td>
-              <td className="text-text-muted px-4 py-2.5 text-[12px] hidden sm:table-cell">
-                —
               </td>
               <td className="text-text-muted px-4 py-2.5 text-[12px] hidden sm:table-cell">
                 —
@@ -112,14 +106,6 @@ export const ProjectsList = ({
                 </td>
                 <td className="text-text-muted px-4 py-2.5 text-[12px] hidden sm:table-cell">
                   {project.createdAt}
-                </td>
-                <td className="text-text-muted px-4 py-2.5 text-[12px] hidden sm:table-cell">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-bg-secondary text-[9px] font-bold text-bg-main">
-                      {project.author.initials}
-                    </div>
-                    <span className="truncate">{project.author.name}</span>
-                  </div>
                 </td>
                 <td className="px-4 py-2.5 text-[12px] hidden md:table-cell">
                   {project.microfrontend_url ? (
