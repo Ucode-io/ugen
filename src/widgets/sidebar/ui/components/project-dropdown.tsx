@@ -308,7 +308,7 @@ export const ProjectDropdown = ({
             </div>
           </div>
 
-          {/* Workspaces sub-dropdown (opens on the right side) */}
+          {/* Workspaces sub-dropdown (opens on the right side)  */}
           {isWorkspacesOpen && submenuPos && (
             <div
               ref={submenuRef}
