@@ -13,9 +13,11 @@ import {
   CalendarClock,
   Receipt,
   BadgeCheck,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button, Input, Dialog, DialogContent } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
+import { UpgradePlanDialog } from "./upgrade-plan-dialog";
 
 type Card = {
   id: string;
@@ -66,10 +68,14 @@ export const BillingTab = () => {
   const [cards, setCards] = useState<Card[]>([]);
   const [transactions] = useState<Transaction[]>([]);
   const [topUpOpen, setTopUpOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   return (
     <div className="space-y-4">
-      <InvoiceSummaryCard onTopUp={() => setTopUpOpen(true)} />
+      <InvoiceSummaryCard
+        onTopUp={() => setTopUpOpen(true)}
+        onUpgrade={() => setUpgradeOpen(true)}
+      />
       <TransactionsTable transactions={transactions} />
 
       <TopUpModal
@@ -81,11 +87,19 @@ export const BillingTab = () => {
           setCards((prev) => prev.filter((c) => c.id !== id))
         }
       />
+
+      <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 };
 
-const InvoiceSummaryCard = ({ onTopUp }: { onTopUp: () => void }) => {
+const InvoiceSummaryCard = ({
+  onTopUp,
+  onUpgrade,
+}: {
+  onTopUp: () => void;
+  onUpgrade: () => void;
+}) => {
   const meta = [
     {
       icon: Sparkles,
@@ -153,6 +167,14 @@ const InvoiceSummaryCard = ({ onTopUp }: { onTopUp: () => void }) => {
                 Plan details and next billing period.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={onUpgrade}
+              className="bg-primary hover:bg-primary/90 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold text-white shadow-sm transition-colors"
+            >
+              <ArrowUpRight size={14} />
+              Upgrade
+            </button>
           </div>
 
           <div className="grid flex-1 gap-3 sm:grid-cols-3">
