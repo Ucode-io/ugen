@@ -8,7 +8,21 @@ const AUTH_BASE_URL =
   process.env.NEXT_PUBLIC_AUTH_BASE_URL || 'https://api.auth.u-code.io'
 
 const POPUP_NAME = 'ugen-google-oauth'
-const POPUP_FEATURES = 'width=480,height=640,menubar=no,toolbar=no,location=no,status=no'
+const POPUP_WIDTH = 480
+const POPUP_HEIGHT = 640
+
+const centeredPopupFeatures = () => {
+  // window.screenX / screenY anchor to the current monitor on multi-display setups.
+  const dualLeft = window.screenLeft ?? window.screenX ?? 0
+  const dualTop = window.screenTop ?? window.screenY ?? 0
+  const width = window.innerWidth || document.documentElement.clientWidth || screen.width
+  const height = window.innerHeight || document.documentElement.clientHeight || screen.height
+
+  const left = Math.max(0, dualLeft + (width - POPUP_WIDTH) / 2)
+  const top = Math.max(0, dualTop + (height - POPUP_HEIGHT) / 2)
+
+  return `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
+}
 
 interface GoogleAuthButtonProps {
   isLogin?: boolean
@@ -68,7 +82,7 @@ export const GoogleAuthButton = ({
   const openPopup = () => {
     setLoading(true)
     const url = `${AUTH_BASE_URL}/v3/ugen/auth/google`
-    const popup = window.open(url, POPUP_NAME, POPUP_FEATURES)
+    const popup = window.open(url, POPUP_NAME, centeredPopupFeatures())
 
     if (!popup) {
       setLoading(false)
