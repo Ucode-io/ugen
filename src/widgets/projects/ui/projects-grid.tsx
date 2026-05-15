@@ -77,12 +77,20 @@ export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant
               </div>
               {proj.rawProject && (
                 <div className="shrink-0 items-center gap-0.5 flex opacity-0 transition-opacity group-hover:opacity-100">
-                  <button
-                    className="flex h-6 w-6 items-center justify-center rounded-md text-text-main hover:bg-hover-bg transition-colors"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
-                  >
-                    <LinkIcon size={13} />
-                  </button>
+                  {proj.microfrontend_url && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(`https://${proj.microfrontend_url}`, "_blank", "noopener,noreferrer");
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-text-main hover:bg-hover-bg transition-colors"
+                      title={proj.microfrontend_url}
+                    >
+                      <LinkIcon size={13} />
+                    </button>
+                  )}
                   <ProjectCardActions project={proj.rawProject} folderItemId={proj.folderItemId} />
                 </div>
               )}

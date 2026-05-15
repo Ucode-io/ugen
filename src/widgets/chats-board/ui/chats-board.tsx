@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Search, SlidersHorizontal, MessagesSquare, Loader2, ArrowUpDown, Check, CircleDashed } from "lucide-react";
+import { Search, SlidersHorizontal, MessagesSquare, Loader2, ArrowUpDown, Check, CircleDashed, ExternalLink } from "lucide-react";
 import { useRouter } from "@/shared/lib/i18n/navigation";
 import { useChatsListInfinite, ChatListItem } from "@/entities/chat";
 import { useProjectsList } from "@/entities/project";
@@ -68,20 +68,21 @@ export const ChatsBoard = () => {
     const raw =
       projectsResponse?.response || projectsResponse?.data || projectsResponse;
     const list = Array.isArray(raw) ? raw : raw?.projects || [];
-    const map = new Map<string, { name: string; image?: string }>();
+    const map = new Map<string, { name: string; image?: string; microfrontend_url?: string }>();
     list.forEach((p: any) => {
       const id = p.id || p.project_id || p.mcp_project_id;
       if (id) {
         map.set(id, {
           name: p.name || p.title || tWidgets("untitledProject"),
           image: p.project_image || p.image || p.thumbnail || undefined,
+          microfrontend_url: p.microfrontend_url || undefined,
         });
       }
     });
     return map;
   }, [projectsResponse, tWidgets]);
 
-  const chats: (ChatListItem & { project_label: string; project_image?: string })[] = useMemo(() => {
+  const chats: (ChatListItem & { project_label: string; project_image?: string; project_url?: string })[] = useMemo(() => {
     const pages = chatsPages?.pages ?? [];
     const list = pages.flatMap((page) => {
       const raw = page?.data?.chats ?? page?.response ?? page?.chats ?? [];
@@ -105,6 +106,7 @@ export const ChatsBoard = () => {
           fromMap?.name ||
           t("noProject"),
         project_image: c.project_image || fromMap?.image,
+        project_url: c.microfrontend_url || fromMap?.microfrontend_url,
       };
     });
   }, [chatsPages, projectsList, t]);
@@ -245,7 +247,12 @@ export const ChatsBoard = () => {
         ) : (
           <>
             <div className="border-border-subtle overflow-hidden rounded-xl border">
-              <table className="w-full text-left text-sm">
+              <table className="w-full table-fixed text-left text-sm">
+                <colgroup>
+                  <col className="w-1/2" />
+                  <col className="w-1/3" />
+                  <col className="w-32" />
+                </colgroup>
                 <thead className="bg-bg-sidebar/40 text-text-muted/80 text-xs uppercase tracking-wide">
                   <tr>
                     <th className="px-4 py-3 font-semibold">
@@ -279,7 +286,7 @@ export const ChatsBoard = () => {
                       className="hover:bg-hover-bg group cursor-pointer transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex min-w-0 items-center gap-2.5">
                           {chat.project_image ? (
                             <img
                               src={chat.project_image}
@@ -291,16 +298,35 @@ export const ChatsBoard = () => {
                               <MessagesSquare size={14} />
                             </div>
                           )}
-                          <span className="text-text-main truncate font-medium">
+                          <span
+                            className="text-text-main min-w-0 flex-1 truncate font-medium"
+                            title={chat.title}
+                          >
                             {chat.title}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-text-muted flex items-center gap-1.5 text-xs">
-                          <CircleDashed size={13} className="shrink-0" />
-                          Draft
-                        </span>
+                        {chat.project_url ? (
+                          <a
+                            href={`https://${chat.project_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-primary hover:text-primary/80 inline-flex max-w-full items-center gap-1.5 text-xs hover:underline"
+                            title={chat.project_url}
+                          >
+                            <ExternalLink size={13} className="shrink-0" />
+                            <span className="truncate">
+                              {chat.project_label || t("projectLink")}
+                            </span>
+                          </a>
+                        ) : (
+                          <span className="text-text-muted flex items-center gap-1.5 text-xs">
+                            <CircleDashed size={13} className="shrink-0" />
+                            Draft
+                          </span>
+                        )}
                       </td>
                       <td className="text-text-muted px-4 py-3 whitespace-nowrap text-xs">
                         {formatTimeAgo(chat.updated_at)}

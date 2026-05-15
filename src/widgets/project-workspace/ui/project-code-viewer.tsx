@@ -68,6 +68,7 @@ export const ProjectCodeViewer = ({
   const codeEditorTarget = useAuthStore((state) => state.codeEditorTarget);
   const setCodeEditorTarget = useAuthStore((state) => state.setCodeEditorTarget);
   const activeCodeSelection = useCodeSelectionStore((state) => state.activeCodeSelection);
+  const activeCodeFiles = useCodeSelectionStore((state) => state.activeCodeFiles);
   const setActiveCodeSelection = useCodeSelectionStore((state) => state.setActiveCodeSelection);
   const apiKey = useAuthStore((state) => state.apiKey);
 
@@ -245,8 +246,25 @@ export const ProjectCodeViewer = ({
       setCodebaseFiles([]);
       return;
     }
-    const id = activeOption?.target?.id;
-    if (!id) return;
+    const target = activeOption?.target;
+    const id = target?.id;
+    if (!id || !target) return;
+
+    // Reuse files already loaded by the preview tab (same target) — avoids the
+    // visible re-fetch when entering the code view for the first time.
+    if (
+      activeCodeSelection?.kind === target.kind &&
+      activeCodeSelection.id === id &&
+      activeCodeFiles &&
+      activeCodeFiles.length > 0
+    ) {
+      setCodebaseFiles(
+        activeCodeFiles.map(({ path, content }) => ({ path, content })),
+      );
+      setIsLoadingCodebase(false);
+      return;
+    }
+
     setIsLoadingCodebase(true);
     const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {};
     api
@@ -258,10 +276,7 @@ export const ProjectCodeViewer = ({
         const files = (data?.data?.files ?? []) as CodebaseFile[];
         setCodebaseFiles(files);
         // Also update the store so preview tab can read the files without re-fetching
-        const target = activeOption?.target;
-        if (target) {
-          setActiveCodeSelection(target, files);
-        }
+        setActiveCodeSelection(target, files);
       })
       .catch(console.error)
       .finally(() => setIsLoadingCodebase(false));

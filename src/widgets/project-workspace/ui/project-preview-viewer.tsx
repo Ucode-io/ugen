@@ -20,10 +20,6 @@ import {
   Minimize,
   Maximize,
   Check,
-  Palette,
-  Upload,
-  ChevronUp,
-  Search,
   Save,
   RotateCcw,
 } from "lucide-react";
@@ -35,59 +31,11 @@ import { autoCommit, requestSave, useGuardedAction } from "../lib/save-flow";
 import { applyVisualEditToCss, buildSelector } from "../lib/visual-edits-css";
 import { toPng } from "html-to-image";
 import { fileService } from "@/shared/api/file-service";
-
-const FONT_FAMILIES = [
-  "Inter",
-  "Roboto",
-  "Open Sans",
-  "Lato",
-  "Montserrat",
-  "Poppins",
-  "Raleway",
-  "Ubuntu",
-  "Nunito",
-  "Playfair Display",
-  "Merriweather",
-  "Source Code Pro",
-  "Fira Code",
-  "DM Sans",
-  "Space Grotesk",
-  "Plus Jakarta Sans",
-  "Manrope",
-  "Outfit",
-  "Geist",
-  "Geist Mono",
-  "Josefin Sans",
-  "Rubik",
-  "Work Sans",
-  "Karla",
-  "Mulish",
-  "Jost",
-  "Cabin",
-  "Quicksand",
-  "Barlow",
-  "Archivo",
-  "Figtree",
-  "Lexend",
-  "Noto Sans",
-  "PT Sans",
-  "Source Sans 3",
-  "IBM Plex Sans",
-  "IBM Plex Mono",
-  "Inconsolata",
-  "DM Mono",
-  "Pacifico",
-  "Dancing Script",
-  "Bebas Neue",
-  "Anton",
-  "Oswald",
-  "Crimson Text",
-  "EB Garamond",
-  "Libre Baskerville",
-  "Cormorant Garamond",
-  "Cinzel",
-  "Spectral",
-];
+import {
+  ThemePopover,
+  type ColorDefinition,
+  type ColorGroup,
+} from "./theme-popover";
 
 // Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
@@ -182,16 +130,6 @@ function parseColorToHex(raw: string): string {
 
 function formatColorFromHex(hex: string, format: ColorFormat): string {
   return format === "hex" ? hex.toLowerCase() : hexToHslString(hex);
-}
-
-interface ColorDefinition {
-  cssVar: string;
-  label: string;
-}
-
-interface ColorGroup {
-  title: string;
-  colors: ColorDefinition[];
 }
 
 // Known shadcn-style variables. We use these to keep nicer labels and a stable
@@ -745,22 +683,6 @@ export const ProjectPreviewViewer = ({
   // Used to write each variable back in its original form. Keyed by cssVar name.
   const colorFormatsRef = useRef<Record<string, ColorFormat>>({});
   const [fontFamily, setFontFamily] = useState("Inter");
-  const [fontSearch, setFontSearch] = useState("");
-  const [fontDropdownOpen, setFontDropdownOpen] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const fontPreviewLoadedRef = useRef(false);
-
-  useEffect(() => {
-    if (!fontDropdownOpen || fontPreviewLoadedRef.current) return;
-    fontPreviewLoadedRef.current = true;
-    const families = FONT_FAMILIES.map(
-      (f) => `family=${f.replace(/\s+/g, "+")}`,
-    ).join("&");
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
-    document.head.appendChild(link);
-  }, [fontDropdownOpen]);
   // Snapshot of theme at the moment the popover opens — used to restore on Cancel
   const themeSnapshotRef = useRef<{
     colors: Record<string, string>;
@@ -771,10 +693,6 @@ export const ProjectPreviewViewer = ({
     logoUrl: "",
     fontFamily: "Inter",
   });
-
-  const filteredFonts = FONT_FAMILIES.filter((f) =>
-    f.toLowerCase().includes(fontSearch.toLowerCase()),
-  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -1143,8 +1061,9 @@ export const ProjectPreviewViewer = ({
           resolve();
         };
       });
-      // Let the bundled app mount and render in the hidden iframe.
-      await new Promise((r) => setTimeout(r, 1500));
+      // Let the bundled app mount, finish initial-load spinners, and settle
+      // entrance animations (hero text, framer-motion, etc.) before capturing.
+      await new Promise((r) => setTimeout(r, 5000));
       const target = hidden.contentDocument?.body;
       console.log("[preview screenshot] hidden body:", target);
       if (!target) {
@@ -1328,259 +1247,8 @@ export const ProjectPreviewViewer = ({
   // Shared browser header JSX (rendered inside the card)
   const browserHeader = (
     <div className="border-border-subtle bg-bg-card flex h-10 shrink-0 items-center justify-between gap-2 border-b px-2">
-      {/* Left: Logo (fullscreen only) + Visual Edit + Theme + Microfrontend Picker */}
+      {/* Left: Microfrontend Picker + Logo (fullscreen only) + Visual Edit + Theme */}
       <div className="flex shrink-0 items-center gap-1.5">
-        {isMaximized && (
-          <>
-            <img
-              src="/ugen-logo.svg"
-              className="block h-5 w-auto dark:hidden"
-              alt="ugen"
-            />
-            <img
-              src="/ugen-logo-dark.svg"
-              className="hidden h-5 w-auto dark:block"
-              alt="ugen"
-            />
-            <div className="bg-border-subtle mx-0.5 h-4 w-px" />
-          </>
-        )}
-        {!isVersionHistory && (
-          <button
-            type="button"
-            onClick={() => setInspectMode(!isInspectMode)}
-            title="Visual Edit"
-            className={cn(
-              "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
-              isInspectMode
-                ? "bg-text-main text-bg-main"
-                : "text-text-muted hover:bg-hover-bg hover:text-text-main",
-            )}
-          >
-            <MousePointerClick size={13} />
-          </button>
-        )}
-        {!isVersionHistory && (
-          <Popover open={themeOpen} onOpenChange={handleThemeOpenChange}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                title="Theme"
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
-                  themeOpen
-                    ? "bg-text-main text-bg-main"
-                    : "text-text-muted hover:bg-hover-bg hover:text-text-main",
-                )}
-              >
-                <Palette size={13} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" sideOffset={8} className="w-72 p-0">
-              {/* Header */}
-              <div className="border-border-subtle border-b px-4 pt-4 pb-3">
-                <h3 className="text-text-main text-sm font-semibold">Theme</h3>
-                <p className="text-text-muted mt-0.5 text-[11px]">
-                  Colors and fonts for your project.
-                </p>
-              </div>
-
-              <div className="max-h-[420px] space-y-4 overflow-y-auto px-4 py-3">
-                {/* Colors — groups derived from the CSS file */}
-                {colorGroups.length === 0 && (
-                  <p className="text-text-muted text-[12px]">
-                    No CSS color variables found in src/index.css.
-                  </p>
-                )}
-                {colorGroups.map((group) => (
-                  <div key={group.title} className="space-y-2">
-                    <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
-                      {group.title}
-                    </p>
-                    {group.colors.map(({ cssVar, label }) => (
-                      <div
-                        key={cssVar}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="text-text-main text-[13px]">
-                          {label}
-                        </span>
-                        <label className="group flex cursor-pointer items-center gap-2">
-                          <span className="text-text-muted group-hover:text-text-main font-mono text-[12px] transition-colors">
-                            {(themeSettings.colors[cssVar] ?? "").toUpperCase()}
-                          </span>
-                          <div
-                            className="border-border-subtle relative h-6 w-6 overflow-hidden rounded border shadow-sm"
-                            style={{
-                              backgroundColor: themeSettings.colors[cssVar],
-                            }}
-                          >
-                            <input
-                              type="color"
-                              value={themeSettings.colors[cssVar] ?? "#000000"}
-                              onChange={(e) =>
-                                setThemeSettings((prev) => ({
-                                  ...prev,
-                                  colors: {
-                                    ...prev.colors,
-                                    [cssVar]: e.target.value,
-                                  },
-                                }))
-                              }
-                              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                            />
-                          </div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-
-                {/* Logo */}
-                <div className="space-y-2">
-                  <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
-                    Logo
-                  </p>
-                  <div className="flex items-center gap-2">
-                    {themeSettings.logoUrl ? (
-                      <div className="flex min-w-0 flex-1 items-center gap-2">
-                        <img
-                          src={themeSettings.logoUrl}
-                          alt="Logo"
-                          className="border-border-subtle h-7 w-auto max-w-20 rounded border object-contain"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setThemeSettings((prev) => ({
-                              ...prev,
-                              logoUrl: "",
-                            }))
-                          }
-                          className="text-text-muted ml-auto shrink-0 text-[11px] transition-colors hover:text-red-500"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => logoInputRef.current?.click()}
-                        className="border-border-subtle hover:border-primary/50 hover:bg-primary/5 text-text-muted hover:text-primary flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-1.5 text-[12px] transition-colors"
-                      >
-                        <Upload size={12} />
-                        Upload logo
-                      </button>
-                    )}
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = (ev) =>
-                          setThemeSettings((prev) => ({
-                            ...prev,
-                            logoUrl: ev.target?.result as string,
-                          }));
-                        reader.readAsDataURL(file);
-                        e.target.value = "";
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Font Family */}
-                <div className="space-y-2">
-                  <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
-                    Font Family
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFontDropdownOpen((o) => !o);
-                      setFontSearch("");
-                    }}
-                    className="border-border-subtle bg-bg-sidebar text-text-main hover:border-primary/40 hover:bg-primary/5 flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-[13px] transition-colors"
-                  >
-                    <span>{fontFamily}</span>
-                    {fontDropdownOpen ? (
-                      <ChevronUp size={12} className="text-text-muted" />
-                    ) : (
-                      <ChevronDown size={12} className="text-text-muted" />
-                    )}
-                  </button>
-                  {fontDropdownOpen && (
-                    <div className="border-border-subtle overflow-hidden rounded-lg border">
-                      <div className="border-border-subtle bg-bg-sidebar flex items-center gap-2 border-b px-2.5 py-1.5">
-                        <Search
-                          size={11}
-                          className="text-text-muted shrink-0"
-                        />
-                        <input
-                          autoFocus
-                          type="text"
-                          value={fontSearch}
-                          onChange={(e) => setFontSearch(e.target.value)}
-                          placeholder="Search fonts..."
-                          className="text-text-main placeholder:text-text-muted flex-1 bg-transparent text-[12px] outline-none"
-                        />
-                      </div>
-                      <div className="max-h-36 overflow-y-auto">
-                        {filteredFonts.length === 0 ? (
-                          <p className="text-text-muted px-3 py-2 text-[12px]">
-                            No fonts found
-                          </p>
-                        ) : (
-                          filteredFonts.map((f) => (
-                            <button
-                              key={f}
-                              type="button"
-                              onClick={() => {
-                                setFontFamily(f);
-                                setFontDropdownOpen(false);
-                              }}
-                              className={cn(
-                                "w-full px-3 py-1.5 text-left text-[12px] transition-colors",
-                                f === fontFamily
-                                  ? "bg-primary/10 text-primary font-medium"
-                                  : "text-text-main hover:bg-hover-bg",
-                              )}
-                              style={{ fontFamily: `'${f}', sans-serif` }}
-                            >
-                              {f}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="border-border-subtle bg-bg-sidebar/50 flex items-center justify-end gap-2 border-t px-4 py-3">
-                <button
-                  type="button"
-                  onClick={handleCancelTheme}
-                  className="text-text-muted hover:text-text-main hover:bg-hover-bg rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveTheme}
-                  className="bg-primary hover:bg-primary/90 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white transition-colors"
-                >
-                  Save & Apply
-                </button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        )}
         {!isVersionHistory && microfrontendsList.length > 0 && (
           <Popover open={microfrontendOpen} onOpenChange={setMicrofrontendOpen}>
             <PopoverTrigger asChild>
@@ -1652,6 +1320,49 @@ export const ProjectPreviewViewer = ({
               })}
             </PopoverContent>
           </Popover>
+        )}
+        {isMaximized && (
+          <>
+            <img
+              src="/ugen-logo.svg"
+              className="block h-5 w-auto dark:hidden"
+              alt="ugen"
+            />
+            <img
+              src="/ugen-logo-dark.svg"
+              className="hidden h-5 w-auto dark:block"
+              alt="ugen"
+            />
+            <div className="bg-border-subtle mx-0.5 h-4 w-px" />
+          </>
+        )}
+        {!isVersionHistory && (
+          <button
+            type="button"
+            onClick={() => setInspectMode(!isInspectMode)}
+            title="Visual Edit"
+            className={cn(
+              "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+              isInspectMode
+                ? "bg-text-main text-bg-main"
+                : "text-text-muted hover:bg-hover-bg hover:text-text-main",
+            )}
+          >
+            <MousePointerClick size={13} />
+          </button>
+        )}
+        {!isVersionHistory && (
+          <ThemePopover
+            open={themeOpen}
+            onOpenChange={handleThemeOpenChange}
+            colorGroups={colorGroups}
+            themeSettings={themeSettings}
+            setThemeSettings={setThemeSettings}
+            fontFamily={fontFamily}
+            setFontFamily={setFontFamily}
+            onCancel={handleCancelTheme}
+            onSave={handleSaveTheme}
+          />
         )}
       </div>
 

@@ -506,6 +506,7 @@
       "sortBy": "Сортировать по",
       "noChats": "Чатов пока нет",
       "noProject": "Без проекта",
+      "projectLink": "Ссылка на проект",
       "untitledChat": "Без названия",
       "columns": {
         "name": "Название",
@@ -552,6 +553,8 @@
       "createNewProject": "Создать новый проект",
       "createdAt": "Дата создания",
       "createdBy": "Автор",
+      "projectUrl": "URL",
+      "projectLink": "Ссылка на проект",
       "moveToFolder": "Переместить в папку",
       "removeFromFolder": "Удалить из папки",
       "projectName": "Имя проекта",

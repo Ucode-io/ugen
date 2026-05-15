@@ -506,6 +506,7 @@
       "sortBy": "Saralash",
       "noChats": "Hali suhbatlar yo'q",
       "noProject": "Loyiha yo'q",
+      "projectLink": "Loyihaga havola",
       "untitledChat": "Nomsiz suhbat",
       "columns": {
         "name": "Nomi",
@@ -552,6 +553,8 @@
       "createNewProject": "Yangi loyiha yaratish",
       "createdAt": "Yaratilgan sana",
       "createdBy": "Muallif",
+      "projectUrl": "URL",
+      "projectLink": "Loyihaga havola",
       "moveToFolder": "Papkaga ko'chirish",
       "removeFromFolder": "Papkadan olib tashlash",
       "projectName": "Loyiha nomi",

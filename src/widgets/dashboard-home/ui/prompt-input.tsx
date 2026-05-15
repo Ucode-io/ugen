@@ -12,11 +12,11 @@ import { DEFAULT_MODEL_ID } from '@/entities/ai-model'
 import { useTranslations } from 'next-intl'
 
 const PRESET_PROMPTS = [
-  { text: 'Build a CRM system with contacts and sales pipeline', icon: Users },
-  { text: 'Create an e-commerce store with product catalog', icon: ShoppingCart },
-  { text: 'Build an ERP system with inventory and finance modules', icon: Package },
-  { text: 'Build a task management app with kanban board', icon: ListTodo },
-  { text: 'Create a restaurant website with menu and booking', icon: UtensilsCrossed },
+  { label: 'CRM system', text: 'Build a CRM system with contacts and sales pipeline', icon: Users },
+  { label: 'E-commerce store', text: 'Create an e-commerce store with product catalog', icon: ShoppingCart },
+  { label: 'ERP system', text: 'Build an ERP system with inventory and finance modules', icon: Package },
+  { label: 'Task manager', text: 'Build a task management app with kanban board', icon: ListTodo },
+  { label: 'Restaurant website', text: 'Create a restaurant website with menu and booking', icon: UtensilsCrossed },
 ]
 
 export const PromptInput = () => {
@@ -235,7 +235,7 @@ export const PromptInput = () => {
 
       {/* Preset prompts */}
       <div className="flex flex-wrap justify-center gap-2">
-        {PRESET_PROMPTS.map(({ text, icon: Icon }) => (
+        {PRESET_PROMPTS.map(({ label, text, icon: Icon }) => (
           <button
             key={text}
             type="button"
@@ -244,10 +244,11 @@ export const PromptInput = () => {
               setPrompt(text)
               textareaRef.current?.focus()
             }}
-            className="flex items-center gap-1.5 border border-border-subtle rounded-full px-3 py-1.5 text-xs text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors disabled:opacity-50 max-w-65"
+            title={text}
+            className="flex items-center gap-1.5 border border-border-subtle rounded-full px-3 py-1.5 text-xs text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors disabled:opacity-50"
           >
             <Icon size={14} className="shrink-0" />
-            <span className="truncate">{text}</span>
+            <span>{label}</span>
           </button>
         ))}
       </div>

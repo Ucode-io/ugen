@@ -1,4 +1,4 @@
-import { Folder, Loader2 } from "lucide-react"
+import { Folder, Loader2, ExternalLink } from "lucide-react"
 import { Link } from "@/shared/lib/i18n/navigation"
 import { ProjectCardActions } from "./project-card-actions"
 import { FolderCardActions } from "./folder-card-actions"
@@ -37,6 +37,9 @@ export const ProjectsList = ({
             <th className="text-text-muted px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider uppercase hidden sm:table-cell">
               {t("createdBy")}
             </th>
+            <th className="text-text-muted px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider uppercase hidden md:table-cell">
+              {t("projectUrl")}
+            </th>
             <th className="w-16" />
           </tr>
         </thead>
@@ -59,6 +62,9 @@ export const ProjectsList = ({
                 —
               </td>
               <td className="text-text-muted px-4 py-2.5 text-[12px] hidden sm:table-cell">
+                —
+              </td>
+              <td className="text-text-muted px-4 py-2.5 text-[12px] hidden md:table-cell">
                 —
               </td>
               <td className="px-4 py-2.5">
@@ -114,6 +120,25 @@ export const ProjectsList = ({
                     </div>
                     <span className="truncate">{project.author.name}</span>
                   </div>
+                </td>
+                <td className="px-4 py-2.5 text-[12px] hidden md:table-cell">
+                  {project.microfrontend_url ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(`https://${project.microfrontend_url}`, "_blank", "noopener,noreferrer");
+                      }}
+                      className="text-primary hover:text-primary/80 inline-flex max-w-full items-center gap-1.5 hover:underline"
+                      title={project.microfrontend_url}
+                    >
+                      <ExternalLink size={12} className="shrink-0" />
+                      <span className="truncate">{project.name || t("projectLink")}</span>
+                    </button>
+                  ) : (
+                    <span className="text-text-muted">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">

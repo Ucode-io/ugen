@@ -506,6 +506,7 @@
       "sortBy": "Sort by",
       "noChats": "No chats yet",
       "noProject": "No project",
+      "projectLink": "Project link",
       "untitledChat": "Untitled chat",
       "columns": {
         "name": "Name",
@@ -552,6 +553,8 @@
       "createNewProject": "Create new project",
       "createdAt": "Created at",
       "createdBy": "Created by",
+      "projectUrl": "URL",
+      "projectLink": "Project link",
       "moveToFolder": "Move to folder",
       "removeFromFolder": "Remove from folder",
       "projectName": "Project name",

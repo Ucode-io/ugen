@@ -155,6 +155,7 @@ export const ProjectsBoard = () => {
           .toUpperCase(),
       },
       image: p.project_image || p.image || p.thumbnail || null,
+      microfrontend_url: p.microfrontend_url || null,
       rawProject: p,
     };
   });
