@@ -49,7 +49,7 @@ interface CustomEndpoint {
   created_at: string
 }
 
-const EndpointsView = ({ projectId }: { projectId: string }) => {
+const EndpointsView = () => {
   const { theme } = useUIStore()
   const queryClient = useQueryClient()
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail'>('list')
@@ -58,6 +58,7 @@ const EndpointsView = ({ projectId }: { projectId: string }) => {
   const [endpointToDelete, setEndpointToDelete] = useState<CustomEndpoint | null>(null)
 
   const apiKey = useAuthStore((state) => state.apiKey)
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId)
 
   // Execution State
   const [executionParams, setExecutionParams] = useState<Record<string, any>>({})
@@ -76,16 +77,22 @@ const EndpointsView = ({ projectId }: { projectId: string }) => {
 
   // Queries
   const { data: endpoints = [], isLoading } = useQuery({
-    queryKey: ['custom-endpoints', projectId],
+    queryKey: ['custom-endpoints', ucodeProjectId],
     queryFn: async () => {
-      const { data } = await api.get('/v1/custom-endpoints')
+      const { data } = await api.get('/v1/custom-endpoints', {
+        params: { 'project-id': ucodeProjectId }
+      })
       return (data?.data?.endpoints ?? []) as CustomEndpoint[]
-    }
+    },
+    enabled: !!ucodeProjectId
   })
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (payload: any) => api.post('/v1/custom-endpoints', payload),
+    mutationFn: (payload: any) =>
+      api.post('/v1/custom-endpoints', payload, {
+        params: { 'project-id': ucodeProjectId }
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-endpoints'] })
       setView('list')
@@ -93,7 +100,10 @@ const EndpointsView = ({ projectId }: { projectId: string }) => {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: any }) => api.put(`/v1/custom-endpoints/${id}`, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+      api.put(`/v1/custom-endpoints/${id}`, payload, {
+        params: { 'project-id': ucodeProjectId }
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-endpoints'] })
       setView('list')
@@ -101,7 +111,10 @@ const EndpointsView = ({ projectId }: { projectId: string }) => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/v1/custom-endpoints/${id}`),
+    mutationFn: (id: string) =>
+      api.delete(`/v1/custom-endpoints/${id}`, {
+        params: { 'project-id': ucodeProjectId }
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-endpoints'] })
       setEndpointToDelete(null)
@@ -110,7 +123,11 @@ const EndpointsView = ({ projectId }: { projectId: string }) => {
 
   const runMutation = useMutation({
     mutationFn: async ({ id, params }: { id: string; params: any }) => {
-      const { data } = await api.post(`/v1/custom-endpoints/${id}/run`, { params })
+      const { data } = await api.post(
+        `/v1/custom-endpoints/${id}/run`,
+        { params },
+        { params: { 'project-id': ucodeProjectId } }
+      )
       const result = data?.data
       return result as any[]
     },
@@ -794,7 +811,7 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
       </div>
 
       <div className="pt-2">
-        {activeTab === 'endpoints' && <EndpointsView projectId={projectId} />}
+        {activeTab === 'endpoints' && <EndpointsView />}
         {activeTab === 'sdk' && <ApiIntegrationsPage projectId={projectId} />}
         {activeTab === 'keys' && <ApiKeysPage projectId={projectId} hideHeader />}
       </div>
