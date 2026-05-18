@@ -16,14 +16,11 @@ import {
   WorkspaceTableHead,
   WorkspaceTableCell,
 } from '@/widgets/project-workspace/ui/workspace-table'
-import { useAuthStore } from "@/entities/session";
-
-export const UsageLimitsTab = ({ pricingData, fareData }: any) => {
+export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) => {
   const d = pricingData?.data || {};
   const fares: any[] = fareData?.data?.fares || [];
-  const fareId = useAuthStore((state) => state.project?.fare_id);
-  const currentFareName: string =
-    fares.find((fare) => fare.id === fareId)?.name || "";
+  const currentFare = currentFareData?.data?.fares?.[0];
+  const fareId = currentFare?.id;
 
   // Collect all unique fare items across all fares (preserving order)
   const allFareItemsMap = new Map<
@@ -77,9 +74,13 @@ export const UsageLimitsTab = ({ pricingData, fareData }: any) => {
             Current Plan
           </div>
           <div className="text-text-main text-lg font-bold">
-            Small{" "}
+            {currentFare?.name || "—"}{" "}
             <span className="text-text-muted ml-1 text-[13px] font-normal">
-              — $300 / month
+              {currentFare
+                ? currentFare.price > 0
+                  ? `— $${currentFare.price} / month`
+                  : "— Free"
+                : ""}
             </span>
           </div>
         </div>
@@ -199,7 +200,7 @@ export const UsageLimitsTab = ({ pricingData, fareData }: any) => {
                     Feature
                   </WorkspaceTableHead>
                   {fares.map((fare) => {
-                    const isCurrent = fare.name === currentFareName;
+                    const isCurrent = fare.id === fareId;
                     return (
                       <WorkspaceTableHead
                         key={fare.id}
@@ -228,7 +229,7 @@ export const UsageLimitsTab = ({ pricingData, fareData }: any) => {
                     <WorkspaceTableRow key={fareItem.id}>
                       <WorkspaceTableCell>{fareItem.name}</WorkspaceTableCell>
                       {fares.map((fare) => {
-                        const isCurrent = fare.name === currentFareName;
+                        const isCurrent = fare.id === fareId;
                         const rawValue = fareValueMap[fare.id]?.[fareItem.id];
                         const displayValue = formatFareValue(rawValue);
                         return (

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Settings, ChevronsUpDown, Loader2, Lock, User, ChevronRight, Sparkles, Plus } from "lucide-react"
+import { Settings, ChevronsUpDown, Loader2, Lock, User, ChevronRight, Sparkles, Plus, Palette, Check, BriefcaseBusiness } from "lucide-react"
 import { useUserProjects, UserCompany, useSwitchProject, useCreateCompany } from "@/entities/project"
 import { useAuthStore } from "@/entities/session"
 import { useRouter } from "@/shared/lib/i18n/navigation"
@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl"
 import Image from "next/image"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/shared/api"
+import { useUIStore } from "@/shared/model/theme/use-ui-store"
 
 interface ProjectPopupProps {
   project: any
@@ -16,6 +17,7 @@ interface ProjectPopupProps {
   isProjectPopupOpen: boolean
   setIsProjectPopupOpen: (val: boolean) => void
   onOpenProfileModal: () => void
+  onOpenUpgradeDialog: () => void
 }
 
 function getInitial(title: string) {
@@ -68,6 +70,7 @@ export const ProjectDropdown = ({
   isProjectPopupOpen,
   setIsProjectPopupOpen,
   onOpenProfileModal,
+  onOpenUpgradeDialog,
 }: ProjectPopupProps) => {
   const t = useTranslations('widgets.sidebar')
   const { data: companies = [], isLoading: isCompaniesLoading } = useUserProjects()
@@ -75,6 +78,7 @@ export const ProjectDropdown = ({
   const { mutateAsync: switchProject } = useSwitchProject()
   const queryClient = useQueryClient()
   const router = useRouter()
+  const { theme, setTheme } = useUIStore()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false)
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
@@ -82,12 +86,9 @@ export const ProjectDropdown = ({
   const inputRef = useRef<HTMLInputElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const portalRef = useRef<HTMLDivElement>(null)
-  const workspacesRowRef = useRef<HTMLButtonElement>(null)
-  const submenuRef = useRef<HTMLDivElement>(null)
-  const submenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null)
-  const [submenuPos, setSubmenuPos] = useState<{ top: number; left: number } | null>(null)
   const [isWorkspacesOpen, setIsWorkspacesOpen] = useState(false)
+  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false)
 
   const { data: pricingData } = useQuery({
     queryKey: ['pricing-all', apiKey],
@@ -113,6 +114,7 @@ export const ProjectDropdown = ({
   useEffect(() => {
     if (!isProjectPopupOpen) {
       setIsWorkspacesOpen(false)
+      setIsAppearanceOpen(false)
       setIsCreatingWorkspace(false)
       setNewWorkspaceName('')
       return
@@ -121,7 +123,6 @@ export const ProjectDropdown = ({
       const target = event.target as Node
       if (buttonRef.current?.contains(target)) return
       if (portalRef.current?.contains(target)) return
-      if (submenuRef.current?.contains(target)) return
       setIsProjectPopupOpen(false)
     }
     document.addEventListener('mousedown', handler)
@@ -132,31 +133,37 @@ export const ProjectDropdown = ({
     }
   }, [isProjectPopupOpen, setIsProjectPopupOpen])
 
-  useEffect(() => {
-    return () => {
-      if (submenuCloseTimerRef.current) clearTimeout(submenuCloseTimerRef.current)
-    }
-  }, [])
-
-  const openSubmenu = () => {
-    if (submenuCloseTimerRef.current) {
-      clearTimeout(submenuCloseTimerRef.current)
-      submenuCloseTimerRef.current = null
-    }
-    if (portalRef.current) {
-      const popupRect = portalRef.current.getBoundingClientRect()
-      setSubmenuPos({ top: popupRect.top + 60, left: popupRect.right - 8 })
-    }
-    setIsWorkspacesOpen(true)
+  const toggleWorkspaces = () => {
+    setIsWorkspacesOpen((prev) => {
+      const next = !prev
+      if (!next) {
+        setIsCreatingWorkspace(false)
+        setNewWorkspaceName('')
+      } else {
+        setIsAppearanceOpen(false)
+      }
+      return next
+    })
   }
 
-  const scheduleCloseSubmenu = () => {
-    if (submenuCloseTimerRef.current) clearTimeout(submenuCloseTimerRef.current)
-    submenuCloseTimerRef.current = setTimeout(() => {
-      setIsWorkspacesOpen(false)
-      setIsCreatingWorkspace(false)
-      setNewWorkspaceName('')
-    }, 150)
+  const toggleAppearance = () => {
+    setIsAppearanceOpen((prev) => {
+      const next = !prev
+      if (next) {
+        setIsWorkspacesOpen(false)
+        setIsCreatingWorkspace(false)
+        setNewWorkspaceName('')
+      }
+      return next
+    })
+  }
+
+  const handleThemeChange = (tOption: 'light' | 'dark') => {
+    setTheme(tOption)
+    const root = window.document.documentElement
+    root.setAttribute('data-theme', tOption)
+    if (tOption === 'dark') root.classList.add('dark')
+    else root.classList.remove('dark')
   }
 
   const currentCompanyId = activeCompanyId ?? user?.company_id ?? null
@@ -282,7 +289,13 @@ export const ProjectDropdown = ({
             <div className="flex flex-col gap-2 px-3 py-2.5">
               <TokenBar label="Daily" item={dailyTokens} color="bg-pink-500" />
               <TokenBar label="Monthly" item={monthlyTokens} color="bg-orange-500" />
-              <button className="from-primary/15 to-primary/5 text-primary hover:from-primary/25 hover:to-primary/10 border-primary/20 mt-1 flex items-center justify-center gap-1.5 rounded-md border bg-gradient-to-r py-1.5 text-xs font-semibold transition-colors">
+              <button
+                onClick={() => {
+                  setIsProjectPopupOpen(false)
+                  onOpenUpgradeDialog()
+                }}
+                className="from-primary/15 to-primary/5 text-primary hover:from-primary/25 hover:to-primary/10 border-primary/20 mt-1 flex items-center justify-center gap-1.5 rounded-md border bg-gradient-to-r py-1.5 text-xs font-semibold transition-colors"
+              >
                 <Sparkles size={12} />
                 Upgrade your plan
               </button>
@@ -290,124 +303,143 @@ export const ProjectDropdown = ({
 
             <div className="bg-border-subtle h-px" />
 
-            {/* Workspaces (hover to expand) */}
+            {/* Workspaces accordion */}
             <div className="p-1.5">
               <button
-                ref={workspacesRowRef}
-                onMouseEnter={openSubmenu}
-                onMouseLeave={scheduleCloseSubmenu}
-                onClick={() => (isWorkspacesOpen ? scheduleCloseSubmenu() : openSubmenu())}
+                onClick={toggleWorkspaces}
                 className={`text-text-main hover:bg-hover-bg flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
                   isWorkspacesOpen ? 'bg-hover-bg' : ''
                 }`}
               >
+                <BriefcaseBusiness size={14} className="text-text-muted shrink-0" />
                 <span className="flex-1 truncate text-sm">{t("allWorkspaces")}</span>
                 <span className="text-text-muted shrink-0 text-[11px]">{companies.length}</span>
-                <ChevronRight size={14} className="text-text-muted shrink-0" />
+                <ChevronRight
+                  size={14}
+                  className={`text-text-muted shrink-0 transition-transform ${isWorkspacesOpen ? 'rotate-90' : ''}`}
+                />
               </button>
+
+              {isWorkspacesOpen && (
+                <div className="border-border-subtle/60 mt-1 ml-2 border-l pl-1.5">
+                  <div className="max-h-56 space-y-0.5 overflow-y-auto">
+                    {isCompaniesLoading && (
+                      <div className="text-text-muted px-2 py-2 text-xs">{t("loading")}</div>
+                    )}
+
+                    {sortedCompanies.map((company) => {
+                      const isCurrent = company.id === currentCompanyId
+                      const isOwn = company.has_personal_fork
+                      return (
+                        <button
+                          key={company.id}
+                          disabled={!!switchingId}
+                          onClick={() => handleSelectCompany(company)}
+                          className={`text-text-main flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors disabled:cursor-default disabled:opacity-60 ${
+                            isCurrent ? 'bg-primary/10 ring-primary/30 ring-1' : 'hover:bg-hover-bg'
+                          }`}
+                        >
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-[#d946ef]/10 font-mono text-xs font-bold text-[#d946ef]">
+                            <CompanyLogo logo={company.logo} title={company.name} />
+                          </div>
+                          <span className={`flex-1 truncate text-sm ${isCurrent ? 'font-semibold' : ''}`}>
+                            {company.name}
+                          </span>
+                          {isOwn ? (
+                            <span
+                              className="text-primary bg-primary/10 flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium uppercase"
+                              title={t("yourWorkspace") ?? "Your workspace"}
+                            >
+                              <User size={10} />
+                            </span>
+                          ) : (
+                            <Lock size={12} className="text-text-muted shrink-0" />
+                          )}
+                          {switchingId === company.id && (
+                            <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="border-border-subtle/60 mt-1 border-t pt-1">
+                    {isCreatingWorkspace ? (
+                      <form onSubmit={handleCreateWorkspace} className="flex flex-col gap-1.5">
+                        <input
+                          ref={inputRef}
+                          autoFocus
+                          value={newWorkspaceName}
+                          onChange={(e) => setNewWorkspaceName(e.target.value)}
+                          placeholder={t("workspaceNamePlaceholder")}
+                          className="border-border-subtle bg-bg-sidebar text-text-main placeholder:text-text-muted focus:ring-primary/50 w-full rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-1"
+                          disabled={isCreating}
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            type="submit"
+                            disabled={!newWorkspaceName.trim() || isCreating}
+                            className="bg-primary hover:bg-primary/90 flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+                          >
+                            {isCreating ? (
+                              <><Loader2 size={11} className="animate-spin" />{t("creating")}</>
+                            ) : t("createWorkspace")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setIsCreatingWorkspace(false); setNewWorkspaceName('') }}
+                            className="hover:bg-hover-bg text-text-muted rounded-md px-2 py-1 text-xs"
+                          >
+                            {t("cancel")}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <button
+                        onClick={() => setIsCreatingWorkspace(true)}
+                        className="hover:bg-hover-bg text-text-main group flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
+                      >
+                        <div className="border-text-muted/60 text-text-muted group-hover:border-primary group-hover:text-primary group-hover:bg-primary/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-dashed transition-colors">
+                          <Plus size={12} strokeWidth={2.5} />
+                        </div>
+                        <span className="text-sm font-medium">{t("createWorkspace")}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Appearance accordion */}
+              <button
+                onClick={toggleAppearance}
+                className={`text-text-main hover:bg-hover-bg mt-0.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
+                  isAppearanceOpen ? 'bg-hover-bg' : ''
+                }`}
+              >
+                <Palette size={14} className="text-text-muted shrink-0" />
+                <span className="flex-1 truncate text-sm">{t('appearance')}</span>
+                <ChevronRight
+                  size={14}
+                  className={`text-text-muted shrink-0 transition-transform ${isAppearanceOpen ? 'rotate-90' : ''}`}
+                />
+              </button>
+
+              {isAppearanceOpen && (
+                <div className="border-border-subtle/60 mt-1 ml-2 space-y-0.5 border-l pl-1.5">
+                  {(['light', 'dark'] as const).map((tOption) => (
+                    <button
+                      key={tOption}
+                      onClick={() => handleThemeChange(tOption)}
+                      className={`hover:bg-hover-bg flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-sm capitalize ${theme === tOption ? 'text-primary bg-primary/5 font-medium' : 'text-text-main'}`}
+                    >
+                      <span>{t(tOption)}</span>
+                      {theme === tOption && <Check size={14} className="text-primary" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Workspaces sub-dropdown (opens on the right side)  */}
-          {isWorkspacesOpen && submenuPos && (
-            <div
-              ref={submenuRef}
-              onMouseEnter={openSubmenu}
-              onMouseLeave={scheduleCloseSubmenu}
-              className="bg-bg-card border-border-subtle fixed z-[201] w-64 overflow-hidden rounded-xl border shadow-[0_8px_24px_-4px_rgba(0,0,0,0.18),0_4px_12px_-2px_rgba(0,0,0,0.12)]"
-              style={{ top: submenuPos.top, left: submenuPos.left }}
-            >
-              <div className="max-h-64 space-y-0.5 overflow-y-auto p-1.5">
-                <div className="text-text-muted/70 px-2 py-1 text-xs font-semibold uppercase">
-                  {t("allWorkspaces")}
-                </div>
-
-                {isCompaniesLoading && (
-                  <div className="text-text-muted px-2 py-2 text-xs">{t("loading")}</div>
-                )}
-
-                {sortedCompanies.map((company) => {
-                  const isCurrent = company.id === currentCompanyId
-                  const isOwn = company.has_personal_fork
-                  return (
-                    <button
-                      key={company.id}
-                      disabled={!!switchingId}
-                      onClick={() => handleSelectCompany(company)}
-                      className={`text-text-main flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors disabled:cursor-default disabled:opacity-60 ${
-                        isCurrent ? 'bg-primary/10 ring-primary/30 ring-1' : 'hover:bg-hover-bg'
-                      }`}
-                    >
-                      <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-[#d946ef]/10 font-mono text-xs font-bold text-[#d946ef]">
-                        <CompanyLogo logo={company.logo} title={company.name} />
-                      </div>
-                      <span className={`flex-1 truncate text-sm ${isCurrent ? 'font-semibold' : ''}`}>
-                        {company.name}
-                      </span>
-                      {isOwn ? (
-                        <span
-                          className="text-primary bg-primary/10 flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium uppercase"
-                          title={t("yourWorkspace") ?? "Your workspace"}
-                        >
-                          <User size={10} />
-                        </span>
-                      ) : (
-                        <Lock size={12} className="text-text-muted shrink-0" />
-                      )}
-                      {switchingId === company.id && (
-                        <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Footer */}
-              <div className="border-border-subtle border-t p-1.5">
-                {isCreatingWorkspace ? (
-                  <form onSubmit={handleCreateWorkspace} className="flex flex-col gap-1.5">
-                    <input
-                      ref={inputRef}
-                      autoFocus
-                      value={newWorkspaceName}
-                      onChange={(e) => setNewWorkspaceName(e.target.value)}
-                      placeholder={t("workspaceNamePlaceholder")}
-                      className="border-border-subtle bg-bg-sidebar text-text-main placeholder:text-text-muted focus:ring-primary/50 w-full rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-1"
-                      disabled={isCreating}
-                    />
-                    <div className="flex gap-1">
-                      <button
-                        type="submit"
-                        disabled={!newWorkspaceName.trim() || isCreating}
-                        className="bg-primary hover:bg-primary/90 flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
-                      >
-                        {isCreating ? (
-                          <><Loader2 size={11} className="animate-spin" />{t("creating")}</>
-                        ) : t("createWorkspace")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setIsCreatingWorkspace(false); setNewWorkspaceName('') }}
-                        className="hover:bg-hover-bg text-text-muted rounded-md px-2 py-1 text-xs"
-                      >
-                        {t("cancel")}
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <button
-                    onClick={() => setIsCreatingWorkspace(true)}
-                    className="hover:bg-hover-bg text-text-main group flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors"
-                  >
-                    <div className="border-text-muted/60 text-text-muted group-hover:border-primary group-hover:text-primary group-hover:bg-primary/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-dashed transition-colors">
-                      <Plus size={12} strokeWidth={2.5} />
-                    </div>
-                    <span className="text-sm font-medium">{t("createWorkspace")}</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </>,
         document.body
       )}

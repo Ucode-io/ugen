@@ -1,6 +1,6 @@
 'use client'
 import { Footer } from '@/widgets/footer'
-import { LandingCtaSection } from '@/widgets/landing-page/ui/landing-cta-section'
+// import { LandingCtaSection } from '@/widgets/landing-page/ui/landing-cta-section'
 
 const STEPS = [
   {
@@ -159,7 +159,7 @@ export const DocsPage = () => {
         </div>
       </section>
 
-      <LandingCtaSection />
+      {/* <LandingCtaSection /> */}
       <Footer />
     </div>
   )

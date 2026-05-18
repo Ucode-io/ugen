@@ -1679,6 +1679,21 @@ export const ProjectPreviewViewer = ({
                 subMessage="Fetching codebase"
               />
             )}
+            {/* Streaming pre-build overlay — the build effect waits for SSE to
+                close before building, so when storeFiles populates mid-stream
+                (and this viewer mounts to replace ProjectBuildingAnimation in
+                the parent), the iframe would otherwise sit on its default
+                white background until the post-stream build lands. */}
+            {isStreaming &&
+              !srcDoc &&
+              !runtimeError &&
+              !loadingPreviewId &&
+              !isMicrofrontendLoading && (
+                <WorkspaceLoader
+                  message="Generating preview..."
+                  subMessage="Waiting for AI to finish"
+                />
+              )}
             {/* Build loading overlay — hidden when an error is shown */}
             {isLoading &&
               !runtimeError &&

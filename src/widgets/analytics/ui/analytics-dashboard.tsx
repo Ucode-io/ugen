@@ -8,10 +8,12 @@ import { UsageLimitsTab } from "./usage-limits";
 import { ProjectStatisticsTab } from "./project-statistics";
 import { useTranslations } from "next-intl";
 import { BarChart2, Gauge, BarChart } from "lucide-react";
+import { useAuthStore } from "@/entities/session";
 
 export const AnalyticsDashboard = () => {
   const t = useTranslations('widgets.analytics');
   const [activeTab, setActiveTab] = useState("usage-limits");
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
 
   const { data: pricingData } = useQuery({
     queryKey: ['pricing-all'],
@@ -23,11 +25,22 @@ export const AnalyticsDashboard = () => {
   });
 
   const { data: fareData } = useQuery({
-    queryKey: ['fares'],
+    queryKey: ['fares', 'ugen'],
     queryFn: async () => {
-      const { data } = await api.get('/v1/fare');
+      const { data } = await api.get('/v1/fare', { params: { product_type: 'ugen' } });
       return data;
     },
+  });
+
+  const { data: currentFareData } = useQuery({
+    queryKey: ['fares', 'ugen', 'current', ucodeProjectId],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/fare', {
+        params: { product_type: 'ugen', project_id: ucodeProjectId },
+      });
+      return data;
+    },
+    enabled: !!ucodeProjectId,
   });
 
   const tabs = [
@@ -56,7 +69,7 @@ export const AnalyticsDashboard = () => {
         {activeTab === "health" && <HealthTab />}
         {activeTab === "query-performance" && <QueryPerformanceTab />}
         {activeTab === "visitors" && <VisitorsTab />} */}
-        {activeTab === "usage-limits" && <UsageLimitsTab pricingData={pricingData} fareData={fareData} />}
+        {activeTab === "usage-limits" && <UsageLimitsTab pricingData={pricingData} fareData={fareData} currentFareData={currentFareData} />}
         {activeTab === "project-statistics" && <ProjectStatisticsTab pricingData={pricingData} />}
       </div>
     </div>

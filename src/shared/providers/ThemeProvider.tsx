@@ -1,26 +1,27 @@
 'use client'
 
 import { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
+import { useAuthStore } from '@/entities/session'
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const theme = useUIStore((state) => state.theme)
+  const storeTheme = useUIStore((state) => state.theme)
+  const activeView = useAuthStore((state) => state.activeView)
+  const pathname = usePathname()
+
+  // Public landing pages must always render dark, regardless of user's stored preference.
+  // Dashboard (incl. project workspace) keeps the user-controlled theme.
+  const isProjectSinglePage = /^\/projects\/[^/]+/.test(pathname)
+  const isDashboardLike = activeView === 'dashboard' || isProjectSinglePage
+  const effectiveTheme = isDashboardLike ? storeTheme : 'dark'
 
   useEffect(() => {
     const root = window.document.documentElement
-    
-    // 1. Удаляем старые классы
     root.classList.remove('light', 'dark')
-    
-    // 2. Добавляем текущую тему как класс (для Tailwind v4)
-    root.classList.add(theme)
-    
-    // 3. Устанавливаем атрибут (для твоего селектора [data-theme])
-    root.setAttribute('data-theme', theme)
-    
-    // 4. Сохраняем в локальное хранилище (если не используешь persist в zustand)
-    localStorage.setItem('theme', theme)
-  }, [theme])
+    root.classList.add(effectiveTheme)
+    root.setAttribute('data-theme', effectiveTheme)
+  }, [effectiveTheme])
 
   return <>{children}</>
 }

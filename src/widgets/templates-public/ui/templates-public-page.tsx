@@ -1,37 +1,36 @@
 'use client'
-import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Layers } from 'lucide-react'
 import { Link } from '@/shared/lib/i18n/navigation'
 import { Footer } from '@/widgets/footer'
-import { LandingCtaSection } from '@/widgets/landing-page/ui/landing-cta-section'
+import {
+  fetchPublicTemplates,
+  getTemplateDescription,
+  getTemplateImage,
+  getTemplateTitle,
+} from '@/widgets/templates-board/model/templates'
 
-const FILTERS = ['All', 'SaaS', 'Internal tools', 'Marketing', 'E-commerce', 'HR', 'Finance']
+const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? ''
 
-const TEMPLATES = [
-  { id: 'crm',       emoji: '📊', title: 'CRM Dashboard',       desc: 'Full pipeline management with deal tracking',         tags: ['SaaS'] },
-  { id: 'store',     emoji: '🛒', title: 'Online Store',         desc: 'E-commerce with Stripe checkout & inventory',        tags: ['E-commerce'] },
-  { id: 'tracker',   emoji: '📋', title: 'Project Tracker',      desc: 'Kanban boards, sprints & team collaboration',        tags: ['Internal tools'] },
-  { id: 'onboard',   emoji: '🎉', title: 'Onboarding Hub',       desc: 'New hire portal with tasks & welcome flows',         tags: ['HR'] },
-  { id: 'landing',   emoji: '📣', title: 'Landing Page',         desc: 'High-converting page with A/B form testing',         tags: ['Marketing'] },
-  { id: 'booking',   emoji: '📅', title: 'Booking System',       desc: 'Calendar booking with payments & reminders',         tags: ['SaaS'] },
-  { id: 'invoice',   emoji: '💰', title: 'Invoice Generator',    desc: 'Auto-generate and send branded invoices',            tags: ['Finance'] },
-  { id: 'support',   emoji: '🔔', title: 'Support Portal',       desc: 'Ticket management with SLA tracking',                tags: ['Internal tools'] },
-  { id: 'analytics', emoji: '📈', title: 'Analytics Dashboard',  desc: 'Real-time KPI reporting across all your tools',      tags: ['SaaS'] },
-  { id: 'survey',    emoji: '🗳️', title: 'Survey Builder',       desc: 'Employee or customer surveys with live results',     tags: ['HR'] },
-  { id: 'client',    emoji: '🤝', title: 'Client Portal',        desc: 'Branded portal for project updates & approvals',     tags: ['SaaS'] },
-  { id: 'inventory', emoji: '📦', title: 'Inventory Manager',    desc: 'Stock tracking with low-inventory alerts',           tags: ['Internal tools'] },
-]
+const buildImageUrl = (raw: string) => {
+  const full = raw.includes('https') ? raw : `${cdnBase}/${raw}`
+  try {
+    return encodeURI(decodeURI(full))
+  } catch {
+    return full
+  }
+}
 
 export const TemplatesPublicPage = () => {
-  const [activeFilter, setActiveFilter] = useState('All')
-
-  const filtered = activeFilter === 'All'
-    ? TEMPLATES
-    : TEMPLATES.filter(t => t.tags.includes(activeFilter))
+  const { data: templates = [], isLoading, isError } = useQuery({
+    queryKey: ['ugen-templates-public'],
+    queryFn: fetchPublicTemplates,
+    refetchOnWindowFocus: false,
+  })
 
   return (
     <div className="min-h-screen bg-bg-main flex flex-col">
-
-      {/* Inner Hero */}
+      {/* Hero */}
       <div className="bg-bg-card border-b border-border-subtle px-6 text-center py-20">
         <span className="inline-block bg-bg-main border border-border-subtle rounded-full text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-text-muted px-3 py-1 mb-[18px]">
           Templates
@@ -42,7 +41,7 @@ export const TemplatesPublicPage = () => {
           <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">ready-made templates</em>
         </h1>
         <p className="text-[1rem] text-text-muted max-w-[500px] mx-auto leading-[1.7] mb-8">
-          100+ production-ready app templates across every category. Clone, customise, and ship in minutes.
+          Production-ready app templates across every category. Clone, customise, and ship in minutes.
         </p>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))}
@@ -55,40 +54,71 @@ export const TemplatesPublicPage = () => {
       {/* Content */}
       <section className="px-6 py-16 flex-1">
         <div className="max-w-[1100px] mx-auto">
-          {/* Filters */}
-          <div className="flex gap-2 flex-wrap mb-9">
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                onClick={() => setActiveFilter(f)}
-                className={`rounded-full px-3.5 py-1.5 text-[0.8rem] font-medium cursor-pointer border transition-all ${
-                  activeFilter === f
-                    ? 'bg-primary border-primary text-white'
-                    : 'bg-bg-main border-border-subtle text-text-muted hover:bg-primary hover:border-primary hover:text-white'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-
-          {/* Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
-            {filtered.map((tmpl) => (
-              <Link
-                key={tmpl.id}
-                href={`/templates/${tmpl.id}` as any}
-                className="bg-bg-main border border-border-subtle rounded-[10px] overflow-hidden no-underline text-current block transition-all hover:border-border-subtle/60 hover:shadow-md hover:-translate-y-0.5"
-              >
-                <div className="aspect-video flex items-center justify-center text-[2.2rem] bg-hover-bg border-b border-border-subtle">
-                  {tmpl.emoji}
+            {isLoading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-bg-main border border-border-subtle rounded-[10px] overflow-hidden"
+                >
+                  <div className="aspect-video bg-hover-bg border-b border-border-subtle animate-pulse" />
+                  <div className="p-3.5 space-y-2">
+                    <div className="h-3 w-2/3 rounded bg-hover-bg animate-pulse" />
+                    <div className="h-2.5 w-full rounded bg-hover-bg/70 animate-pulse" />
+                  </div>
                 </div>
-                <div className="p-3.5">
-                  <h4 className="text-[0.85rem] font-bold text-text-main mb-1">{tmpl.title}</h4>
-                  <p className="text-[0.76rem] text-text-muted leading-[1.5]">{tmpl.desc}</p>
-                </div>
-              </Link>
-            ))}
+              ))
+            ) : isError ? (
+              <div className="col-span-full text-center text-text-muted border border-dashed border-border-subtle rounded-xl py-12">
+                Failed to load templates. Please try again later.
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="col-span-full text-center text-text-muted border border-dashed border-border-subtle rounded-xl py-12">
+                No templates available yet.
+              </div>
+            ) : (
+              templates.map((template) => {
+                const title = getTemplateTitle(template)
+                const description = getTemplateDescription(template)
+                const rawImage = getTemplateImage(template)
+                const image = rawImage ? buildImageUrl(rawImage) : ''
+
+                return (
+                  <Link
+                    key={template.id}
+                    href={`/templates/${template.id}` as any}
+                    className="bg-bg-main border border-border-subtle rounded-[10px] overflow-hidden no-underline text-current block transition-all hover:border-border-subtle/60 hover:shadow-md hover:-translate-y-0.5"
+                  >
+                    <div className="aspect-video bg-hover-bg border-b border-border-subtle overflow-hidden">
+                      {image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={image}
+                          alt={title}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Layers className="text-text-muted" size={22} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3.5">
+                      <h4 className="text-[0.85rem] font-bold text-text-main mb-1 truncate">
+                        {title}
+                      </h4>
+                      {description && (
+                        <div
+                          className="text-[0.76rem] text-text-muted leading-[1.5] line-clamp-2 [&_p]:m-0"
+                          dangerouslySetInnerHTML={{ __html: description }}
+                        />
+                      )}
+                    </div>
+                  </Link>
+                )
+              })
+            )}
           </div>
         </div>
       </section>
@@ -108,7 +138,6 @@ export const TemplatesPublicPage = () => {
         </button>
       </div>
 
-      <LandingCtaSection />
       <Footer />
     </div>
   )
