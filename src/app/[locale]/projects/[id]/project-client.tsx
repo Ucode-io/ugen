@@ -169,7 +169,18 @@ export const ProjectWorkspaceClient = ({
   const isUgen = project?.is_ugen ?? false;
   const chatPosition = useChatStore((state) => state.chatPosition);
   const sseEvents = useChatStore((state) => state.sseEvents);
-  const hasNoFiles = files.length === 0 && !activeCodeFiles?.length;
+  // Only treat the workspace as "no files" when there's no selection that owns
+  // its own rendering. Picking a microfrontend/function from the code-viewer
+  // dropdown briefly resets `activeCodeFiles` to null while the new codebase
+  // loads — without this guard the viewer unmounts mid-fetch and the parent
+  // WorkspaceLoader hangs forever (the in-viewer fetch effect can't run when
+  // it's unmounted). The inner viewers already handle their own loading and
+  // empty states for microfrontend/function selections.
+  const hasNoFiles =
+    files.length === 0 &&
+    !activeCodeFiles?.length &&
+    activeCodeSelection?.kind !== "microfrontend" &&
+    activeCodeSelection?.kind !== "function";
   const isAiBuilding = sseEvents.length >= 3;
 
   // The previewable code can arrive from two places: `project_files` on the
