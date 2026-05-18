@@ -154,7 +154,7 @@ export const ProjectHeader = ({
       />
 
       <div className="flex items-center gap-1.5 justify-end min-w-[135px]">
-        <GithubPopover projectId={projectId} />
+        <GithubPopover />
         {toggleButton}
         {isUgen && (
           <>

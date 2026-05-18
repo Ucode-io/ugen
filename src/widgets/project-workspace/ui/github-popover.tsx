@@ -24,26 +24,25 @@ const GithubIcon = ({ size = 16, className }: { size?: number; className?: strin
   </svg>
 )
 
-interface GithubPopoverProps {
-  projectId?: string
-}
-
-export const GithubPopover = ({ projectId }: GithubPopoverProps) => {
+export const GithubPopover = () => {
   const queryClient = useQueryClient()
 
+  // GitHub integration is user-level, not project-level — keying by projectId
+  // caused a refetch on every project switch. A long staleTime keeps the icon
+  // state fresh without re-validating on every navigation.
   const { data: githubStatus, isLoading } = useQuery({
-    queryKey: ['github-integration-status', projectId],
+    queryKey: ['github-integration-status'],
     queryFn: githubIntegrationApi.validate,
     retry: false,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: githubIntegration } = useQuery({
-    queryKey: ['github-integration', projectId],
+    queryKey: ['github-integration'],
     queryFn: githubIntegrationApi.getIntegration,
     enabled: githubStatus?.connected === true,
     retry: false,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { mutate: connectGithub, isPending: isConnecting } = useMutation({
@@ -58,8 +57,8 @@ export const GithubPopover = ({ projectId }: GithubPopoverProps) => {
   const { mutate: disconnectGithub, isPending: isDisconnecting } = useMutation({
     mutationFn: (id: string) => githubIntegrationApi.disconnect(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['github-integration-status', projectId] })
-      queryClient.invalidateQueries({ queryKey: ['github-integration', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
+      queryClient.invalidateQueries({ queryKey: ['github-integration'] })
     },
   })
 

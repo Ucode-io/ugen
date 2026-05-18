@@ -260,20 +260,21 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
 
-  // GitHub integration via new API (https://admin-api.ucode.run)
+  // GitHub integration is user-level — share cache with GithubPopover by using
+  // the same project-less query keys.
   const { data: githubStatus } = useQuery({
-    queryKey: ['github-integration-status', projectId],
+    queryKey: ['github-integration-status'],
     queryFn: githubIntegrationApi.validate,
     retry: false,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: githubIntegration } = useQuery({
-    queryKey: ['github-integration', projectId],
+    queryKey: ['github-integration'],
     queryFn: githubIntegrationApi.getIntegration,
     enabled: githubStatus?.connected === true,
     retry: false,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { mutate: connectGithub, isPending: isConnectingGithub } = useMutation({
@@ -288,8 +289,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const { mutate: disconnectGithub, isPending: isDisconnectingGithub } = useMutation({
     mutationFn: (id: string) => githubIntegrationApi.disconnect(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['github-integration-status', projectId] })
-      queryClient.invalidateQueries({ queryKey: ['github-integration', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
+      queryClient.invalidateQueries({ queryKey: ['github-integration'] })
     },
   })
 
