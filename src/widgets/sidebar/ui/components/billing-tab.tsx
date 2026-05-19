@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type KeyboardEvent,
+} from "react";
 import {
   Plus,
   CreditCard,
@@ -358,6 +366,13 @@ const TopUpModal = ({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open || cards.length === 0) return;
+    setSelectedCardId((prev) =>
+      prev && cards.some((c) => c.id === prev) ? prev : cards[0].id,
+    );
+  }, [open, cards]);
+
   const handleAddBalance = async () => {
     if (!selectedCard || !amount) return;
     try {
@@ -403,11 +418,15 @@ const TopUpModal = ({
               </label>
               <div className="relative">
                 <Input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
+                  autoComplete="off"
                   placeholder="Write amount..."
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={amount ? formatAmount(Number(amount)) : ""}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    setAmount(digits);
+                  }}
                   className="bg-bg-sidebar border-border-subtle h-10 pr-14 text-[13px]"
                 />
                 <span className="text-text-muted absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-semibold tracking-wider uppercase">
@@ -466,11 +485,20 @@ const TopUpModal = ({
                         key={card.id}
                         type="button"
                         onClick={() => setSelectedCardId(card.id)}
+                        aria-pressed={selected}
                         className={cn(
-                          "border-border-subtle text-text-main grid w-full grid-cols-[80px_1fr_120px_40px] items-center gap-3 border-b px-4 py-3 text-left text-[13px] transition-colors last:border-b-0",
-                          selected ? "bg-primary/5" : "hover:bg-bg-sidebar/50",
+                          "border-border-subtle text-text-main relative grid w-full grid-cols-[80px_1fr_120px_40px] items-center gap-3 border-b px-4 py-3 text-left text-[13px] transition-colors last:border-b-0",
+                          selected
+                            ? "bg-primary/5 ring-primary z-10 ring-1 ring-inset"
+                            : "hover:bg-bg-sidebar/50",
                         )}
                       >
+                        {selected && (
+                          <span
+                            aria-hidden
+                            className="bg-primary absolute top-0 left-0 h-full w-0.75"
+                          />
+                        )}
                         <span
                           className={cn(
                             "w-max rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide",
@@ -480,14 +508,21 @@ const TopUpModal = ({
                         >
                           {card.type}
                         </span>
-                        <span className="font-mono">{card.pan}</span>
+                        <span
+                          className={cn(
+                            "font-mono",
+                            selected && "text-text-main font-semibold",
+                          )}
+                        >
+                          {card.pan}
+                        </span>
                         <span className="text-text-muted font-mono">
                           {card.expire}
                         </span>
                         <span className="flex items-center justify-end gap-1">
                           {selected && (
-                            <span className="bg-primary flex h-5 w-5 items-center justify-center rounded-full text-white">
-                              <Check size={12} />
+                            <span className="bg-primary flex h-5 w-5 items-center justify-center rounded-full text-white shadow-sm">
+                              <Check size={12} strokeWidth={3} />
                             </span>
                           )}
                         </span>
@@ -547,6 +582,7 @@ const AddCardModal = ({
   const [otp, setOtp] = useState("");
   const [stage, setStage] = useState<"card" | "otp">("card");
   const [projectCardId, setProjectCardId] = useState<string | null>(null);
+  const expiryRef = useRef<HTMLInputElement>(null);
 
   const { mutateAsync: verifyCard, isPending: verifying } =
     useCardVerify(projectId);
@@ -631,35 +667,58 @@ const AddCardModal = ({
               <Input
                 placeholder="1234 5678 9012 3456"
                 value={number}
-                onChange={(e) => setNumber(formatCardNumber(e.target.value))}
+                onChange={(e) => {
+                  const next = formatCardNumber(e.target.value);
+                  setNumber(next);
+                  if (next.replace(/\s/g, "").length === 16) {
+                    expiryRef.current?.focus();
+                  }
+                }}
                 className="bg-bg-sidebar border-border-subtle h-10 font-mono text-[13px] tracking-wider"
                 inputMode="numeric"
+                autoComplete="cc-number"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-text-muted text-[12px] font-medium">
+              <label className="text-text-muted block text-[12px] font-medium">
                 Expiry date (MM/YY)
               </label>
               <Input
+                ref={expiryRef}
                 placeholder="MM/YY"
                 value={expiry}
                 onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                className="bg-bg-sidebar border-border-subtle h-10 w-40 font-mono text-[13px] tracking-wider"
+                className="bg-bg-sidebar border-border-subtle h-10 w-32 font-mono text-[13px] tracking-wider"
                 inputMode="numeric"
+                autoComplete="cc-exp"
               />
             </div>
           </div>
         ) : (
           <div className="space-y-3 p-6">
-            <label className="text-text-muted text-[12px] font-medium">
+            <label className="text-text-muted block text-[12px] font-medium">
               Verification code
             </label>
-            <Input
-              placeholder="Enter code"
+            <OtpInput
               value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="bg-bg-sidebar border-border-subtle h-10 font-mono text-[15px] tracking-widest"
-              inputMode="numeric"
+              onChange={setOtp}
+              length={6}
+              autoFocus
+              disabled={confirming}
+              onComplete={(code) => {
+                if (!projectCardId) return;
+                confirmOtp({ code, project_card_id: projectCardId })
+                  .then(() => {
+                    toast.success("The card is successfully added!");
+                    onAdded({ id: projectCardId });
+                    onOpenChange(false);
+                  })
+                  .catch((err: any) => {
+                    toast.error(
+                      err?.response?.data?.data || "Failed to confirm code",
+                    );
+                  });
+              }}
             />
             <p className="text-text-muted text-[11px]">
               A 6-digit code has been sent to the phone number linked to this
@@ -700,5 +759,125 @@ const AddCardModal = ({
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+const OtpInput = ({
+  value,
+  onChange,
+  length = 6,
+  autoFocus,
+  disabled,
+  onComplete,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  length?: number;
+  autoFocus?: boolean;
+  disabled?: boolean;
+  onComplete?: (code: string) => void;
+}) => {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    if (autoFocus) refs.current[0]?.focus();
+  }, [autoFocus]);
+
+  useEffect(() => {
+    if (value.length === length && !completedRef.current) {
+      completedRef.current = true;
+      onComplete?.(value);
+    } else if (value.length < length) {
+      completedRef.current = false;
+    }
+  }, [value, length, onComplete]);
+
+  const commit = (next: string) => {
+    onChange(next.replace(/\D/g, "").slice(0, length));
+  };
+
+  const focusAt = (index: number) => {
+    const clamped = Math.max(0, Math.min(length - 1, index));
+    refs.current[clamped]?.focus();
+    refs.current[clamped]?.select();
+  };
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    if (!raw) {
+      commit(value.slice(0, index) + value.slice(index + 1));
+      return;
+    }
+    const merged = value.slice(0, index) + raw + value.slice(index + raw.length);
+    const next = merged.replace(/\D/g, "").slice(0, length);
+    commit(next);
+    focusAt(Math.min(index + raw.length, length - 1));
+  };
+
+  const handleKeyDown = (
+    e: KeyboardEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      if (value[index]) {
+        commit(value.slice(0, index) + value.slice(index + 1));
+      } else if (index > 0) {
+        commit(value.slice(0, index - 1) + value.slice(index));
+        focusAt(index - 1);
+      }
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      focusAt(index - 1);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      focusAt(index + 1);
+    }
+  };
+
+  const handlePaste = (
+    e: ClipboardEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    const text = e.clipboardData.getData("text").replace(/\D/g, "");
+    if (!text) return;
+    e.preventDefault();
+    const merged = (value.slice(0, index) + text).slice(0, length);
+    commit(merged);
+    focusAt(Math.min(merged.length, length - 1));
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {Array.from({ length }).map((_, i) => {
+        const filled = Boolean(value[i]);
+        return (
+          <input
+            key={i}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={1}
+            value={value[i] ?? ""}
+            disabled={disabled}
+            aria-label={`Digit ${i + 1}`}
+            onChange={(e) => handleChange(e, i)}
+            onKeyDown={(e) => handleKeyDown(e, i)}
+            onPaste={(e) => handlePaste(e, i)}
+            onFocus={(e) => e.target.select()}
+            className={cn(
+              "bg-bg-sidebar text-text-main h-12 w-10 rounded-lg border text-center font-mono text-[18px] font-semibold outline-none transition-all",
+              "focus:border-primary focus:ring-primary focus:ring-1",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              filled ? "border-primary/50" : "border-border-subtle",
+            )}
+          />
+        );
+      })}
+    </div>
   );
 };
