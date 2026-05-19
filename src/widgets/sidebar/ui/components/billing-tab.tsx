@@ -14,7 +14,6 @@ import {
   CreditCard,
   Wallet,
   Loader2,
-  Check,
   Trash2,
   Inbox,
   Sparkles,
@@ -25,10 +24,19 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Button, Input, Dialog, DialogContent, Skeleton } from "@/shared/ui";
+import {
+  Button,
+  Input,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  Skeleton,
+} from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
 import { useAuthStore } from "@/entities/session";
 import {
+  useCardDelete,
   useCardList,
   useCardOtpVerify,
   useCardVerify,
@@ -38,11 +46,23 @@ import {
   useTransactions,
   type BillingTransaction,
   type CardBrand,
+  type ProjectCard,
 } from "@/entities/billing";
 import { UpgradePlanDialog } from "./upgrade-plan-dialog";
 
 const formatAmount = (value: number | undefined | null) =>
   new Intl.NumberFormat("ru-RU").format(Number(value ?? 0));
+
+const pickErrorMessage = (err: any, fallback: string): string => {
+  const payload = err?.response?.data;
+  const data = payload?.data;
+  if (typeof data === "string" && data.trim()) return data;
+  const description = payload?.description;
+  if (typeof description === "string" && description.trim()) return description;
+  const custom = payload?.custom_message;
+  if (typeof custom === "string" && custom.trim()) return custom;
+  return fallback;
+};
 
 const cardTypeStyles: Record<CardBrand, string> = {
   VISA: "bg-blue-500/10 text-blue-600",
@@ -347,13 +367,35 @@ const TopUpModal = ({
   const [amount, setAmount] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [addCardOpen, setAddCardOpen] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<ProjectCard | null>(null);
 
-  const { data: cards = [], isLoading: cardsLoading } = useCardList(
+  const { data: cardsData = [], isLoading: cardsLoading } = useCardList(
     projectId,
     open,
   );
+
+  // TODO: remove — temporary mock cards for UI testing
+  const MOCK_CARDS = [
+    {
+      id: "mock-1",
+      type: "VISA" as CardBrand,
+      pan: "4111 **** **** 1234",
+      expire: "12/27",
+      verify: true,
+    },
+    {
+      id: "mock-2",
+      type: "UZCARD" as CardBrand,
+      pan: "8600 **** **** 5678",
+      expire: "08/26",
+      verify: true,
+    },
+  ];
+  const cards = cardsData.length > 0 ? cardsData : MOCK_CARDS;
   const { mutateAsync: receiptPay, isPending: submitting } =
     useReceiptPay(projectId);
+  const { mutateAsync: deleteCard, isPending: deletingCard } =
+    useCardDelete(projectId);
 
   const selectedCard = useMemo(
     () => cards.find((c) => c.id === selectedCardId) ?? null,
@@ -384,7 +426,7 @@ const TopUpModal = ({
       toast.success("Transaction successfully created!");
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err?.response?.data?.data || "Failed to top up balance");
+      toast.error(pickErrorMessage(err, "Failed to top up balance"));
     }
   };
 
@@ -403,12 +445,12 @@ const TopUpModal = ({
               <Wallet size={16} />
             </div>
             <div>
-              <h3 className="text-text-main text-[15px] leading-tight font-semibold">
+              <DialogTitle className="text-text-main text-[15px] leading-tight font-semibold">
                 Top up balance
-              </h3>
-              <p className="text-text-muted mt-0.5 text-xs">
+              </DialogTitle>
+              <DialogDescription className="text-text-muted mt-0.5 text-xs">
                 Add funds to your account
-              </p>
+              </DialogDescription>
             </div>
           </div>
 
@@ -480,23 +522,30 @@ const TopUpModal = ({
                 </div>
 
                 <div className="bg-bg-card border-border-subtle overflow-hidden rounded-xl border">
-                  <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid grid-cols-[80px_1fr_120px_40px] gap-3 border-b px-4 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
+                  <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid grid-cols-[80px_1fr_100px_60px] gap-3 border-b px-4 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
                     <span>Type</span>
                     <span>Card number</span>
-                    <span>Expiry date</span>
-                    <span />
+                    <span>Expiry</span>
+                    <span className="text-right">Action</span>
                   </div>
 
                   {cards.map((card) => {
                     const selected = selectedCardId === card.id;
                     return (
-                      <button
+                      <div
                         key={card.id}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setSelectedCardId(card.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedCardId(card.id);
+                          }
+                        }}
                         aria-pressed={selected}
                         className={cn(
-                          "border-border-subtle text-text-main relative grid w-full grid-cols-[80px_1fr_120px_40px] items-center gap-3 border-b px-4 py-3 text-left text-[13px] transition-colors last:border-b-0",
+                          "border-border-subtle text-text-main relative grid w-full cursor-pointer grid-cols-[80px_1fr_100px_60px] items-center gap-3 border-b px-4 py-3 text-left text-[13px] transition-colors last:border-b-0 focus:outline-none",
                           selected
                             ? "bg-primary/5 ring-primary z-10 rounded-xl ring-1 ring-inset"
                             : "hover:bg-bg-sidebar/50",
@@ -522,14 +571,20 @@ const TopUpModal = ({
                         <span className="text-text-muted font-mono">
                           {card.expire}
                         </span>
-                        <span className="flex items-center justify-end gap-1">
-                          {selected && (
-                            <span className="bg-primary flex h-5 w-5 items-center justify-center rounded-full text-white shadow-sm">
-                              <Check size={12} strokeWidth={3} />
-                            </span>
-                          )}
+                        <span className="flex items-center justify-end">
+                          <button
+                            type="button"
+                            aria-label={`Delete card ${card.pan}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCardToDelete(card);
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-500/10 hover:text-red-600"
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </span>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -567,6 +622,61 @@ const TopUpModal = ({
         projectId={projectId}
         onAdded={(card) => setSelectedCardId(card.id)}
       />
+
+      <Dialog
+        open={Boolean(cardToDelete)}
+        onOpenChange={(o) => !o && !deletingCard && setCardToDelete(null)}
+      >
+        <DialogContent className="w-full max-w-sm gap-0 overflow-hidden rounded-2xl p-0">
+          <div className="flex flex-col items-center px-6 pt-6 pb-2 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10 text-red-600">
+              <Trash2 size={20} />
+            </div>
+            <DialogTitle className="text-text-main text-[15px] font-semibold">
+              Delete this card?
+            </DialogTitle>
+            <DialogDescription className="text-text-muted mt-1.5 text-[12px] leading-relaxed">
+              Are you sure you want to remove{" "}
+              <span className="text-text-main font-mono">
+                {cardToDelete?.pan}
+              </span>{" "}
+              from your saved cards? This action cannot be undone.
+            </DialogDescription>
+          </div>
+          <div className="flex items-center justify-end gap-2 px-6 py-4">
+            <Button
+              variant="ghost"
+              disabled={deletingCard}
+              onClick={() => setCardToDelete(null)}
+              className="h-9 rounded-lg px-4 text-[13px]"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={deletingCard}
+              onClick={async () => {
+                if (!cardToDelete) return;
+                try {
+                  await deleteCard(cardToDelete.id);
+                  if (selectedCardId === cardToDelete.id) {
+                    setSelectedCardId(null);
+                  }
+                  toast.success("Card removed");
+                  setCardToDelete(null);
+                } catch (err: any) {
+                  toast.error(pickErrorMessage(err, "Failed to delete card"));
+                }
+              }}
+              className="h-9 rounded-lg bg-red-500 px-5 text-[13px] font-medium text-white shadow-sm hover:bg-red-600"
+            >
+              {deletingCard && (
+                <Loader2 size={14} className="mr-2 animate-spin" />
+              )}
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
@@ -639,10 +749,14 @@ const AddCardModal = ({
       setProjectCardId(res.project_card_id);
       setStage("otp");
     } catch (err: any) {
-      const data = err?.response?.data;
+      const payload = err?.response?.data;
       setVerifyError({
-        message: data?.data || "Failed to verify card",
-        detail: data?.custom_message || undefined,
+        message: pickErrorMessage(err, "Failed to verify card"),
+        detail:
+          typeof payload?.custom_message === "string" &&
+          payload.custom_message.trim()
+            ? payload.custom_message
+            : undefined,
       });
     }
   };
@@ -662,7 +776,7 @@ const AddCardModal = ({
       onAdded({ id: projectCardId });
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err?.response?.data?.data || "Failed to confirm code");
+      toast.error(pickErrorMessage(err, "Failed to confirm code"));
     }
   };
 
@@ -674,14 +788,14 @@ const AddCardModal = ({
             <CreditCard size={16} />
           </div>
           <div>
-            <h3 className="text-text-main text-[15px] leading-tight font-semibold">
+            <DialogTitle className="text-text-main text-[15px] leading-tight font-semibold">
               Add card
-            </h3>
-            <p className="text-text-muted mt-0.5 text-xs">
+            </DialogTitle>
+            <DialogDescription className="text-text-muted mt-0.5 text-xs">
               {stage === "card"
                 ? "Securely save a payment method"
                 : "Enter the SMS code to confirm"}
-            </p>
+            </DialogDescription>
           </div>
         </div>
 

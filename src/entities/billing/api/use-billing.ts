@@ -112,6 +112,22 @@ export const useCardOtpVerify = (projectId?: string | null) => {
   })
 }
 
+export const useCardDelete = (projectId?: string | null) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (cardId: string) => {
+      const { data } = await api.delete(
+        `/v1/payment/card/${cardId}`,
+        buildBearerConfig(projectId),
+      )
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["billing", "cards"] })
+    },
+  })
+}
+
 export const useReceiptPay = (projectId?: string | null) => {
   const queryClient = useQueryClient()
   return useMutation({
