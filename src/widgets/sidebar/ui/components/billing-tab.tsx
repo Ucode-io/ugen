@@ -21,6 +21,7 @@ import {
   CalendarClock,
   Receipt,
   ArrowUpRight,
+  AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -411,74 +412,82 @@ const TopUpModal = ({
             </div>
           </div>
 
-          <div className="space-y-5 p-6">
-            <div className="space-y-1.5">
-              <label className="text-text-muted text-[12px] font-medium">
-                Amount
-              </label>
-              <div className="relative">
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="Write amount..."
-                  value={amount ? formatAmount(Number(amount)) : ""}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
-                    setAmount(digits);
-                  }}
-                  className="bg-bg-sidebar border-border-subtle h-10 pr-14 text-[13px]"
-                />
-                <span className="text-text-muted absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-semibold tracking-wider uppercase">
-                  uzs
-                </span>
+          {cardsLoading ? (
+            <div className="space-y-5 p-6">
+              <Skeleton className="h-10 w-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
             </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between">
+          ) : cards.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+              <div className="bg-primary/10 text-primary mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
+                <CreditCard size={24} />
+              </div>
+              <h4 className="text-text-main text-[15px] font-semibold">
+                No payment cards yet
+              </h4>
+              <p className="text-text-muted mt-1.5 max-w-xs text-[12px] leading-relaxed">
+                Add a payment card first to top up your balance.
+              </p>
+              <Button
+                onClick={() => setAddCardOpen(true)}
+                className="bg-primary hover:bg-primary/90 mt-5 h-9 rounded-lg px-5 text-[13px] font-semibold text-white shadow-sm"
+              >
+                <Plus size={15} />
+                Add card
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-5 p-6">
+              <div className="space-y-1.5">
                 <label className="text-text-muted text-[12px] font-medium">
-                  Choose card for top up
+                  Amount
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setAddCardOpen(true)}
-                  className="text-primary flex items-center gap-1.5 text-[12px] font-semibold hover:underline"
-                >
-                  <CreditCard size={13} />
-                  Add card
-                </button>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Write amount..."
+                    value={amount ? formatAmount(Number(amount)) : ""}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setAmount(digits);
+                    }}
+                    className="bg-bg-sidebar border-border-subtle h-10 pr-14 text-[13px]"
+                  />
+                  <span className="text-text-muted absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-semibold tracking-wider uppercase">
+                    uzs
+                  </span>
+                </div>
               </div>
 
-              <div className="bg-bg-card border-border-subtle overflow-hidden rounded-xl border">
-                <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid grid-cols-[80px_1fr_120px_40px] gap-3 border-b px-4 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
-                  <span>Type</span>
-                  <span>Card number</span>
-                  <span>Expiry date</span>
-                  <span />
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-text-muted text-[12px] font-medium">
+                    Choose card for top up
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setAddCardOpen(true)}
+                    className="text-primary flex items-center gap-1.5 text-[12px] font-semibold hover:underline"
+                  >
+                    <CreditCard size={13} />
+                    Add card
+                  </button>
                 </div>
 
-                {cardsLoading ? (
-                  <div className="space-y-1 p-3">
-                    {[0, 1].map((i) => (
-                      <Skeleton key={i} className="h-9 w-full" />
-                    ))}
+                <div className="bg-bg-card border-border-subtle overflow-hidden rounded-xl border">
+                  <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid grid-cols-[80px_1fr_120px_40px] gap-3 border-b px-4 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
+                    <span>Type</span>
+                    <span>Card number</span>
+                    <span>Expiry date</span>
+                    <span />
                   </div>
-                ) : cards.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center px-4 py-10">
-                    <CreditCard size={22} className="text-text-muted/40 mb-2" />
-                    <p className="text-text-muted text-xs">
-                      No cards added yet
-                    </p>
-                    <button
-                      onClick={() => setAddCardOpen(true)}
-                      className="text-primary mt-2 text-[12px] font-semibold hover:underline"
-                    >
-                      Add your first card
-                    </button>
-                  </div>
-                ) : (
-                  cards.map((card) => {
+
+                  {cards.map((card) => {
                     const selected = selectedCardId === card.id;
                     return (
                       <button
@@ -489,16 +498,10 @@ const TopUpModal = ({
                         className={cn(
                           "border-border-subtle text-text-main relative grid w-full grid-cols-[80px_1fr_120px_40px] items-center gap-3 border-b px-4 py-3 text-left text-[13px] transition-colors last:border-b-0",
                           selected
-                            ? "bg-primary/5 ring-primary z-10 ring-1 ring-inset"
+                            ? "bg-primary/5 ring-primary z-10 rounded-xl ring-1 ring-inset"
                             : "hover:bg-bg-sidebar/50",
                         )}
                       >
-                        {selected && (
-                          <span
-                            aria-hidden
-                            className="bg-primary absolute top-0 left-0 h-full w-0.75"
-                          />
-                        )}
                         <span
                           className={cn(
                             "w-max rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide",
@@ -528,11 +531,11 @@ const TopUpModal = ({
                         </span>
                       </button>
                     );
-                  })
-                )}
+                  })}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="border-border-subtle flex items-center justify-end gap-2 border-t px-6 py-4">
             <Button
@@ -542,16 +545,18 @@ const TopUpModal = ({
             >
               Cancel
             </Button>
-            <Button
-              disabled={!canSubmit || submitting}
-              onClick={handleAddBalance}
-              className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
-            >
-              {submitting && (
-                <Loader2 size={14} className="mr-2 animate-spin" />
-              )}
-              Add balance
-            </Button>
+            {!cardsLoading && cards.length > 0 && (
+              <Button
+                disabled={!canSubmit || submitting}
+                onClick={handleAddBalance}
+                className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
+              >
+                {submitting && (
+                  <Loader2 size={14} className="mr-2 animate-spin" />
+                )}
+                Add balance
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -582,7 +587,12 @@ const AddCardModal = ({
   const [otp, setOtp] = useState("");
   const [stage, setStage] = useState<"card" | "otp">("card");
   const [projectCardId, setProjectCardId] = useState<string | null>(null);
+  const [verifyError, setVerifyError] = useState<{
+    message: string;
+    detail?: string;
+  } | null>(null);
   const expiryRef = useRef<HTMLInputElement>(null);
+  const lastAttemptRef = useRef<string>("");
 
   const { mutateAsync: verifyCard, isPending: verifying } =
     useCardVerify(projectId);
@@ -603,6 +613,7 @@ const AddCardModal = ({
   const numberDigits = number.replace(/\s/g, "");
   const canVerify =
     numberDigits.length === 16 && /^\d{2}\/\d{2}$/.test(expiry);
+  const verifyKey = `${numberDigits}|${expiry}`;
 
   const reset = () => {
     setNumber("");
@@ -610,27 +621,43 @@ const AddCardModal = ({
     setOtp("");
     setStage("card");
     setProjectCardId(null);
+    setVerifyError(null);
+    lastAttemptRef.current = "";
   };
 
   useEffect(() => {
     if (!open) reset();
   }, [open]);
 
-  const handleVerifyCard = async () => {
-    if (!canVerify) return;
+  const handleVerifyCard = async (force = false) => {
+    if (!canVerify || verifying) return;
+    if (!force && lastAttemptRef.current === verifyKey) return;
+    lastAttemptRef.current = verifyKey;
+    setVerifyError(null);
     try {
       const res = await verifyCard({ pan: numberDigits, expire: expiry });
       setProjectCardId(res.project_card_id);
       setStage("otp");
     } catch (err: any) {
-      toast.error(err?.response?.data?.data || "Failed to verify card");
+      const data = err?.response?.data;
+      setVerifyError({
+        message: data?.data || "Failed to verify card",
+        detail: data?.custom_message || undefined,
+      });
     }
   };
 
-  const handleConfirmOtp = async () => {
-    if (!projectCardId || otp.length < 4) return;
+  useEffect(() => {
+    if (stage !== "card" || !canVerify) return;
+    handleVerifyCard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verifyKey, stage]);
+
+  const handleConfirmOtp = async (codeOverride?: string) => {
+    const code = codeOverride ?? otp;
+    if (!projectCardId || code.length < 6) return;
     try {
-      await confirmOtp({ code: otp, project_card_id: projectCardId });
+      await confirmOtp({ code, project_card_id: projectCardId });
       toast.success("The card is successfully added!");
       onAdded({ id: projectCardId });
       onOpenChange(false);
@@ -660,6 +687,27 @@ const AddCardModal = ({
 
         {stage === "card" ? (
           <div className="space-y-4 p-6">
+            {verifyError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2"
+              >
+                <AlertCircle
+                  size={14}
+                  className="mt-0.5 shrink-0 text-red-600"
+                />
+                <div className="min-w-0">
+                  <p className="text-[12px] leading-snug font-medium text-red-600">
+                    {verifyError.message}
+                  </p>
+                  {verifyError.detail && (
+                    <p className="mt-0.5 text-[10px] leading-snug text-red-600/70">
+                      {verifyError.detail}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-text-muted text-[12px] font-medium">
                 Card number
@@ -668,6 +716,7 @@ const AddCardModal = ({
                 placeholder="1234 5678 9012 3456"
                 value={number}
                 onChange={(e) => {
+                  setVerifyError(null);
                   const next = formatCardNumber(e.target.value);
                   setNumber(next);
                   if (next.replace(/\s/g, "").length === 16) {
@@ -687,7 +736,10 @@ const AddCardModal = ({
                 ref={expiryRef}
                 placeholder="MM/YY"
                 value={expiry}
-                onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+                onChange={(e) => {
+                  setVerifyError(null);
+                  setExpiry(formatExpiry(e.target.value));
+                }}
                 className="bg-bg-sidebar border-border-subtle h-10 w-32 font-mono text-[13px] tracking-wider"
                 inputMode="numeric"
                 autoComplete="cc-exp"
@@ -705,20 +757,7 @@ const AddCardModal = ({
               length={6}
               autoFocus
               disabled={confirming}
-              onComplete={(code) => {
-                if (!projectCardId) return;
-                confirmOtp({ code, project_card_id: projectCardId })
-                  .then(() => {
-                    toast.success("The card is successfully added!");
-                    onAdded({ id: projectCardId });
-                    onOpenChange(false);
-                  })
-                  .catch((err: any) => {
-                    toast.error(
-                      err?.response?.data?.data || "Failed to confirm code",
-                    );
-                  });
-              }}
+              onComplete={(code) => handleConfirmOtp(code)}
             />
             <p className="text-text-muted text-[11px]">
               A 6-digit code has been sent to the phone number linked to this
@@ -738,16 +777,16 @@ const AddCardModal = ({
           {stage === "card" ? (
             <Button
               disabled={!canVerify || verifying}
-              onClick={handleVerifyCard}
+              onClick={() => handleVerifyCard(true)}
               className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
             >
               {verifying && <Loader2 size={14} className="mr-2 animate-spin" />}
-              Add card
+              {verifyError ? "Retry" : "Add card"}
             </Button>
           ) : (
             <Button
-              disabled={otp.length < 4 || confirming}
-              onClick={handleConfirmOtp}
+              disabled={otp.length < 6 || confirming}
+              onClick={() => handleConfirmOtp()}
               className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
             >
               {confirming && (
@@ -849,7 +888,7 @@ const OtpInput = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex w-full items-center gap-2">
       {Array.from({ length }).map((_, i) => {
         const filled = Boolean(value[i]);
         return (
@@ -870,8 +909,8 @@ const OtpInput = ({
             onPaste={(e) => handlePaste(e, i)}
             onFocus={(e) => e.target.select()}
             className={cn(
-              "bg-bg-sidebar text-text-main h-12 w-10 rounded-lg border text-center font-mono text-[18px] font-semibold outline-none transition-all",
-              "focus:border-primary focus:ring-primary focus:ring-1",
+              "bg-bg-sidebar text-text-main h-14 min-w-0 w-14 flex-1 rounded-xl border text-center font-mono text-[22px] font-semibold outline-none transition-all",
+              "focus:border-primary focus:ring-primary focus:ring-2",
               "disabled:cursor-not-allowed disabled:opacity-50",
               filled ? "border-primary/50" : "border-border-subtle",
             )}
