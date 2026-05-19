@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   CreditCard,
@@ -12,80 +12,91 @@ import {
   Sparkles,
   CalendarClock,
   Receipt,
-  BadgeCheck,
   ArrowUpRight,
 } from "lucide-react";
-import { Button, Input, Dialog, DialogContent } from "@/shared/ui";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { Button, Input, Dialog, DialogContent, Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
+import { useAuthStore } from "@/entities/session";
+import {
+  useCardList,
+  useCardOtpVerify,
+  useCardVerify,
+  useCompanyProjectsList,
+  useFare,
+  useReceiptPay,
+  useTransactions,
+  type BillingTransaction,
+  type CardBrand,
+} from "@/entities/billing";
 import { UpgradePlanDialog } from "./upgrade-plan-dialog";
 
-type Card = {
-  id: string;
-  type: "VISA" | "MASTERCARD" | "UZCARD" | "HUMO";
-  number: string;
-  expiry: string;
-};
+const formatAmount = (value: number | undefined | null) =>
+  new Intl.NumberFormat("ru-RU").format(Number(value ?? 0));
 
-type Transaction = {
-  id: string;
-  project: string;
-  amount: number;
-  type: "TOP_UP" | "CHARGE";
-  date: string;
-  status: "PAID" | "PENDING" | "FAILED";
-};
-
-const invoiceSummary = {
-  balance: 0,
-  plan: "Small",
-  totalAmount: 3642582,
-  expireDate: "2026-12-31",
-  currency: "uzs",
-};
-
-const formatAmount = (value: number) =>
-  new Intl.NumberFormat("ru-RU").format(value);
-
-const detectCardType = (digits: string): Card["type"] => {
-  if (digits.startsWith("4")) return "VISA";
-  if (digits.startsWith("5")) return "MASTERCARD";
-  if (digits.startsWith("8600")) return "UZCARD";
-  if (digits.startsWith("9860")) return "HUMO";
-  return "VISA";
-};
-
-const maskCard = (digits: string) =>
-  `•••• •••• •••• ${digits.slice(-4).padStart(4, "•")}`;
-
-const cardTypeStyles: Record<Card["type"], string> = {
+const cardTypeStyles: Record<CardBrand, string> = {
   VISA: "bg-blue-500/10 text-blue-600",
   MASTERCARD: "bg-orange-500/10 text-orange-600",
   UZCARD: "bg-emerald-500/10 text-emerald-600",
   HUMO: "bg-cyan-500/10 text-cyan-600",
 };
 
+const formatTransactionDate = (value?: string) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return format(date, "dd.MM.yyyy, HH:mm");
+};
+
 export const BillingTab = () => {
-  const [cards, setCards] = useState<Card[]>([]);
-  const [transactions] = useState<Transaction[]>([]);
+  const user = useAuthStore((s) => s.user);
+  const project = useAuthStore((s) => s.project);
+  const projectId = project?.project_id ?? null;
+  const companyId = user?.company_id ?? project?.company_id ?? null;
+  const fareId = project?.fare_id ?? null;
+
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const { data: companyProjects = [] } = useCompanyProjectsList(
+    companyId,
+    projectId,
+  );
+  const { data: fare, isLoading: fareLoading } = useFare(fareId, projectId);
+  const { data: transactions = [], isLoading: transactionsLoading } =
+    useTransactions(projectId);
+
+  const currentProject = useMemo(
+    () =>
+      companyProjects.find((p) => p.project_id === projectId) ??
+      companyProjects[0],
+    [companyProjects, projectId],
+  );
+
+  const currency = (fare?.currency || "uzs").toLowerCase();
 
   return (
     <div className="space-y-4">
       <InvoiceSummaryCard
+        balance={currentProject?.balance ?? 0}
+        planName={fare?.name}
+        totalAmount={fare?.price}
+        expireDate={fare?.subscription?.end_date}
+        currency={currency}
+        isLoading={fareLoading}
         onTopUp={() => setTopUpOpen(true)}
         onUpgrade={() => setUpgradeOpen(true)}
       />
-      <TransactionsTable transactions={transactions} />
+      <TransactionsTable
+        transactions={transactions}
+        isLoading={transactionsLoading}
+      />
 
       <TopUpModal
         open={topUpOpen}
         onOpenChange={setTopUpOpen}
-        cards={cards}
-        onCardAdded={(card) => setCards((prev) => [...prev, card])}
-        onCardRemoved={(id) =>
-          setCards((prev) => prev.filter((c) => c.id !== id))
-        }
+        projectId={projectId}
       />
 
       <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
@@ -94,9 +105,21 @@ export const BillingTab = () => {
 };
 
 const InvoiceSummaryCard = ({
+  balance,
+  planName,
+  totalAmount,
+  expireDate,
+  currency,
+  isLoading,
   onTopUp,
   onUpgrade,
 }: {
+  balance: number;
+  planName?: string;
+  totalAmount?: number;
+  expireDate?: string;
+  currency: string;
+  isLoading: boolean;
   onTopUp: () => void;
   onUpgrade: () => void;
 }) => {
@@ -104,19 +127,19 @@ const InvoiceSummaryCard = ({
     {
       icon: Sparkles,
       label: "Plan",
-      value: invoiceSummary.plan,
+      value: planName ?? "—",
       tone: "bg-violet-500/10 text-violet-600",
     },
     {
       icon: Receipt,
       label: "Total",
-      value: `${formatAmount(invoiceSummary.totalAmount)} ${invoiceSummary.currency}`,
+      value: `${formatAmount(totalAmount)} ${currency}`,
       tone: "bg-amber-500/10 text-amber-600",
     },
     {
       icon: CalendarClock,
       label: "Expires",
-      value: invoiceSummary.expireDate,
+      value: expireDate ?? "—",
       tone: "bg-emerald-500/10 text-emerald-600",
     },
   ];
@@ -137,10 +160,10 @@ const InvoiceSummaryCard = ({
           </div>
           <div className="relative mt-3 flex items-baseline gap-1.5">
             <span className="text-text-main text-[34px] leading-none font-semibold tracking-tight">
-              {formatAmount(invoiceSummary.balance)}
+              {formatAmount(balance)}
             </span>
             <span className="text-text-muted text-[11px] font-bold tracking-wider uppercase">
-              {invoiceSummary.currency}
+              {currency}
             </span>
           </div>
           <p className="text-text-muted relative mt-2 text-[11px]">
@@ -195,9 +218,13 @@ const InvoiceSummaryCard = ({
                   <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
                     {label}
                   </p>
-                  <p className="text-text-main mt-1 truncate text-[15px] font-semibold">
-                    {value}
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="mt-1 h-5 w-24" />
+                  ) : (
+                    <p className="text-text-main mt-1 truncate text-[15px] font-semibold">
+                      {value}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -210,9 +237,13 @@ const InvoiceSummaryCard = ({
 
 const TransactionsTable = ({
   transactions,
+  isLoading,
 }: {
-  transactions: Transaction[];
+  transactions: BillingTransaction[];
+  isLoading: boolean;
 }) => {
+  const list = transactions ?? [];
+
   return (
     <section className="border-border-subtle bg-bg-card overflow-hidden rounded-xl border shadow-sm">
       <div className="border-border-subtle flex shrink-0 items-center justify-between border-b px-4 py-2">
@@ -226,22 +257,28 @@ const TransactionsTable = ({
             </h3>
           </div>
         </div>
-        {transactions.length > 0 && (
+        {list.length > 0 && (
           <span className="border-border-subtle text-text-muted rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
-            {transactions.length} total
+            {list.length} total
           </span>
         )}
       </div>
       <div className="overflow-x-auto">
         <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid min-w-[680px] shrink-0 grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-3 border-b px-5 py-3 text-[11px] font-semibold tracking-wider uppercase">
-          <span>Project</span>
           <span>Amount</span>
           <span>Type</span>
           <span>Date</span>
           <span>Status</span>
+          <span />
         </div>
 
-        {transactions.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-1 px-5 py-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
+        ) : list.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
             <div className="bg-bg-sidebar/60 border-border-subtle mb-3 flex h-11 w-11 items-center justify-center rounded-lg border">
               <Inbox size={18} className="text-text-muted/70" />
@@ -254,27 +291,35 @@ const TransactionsTable = ({
             </p>
           </div>
         ) : (
-          transactions.map((t) => (
-            <div
-              key={t.id}
-              className="border-border-subtle hover:bg-hover-bg/50 text-text-main grid min-w-[680px] grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-3 border-b px-5 py-3 text-[12px] transition-colors last:border-b-0"
-            >
-              <span className="truncate font-medium">{t.project}</span>
-              <span>{formatAmount(t.amount)} uzs</span>
-              <span>{t.type}</span>
-              <span>{t.date}</span>
-              <span
-                className={cn(
-                  "w-max rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
-                  t.status === "PAID" && "bg-green-500/10 text-green-600",
-                  t.status === "PENDING" && "bg-amber-500/10 text-amber-600",
-                  t.status === "FAILED" && "bg-red-500/10 text-red-600",
-                )}
+          list.map((t) => {
+            const status = (t.payment_status ?? "").toLowerCase();
+            const type = t.transaction_type ?? "Top up";
+            return (
+              <div
+                key={t.id}
+                className="border-border-subtle hover:bg-hover-bg/50 text-text-main grid min-w-[680px] grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-3 border-b px-5 py-3 text-[12px] transition-colors last:border-b-0"
               >
-                {t.status}
-              </span>
-            </div>
-          ))
+                <span>
+                  {formatAmount(t.amount)}{" "}
+                  {(t.currency?.code || "UZS").toLowerCase()}
+                </span>
+                <span>{type}</span>
+                <span>{formatTransactionDate(t.created_at)}</span>
+                <span
+                  className={cn(
+                    "w-max rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
+                    status === "accepted" && "bg-green-500/10 text-green-600",
+                    status === "pending" && "bg-amber-500/10 text-amber-600",
+                    (status === "cancelled" || status === "failed") &&
+                      "bg-red-500/10 text-red-600",
+                  )}
+                >
+                  {t.payment_status || "—"}
+                </span>
+                <span />
+              </div>
+            );
+          })
         )}
       </div>
     </section>
@@ -284,47 +329,58 @@ const TransactionsTable = ({
 const TopUpModal = ({
   open,
   onOpenChange,
-  cards,
-  onCardAdded,
-  onCardRemoved,
+  projectId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  cards: Card[];
-  onCardAdded: (card: Card) => void;
-  onCardRemoved: (id: string) => void;
+  projectId: string | null;
 }) => {
   const [amount, setAmount] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [addCardOpen, setAddCardOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
-  const reset = () => {
-    setAmount("");
-    setSelectedCardId(null);
-    setSubmitting(false);
-  };
+  const { data: cards = [], isLoading: cardsLoading } = useCardList(
+    projectId,
+    open,
+  );
+  const { mutateAsync: receiptPay, isPending: submitting } =
+    useReceiptPay(projectId);
+
+  const selectedCard = useMemo(
+    () => cards.find((c) => c.id === selectedCardId) ?? null,
+    [cards, selectedCardId],
+  );
+
+  useEffect(() => {
+    if (!open) {
+      setAmount("");
+      setSelectedCardId(null);
+    }
+  }, [open]);
 
   const handleAddBalance = async () => {
-    if (!amount || !selectedCardId) return;
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    onOpenChange(false);
-    reset();
+    if (!selectedCard || !amount) return;
+    try {
+      await receiptPay({
+        project_card_id: selectedCard.id,
+        amount: Number(amount),
+      });
+      toast.success("Transaction successfully created!");
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.data || "Failed to top up balance");
+    }
   };
 
-  const canSubmit = Boolean(amount && Number(amount) > 0 && selectedCardId);
+  const canSubmit =
+    Boolean(amount) &&
+    Number(amount) > 0 &&
+    Boolean(selectedCard) &&
+    selectedCard?.verify !== false;
 
   return (
     <>
-      <Dialog
-        open={open}
-        onOpenChange={(o) => {
-          onOpenChange(o);
-          if (!o) reset();
-        }}
-      >
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-full max-w-lg gap-0 overflow-hidden rounded-2xl p-0">
           <div className="border-border-subtle flex items-center gap-3 border-b px-6 py-4">
             <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
@@ -383,7 +439,13 @@ const TopUpModal = ({
                   <span />
                 </div>
 
-                {cards.length === 0 ? (
+                {cardsLoading ? (
+                  <div className="space-y-1 p-3">
+                    {[0, 1].map((i) => (
+                      <Skeleton key={i} className="h-9 w-full" />
+                    ))}
+                  </div>
+                ) : cards.length === 0 ? (
                   <div className="flex flex-col items-center justify-center px-4 py-10">
                     <CreditCard size={22} className="text-text-muted/40 mb-2" />
                     <p className="text-text-muted text-xs">
@@ -412,33 +474,20 @@ const TopUpModal = ({
                         <span
                           className={cn(
                             "w-max rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide",
-                            cardTypeStyles[card.type],
+                            cardTypeStyles[card.type] ??
+                              cardTypeStyles.VISA,
                           )}
                         >
                           {card.type}
                         </span>
-                        <span className="font-mono">
-                          {maskCard(card.number)}
-                        </span>
+                        <span className="font-mono">{card.pan}</span>
                         <span className="text-text-muted font-mono">
-                          {card.expiry}
+                          {card.expire}
                         </span>
                         <span className="flex items-center justify-end gap-1">
-                          {selected ? (
+                          {selected && (
                             <span className="bg-primary flex h-5 w-5 items-center justify-center rounded-full text-white">
                               <Check size={12} />
-                            </span>
-                          ) : (
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onCardRemoved(card.id);
-                              }}
-                              className="text-text-muted hover:text-destructive hover:bg-destructive/10 flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-                            >
-                              <Trash2 size={13} />
                             </span>
                           )}
                         </span>
@@ -475,10 +524,8 @@ const TopUpModal = ({
       <AddCardModal
         open={addCardOpen}
         onOpenChange={setAddCardOpen}
-        onAdd={(card) => {
-          onCardAdded(card);
-          setSelectedCardId(card.id);
-        }}
+        projectId={projectId}
+        onAdded={(card) => setSelectedCardId(card.id)}
       />
     </>
   );
@@ -487,21 +534,24 @@ const TopUpModal = ({
 const AddCardModal = ({
   open,
   onOpenChange,
-  onAdd,
+  projectId,
+  onAdded,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (card: Card) => void;
+  projectId: string | null;
+  onAdded: (card: { id: string }) => void;
 }) => {
   const [number, setNumber] = useState("");
   const [expiry, setExpiry] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [stage, setStage] = useState<"card" | "otp">("card");
+  const [projectCardId, setProjectCardId] = useState<string | null>(null);
 
-  const reset = () => {
-    setNumber("");
-    setExpiry("");
-    setSubmitting(false);
-  };
+  const { mutateAsync: verifyCard, isPending: verifying } =
+    useCardVerify(projectId);
+  const { mutateAsync: confirmOtp, isPending: confirming } =
+    useCardOtpVerify(projectId);
 
   const formatCardNumber = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 16);
@@ -515,31 +565,46 @@ const AddCardModal = ({
   };
 
   const numberDigits = number.replace(/\s/g, "");
-  const canSubmit = numberDigits.length === 16 && /^\d{2}\/\d{2}$/.test(expiry);
+  const canVerify =
+    numberDigits.length === 16 && /^\d{2}\/\d{2}$/.test(expiry);
 
-  const handleAdd = async () => {
-    if (!canSubmit) return;
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    onAdd({
-      id: crypto.randomUUID(),
-      type: detectCardType(numberDigits),
-      number: numberDigits,
-      expiry,
-    });
-    setSubmitting(false);
-    onOpenChange(false);
-    reset();
+  const reset = () => {
+    setNumber("");
+    setExpiry("");
+    setOtp("");
+    setStage("card");
+    setProjectCardId(null);
+  };
+
+  useEffect(() => {
+    if (!open) reset();
+  }, [open]);
+
+  const handleVerifyCard = async () => {
+    if (!canVerify) return;
+    try {
+      const res = await verifyCard({ pan: numberDigits, expire: expiry });
+      setProjectCardId(res.project_card_id);
+      setStage("otp");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.data || "Failed to verify card");
+    }
+  };
+
+  const handleConfirmOtp = async () => {
+    if (!projectCardId || otp.length < 4) return;
+    try {
+      await confirmOtp({ code: otp, project_card_id: projectCardId });
+      toast.success("The card is successfully added!");
+      onAdded({ id: projectCardId });
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.data || "Failed to confirm code");
+    }
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (!o) reset();
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-md gap-0 overflow-hidden rounded-2xl p-0">
         <div className="border-border-subtle flex items-center gap-3 border-b px-6 py-4">
           <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
@@ -550,37 +615,58 @@ const AddCardModal = ({
               Add card
             </h3>
             <p className="text-text-muted mt-0.5 text-xs">
-              Securely save a payment method
+              {stage === "card"
+                ? "Securely save a payment method"
+                : "Enter the SMS code to confirm"}
             </p>
           </div>
         </div>
 
-        <div className="space-y-4 p-6">
-          <div className="space-y-1.5">
+        {stage === "card" ? (
+          <div className="space-y-4 p-6">
+            <div className="space-y-1.5">
+              <label className="text-text-muted text-[12px] font-medium">
+                Card number
+              </label>
+              <Input
+                placeholder="1234 5678 9012 3456"
+                value={number}
+                onChange={(e) => setNumber(formatCardNumber(e.target.value))}
+                className="bg-bg-sidebar border-border-subtle h-10 font-mono text-[13px] tracking-wider"
+                inputMode="numeric"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-text-muted text-[12px] font-medium">
+                Expiry date (MM/YY)
+              </label>
+              <Input
+                placeholder="MM/YY"
+                value={expiry}
+                onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+                className="bg-bg-sidebar border-border-subtle h-10 w-40 font-mono text-[13px] tracking-wider"
+                inputMode="numeric"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3 p-6">
             <label className="text-text-muted text-[12px] font-medium">
-              Card number
+              Verification code
             </label>
             <Input
-              placeholder="1234 5678 9012 3456"
-              value={number}
-              onChange={(e) => setNumber(formatCardNumber(e.target.value))}
-              className="bg-bg-sidebar border-border-subtle h-10 font-mono text-[13px] tracking-wider"
+              placeholder="Enter code"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="bg-bg-sidebar border-border-subtle h-10 font-mono text-[15px] tracking-widest"
               inputMode="numeric"
             />
+            <p className="text-text-muted text-[11px]">
+              A 6-digit code has been sent to the phone number linked to this
+              card.
+            </p>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-text-muted text-[12px] font-medium">
-              Expiry date (MM/YY)
-            </label>
-            <Input
-              placeholder="MM/YY"
-              value={expiry}
-              onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-              className="bg-bg-sidebar border-border-subtle h-10 w-40 font-mono text-[13px] tracking-wider"
-              inputMode="numeric"
-            />
-          </div>
-        </div>
+        )}
 
         <div className="border-border-subtle flex items-center justify-end gap-2 border-t px-6 py-4">
           <Button
@@ -590,14 +676,27 @@ const AddCardModal = ({
           >
             Cancel
           </Button>
-          <Button
-            disabled={!canSubmit || submitting}
-            onClick={handleAdd}
-            className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
-          >
-            {submitting && <Loader2 size={14} className="mr-2 animate-spin" />}
-            Add card
-          </Button>
+          {stage === "card" ? (
+            <Button
+              disabled={!canVerify || verifying}
+              onClick={handleVerifyCard}
+              className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
+            >
+              {verifying && <Loader2 size={14} className="mr-2 animate-spin" />}
+              Add card
+            </Button>
+          ) : (
+            <Button
+              disabled={otp.length < 4 || confirming}
+              onClick={handleConfirmOtp}
+              className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
+            >
+              {confirming && (
+                <Loader2 size={14} className="mr-2 animate-spin" />
+              )}
+              Confirm
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
