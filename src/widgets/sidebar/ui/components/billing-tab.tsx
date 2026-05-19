@@ -369,29 +369,10 @@ const TopUpModal = ({
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<ProjectCard | null>(null);
 
-  const { data: cardsData = [], isLoading: cardsLoading } = useCardList(
+  const { data: cards = [], isLoading: cardsLoading } = useCardList(
     projectId,
     open,
   );
-
-  // TODO: remove — temporary mock cards for UI testing
-  const MOCK_CARDS = [
-    {
-      id: "mock-1",
-      type: "VISA" as CardBrand,
-      pan: "4111 **** **** 1234",
-      expire: "12/27",
-      verify: true,
-    },
-    {
-      id: "mock-2",
-      type: "UZCARD" as CardBrand,
-      pan: "8600 **** **** 5678",
-      expire: "08/26",
-      verify: true,
-    },
-  ];
-  const cards = cardsData.length > 0 ? cardsData : MOCK_CARDS;
   const { mutateAsync: receiptPay, isPending: submitting } =
     useReceiptPay(projectId);
   const { mutateAsync: deleteCard, isPending: deletingCard } =
