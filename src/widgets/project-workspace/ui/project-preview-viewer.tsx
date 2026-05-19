@@ -651,6 +651,10 @@ export const ProjectPreviewViewer = ({
 
   const setPendingPrompt = useChatStore((s) => s.setPendingPrompt);
   const [srcDoc, setSrcDoc] = useState("");
+  // Bumped on explicit refresh to force iframe remount even when srcDoc is
+  // byte-identical (deterministic build → unchanged string → no React re-render
+  // → iframe wouldn't reload). Used as the iframe `key`.
+  const [refreshKey, setRefreshKey] = useState(0);
   // Start in the loading state so the very first render shows the build loader
   // instead of a blank white iframe — the build effect runs right after mount
   // and either keeps this true (normal build) or flips it false (when a
@@ -900,6 +904,13 @@ export const ProjectPreviewViewer = ({
 
   const runCode = async () => {
     if (isBuilding.current) return;
+    // Hard guard: never build while a chat stream is open. Reads from the store
+    // directly (not the closured `isStreaming` prop) so a stale closure from a
+    // pending effect can't slip a build through after isStreaming flipped true.
+    if (useChatStore.getState().isStreaming) {
+      console.warn("[preview] runCode skipped — chat stream is open");
+      return;
+    }
     isBuilding.current = true;
     setIsLoading(true);
     setRuntimeError(null);
@@ -969,6 +980,9 @@ export const ProjectPreviewViewer = ({
     isBuilding.current = false;
     setCurrentUrl("/");
     setUrlInput("/");
+    // Force iframe remount — the build is deterministic, so without this the
+    // srcDoc string stays identical and React skips the iframe re-render.
+    setRefreshKey((k) => k + 1);
     runCode();
   };
 
@@ -1705,6 +1719,7 @@ export const ProjectPreviewViewer = ({
                 />
               )}
             <iframe
+              key={refreshKey}
               ref={iframeRef}
               className="w-full flex-1 border-none bg-white"
               srcDoc={srcDoc}

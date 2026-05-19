@@ -36,7 +36,7 @@ export const AnalyticsDashboard = () => {
     queryKey: ['fares', 'ugen', 'current', ucodeProjectId],
     queryFn: async () => {
       const { data } = await api.get('/v1/fare', {
-        params: { product_type: 'ugen', project_id: ucodeProjectId },
+        params: { "project-id": ucodeProjectId },
       });
       return data;
     },

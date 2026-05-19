@@ -762,7 +762,7 @@ const EndpointsView = () => {
 
 export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
   const [activeTab, setActiveTab] = useState('sdk')
-
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId)
 
   const { data: pricingData } = useQuery({
     queryKey: ['pricing-all'],
@@ -812,8 +812,8 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
 
       <div className="pt-2">
         {activeTab === 'endpoints' && <EndpointsView />}
-        {activeTab === 'sdk' && <ApiIntegrationsPage projectId={projectId} />}
-        {activeTab === 'keys' && <ApiKeysPage projectId={projectId} hideHeader />}
+        {activeTab === 'sdk' && <ApiIntegrationsPage projectId={ucodeProjectId || ''} />}
+        {activeTab === 'keys' && <ApiKeysPage projectId={ucodeProjectId || ''} hideHeader />}
       </div>
     </div>
   )

@@ -34,6 +34,10 @@ interface ChatState {
   isStreaming: boolean
   pendingScreenshot: boolean
   sseEvents: SseEvent[]
+  // Last error reported by the SSE stream (event.type === 'error'). Surfaced
+  // in the preview area so first-generation failures show an actionable UI
+  // instead of leaving the AI animation spinning forever.
+  streamError: string | null
   pendingPrompt: {
     content: string
     images?: string[]
@@ -50,6 +54,7 @@ interface ChatState {
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void
   setIsStreaming: (isStreaming: boolean) => void
+  setStreamError: (error: string | null) => void
   setPendingScreenshot: (pendingScreenshot: boolean) => void
   addMessage: (message: Message) => void
   unshiftMessages: (messages: Message[]) => void
@@ -73,6 +78,7 @@ export const useChatStore = create<ChatState>()(
       isStreaming: false,
       pendingScreenshot: false,
       sseEvents: [],
+      streamError: null,
       addSseEvent: (event) => set((state) => ({ sseEvents: [...state.sseEvents, event] })),
       clearSseEvents: () => set({ sseEvents: [] }),
       setChatId: (id) => set({ chatId: id }),
@@ -80,6 +86,7 @@ export const useChatStore = create<ChatState>()(
       setChatPosition: (position) => set({ chatPosition: position }),
       setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
       setIsStreaming: (isStreaming) => set({ isStreaming }),
+      setStreamError: (streamError) => set({ streamError }),
       setPendingScreenshot: (pendingScreenshot) => set({ pendingScreenshot }),
       addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
       unshiftMessages: (newMessages) => set((state) => {

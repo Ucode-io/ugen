@@ -83,7 +83,7 @@ export const RegisterForm = ({ onSuccess, onAuthenticated }: RegisterFormProps) 
         throw new Error("No fare configuration found")
       }
 
-      await authApi.post('/company', { ...data, fare_id })
+      await authApi.post('/v3/ugen/register', { ...data, fare_id })
 
       onSuccess(data.user_info.login, data.user_info.password)
     } catch (error: any) {

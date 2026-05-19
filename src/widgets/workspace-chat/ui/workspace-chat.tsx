@@ -178,6 +178,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
   const chatPosition = useChatStore((state) => state.chatPosition);
   const setChatPosition = useChatStore((state) => state.setChatPosition);
   const setIsStreaming = useChatStore((state) => state.setIsStreaming);
+  const setStreamError = useChatStore((state) => state.setStreamError);
   const setPendingScreenshot = useChatStore((state) => state.setPendingScreenshot);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -403,6 +404,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
 
   const sendMessageInner = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
     clearSseEvents();
+    setStreamError(null);
     accumulatedFilesRef.current = [];
     addMessage({ id: Date.now().toString(), role: "user", content: text, images: files?.map(f => f.url) || [] });
     handleAutoScroll();
@@ -620,6 +622,8 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                   setFiles(accumulatedFilesRef.current.map((f: any) => ({
                     path: f.path, content: f.content, language: getLanguageByPath(f.path),
                   })));
+                } else if (event.type === 'error') {
+                  setStreamError(event.message ?? 'AI processing failed');
                 } else if (event.type === 'done') {
                   finalDoneData = event.data?.data ?? event.data;
                 }
@@ -633,6 +637,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         }
       } catch (err) {
         console.error(err);
+        setStreamError(err instanceof Error ? err.message : 'Network error during AI generation');
       } finally {
         setIsSending(false);
         setIsThinking(false);

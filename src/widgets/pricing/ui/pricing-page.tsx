@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Check } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Footer } from '@/widgets/footer'
@@ -114,7 +114,10 @@ export const PricingPage = () => {
 
   const fares: any[] = fareData?.data?.fares || []
 
-  const featureMap = new Map<string, { id: string; name: string; type: string }>()
+  const featureMap = new Map<
+    string,
+    { id: string; name: string; type: string; group?: { id: string; name: string } }
+  >()
   fares.forEach((fare) => {
     fare.fare_item_prices?.forEach((fip: any) => {
       if (!featureMap.has(fip.fare_item_id)) {
@@ -123,6 +126,25 @@ export const PricingPage = () => {
     })
   })
   const featureRows = Array.from(featureMap.values())
+
+  const OTHER_GROUP_KEY = '__other__'
+  const groupedFeatureRows: {
+    key: string
+    name: string
+    items: typeof featureRows
+  }[] = []
+  const groupIndexMap = new Map<string, number>()
+  featureRows.forEach((featureItem) => {
+    const groupKey = featureItem.group?.id || OTHER_GROUP_KEY
+    const groupName = featureItem.group?.name || 'Other'
+    let idx = groupIndexMap.get(groupKey)
+    if (idx === undefined) {
+      idx = groupedFeatureRows.length
+      groupIndexMap.set(groupKey, idx)
+      groupedFeatureRows.push({ key: groupKey, name: groupName, items: [] })
+    }
+    groupedFeatureRows[idx].items.push(featureItem)
+  })
 
   const fareValueMap: Record<string, Record<string, string>> = {}
   fares.forEach((fare) => {
@@ -295,7 +317,7 @@ export const PricingPage = () => {
           </div>
 
           {/* Compare table (dynamic from API) */}
-          {fares.length > 0 && featureRows.length > 0 && (
+          {fares.length > 0 && groupedFeatureRows.length > 0 && (
             <div style={{ marginTop: '72px', overflowX: 'auto' }}>
               <h2 className="font-extrabold tracking-[-0.04em] text-text-main text-center mb-8"
                 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}>
@@ -330,39 +352,46 @@ export const PricingPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="bg-hover-bg">
-                    <td colSpan={fares.length + 1} className="py-2 px-3.5 text-[0.72rem] font-bold uppercase tracking-[0.07em] text-text-muted/60">
-                      Features
-                    </td>
-                  </tr>
-                  {featureRows.map((featureItem, rowIdx) => {
-                    const isLastRow = rowIdx === featureRows.length - 1
+                  {groupedFeatureRows.map((group, groupIdx) => {
+                    const isLastGroup = groupIdx === groupedFeatureRows.length - 1
                     return (
-                      <tr key={featureItem.id} className="border-b border-border-subtle/50">
-                        <td className="py-3 px-3.5 text-text-muted">{featureItem.name}</td>
-                        {fares.map((fare) => {
-                          const isCurrent = fare.id === fareId
-                          const isRecommended = String(fare.name || '').toLowerCase() === 'pro'
-                          const rawValue = fareValueMap[fare.id]?.[featureItem.id]
-                          const displayValue = formatFareValue(rawValue)
+                      <React.Fragment key={group.key}>
+                        <tr className="bg-hover-bg">
+                          <td colSpan={fares.length + 1} className="py-2 px-3.5 text-[0.72rem] font-bold uppercase tracking-[0.07em] text-text-muted/60">
+                            {group.name}
+                          </td>
+                        </tr>
+                        {group.items.map((featureItem, itemIdx) => {
+                          const isLastRow = isLastGroup && itemIdx === group.items.length - 1
                           return (
-                            <td
-                              key={fare.id}
-                              className={`py-3 px-3.5 text-center ${
-                                isRecommended
-                                  ? `bg-primary/5 text-primary font-semibold border-x border-x-primary/30 ${
-                                      isLastRow ? 'border-b-2 border-b-primary' : ''
-                                    }`
-                                  : isCurrent
-                                    ? 'text-primary font-semibold'
-                                    : 'text-text-muted'
-                              }`}
-                            >
-                              {displayValue}
-                            </td>
+                            <tr key={featureItem.id} className="border-b border-border-subtle/50">
+                              <td className="py-3 px-3.5 text-text-muted">{featureItem.name}</td>
+                              {fares.map((fare) => {
+                                const isCurrent = fare.id === fareId
+                                const isRecommended = String(fare.name || '').toLowerCase() === 'pro'
+                                const rawValue = fareValueMap[fare.id]?.[featureItem.id]
+                                const displayValue = formatFareValue(rawValue)
+                                return (
+                                  <td
+                                    key={fare.id}
+                                    className={`py-3 px-3.5 text-center ${
+                                      isRecommended
+                                        ? `bg-primary/5 text-primary font-semibold border-x border-x-primary/30 ${
+                                            isLastRow ? 'border-b-2 border-b-primary' : ''
+                                          }`
+                                        : isCurrent
+                                          ? 'text-primary font-semibold'
+                                          : 'text-text-muted'
+                                    }`}
+                                  >
+                                    {displayValue}
+                                  </td>
+                                )
+                              })}
+                            </tr>
                           )
                         })}
-                      </tr>
+                      </React.Fragment>
                     )
                   })}
                 </tbody>

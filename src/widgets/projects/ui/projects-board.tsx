@@ -83,10 +83,15 @@ export const ProjectsBoard = () => {
   const { data: projectsResponse, isLoading: isProjectsLoading } =
     useProjectsList(fetchParams, {
       enabled: !!shouldFetchProjects && !useCompanyLogic && isUgen,
+      staleTime: 0,
+      refetchOnMount: "always",
     });
 
   const { data: companyProjectsData, isLoading: isCompanyProjectsLoading } =
-    useCompanyProjects(companyId ?? "");
+    useCompanyProjects(companyId ?? "", {
+      staleTime: 0,
+      refetchOnMount: "always",
+    });
 
   const createFolder = useCreateProjectFolder();
   const [isCreatePopoverOpen, setIsCreatePopoverOpen] = useState(false);

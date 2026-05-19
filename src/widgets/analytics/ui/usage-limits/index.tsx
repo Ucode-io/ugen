@@ -25,7 +25,7 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
   // Collect all unique fare items across all fares (preserving order)
   const allFareItemsMap = new Map<
     string,
-    { id: string; name: string; type: string }
+    { id: string; name: string; type: string; group?: { id: string; name: string } }
   >();
   fares.forEach((fare) => {
     fare.fare_item_prices?.forEach((fip: any) => {
@@ -35,6 +35,26 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
     });
   });
   const fareItemRows = Array.from(allFareItemsMap.values());
+
+  // Group fare items by group.name (preserving first-appearance order)
+  const OTHER_GROUP_KEY = "__other__";
+  const groupedFareItems: {
+    key: string;
+    name: string;
+    items: typeof fareItemRows;
+  }[] = [];
+  const groupIndexMap = new Map<string, number>();
+  fareItemRows.forEach((fareItem) => {
+    const groupKey = fareItem.group?.id || OTHER_GROUP_KEY;
+    const groupName = fareItem.group?.name || "Other";
+    let idx = groupIndexMap.get(groupKey);
+    if (idx === undefined) {
+      idx = groupedFareItems.length;
+      groupIndexMap.set(groupKey, idx);
+      groupedFareItems.push({ key: groupKey, name: groupName, items: [] });
+    }
+    groupedFareItems[idx].items.push(fareItem);
+  });
 
   // Build lookup: fareId -> fareItemId -> value
   const fareValueMap: Record<string, Record<string, string>> = {};
@@ -92,10 +112,16 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
         {[
           {
-            key: "monthly_api_calls",
-            label: "API call per month",
+            key: "projects",
+            label: "Projects",
             color: "bg-primary",
             textColor: "text-primary",
+          },
+          {
+            key: "monthly_api_calls",
+            label: "API call per month",
+            color: "bg-cyan-500",
+            textColor: "text-cyan-500",
           },
           {
             key: "database_size",
@@ -223,32 +249,51 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
                 </WorkspaceTableRow>
               </WorkspaceTableHeader>
               <WorkspaceTableBody>
-                {fareItemRows.map((fareItem, rowIdx) => {
-                  const isLast = rowIdx === fareItemRows.length - 1;
+                {groupedFareItems.map((group, groupIdx) => {
+                  const isLastGroup = groupIdx === groupedFareItems.length - 1;
                   return (
-                    <WorkspaceTableRow key={fareItem.id}>
-                      <WorkspaceTableCell>{fareItem.name}</WorkspaceTableCell>
-                      {fares.map((fare) => {
-                        const isCurrent = fare.id === fareId;
-                        const rawValue = fareValueMap[fare.id]?.[fareItem.id];
-                        const displayValue = formatFareValue(rawValue);
+                    <React.Fragment key={group.key}>
+                      <tr className="bg-bg-sidebar/60">
+                        <td
+                          colSpan={1 + fares.length}
+                          className="border-border-subtle text-text-muted border-b px-3.5 py-2 text-[11px] font-bold tracking-[0.5px] uppercase"
+                        >
+                          {group.name}
+                        </td>
+                      </tr>
+                      {group.items.map((fareItem, itemIdx) => {
+                        const isLastRow =
+                          isLastGroup && itemIdx === group.items.length - 1;
                         return (
-                          <WorkspaceTableCell
-                            key={fare.id}
-                            className={cn(
-                              "text-center",
-                              isCurrent &&
-                                "bg-primary/5 text-primary border-x-primary/20 border-x font-semibold",
-                              isCurrent &&
-                                isLast &&
-                                "border-b-primary border-b-2",
-                            )}
-                          >
-                            {displayValue}
-                          </WorkspaceTableCell>
+                          <WorkspaceTableRow key={fareItem.id}>
+                            <WorkspaceTableCell>
+                              {fareItem.name}
+                            </WorkspaceTableCell>
+                            {fares.map((fare) => {
+                              const isCurrent = fare.id === fareId;
+                              const rawValue =
+                                fareValueMap[fare.id]?.[fareItem.id];
+                              const displayValue = formatFareValue(rawValue);
+                              return (
+                                <WorkspaceTableCell
+                                  key={fare.id}
+                                  className={cn(
+                                    "text-center",
+                                    isCurrent &&
+                                      "bg-primary/5 text-primary border-x-primary/20 border-x font-semibold",
+                                    isCurrent &&
+                                      isLastRow &&
+                                      "border-b-primary border-b-2",
+                                  )}
+                                >
+                                  {displayValue}
+                                </WorkspaceTableCell>
+                              );
+                            })}
+                          </WorkspaceTableRow>
                         );
                       })}
-                    </WorkspaceTableRow>
+                    </React.Fragment>
                   );
                 })}
               </WorkspaceTableBody>

@@ -38,15 +38,23 @@ export const fetchChatsList = async (params?: FetchChatsListParams) => {
   return data
 }
 
+type ChatsQueryOptions = {
+  enabled?: boolean
+  staleTime?: number
+  refetchOnMount?: boolean | 'always'
+}
+
 export const useChatsList = (
   rawParams?: FetchChatsListParams,
-  options?: { enabled?: boolean }
+  options?: ChatsQueryOptions
 ) => {
   const params = cleanParams(rawParams)
   return useQuery({
     queryKey: ['chats', 'list', params],
     queryFn: () => fetchChatsList(params),
     enabled: options?.enabled !== undefined ? options.enabled : true,
+    staleTime: options?.staleTime,
+    refetchOnMount: options?.refetchOnMount,
   })
 }
 
@@ -54,7 +62,7 @@ const CHATS_PAGE_SIZE = 20
 
 export const useChatsListInfinite = (
   rawParams?: Omit<FetchChatsListParams, 'offset' | 'limit'>,
-  options?: { enabled?: boolean }
+  options?: ChatsQueryOptions
 ) => {
   const base = cleanParams(rawParams) ?? {}
   return useInfiniteQuery({
@@ -73,5 +81,7 @@ export const useChatsListInfinite = (
       return loaded < total ? loaded : undefined
     },
     enabled: options?.enabled !== undefined ? options.enabled : true,
+    staleTime: options?.staleTime,
+    refetchOnMount: options?.refetchOnMount,
   })
 }

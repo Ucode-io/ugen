@@ -56,12 +56,12 @@ export const ChatsBoard = () => {
       order_direction: sortDir,
       title: debouncedSearch || undefined,
     },
-    { enabled: isUgen }
+    { enabled: isUgen, staleTime: 0, refetchOnMount: "always" }
   );
 
   const { data: projectsResponse } = useProjectsList(
     { limit: 1000 },
-    { enabled: isUgen }
+    { enabled: isUgen, staleTime: 0, refetchOnMount: "always" }
   );
 
   const projectsList = useMemo(() => {

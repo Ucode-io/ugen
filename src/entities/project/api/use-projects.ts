@@ -59,11 +59,22 @@ export const fetchCompanyProjects = async (companyId: string) => {
   return data?.data ?? []
 }
 
-export const useCompanyProjects = (companyId: string) => {
+type ListQueryOptions = {
+  enabled?: boolean
+  staleTime?: number
+  refetchOnMount?: boolean | 'always'
+}
+
+export const useCompanyProjects = (
+  companyId: string,
+  options?: ListQueryOptions
+) => {
   return useQuery({
     queryKey: ['company-projects', companyId],
     queryFn: () => fetchCompanyProjects(companyId),
-    enabled: !!companyId,
+    enabled: options?.enabled !== undefined ? options.enabled && !!companyId : !!companyId,
+    staleTime: options?.staleTime,
+    refetchOnMount: options?.refetchOnMount,
   })
 }
 
@@ -106,12 +117,17 @@ export const fetchProjectsList = async (params?: FetchProjectsListParams) => {
   return data
 }
 
-export const useProjectsList = (rawParams?: FetchProjectsListParams, options?: { enabled?: boolean }) => {
+export const useProjectsList = (
+  rawParams?: FetchProjectsListParams,
+  options?: ListQueryOptions
+) => {
   const params = cleanParams(rawParams)
   return useQuery({
     queryKey: ['projects', 'list', params],
     queryFn: () => fetchProjectsList(params),
     enabled: options?.enabled !== undefined ? options.enabled : true,
+    staleTime: options?.staleTime,
+    refetchOnMount: options?.refetchOnMount,
   })
 }
 

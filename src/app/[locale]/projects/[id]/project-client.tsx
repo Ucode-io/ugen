@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { WorkspaceChat } from "@/widgets/workspace-chat";
@@ -26,6 +26,7 @@ import { WorkspaceLoader } from "@/widgets/project-workspace/ui/workspace-loader
 import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard";
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view";
 import { ProjectBuildingAnimation } from "@/widgets/project-workspace/ui/project-building-animation";
+import { StreamErrorView } from "@/widgets/project-workspace/ui/stream-error-view";
 import {
   ErrorBoundary,
   Select,
@@ -168,6 +169,41 @@ export const ProjectWorkspaceClient = ({
   const isUgen = project?.is_ugen ?? false;
   const chatPosition = useChatStore((state) => state.chatPosition);
   const sseEvents = useChatStore((state) => state.sseEvents);
+  const isStreaming = useChatStore((state) => state.isStreaming);
+  const streamError = useChatStore((state) => state.streamError);
+  const setStreamError = useChatStore((state) => state.setStreamError);
+  const messages = useChatStore((state) => state.messages);
+  const setPendingPrompt = useChatStore((state) => state.setPendingPrompt);
+
+  const handleRetryStream = useCallback(() => {
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUserMessage?.content) {
+      setStreamError(null);
+      return;
+    }
+    setStreamError(null);
+    setPendingPrompt({
+      content: lastUserMessage.content,
+      images: lastUserMessage.images,
+    });
+  }, [messages, setStreamError, setPendingPrompt]);
+  // Latches true when a stream starts on an empty project (first generation).
+  // We keep ProjectBuildingAnimation up for the whole stream in that case so
+  // the preview viewer doesn't mount mid-stream and flash its own loaders.
+  // For follow-up edits on a project that already has files, this stays false
+  // and the existing preview keeps showing through the stream.
+  const [isFirstGeneration, setIsFirstGeneration] = useState(false);
+  const wasStreamingRef = useRef(false);
+  useEffect(() => {
+    if (isStreaming && !wasStreamingRef.current) {
+      // Stream just started — snapshot whether the project had any files.
+      setIsFirstGeneration(files.length === 0);
+    } else if (!isStreaming && wasStreamingRef.current) {
+      // Stream just ended — release the latch so the preview viewer mounts.
+      setIsFirstGeneration(false);
+    }
+    wasStreamingRef.current = isStreaming;
+  }, [isStreaming, files.length]);
   // Only treat the workspace as "no files" when there's no selection that owns
   // its own rendering. Picking a microfrontend/function from the code-viewer
   // dropdown briefly resets `activeCodeFiles` to null while the new codebase
@@ -451,6 +487,27 @@ export const ProjectWorkspaceClient = ({
       );
     }
 
+    // Stream error on first generation: nothing was built, so the Preview tab
+    // would otherwise sit on the AI animation forever. Show an actionable
+    // error view with a Retry button instead. (For follow-up edits the chat
+    // already surfaces the error inline and the existing preview keeps showing.)
+    if (tab === "preview" && streamError && hasNoFiles) {
+      return (
+        <StreamErrorView
+          message={streamError}
+          onRetry={handleRetryStream}
+          isRetrying={isStreaming}
+        />
+      );
+    }
+    // First-generation streams on the Preview tab: keep the AI-building
+    // animation up for the whole stream so the preview viewer doesn't mount
+    // mid-stream on the first chunk_done and flash its internal loaders.
+    // Follow-up edits skip this branch (isFirstGeneration stays false), and
+    // the Code tab keeps streaming files in real-time as before.
+    if (tab === "preview" && isStreaming && isFirstGeneration) {
+      return <ProjectBuildingAnimation />;
+    }
     // Preview and Code share the same "no files yet" placeholder states.
     if (hasNoFiles) {
       return isAiBuilding ? (
