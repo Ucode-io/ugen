@@ -33,6 +33,16 @@ export const fetchTemplateDetail = async (id: string): Promise<Template | null> 
   return unwrapItem(data)
 }
 
+export const fetchPublicTemplates = async (): Promise<Template[]> => {
+  const { data } = await githubApi.get('/v1/ugen-template/public')
+  return unwrapList(data)
+}
+
+export const fetchPublicTemplateDetail = async (id: string): Promise<Template | null> => {
+  const { data } = await githubApi.get(`/v1/ugen-template/public/${id}`)
+  return unwrapItem(data)
+}
+
 export const getTemplateTitle = (t: Template) =>
   t.name || t.title || 'Template'
 

@@ -22,7 +22,7 @@ const BEARER_ONLY_ENDPOINTS = [
   /^\/v1\/mcp_project(\/|$)/,
   /^\/v1\/upload(\/|$)/,
   /^\/v1\/files(\/|$)/,
-  /^\/v1\/ugen-template(\/|$)/,
+  /^\/v1\/ugen-template(?!\/public)(\/|$)/,
 ]
 
 const requiresBearerToken = (url: string = '') => {

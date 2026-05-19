@@ -7,7 +7,6 @@ import { useTranslations } from 'next-intl'
 import { useState, useEffect, useRef } from 'react'
 import { AuthModal } from '@/features/auth'
 import { useAuthStore } from '@/entities/session'
-import { useUIStore } from '@/shared/model/theme/use-ui-store'
 import { ChevronDown } from 'lucide-react'
 
 type ResourceItem = {
@@ -32,7 +31,6 @@ export const Header = () => {
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
   const [resourcesOpen, setResourcesOpen] = useState(false)
   const { isAuthenticated, setActiveView } = useAuthStore()
-  const { theme } = useUIStore()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const openAuth = (tab: 'login' | 'register') => {
@@ -78,7 +76,7 @@ export const Header = () => {
       <div className="flex items-center gap-7">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <Image
-            src={theme === 'dark' ? '/ugen-logo.svg' : '/ugen-logo-dark.svg'}
+            src="/ugen-logo.svg"
             alt="Ugen Logo"
             width={120}
             height={32}
@@ -99,7 +97,7 @@ export const Header = () => {
             Pricing
           </Link>
           <a
-            href="https://t.me/asadbekbakhodirov"
+            href="https://t.me/ucode_support"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg px-3 py-1.5 rounded-lg transition-colors"
@@ -164,11 +162,11 @@ export const Header = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <ThemeSwitcher />
           <LangSwitcher />
-        </div>
-        <div className="h-4 w-px bg-border-subtle" />
+        </div> */}
+        {/* <div className="h-4 w-px bg-border-subtle" /> */}
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
             <button

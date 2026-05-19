@@ -135,7 +135,6 @@ export const ProjectWorkspaceClient = ({
   if (loadedProjectId !== null && loadedProjectId !== projectId && !isLoading) {
     setIsLoading(true);
   }
-  const [projectInfo, setProjectInfo] = useState<any>(null);
   const [microfrontends, setMicrofrontends] = useState<
     Array<{ id: string; name: string; url: string }>
   >([]);
@@ -169,7 +168,18 @@ export const ProjectWorkspaceClient = ({
   const isUgen = project?.is_ugen ?? false;
   const chatPosition = useChatStore((state) => state.chatPosition);
   const sseEvents = useChatStore((state) => state.sseEvents);
-  const hasNoFiles = files.length === 0 && !activeCodeFiles?.length;
+  // Only treat the workspace as "no files" when there's no selection that owns
+  // its own rendering. Picking a microfrontend/function from the code-viewer
+  // dropdown briefly resets `activeCodeFiles` to null while the new codebase
+  // loads — without this guard the viewer unmounts mid-fetch and the parent
+  // WorkspaceLoader hangs forever (the in-viewer fetch effect can't run when
+  // it's unmounted). The inner viewers already handle their own loading and
+  // empty states for microfrontend/function selections.
+  const hasNoFiles =
+    files.length === 0 &&
+    !activeCodeFiles?.length &&
+    activeCodeSelection?.kind !== "microfrontend" &&
+    activeCodeSelection?.kind !== "function";
   const isAiBuilding = sseEvents.length >= 3;
 
   // The previewable code can arrive from two places: `project_files` on the
@@ -196,6 +206,27 @@ export const ProjectWorkspaceClient = ({
       enabled: !!projectId && !!apiKey && isUgen,
       staleTime: 0,
     });
+
+  // Project info is fetched via react-query so StrictMode in dev (which fires
+  // useEffect twice) doesn't produce duplicate network calls — the raw axios
+  // call inside useEffect can't be cancelled without an AbortController, so
+  // both invocations would otherwise hit the server.
+  const { data: projectInfo } = useQuery({
+    queryKey: ["company-project", projectId],
+    queryFn: async () => {
+      const headers = !isUgen
+        ? { Authorization: `Bearer ${useAuthStore.getState().accessToken}` }
+        : undefined;
+      const { data } = await api.get("/v1/company-project", {
+        params: { "project-id": projectId },
+        headers,
+      });
+      const info = data?.data;
+      if (!info) return null;
+      return Array.isArray(info) ? info[0] : info;
+    },
+    enabled: !!projectId,
+  });
 
   // A microfrontend codebase is still loading when either: a microfrontend is
   // selected but its files haven't landed (`activeCodeFiles === null`), or no
@@ -306,7 +337,6 @@ export const ProjectWorkspaceClient = ({
     setActiveProjectTab(null);
 
     setIsLoading(true);
-    setProjectInfo(null);
     // Fetch project details and files
     if (isUgen) {
       api
@@ -359,27 +389,6 @@ export const ProjectWorkspaceClient = ({
           setLoadedProjectId(projectId);
         });
     }
-
-    // Fetch additional company project info using query param API.
-    // Non-ugen projects have no api_key so we must use Bearer to bypass the
-    // interceptor's waitForMatchingApiKey which would otherwise time out.
-    const companyProjectHeaders = !isUgen
-      ? { Authorization: `Bearer ${useAuthStore.getState().accessToken}` }
-      : undefined;
-    api
-      .get("/v1/company-project", {
-        params: { "project-id": projectId },
-        headers: companyProjectHeaders,
-      })
-      .then((res) => {
-        const info = res.data?.data;
-        if (info) {
-          setProjectInfo(Array.isArray(info) ? info[0] : info);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load company project info", err);
-      });
 
     return () => {
       setIsLoading(true);

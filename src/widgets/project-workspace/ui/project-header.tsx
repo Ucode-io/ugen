@@ -55,6 +55,7 @@ export const ProjectHeader = ({
   const [isSidebarForced, setIsSidebarForced] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [isPinned, setIsPinned] = useState(false)
+  const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false)
   const sidebarWrapRef = useRef<HTMLDivElement>(null)
 
   const { user, project, activeCompanyId } = useAuthStore()
@@ -63,7 +64,7 @@ export const ProjectHeader = ({
   const currentCompany = companies.find((c) => c.id === currentCompanyId)
   const workspaceName = currentCompany?.name || project?.title || projectTitle
 
-  const isSidebarVisible = isHovered || isSidebarForced || isPinned
+  const isSidebarVisible = (isHovered || isSidebarForced || isPinned) && !isSidebarModalOpen
 
   useEffect(() => {
     if (!isPinned) return
@@ -135,7 +136,9 @@ export const ProjectHeader = ({
             <Sidebar
               className="h-full w-72 rounded-r-2xl border-r border-t border-b border-border-subtle shadow-2xl"
               hideLogo
+              isHidden={!isSidebarVisible}
               onProfilePopupChange={setIsSidebarForced}
+              onModalOpenChange={setIsSidebarModalOpen}
             />
           </div>
         </div>
@@ -154,7 +157,7 @@ export const ProjectHeader = ({
       />
 
       <div className="flex items-center gap-1.5 justify-end min-w-[135px]">
-        <GithubPopover projectId={projectId} />
+        <GithubPopover />
         {toggleButton}
         {isUgen && (
           <>

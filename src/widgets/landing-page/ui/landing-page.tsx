@@ -1,19 +1,8 @@
 import React from 'react'
-import { Link } from '@/shared/lib/i18n/navigation'
 import { Footer } from '@/widgets/footer'
 import { LandingHeroSection } from './landing-hero-section'
-import { LandingCtaSection } from './landing-cta-section'
-
-const LANDING_TEMPLATES = [
-  { id: 'crm',       emoji: '📊', title: 'CRM Dashboard',       desc: 'Pipeline management with deal tracking',    tags: ['SaaS', 'Sales'] },
-  { id: 'store',     emoji: '🛒', title: 'Online Store',         desc: 'E-commerce with Stripe checkout',           tags: ['E-commerce', 'Payments'] },
-  { id: 'landing',   emoji: '📣', title: 'Landing Page',         desc: 'High-converting page with A/B testing',     tags: ['Marketing', 'Leads'] },
-  { id: 'onboard',   emoji: '🎉', title: 'HR Onboarding Hub',    desc: 'New hire portal with task flows',           tags: ['HR', 'People'] },
-  { id: 'booking',   emoji: '📅', title: 'Booking System',       desc: 'Calendar bookings with payments',           tags: ['SaaS', 'Stripe'] },
-  { id: 'client',    emoji: '🤝', title: 'Client Portal',        desc: 'Branded portal for project updates',        tags: ['Agency', 'B2B'] },
-  { id: 'inventory', emoji: '📦', title: 'Inventory Manager',    desc: 'Stock tracking with auto-reorder',          tags: ['Ops', 'Internal'] },
-  { id: 'analytics', emoji: '📈', title: 'Analytics Dashboard',  desc: 'Real-time KPI reporting',                   tags: ['Data', 'BI'] },
-]
+import { TemplatesSection } from './templates-section'
+// import { LandingCtaSection } from './landing-cta-section'
 
 /* ── Trusted logos ── */
 const WayTwoLogo = () => (
@@ -88,62 +77,6 @@ const STATS = [
   { n: '99.9%', label: 'Platform uptime', sub: 'across all regions' },
   { n: '< 15 min', label: 'Average build time', sub: 'from idea to live app' },
 ]
-
-/* ── Templates section ── */
-const TemplatesSection = () => (
-  <section className="py-20 px-6 bg-bg-card border-y border-border-subtle">
-    <div className="max-w-[1100px] mx-auto">
-      <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
-        <div>
-          <span className="inline-flex items-center bg-bg-main border border-border-subtle rounded-full px-[11px] py-[3px] text-[0.67rem] font-semibold uppercase tracking-[0.08em] text-text-muted mb-3">
-            Templates
-          </span>
-          <h2 className="font-extrabold tracking-[-0.04em] leading-[1.12] text-text-main mb-2.5"
-            style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}>
-            Discover{' '}
-            <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              templates
-            </em>
-          </h2>
-          <p className="text-[0.95rem] text-text-muted max-w-[560px] leading-[1.75]">
-            Start from a production-ready template and customize in minutes.
-          </p>
-        </div>
-        <Link
-          href="/templates"
-          className="text-[0.82rem] font-semibold text-text-muted border border-border-subtle px-4 py-2 rounded-lg hover:border-border-subtle/60 hover:text-text-main transition-all no-underline"
-        >
-          Browse all →
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {LANDING_TEMPLATES.map((template) => (
-          <Link
-            key={template.id}
-            href={`/templates/${template.id}` as any}
-            className="bg-bg-main border border-border-subtle rounded-[10px] overflow-hidden no-underline text-current block transition-all hover:border-border-subtle/60 hover:shadow-md hover:-translate-y-0.5"
-          >
-            <div className="aspect-video flex items-center justify-center text-[2rem] bg-hover-bg border-b border-border-subtle">
-              {template.emoji}
-            </div>
-            <div className="p-[13px_15px]">
-              <h4 className="text-[0.83rem] font-bold text-text-main mb-0.5">{template.title}</h4>
-              <p className="text-[0.74rem] text-text-muted leading-[1.5]">{template.desc}</p>
-            </div>
-            <div className="px-[15px] pb-[13px] flex gap-1.5 flex-wrap">
-              {template.tags.map((tag) => (
-                <span key={tag} className="text-[0.66rem] font-semibold px-2 py-0.5 rounded-full bg-hover-bg border border-border-subtle text-text-muted">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  </section>
-)
 
 /* ── How it works section ── */
 const HowItWorksSection = () => (
@@ -246,7 +179,7 @@ export const LandingPage = () => {
       <HowItWorksSection />
       <TemplatesSection />
       <StatsSection />
-      <LandingCtaSection />
+      {/* <LandingCtaSection /> */}
       <Footer />
     </main>
   )

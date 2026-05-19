@@ -734,7 +734,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className={cn("flex-1 space-y-4 overflow-y-auto py-4", isVersionHistory && "hidden")}
+            className={cn("flex-1 overflow-y-auto py-2", isVersionHistory && "hidden")}
           >
             {isLoadingHistory && (
               <div className="flex justify-center p-2">

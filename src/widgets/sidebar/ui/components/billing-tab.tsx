@@ -1,91 +1,131 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type KeyboardEvent,
+} from "react";
 import {
   Plus,
   CreditCard,
   Wallet,
   Loader2,
-  Check,
   Trash2,
   Inbox,
   Sparkles,
   CalendarClock,
   Receipt,
-  BadgeCheck,
   ArrowUpRight,
+  AlertCircle,
 } from "lucide-react";
-import { Button, Input, Dialog, DialogContent } from "@/shared/ui";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import {
+  Button,
+  Input,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  Skeleton,
+} from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
+import { useAuthStore } from "@/entities/session";
+import {
+  useCardDelete,
+  useCardList,
+  useCardOtpVerify,
+  useCardVerify,
+  useCompanyProjectsList,
+  useFare,
+  useReceiptPay,
+  useTransactions,
+  type BillingTransaction,
+  type CardBrand,
+  type ProjectCard,
+} from "@/entities/billing";
 import { UpgradePlanDialog } from "./upgrade-plan-dialog";
 
-type Card = {
-  id: string;
-  type: "VISA" | "MASTERCARD" | "UZCARD" | "HUMO";
-  number: string;
-  expiry: string;
+const formatAmount = (value: number | undefined | null) =>
+  new Intl.NumberFormat("ru-RU").format(Number(value ?? 0));
+
+const pickErrorMessage = (err: any, fallback: string): string => {
+  const payload = err?.response?.data;
+  const data = payload?.data;
+  if (typeof data === "string" && data.trim()) return data;
+  const description = payload?.description;
+  if (typeof description === "string" && description.trim()) return description;
+  const custom = payload?.custom_message;
+  if (typeof custom === "string" && custom.trim()) return custom;
+  return fallback;
 };
 
-type Transaction = {
-  id: string;
-  project: string;
-  amount: number;
-  type: "TOP_UP" | "CHARGE";
-  date: string;
-  status: "PAID" | "PENDING" | "FAILED";
-};
-
-const invoiceSummary = {
-  balance: 0,
-  plan: "Small",
-  totalAmount: 3642582,
-  expireDate: "2026-12-31",
-  currency: "uzs",
-};
-
-const formatAmount = (value: number) =>
-  new Intl.NumberFormat("ru-RU").format(value);
-
-const detectCardType = (digits: string): Card["type"] => {
-  if (digits.startsWith("4")) return "VISA";
-  if (digits.startsWith("5")) return "MASTERCARD";
-  if (digits.startsWith("8600")) return "UZCARD";
-  if (digits.startsWith("9860")) return "HUMO";
-  return "VISA";
-};
-
-const maskCard = (digits: string) =>
-  `•••• •••• •••• ${digits.slice(-4).padStart(4, "•")}`;
-
-const cardTypeStyles: Record<Card["type"], string> = {
+const cardTypeStyles: Record<CardBrand, string> = {
   VISA: "bg-blue-500/10 text-blue-600",
   MASTERCARD: "bg-orange-500/10 text-orange-600",
   UZCARD: "bg-emerald-500/10 text-emerald-600",
   HUMO: "bg-cyan-500/10 text-cyan-600",
 };
 
+const formatTransactionDate = (value?: string) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return format(date, "dd.MM.yyyy, HH:mm");
+};
+
 export const BillingTab = () => {
-  const [cards, setCards] = useState<Card[]>([]);
-  const [transactions] = useState<Transaction[]>([]);
+  const user = useAuthStore((s) => s.user);
+  const project = useAuthStore((s) => s.project);
+  const projectId = project?.project_id ?? null;
+  const companyId = user?.company_id ?? project?.company_id ?? null;
+  const fareId = project?.fare_id ?? null;
+
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const { data: companyProjects = [] } = useCompanyProjectsList(
+    companyId,
+    projectId,
+  );
+  const { data: fare, isLoading: fareLoading } = useFare(fareId, projectId);
+  const { data: transactions = [], isLoading: transactionsLoading } =
+    useTransactions(projectId);
+
+  const currentProject = useMemo(
+    () =>
+      companyProjects.find((p) => p.project_id === projectId) ??
+      companyProjects[0],
+    [companyProjects, projectId],
+  );
+
+  const currency = (fare?.currency || "uzs").toLowerCase();
 
   return (
     <div className="space-y-4">
       <InvoiceSummaryCard
+        balance={currentProject?.balance ?? 0}
+        planName={fare?.name}
+        totalAmount={fare?.price}
+        expireDate={fare?.subscription?.end_date}
+        currency={currency}
+        isLoading={fareLoading}
         onTopUp={() => setTopUpOpen(true)}
         onUpgrade={() => setUpgradeOpen(true)}
       />
-      <TransactionsTable transactions={transactions} />
+      <TransactionsTable
+        transactions={transactions}
+        isLoading={transactionsLoading}
+      />
 
       <TopUpModal
         open={topUpOpen}
         onOpenChange={setTopUpOpen}
-        cards={cards}
-        onCardAdded={(card) => setCards((prev) => [...prev, card])}
-        onCardRemoved={(id) =>
-          setCards((prev) => prev.filter((c) => c.id !== id))
-        }
+        projectId={projectId}
       />
 
       <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
@@ -94,9 +134,21 @@ export const BillingTab = () => {
 };
 
 const InvoiceSummaryCard = ({
+  balance,
+  planName,
+  totalAmount,
+  expireDate,
+  currency,
+  isLoading,
   onTopUp,
   onUpgrade,
 }: {
+  balance: number;
+  planName?: string;
+  totalAmount?: number;
+  expireDate?: string;
+  currency: string;
+  isLoading: boolean;
   onTopUp: () => void;
   onUpgrade: () => void;
 }) => {
@@ -104,19 +156,19 @@ const InvoiceSummaryCard = ({
     {
       icon: Sparkles,
       label: "Plan",
-      value: invoiceSummary.plan,
+      value: planName ?? "—",
       tone: "bg-violet-500/10 text-violet-600",
     },
     {
       icon: Receipt,
       label: "Total",
-      value: `${formatAmount(invoiceSummary.totalAmount)} ${invoiceSummary.currency}`,
+      value: `${formatAmount(totalAmount)} ${currency}`,
       tone: "bg-amber-500/10 text-amber-600",
     },
     {
       icon: CalendarClock,
       label: "Expires",
-      value: invoiceSummary.expireDate,
+      value: expireDate ?? "—",
       tone: "bg-emerald-500/10 text-emerald-600",
     },
   ];
@@ -137,10 +189,10 @@ const InvoiceSummaryCard = ({
           </div>
           <div className="relative mt-3 flex items-baseline gap-1.5">
             <span className="text-text-main text-[34px] leading-none font-semibold tracking-tight">
-              {formatAmount(invoiceSummary.balance)}
+              {formatAmount(balance)}
             </span>
             <span className="text-text-muted text-[11px] font-bold tracking-wider uppercase">
-              {invoiceSummary.currency}
+              {currency}
             </span>
           </div>
           <p className="text-text-muted relative mt-2 text-[11px]">
@@ -195,9 +247,13 @@ const InvoiceSummaryCard = ({
                   <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
                     {label}
                   </p>
-                  <p className="text-text-main mt-1 truncate text-[15px] font-semibold">
-                    {value}
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="mt-1 h-5 w-24" />
+                  ) : (
+                    <p className="text-text-main mt-1 truncate text-[15px] font-semibold">
+                      {value}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -210,9 +266,13 @@ const InvoiceSummaryCard = ({
 
 const TransactionsTable = ({
   transactions,
+  isLoading,
 }: {
-  transactions: Transaction[];
+  transactions: BillingTransaction[];
+  isLoading: boolean;
 }) => {
+  const list = transactions ?? [];
+
   return (
     <section className="border-border-subtle bg-bg-card overflow-hidden rounded-xl border shadow-sm">
       <div className="border-border-subtle flex shrink-0 items-center justify-between border-b px-4 py-2">
@@ -226,22 +286,28 @@ const TransactionsTable = ({
             </h3>
           </div>
         </div>
-        {transactions.length > 0 && (
+        {list.length > 0 && (
           <span className="border-border-subtle text-text-muted rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
-            {transactions.length} total
+            {list.length} total
           </span>
         )}
       </div>
       <div className="overflow-x-auto">
         <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid min-w-[680px] shrink-0 grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-3 border-b px-5 py-3 text-[11px] font-semibold tracking-wider uppercase">
-          <span>Project</span>
           <span>Amount</span>
           <span>Type</span>
           <span>Date</span>
           <span>Status</span>
+          <span />
         </div>
 
-        {transactions.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-1 px-5 py-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
+        ) : list.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
             <div className="bg-bg-sidebar/60 border-border-subtle mb-3 flex h-11 w-11 items-center justify-center rounded-lg border">
               <Inbox size={18} className="text-text-muted/70" />
@@ -254,27 +320,35 @@ const TransactionsTable = ({
             </p>
           </div>
         ) : (
-          transactions.map((t) => (
-            <div
-              key={t.id}
-              className="border-border-subtle hover:bg-hover-bg/50 text-text-main grid min-w-[680px] grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-3 border-b px-5 py-3 text-[12px] transition-colors last:border-b-0"
-            >
-              <span className="truncate font-medium">{t.project}</span>
-              <span>{formatAmount(t.amount)} uzs</span>
-              <span>{t.type}</span>
-              <span>{t.date}</span>
-              <span
-                className={cn(
-                  "w-max rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
-                  t.status === "PAID" && "bg-green-500/10 text-green-600",
-                  t.status === "PENDING" && "bg-amber-500/10 text-amber-600",
-                  t.status === "FAILED" && "bg-red-500/10 text-red-600",
-                )}
+          list.map((t) => {
+            const status = (t.payment_status ?? "").toLowerCase();
+            const type = t.transaction_type ?? "Top up";
+            return (
+              <div
+                key={t.id}
+                className="border-border-subtle hover:bg-hover-bg/50 text-text-main grid min-w-[680px] grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-3 border-b px-5 py-3 text-[12px] transition-colors last:border-b-0"
               >
-                {t.status}
-              </span>
-            </div>
-          ))
+                <span>
+                  {formatAmount(t.amount)}{" "}
+                  {(t.currency?.code || "UZS").toLowerCase()}
+                </span>
+                <span>{type}</span>
+                <span>{formatTransactionDate(t.created_at)}</span>
+                <span
+                  className={cn(
+                    "w-max rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
+                    status === "accepted" && "bg-green-500/10 text-green-600",
+                    status === "pending" && "bg-amber-500/10 text-amber-600",
+                    (status === "cancelled" || status === "failed") &&
+                      "bg-red-500/10 text-red-600",
+                  )}
+                >
+                  {t.payment_status || "—"}
+                </span>
+                <span />
+              </div>
+            );
+          })
         )}
       </div>
     </section>
@@ -284,171 +358,239 @@ const TransactionsTable = ({
 const TopUpModal = ({
   open,
   onOpenChange,
-  cards,
-  onCardAdded,
-  onCardRemoved,
+  projectId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  cards: Card[];
-  onCardAdded: (card: Card) => void;
-  onCardRemoved: (id: string) => void;
+  projectId: string | null;
 }) => {
   const [amount, setAmount] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [addCardOpen, setAddCardOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<ProjectCard | null>(null);
 
-  const reset = () => {
-    setAmount("");
-    setSelectedCardId(null);
-    setSubmitting(false);
-  };
+  const { data: cardsData = [], isLoading: cardsLoading } = useCardList(
+    projectId,
+    open,
+  );
+
+  // TODO: remove — temporary mock cards for UI testing
+  const MOCK_CARDS = [
+    {
+      id: "mock-1",
+      type: "VISA" as CardBrand,
+      pan: "4111 **** **** 1234",
+      expire: "12/27",
+      verify: true,
+    },
+    {
+      id: "mock-2",
+      type: "UZCARD" as CardBrand,
+      pan: "8600 **** **** 5678",
+      expire: "08/26",
+      verify: true,
+    },
+  ];
+  const cards = cardsData.length > 0 ? cardsData : MOCK_CARDS;
+  const { mutateAsync: receiptPay, isPending: submitting } =
+    useReceiptPay(projectId);
+  const { mutateAsync: deleteCard, isPending: deletingCard } =
+    useCardDelete(projectId);
+
+  const selectedCard = useMemo(
+    () => cards.find((c) => c.id === selectedCardId) ?? null,
+    [cards, selectedCardId],
+  );
+
+  useEffect(() => {
+    if (!open) {
+      setAmount("");
+      setSelectedCardId(null);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || cards.length === 0) return;
+    setSelectedCardId((prev) =>
+      prev && cards.some((c) => c.id === prev) ? prev : cards[0].id,
+    );
+  }, [open, cards]);
 
   const handleAddBalance = async () => {
-    if (!amount || !selectedCardId) return;
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    onOpenChange(false);
-    reset();
+    if (!selectedCard || !amount) return;
+    try {
+      await receiptPay({
+        project_card_id: selectedCard.id,
+        amount: Number(amount),
+      });
+      toast.success("Transaction successfully created!");
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(pickErrorMessage(err, "Failed to top up balance"));
+    }
   };
 
-  const canSubmit = Boolean(amount && Number(amount) > 0 && selectedCardId);
+  const canSubmit =
+    Boolean(amount) &&
+    Number(amount) > 0 &&
+    Boolean(selectedCard) &&
+    selectedCard?.verify !== false;
 
   return (
     <>
-      <Dialog
-        open={open}
-        onOpenChange={(o) => {
-          onOpenChange(o);
-          if (!o) reset();
-        }}
-      >
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-full max-w-lg gap-0 overflow-hidden rounded-2xl p-0">
           <div className="border-border-subtle flex items-center gap-3 border-b px-6 py-4">
             <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
               <Wallet size={16} />
             </div>
             <div>
-              <h3 className="text-text-main text-[15px] leading-tight font-semibold">
+              <DialogTitle className="text-text-main text-[15px] leading-tight font-semibold">
                 Top up balance
-              </h3>
-              <p className="text-text-muted mt-0.5 text-xs">
+              </DialogTitle>
+              <DialogDescription className="text-text-muted mt-0.5 text-xs">
                 Add funds to your account
-              </p>
+              </DialogDescription>
             </div>
           </div>
 
-          <div className="space-y-5 p-6">
-            <div className="space-y-1.5">
-              <label className="text-text-muted text-[12px] font-medium">
-                Amount
-              </label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Write amount..."
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="bg-bg-sidebar border-border-subtle h-10 pr-14 text-[13px]"
-                />
-                <span className="text-text-muted absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-semibold tracking-wider uppercase">
-                  uzs
-                </span>
+          {cardsLoading ? (
+            <div className="space-y-5 p-6">
+              <Skeleton className="h-10 w-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
             </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between">
+          ) : cards.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+              <div className="bg-primary/10 text-primary mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
+                <CreditCard size={24} />
+              </div>
+              <h4 className="text-text-main text-[15px] font-semibold">
+                No payment cards yet
+              </h4>
+              <p className="text-text-muted mt-1.5 max-w-xs text-[12px] leading-relaxed">
+                Add a payment card first to top up your balance.
+              </p>
+              <Button
+                onClick={() => setAddCardOpen(true)}
+                className="bg-primary hover:bg-primary/90 mt-5 h-9 rounded-lg px-5 text-[13px] font-semibold text-white shadow-sm"
+              >
+                <Plus size={15} />
+                Add card
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-5 p-6">
+              <div className="space-y-1.5">
                 <label className="text-text-muted text-[12px] font-medium">
-                  Choose card for top up
+                  Amount
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setAddCardOpen(true)}
-                  className="text-primary flex items-center gap-1.5 text-[12px] font-semibold hover:underline"
-                >
-                  <CreditCard size={13} />
-                  Add card
-                </button>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="Write amount..."
+                    value={amount ? formatAmount(Number(amount)) : ""}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setAmount(digits);
+                    }}
+                    className="bg-bg-sidebar border-border-subtle h-10 pr-14 text-[13px]"
+                  />
+                  <span className="text-text-muted absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-semibold tracking-wider uppercase">
+                    uzs
+                  </span>
+                </div>
               </div>
 
-              <div className="bg-bg-card border-border-subtle overflow-hidden rounded-xl border">
-                <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid grid-cols-[80px_1fr_120px_40px] gap-3 border-b px-4 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
-                  <span>Type</span>
-                  <span>Card number</span>
-                  <span>Expiry date</span>
-                  <span />
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-text-muted text-[12px] font-medium">
+                    Choose card for top up
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setAddCardOpen(true)}
+                    className="text-primary flex items-center gap-1.5 text-[12px] font-semibold hover:underline"
+                  >
+                    <CreditCard size={13} />
+                    Add card
+                  </button>
                 </div>
 
-                {cards.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center px-4 py-10">
-                    <CreditCard size={22} className="text-text-muted/40 mb-2" />
-                    <p className="text-text-muted text-xs">
-                      No cards added yet
-                    </p>
-                    <button
-                      onClick={() => setAddCardOpen(true)}
-                      className="text-primary mt-2 text-[12px] font-semibold hover:underline"
-                    >
-                      Add your first card
-                    </button>
+                <div className="bg-bg-card border-border-subtle overflow-hidden rounded-xl border">
+                  <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid grid-cols-[80px_1fr_100px_60px] gap-3 border-b px-4 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
+                    <span>Type</span>
+                    <span>Card number</span>
+                    <span>Expiry</span>
+                    <span className="text-right">Action</span>
                   </div>
-                ) : (
-                  cards.map((card) => {
+
+                  {cards.map((card) => {
                     const selected = selectedCardId === card.id;
                     return (
-                      <button
+                      <div
                         key={card.id}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setSelectedCardId(card.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedCardId(card.id);
+                          }
+                        }}
+                        aria-pressed={selected}
                         className={cn(
-                          "border-border-subtle text-text-main grid w-full grid-cols-[80px_1fr_120px_40px] items-center gap-3 border-b px-4 py-3 text-left text-[13px] transition-colors last:border-b-0",
-                          selected ? "bg-primary/5" : "hover:bg-bg-sidebar/50",
+                          "border-border-subtle text-text-main relative grid w-full cursor-pointer grid-cols-[80px_1fr_100px_60px] items-center gap-3 border-b px-4 py-3 text-left text-[13px] transition-colors last:border-b-0 focus:outline-none",
+                          selected
+                            ? "bg-primary/5 ring-primary z-10 rounded-xl ring-1 ring-inset"
+                            : "hover:bg-bg-sidebar/50",
                         )}
                       >
                         <span
                           className={cn(
                             "w-max rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide",
-                            cardTypeStyles[card.type],
+                            cardTypeStyles[card.type] ??
+                              cardTypeStyles.VISA,
                           )}
                         >
                           {card.type}
                         </span>
-                        <span className="font-mono">
-                          {maskCard(card.number)}
+                        <span
+                          className={cn(
+                            "font-mono",
+                            selected && "text-text-main font-semibold",
+                          )}
+                        >
+                          {card.pan}
                         </span>
                         <span className="text-text-muted font-mono">
-                          {card.expiry}
+                          {card.expire}
                         </span>
-                        <span className="flex items-center justify-end gap-1">
-                          {selected ? (
-                            <span className="bg-primary flex h-5 w-5 items-center justify-center rounded-full text-white">
-                              <Check size={12} />
-                            </span>
-                          ) : (
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onCardRemoved(card.id);
-                              }}
-                              className="text-text-muted hover:text-destructive hover:bg-destructive/10 flex h-7 w-7 items-center justify-center rounded-md transition-colors"
-                            >
-                              <Trash2 size={13} />
-                            </span>
-                          )}
+                        <span className="flex items-center justify-end">
+                          <button
+                            type="button"
+                            aria-label={`Delete card ${card.pan}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCardToDelete(card);
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-500/10 hover:text-red-600"
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </span>
-                      </button>
+                      </div>
                     );
-                  })
-                )}
+                  })}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="border-border-subtle flex items-center justify-end gap-2 border-t px-6 py-4">
             <Button
@@ -458,16 +600,18 @@ const TopUpModal = ({
             >
               Cancel
             </Button>
-            <Button
-              disabled={!canSubmit || submitting}
-              onClick={handleAddBalance}
-              className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
-            >
-              {submitting && (
-                <Loader2 size={14} className="mr-2 animate-spin" />
-              )}
-              Add balance
-            </Button>
+            {!cardsLoading && cards.length > 0 && (
+              <Button
+                disabled={!canSubmit || submitting}
+                onClick={handleAddBalance}
+                className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
+              >
+                {submitting && (
+                  <Loader2 size={14} className="mr-2 animate-spin" />
+                )}
+                Add balance
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -475,11 +619,64 @@ const TopUpModal = ({
       <AddCardModal
         open={addCardOpen}
         onOpenChange={setAddCardOpen}
-        onAdd={(card) => {
-          onCardAdded(card);
-          setSelectedCardId(card.id);
-        }}
+        projectId={projectId}
+        onAdded={(card) => setSelectedCardId(card.id)}
       />
+
+      <Dialog
+        open={Boolean(cardToDelete)}
+        onOpenChange={(o) => !o && !deletingCard && setCardToDelete(null)}
+      >
+        <DialogContent className="w-full max-w-sm gap-0 overflow-hidden rounded-2xl p-0">
+          <div className="flex flex-col items-center px-6 pt-6 pb-2 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10 text-red-600">
+              <Trash2 size={20} />
+            </div>
+            <DialogTitle className="text-text-main text-[15px] font-semibold">
+              Delete this card?
+            </DialogTitle>
+            <DialogDescription className="text-text-muted mt-1.5 text-[12px] leading-relaxed">
+              Are you sure you want to remove{" "}
+              <span className="text-text-main font-mono">
+                {cardToDelete?.pan}
+              </span>{" "}
+              from your saved cards? This action cannot be undone.
+            </DialogDescription>
+          </div>
+          <div className="flex items-center justify-end gap-2 px-6 py-4">
+            <Button
+              variant="ghost"
+              disabled={deletingCard}
+              onClick={() => setCardToDelete(null)}
+              className="h-9 rounded-lg px-4 text-[13px]"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={deletingCard}
+              onClick={async () => {
+                if (!cardToDelete) return;
+                try {
+                  await deleteCard(cardToDelete.id);
+                  if (selectedCardId === cardToDelete.id) {
+                    setSelectedCardId(null);
+                  }
+                  toast.success("Card removed");
+                  setCardToDelete(null);
+                } catch (err: any) {
+                  toast.error(pickErrorMessage(err, "Failed to delete card"));
+                }
+              }}
+              className="h-9 rounded-lg bg-red-500 px-5 text-[13px] font-medium text-white shadow-sm hover:bg-red-600"
+            >
+              {deletingCard && (
+                <Loader2 size={14} className="mr-2 animate-spin" />
+              )}
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
@@ -487,21 +684,30 @@ const TopUpModal = ({
 const AddCardModal = ({
   open,
   onOpenChange,
-  onAdd,
+  projectId,
+  onAdded,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (card: Card) => void;
+  projectId: string | null;
+  onAdded: (card: { id: string }) => void;
 }) => {
   const [number, setNumber] = useState("");
   const [expiry, setExpiry] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [stage, setStage] = useState<"card" | "otp">("card");
+  const [projectCardId, setProjectCardId] = useState<string | null>(null);
+  const [verifyError, setVerifyError] = useState<{
+    message: string;
+    detail?: string;
+  } | null>(null);
+  const expiryRef = useRef<HTMLInputElement>(null);
+  const lastAttemptRef = useRef<string>("");
 
-  const reset = () => {
-    setNumber("");
-    setExpiry("");
-    setSubmitting(false);
-  };
+  const { mutateAsync: verifyCard, isPending: verifying } =
+    useCardVerify(projectId);
+  const { mutateAsync: confirmOtp, isPending: confirming } =
+    useCardOtpVerify(projectId);
 
   const formatCardNumber = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 16);
@@ -515,72 +721,164 @@ const AddCardModal = ({
   };
 
   const numberDigits = number.replace(/\s/g, "");
-  const canSubmit = numberDigits.length === 16 && /^\d{2}\/\d{2}$/.test(expiry);
+  const canVerify =
+    numberDigits.length === 16 && /^\d{2}\/\d{2}$/.test(expiry);
+  const verifyKey = `${numberDigits}|${expiry}`;
 
-  const handleAdd = async () => {
-    if (!canSubmit) return;
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    onAdd({
-      id: crypto.randomUUID(),
-      type: detectCardType(numberDigits),
-      number: numberDigits,
-      expiry,
-    });
-    setSubmitting(false);
-    onOpenChange(false);
-    reset();
+  const reset = () => {
+    setNumber("");
+    setExpiry("");
+    setOtp("");
+    setStage("card");
+    setProjectCardId(null);
+    setVerifyError(null);
+    lastAttemptRef.current = "";
+  };
+
+  useEffect(() => {
+    if (!open) reset();
+  }, [open]);
+
+  const handleVerifyCard = async (force = false) => {
+    if (!canVerify || verifying) return;
+    if (!force && lastAttemptRef.current === verifyKey) return;
+    lastAttemptRef.current = verifyKey;
+    setVerifyError(null);
+    try {
+      const res = await verifyCard({ pan: numberDigits, expire: expiry });
+      setProjectCardId(res.project_card_id);
+      setStage("otp");
+    } catch (err: any) {
+      const payload = err?.response?.data;
+      setVerifyError({
+        message: pickErrorMessage(err, "Failed to verify card"),
+        detail:
+          typeof payload?.custom_message === "string" &&
+          payload.custom_message.trim()
+            ? payload.custom_message
+            : undefined,
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (stage !== "card" || !canVerify) return;
+    handleVerifyCard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verifyKey, stage]);
+
+  const handleConfirmOtp = async (codeOverride?: string) => {
+    const code = codeOverride ?? otp;
+    if (!projectCardId || code.length < 6) return;
+    try {
+      await confirmOtp({ code, project_card_id: projectCardId });
+      toast.success("The card is successfully added!");
+      onAdded({ id: projectCardId });
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(pickErrorMessage(err, "Failed to confirm code"));
+    }
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (!o) reset();
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-md gap-0 overflow-hidden rounded-2xl p-0">
         <div className="border-border-subtle flex items-center gap-3 border-b px-6 py-4">
           <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
             <CreditCard size={16} />
           </div>
           <div>
-            <h3 className="text-text-main text-[15px] leading-tight font-semibold">
+            <DialogTitle className="text-text-main text-[15px] leading-tight font-semibold">
               Add card
-            </h3>
-            <p className="text-text-muted mt-0.5 text-xs">
-              Securely save a payment method
-            </p>
+            </DialogTitle>
+            <DialogDescription className="text-text-muted mt-0.5 text-xs">
+              {stage === "card"
+                ? "Securely save a payment method"
+                : "Enter the SMS code to confirm"}
+            </DialogDescription>
           </div>
         </div>
 
-        <div className="space-y-4 p-6">
-          <div className="space-y-1.5">
-            <label className="text-text-muted text-[12px] font-medium">
-              Card number
-            </label>
-            <Input
-              placeholder="1234 5678 9012 3456"
-              value={number}
-              onChange={(e) => setNumber(formatCardNumber(e.target.value))}
-              className="bg-bg-sidebar border-border-subtle h-10 font-mono text-[13px] tracking-wider"
-              inputMode="numeric"
-            />
+        {stage === "card" ? (
+          <div className="space-y-4 p-6">
+            {verifyError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2"
+              >
+                <AlertCircle
+                  size={14}
+                  className="mt-0.5 shrink-0 text-red-600"
+                />
+                <div className="min-w-0">
+                  <p className="text-[12px] leading-snug font-medium text-red-600">
+                    {verifyError.message}
+                  </p>
+                  {verifyError.detail && (
+                    <p className="mt-0.5 text-[10px] leading-snug text-red-600/70">
+                      {verifyError.detail}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-text-muted text-[12px] font-medium">
+                Card number
+              </label>
+              <Input
+                placeholder="1234 5678 9012 3456"
+                value={number}
+                onChange={(e) => {
+                  setVerifyError(null);
+                  const next = formatCardNumber(e.target.value);
+                  setNumber(next);
+                  if (next.replace(/\s/g, "").length === 16) {
+                    expiryRef.current?.focus();
+                  }
+                }}
+                className="bg-bg-sidebar border-border-subtle h-10 font-mono text-[13px] tracking-wider"
+                inputMode="numeric"
+                autoComplete="cc-number"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-text-muted block text-[12px] font-medium">
+                Expiry date (MM/YY)
+              </label>
+              <Input
+                ref={expiryRef}
+                placeholder="MM/YY"
+                value={expiry}
+                onChange={(e) => {
+                  setVerifyError(null);
+                  setExpiry(formatExpiry(e.target.value));
+                }}
+                className="bg-bg-sidebar border-border-subtle h-10 w-32 font-mono text-[13px] tracking-wider"
+                inputMode="numeric"
+                autoComplete="cc-exp"
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-text-muted text-[12px] font-medium">
-              Expiry date (MM/YY)
+        ) : (
+          <div className="space-y-3 p-6">
+            <label className="text-text-muted block text-[12px] font-medium">
+              Verification code
             </label>
-            <Input
-              placeholder="MM/YY"
-              value={expiry}
-              onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-              className="bg-bg-sidebar border-border-subtle h-10 w-40 font-mono text-[13px] tracking-wider"
-              inputMode="numeric"
+            <OtpInput
+              value={otp}
+              onChange={setOtp}
+              length={6}
+              autoFocus
+              disabled={confirming}
+              onComplete={(code) => handleConfirmOtp(code)}
             />
+            <p className="text-text-muted text-[11px]">
+              A 6-digit code has been sent to the phone number linked to this
+              card.
+            </p>
           </div>
-        </div>
+        )}
 
         <div className="border-border-subtle flex items-center justify-end gap-2 border-t px-6 py-4">
           <Button
@@ -590,16 +888,149 @@ const AddCardModal = ({
           >
             Cancel
           </Button>
-          <Button
-            disabled={!canSubmit || submitting}
-            onClick={handleAdd}
-            className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
-          >
-            {submitting && <Loader2 size={14} className="mr-2 animate-spin" />}
-            Add card
-          </Button>
+          {stage === "card" ? (
+            <Button
+              disabled={!canVerify || verifying}
+              onClick={() => handleVerifyCard(true)}
+              className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
+            >
+              {verifying && <Loader2 size={14} className="mr-2 animate-spin" />}
+              {verifyError ? "Retry" : "Add card"}
+            </Button>
+          ) : (
+            <Button
+              disabled={otp.length < 6 || confirming}
+              onClick={() => handleConfirmOtp()}
+              className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
+            >
+              {confirming && (
+                <Loader2 size={14} className="mr-2 animate-spin" />
+              )}
+              Confirm
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+const OtpInput = ({
+  value,
+  onChange,
+  length = 6,
+  autoFocus,
+  disabled,
+  onComplete,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  length?: number;
+  autoFocus?: boolean;
+  disabled?: boolean;
+  onComplete?: (code: string) => void;
+}) => {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    if (autoFocus) refs.current[0]?.focus();
+  }, [autoFocus]);
+
+  useEffect(() => {
+    if (value.length === length && !completedRef.current) {
+      completedRef.current = true;
+      onComplete?.(value);
+    } else if (value.length < length) {
+      completedRef.current = false;
+    }
+  }, [value, length, onComplete]);
+
+  const commit = (next: string) => {
+    onChange(next.replace(/\D/g, "").slice(0, length));
+  };
+
+  const focusAt = (index: number) => {
+    const clamped = Math.max(0, Math.min(length - 1, index));
+    refs.current[clamped]?.focus();
+    refs.current[clamped]?.select();
+  };
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    if (!raw) {
+      commit(value.slice(0, index) + value.slice(index + 1));
+      return;
+    }
+    const merged = value.slice(0, index) + raw + value.slice(index + raw.length);
+    const next = merged.replace(/\D/g, "").slice(0, length);
+    commit(next);
+    focusAt(Math.min(index + raw.length, length - 1));
+  };
+
+  const handleKeyDown = (
+    e: KeyboardEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      if (value[index]) {
+        commit(value.slice(0, index) + value.slice(index + 1));
+      } else if (index > 0) {
+        commit(value.slice(0, index - 1) + value.slice(index));
+        focusAt(index - 1);
+      }
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      focusAt(index - 1);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      focusAt(index + 1);
+    }
+  };
+
+  const handlePaste = (
+    e: ClipboardEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    const text = e.clipboardData.getData("text").replace(/\D/g, "");
+    if (!text) return;
+    e.preventDefault();
+    const merged = (value.slice(0, index) + text).slice(0, length);
+    commit(merged);
+    focusAt(Math.min(merged.length, length - 1));
+  };
+
+  return (
+    <div className="flex w-full items-center gap-2">
+      {Array.from({ length }).map((_, i) => {
+        const filled = Boolean(value[i]);
+        return (
+          <input
+            key={i}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={1}
+            value={value[i] ?? ""}
+            disabled={disabled}
+            aria-label={`Digit ${i + 1}`}
+            onChange={(e) => handleChange(e, i)}
+            onKeyDown={(e) => handleKeyDown(e, i)}
+            onPaste={(e) => handlePaste(e, i)}
+            onFocus={(e) => e.target.select()}
+            className={cn(
+              "bg-bg-sidebar text-text-main h-14 min-w-0 w-14 flex-1 rounded-xl border text-center font-mono text-[22px] font-semibold outline-none transition-all",
+              "focus:border-primary focus:ring-primary focus:ring-2",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              filled ? "border-primary/50" : "border-border-subtle",
+            )}
+          />
+        );
+      })}
+    </div>
   );
 };

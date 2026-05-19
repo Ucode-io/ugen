@@ -392,12 +392,12 @@ export const PublishPopover = ({
     }
   };
 
-  const shortenUrl = async (url: string): Promise<string | null> => {
+  const shortenUrl = async (url: string, alias?: string): Promise<string | null> => {
     try {
       const res = await fetch('/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, alias }),
       });
       if (!res.ok) return null;
       const data = await res.json();
@@ -408,27 +408,34 @@ export const PublishPopover = ({
     }
   };
 
+  // Cache key includes the title so renaming the project invalidates the cached short URL.
+  const shortCacheKey = useMemo(
+    () => (mfUrl ? `${mfUrl}|${projectTitle || ''}` : ''),
+    [mfUrl, projectTitle]
+  );
+
   useEffect(() => {
-    if (!mfUrl) {
+    if (!shortCacheKey) {
       setShortUrl(null);
       return;
     }
     const cached =
-      shortUrlCacheRef.current.get(mfUrl) ?? readShortFromStorage(mfUrl);
+      shortUrlCacheRef.current.get(shortCacheKey) ??
+      readShortFromStorage(shortCacheKey);
     if (cached) {
-      shortUrlCacheRef.current.set(mfUrl, cached);
+      shortUrlCacheRef.current.set(shortCacheKey, cached);
       setShortUrl(cached);
     } else {
       setShortUrl(null);
     }
-  }, [mfUrl]);
+  }, [shortCacheKey]);
 
   useEffect(() => {
-    if (!isOpen || !mfUrl || visibility !== 'public') return;
-    if (shortUrlCacheRef.current.has(mfUrl)) return;
-    const stored = readShortFromStorage(mfUrl);
+    if (!isOpen || !mfUrl || !shortCacheKey || visibility !== 'public') return;
+    if (shortUrlCacheRef.current.has(shortCacheKey)) return;
+    const stored = readShortFromStorage(shortCacheKey);
     if (stored) {
-      shortUrlCacheRef.current.set(mfUrl, stored);
+      shortUrlCacheRef.current.set(shortCacheKey, stored);
       setShortUrl(stored);
       return;
     }
@@ -437,11 +444,11 @@ export const PublishPopover = ({
     setIsShortening(true);
     (async () => {
       const target = mfUrl.startsWith('http') ? mfUrl : `https://${mfUrl}`;
-      const short = await shortenUrl(target);
+      const short = await shortenUrl(target, projectTitle);
       if (cancelled) return;
       if (short) {
-        shortUrlCacheRef.current.set(mfUrl, short);
-        writeShortToStorage(mfUrl, short);
+        shortUrlCacheRef.current.set(shortCacheKey, short);
+        writeShortToStorage(shortCacheKey, short);
         setShortUrl(short);
       }
       setIsShortening(false);
@@ -451,23 +458,24 @@ export const PublishPopover = ({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, mfUrl, visibility]);
+  }, [isOpen, mfUrl, shortCacheKey, visibility, projectTitle]);
 
   const copyMfUrl = async () => {
-    if (!mfUrl) return;
+    if (!mfUrl || !shortCacheKey) return;
 
     const cached =
-      shortUrlCacheRef.current.get(mfUrl) ?? readShortFromStorage(mfUrl);
+      shortUrlCacheRef.current.get(shortCacheKey) ??
+      readShortFromStorage(shortCacheKey);
     let toCopy = cached ?? mfUrl;
 
     if (!cached) {
       setIsShortening(true);
       const target = finalUrl || mfUrl;
-      const short = await shortenUrl(target);
+      const short = await shortenUrl(target, projectTitle);
       setIsShortening(false);
       if (short) {
-        shortUrlCacheRef.current.set(mfUrl, short);
-        writeShortToStorage(mfUrl, short);
+        shortUrlCacheRef.current.set(shortCacheKey, short);
+        writeShortToStorage(shortCacheKey, short);
         setShortUrl(short);
         toCopy = short;
       }

@@ -6,7 +6,6 @@ import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/entities/session";
 import Image from 'next/image'
-import { useUIStore } from "@/shared/model/theme/use-ui-store";
 import { SearchModal } from "@/features/search";
 
 import { useClickOutside } from "../lib/use-click-outside";
@@ -15,22 +14,25 @@ import { RecentsNav } from "./components/recents-nav";
 import { ProjectDropdown } from "./components/project-dropdown";
 import { ProfileFooter } from "./components/profile-footer";
 import { ProfileModal } from "./components/profile-modal";
+import { UpgradePlanDialog } from "./components/upgrade-plan-dialog";
 import { cn } from "@/shared/lib/utils/cn";
 
 interface SidebarProps {
   className?: string
   hideLogo?: boolean
+  isHidden?: boolean
   onProfilePopupChange?: (isOpen: boolean) => void
+  onModalOpenChange?: (isOpen: boolean) => void
 }
 
-export const Sidebar = ({ className, hideLogo, onProfilePopupChange }: SidebarProps) => {
+export const Sidebar = ({ className, hideLogo, isHidden, onProfilePopupChange, onModalOpenChange }: SidebarProps) => {
   const router = useRouter();
   const t = useTranslations('Navigation');
-  const { user, project, logout, setActiveView } = useAuthStore();
+  const { user, project, logout } = useAuthStore();
   const isUgen = project?.is_ugen ?? false;
-  const { theme, setTheme } = useUIStore();
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
 
   const [isProjectPopupOpen, setIsProjectPopupOpen] = useState(false);
 
@@ -42,8 +44,19 @@ export const Sidebar = ({ className, hideLogo, onProfilePopupChange }: SidebarPr
     onProfilePopupChange?.(isProfilePopupOpen);
   }, [isProfilePopupOpen, onProfilePopupChange]);
 
-  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  useEffect(() => {
+    if (isHidden) {
+      setIsProjectPopupOpen(false);
+      setIsProfilePopupOpen(false);
+    }
+  }, [isHidden]);
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const isAnyModalOpen = isProfileModalOpen || isUpgradeDialogOpen || isSearchOpen;
+  useEffect(() => {
+    onModalOpenChange?.(isAnyModalOpen);
+  }, [isAnyModalOpen, onModalOpenChange]);
 
   const queryClient = useQueryClient()
 
@@ -85,6 +98,7 @@ export const Sidebar = ({ className, hideLogo, onProfilePopupChange }: SidebarPr
             isProjectPopupOpen={isProjectPopupOpen}
             setIsProjectPopupOpen={setIsProjectPopupOpen}
             onOpenProfileModal={() => setIsProfileModalOpen(true)}
+            onOpenUpgradeDialog={() => setIsUpgradeDialogOpen(true)}
           />
         </div>
 
@@ -116,18 +130,12 @@ export const Sidebar = ({ className, hideLogo, onProfilePopupChange }: SidebarPr
         isProfilePopupOpen={isProfilePopupOpen}
         setIsProfilePopupOpen={setIsProfilePopupOpen}
         profilePopupRef={profilePopupRef}
-        isThemeMenuOpen={isThemeMenuOpen}
-        setIsThemeMenuOpen={setIsThemeMenuOpen}
-        theme={theme}
-        setTheme={setTheme}
-        setActiveView={setActiveView}
-        router={router}
         handleLogout={handleLogout}
-        onOpenProfileModal={() => setIsProfileModalOpen(true)}
       />
 
       <SearchModal isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
       <ProfileModal isOpen={isProfileModalOpen} onOpenChange={setIsProfileModalOpen} />
+      <UpgradePlanDialog open={isUpgradeDialogOpen} onOpenChange={setIsUpgradeDialogOpen} />
     </aside>
   );
 }
