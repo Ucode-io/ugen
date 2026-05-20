@@ -610,32 +610,38 @@ export const SchemaView = ({
     ucodeProjectId || "",
   );
 
+  // The relations API sometimes returns table_to / label / slug as a nested
+  // table object ({ id, label, slug, … }) instead of a string. Coerce to a
+  // plain string so these never get rendered as a React child.
+  const asStr = (v: unknown): string => {
+    if (typeof v === "string") return v;
+    if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      return asStr(o.slug) || asStr(o.label) || asStr(o.name);
+    }
+    return "";
+  };
+
   const columns: SchemaColumn[] = [
     ...rawColumns,
     ...relations
       .filter((r) => !!r.table_to)
-      .map<SchemaColumn>((r) => ({
-        id: r.id,
-        name:
-          r.slug ||
-          (typeof r.attributes?.label === "string"
-            ? (r.attributes.label as string)
-            : undefined) ||
-          r.label ||
-          r.table_to ||
-          "",
-        label:
-          (typeof r.attributes?.label === "string"
-            ? (r.attributes.label as string)
-            : undefined) ||
-          r.label ||
-          r.slug,
-        type: "relation",
-        nullable: r.required ? "NO" : "YES",
-        default: null,
-        constraints: [{ label: "FK", name: `${r.table_to}_fk` }],
-        attributes: { ...(r.attributes || {}), relation_table: r.table_to },
-      })),
+      .map<SchemaColumn>((r) => {
+        const tableTo = asStr(r.table_to);
+        const attrLabel = asStr(r.attributes?.label);
+        const slug = asStr(r.slug);
+        const label = asStr(r.label);
+        return {
+          id: r.id,
+          name: slug || attrLabel || label || tableTo || "",
+          label: attrLabel || label || slug,
+          type: "relation",
+          nullable: r.required ? "NO" : "YES",
+          default: null,
+          constraints: [{ label: "FK", name: `${tableTo}_fk` }],
+          attributes: { ...(r.attributes || {}), relation_table: tableTo },
+        };
+      }),
   ];
 
   const addFieldMutation = useAddSchemaField();

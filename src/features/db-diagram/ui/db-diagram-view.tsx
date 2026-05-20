@@ -22,6 +22,8 @@ import { CanvasControls } from "./canvas-controls";
 import { DiagramToolbar } from "./diagram-toolbar";
 import { Minimap } from "./minimap";
 import { SplitPanel } from "./split-panel";
+import { getPaymentRequiredFromError } from "@/entities/billing";
+import { BillingLimitState } from "@/widgets/billing-limit";
 
 interface Props {
   projectId: string;
@@ -35,7 +37,8 @@ interface ParsedDiagram {
 const DBML_DEBOUNCE_MS = 500;
 
 export const DbDiagramView: React.FC<Props> = ({ projectId }) => {
-  const { tables, relations, isLoading, isError } = useDiagramData(projectId);
+  const { tables, relations, isLoading, isError, error } = useDiagramData(projectId);
+  const billingLimit = getPaymentRequiredFromError(error);
 
   const isDbmlEditing = useDiagramStore((s) => s.isDbmlEditing);
   const setDbml = useDiagramStore((s) => s.setDbml);
@@ -135,6 +138,14 @@ export const DbDiagramView: React.FC<Props> = ({ projectId }) => {
     }),
     [effectiveTables, effectiveRelations],
   );
+
+  if (billingLimit) {
+    return (
+      <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
+        <BillingLimitState data={billingLimit} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full w-full flex-1 flex-col overflow-hidden">

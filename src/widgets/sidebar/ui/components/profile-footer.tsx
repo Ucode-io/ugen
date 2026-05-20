@@ -50,6 +50,7 @@ export const ProfileFooter = ({
   return (
     <div
       className={`space-y-4 p-3 ${isCollapsed ? "flex flex-col items-center" : ""}`}
+      onMouseLeave={scheduleClosePopup}
     >
       <div
         className={`flex items-center justify-between pb-2 ${isCollapsed ? "flex-col gap-4" : "px-1.5"}`}
@@ -58,7 +59,6 @@ export const ProfileFooter = ({
           className="relative"
           ref={profilePopupRef}
           onMouseEnter={openPopup}
-          onMouseLeave={scheduleClosePopup}
         >
           <button
             onClick={() => {
@@ -73,35 +73,39 @@ export const ProfileFooter = ({
           </button>
 
           {isProfilePopupOpen && (
+            // Wrapper keeps a transparent hover bridge (padding) so moving the
+            // cursor across the gap to the popup doesn't trigger onMouseLeave.
             <div
-              className={`absolute bottom-[calc(100%+12px)] ${isCollapsed ? "left-[calc(100%+8px)]" : "left-0"} bg-bg-card border-border-subtle z-[100] flex w-64 flex-col rounded-xl border shadow-lg`}
+              className={`absolute bottom-full z-[100] pb-3 ${isCollapsed ? "left-full pl-2" : "left-0"}`}
             >
-              {/* Header */}
-              <div className="border-border-subtle bg-bg-sidebar/50 flex items-center gap-2 border-b px-2.5 py-2">
-                <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                  {userInitial}
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <div className="text-text-main truncate text-xs font-semibold leading-tight">
-                    {user?.login || "User"}
+              <div className="bg-bg-card border-border-subtle flex w-64 flex-col rounded-xl border shadow-lg">
+                {/* Header */}
+                <div className="border-border-subtle bg-bg-sidebar/50 flex items-center gap-2 border-b px-2.5 py-2">
+                  <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    {userInitial}
                   </div>
-                  <div className="text-text-muted truncate text-[11px] leading-tight">
-                    {user?.email || "user@example.com"}
+                  <div className="flex-1 overflow-hidden">
+                    <div className="text-text-main truncate text-xs font-semibold leading-tight">
+                      {user?.login || "User"}
+                    </div>
+                    <div className="text-text-muted truncate text-[11px] leading-tight">
+                      {user?.email || "user@example.com"}
+                    </div>
                   </div>
                 </div>
-              </div>
-              {/* Footer */}
-              <div className="p-1.5">
-                <button
-                  onClick={handleLogout}
-                  className="text-text-main group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-red-500/10 hover:text-red-500"
-                >
-                  <LogOut
-                    size={16}
-                    className="text-text-muted group-hover:text-red-500"
-                  />
-                  <span>{tWidgets('logout')}</span>
-                </button>
+                {/* Footer */}
+                <div className="p-1.5">
+                  <button
+                    onClick={handleLogout}
+                    className="text-text-main group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-red-500/10 hover:text-red-500"
+                  >
+                    <LogOut
+                      size={16}
+                      className="text-text-muted group-hover:text-red-500"
+                    />
+                    <span>{tWidgets('logout')}</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

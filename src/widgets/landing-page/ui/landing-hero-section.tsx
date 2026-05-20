@@ -32,6 +32,7 @@ export const LandingHeroSection = () => {
   const setChatId = useChatStore(state => state.setChatId)
   const setProjectId = useChatStore(state => state.setProjectId)
   const setPendingPrompt = useChatStore(state => state.setPendingPrompt)
+  const setPendingDraft = useChatStore(state => state.setPendingDraft)
   const clearChat = useChatStore(state => state.clearChat)
 
   useEffect(() => {
@@ -45,7 +46,15 @@ export const LandingHeroSection = () => {
   const handleSubmit = async () => {
     if ((!prompt.trim() && uploadedFiles.length === 0) || isProcessing || isUploading) return
 
+    // Not authenticated yet: stash the draft so the dashboard can resume the
+    // submit flow automatically once the user logs in / registers (this
+    // component unmounts when activeView flips to 'dashboard').
     if (!isAuthenticated) {
+      setPendingDraft({
+        content: prompt,
+        images: uploadedFiles.map(f => f.url),
+        model: selectedModel,
+      })
       window.dispatchEvent(new CustomEvent('open-auth', { detail: 'login' }))
       return
     }

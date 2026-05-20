@@ -9,6 +9,7 @@ import { api } from "@/shared/api";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
 import { useAuthStore } from "@/entities/session";
+import { handlePaymentRequired } from "@/entities/billing";
 import { queryClient } from "@/shared/api/query-client";
 import React from 'react';
 import { BpmnViewer } from "@/shared/ui";
@@ -589,6 +590,13 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
           body: JSON.stringify(payload),
         });
 
+        // A billing limit can come back as a plain 402 before the stream opens.
+        if (response.status === 402) {
+          const payload = await response.json().catch(() => null);
+          handlePaymentRequired(payload?.data);
+          return;
+        }
+
         if (!response.ok || !response.body) throw new Error(`HTTP error! status: ${response.status}`);
 
         setIsThinking(true);
@@ -623,7 +631,11 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                     path: f.path, content: f.content, language: getLanguageByPath(f.path),
                   })));
                 } else if (event.type === 'error') {
-                  setStreamError(event.message ?? 'AI processing failed');
+                  // Billing limit hit mid-stream → open the global upgrade
+                  // popup instead of showing a generic stream error.
+                  if (!handlePaymentRequired((event as any).data)) {
+                    setStreamError(event.message ?? 'AI processing failed');
+                  }
                 } else if (event.type === 'done') {
                   finalDoneData = event.data?.data ?? event.data;
                 }

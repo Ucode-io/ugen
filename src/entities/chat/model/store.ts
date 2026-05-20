@@ -50,6 +50,19 @@ interface ChatState {
     model?: string
     context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>
   } | null) => void
+  // Draft typed on a public page (e.g. landing) before the user authenticated.
+  // Survives the landing → dashboard unmount so the submit flow can resume
+  // automatically right after login/registration.
+  pendingDraft: {
+    content: string
+    images?: string[]
+    model?: string
+  } | null
+  setPendingDraft: (draft: {
+    content: string
+    images?: string[]
+    model?: string
+  } | null) => void
   setChatPosition: (position: ChatPosition) => void
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void
@@ -74,6 +87,7 @@ export const useChatStore = create<ChatState>()(
       messages: [],
       chatWidth: 360,
       pendingPrompt: null,
+      pendingDraft: null,
       chatPosition: 'left',
       isStreaming: false,
       pendingScreenshot: false,
@@ -85,6 +99,7 @@ export const useChatStore = create<ChatState>()(
       setProjectId: (id) => set({ projectId: id }),
       setChatPosition: (position) => set({ chatPosition: position }),
       setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
+      setPendingDraft: (draft) => set({ pendingDraft: draft }),
       setIsStreaming: (isStreaming) => set({ isStreaming }),
       setStreamError: (streamError) => set({ streamError }),
       setPendingScreenshot: (pendingScreenshot) => set({ pendingScreenshot }),

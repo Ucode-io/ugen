@@ -51,18 +51,21 @@ export const LogoPopover = ({
   const guardedAction = useGuardedAction()
 
   const { data: pricingData } = useQuery({
-    queryKey: ['pricing-all', apiKey],
+    queryKey: ['pricing-company-stats', apiKey],
     queryFn: async () => {
       const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
-      const { data } = await api.get('/v1/pricing/all', { headers })
+      const { data } = await api.get('/v1/pricing/company-stats', { headers })
       return data
     },
     staleTime: 0,
   })
 
-  const d = pricingData?.data || {}
-  const dailyTokens = d.today_tokens
-  const monthlyTokens = d.monthly_tokens
+  const toTokenUsage = (t?: { input_tokens?: number; output_tokens?: number; limit?: number }) =>
+    t ? { current: (t.input_tokens ?? 0) + (t.output_tokens ?? 0), limit: t.limit ?? 0 } : undefined
+
+  const tokens = pricingData?.data?.tokens
+  const dailyTokens = toTokenUsage(tokens?.daily)
+  const monthlyTokens = toTokenUsage(tokens?.monthly)
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>

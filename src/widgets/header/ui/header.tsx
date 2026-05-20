@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { useState, useEffect, useRef } from 'react'
 import { AuthModal } from '@/features/auth'
 import { useAuthStore } from '@/entities/session'
+import { useChatStore } from '@/entities/chat'
 import { ChevronDown } from 'lucide-react'
 
 type ResourceItem = {
@@ -31,11 +32,21 @@ export const Header = () => {
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
   const [resourcesOpen, setResourcesOpen] = useState(false)
   const { isAuthenticated, setActiveView } = useAuthStore()
+  const setPendingDraft = useChatStore(state => state.setPendingDraft)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const openAuth = (tab: 'login' | 'register') => {
     setAuthTab(tab)
     setIsAuthOpen(true)
+  }
+
+  const handleAuthOpenChange = (open: boolean) => {
+    setIsAuthOpen(open)
+    // Drop a stashed landing-page draft if the user dismisses auth without
+    // signing in, so it doesn't auto-submit on a later login.
+    if (!open && !useAuthStore.getState().isAuthenticated) {
+      setPendingDraft(null)
+    }
   }
 
   useEffect(() => {
@@ -197,7 +208,7 @@ export const Header = () => {
 
       <AuthModal
         isOpen={isAuthOpen}
-        onOpenChange={setIsAuthOpen}
+        onOpenChange={handleAuthOpenChange}
         defaultTab={authTab}
       />
     </header>

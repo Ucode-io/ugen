@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Settings, ChevronsUpDown, Loader2, Lock, User, ChevronRight, Sparkles, Plus, Palette, Check, BriefcaseBusiness } from "lucide-react"
+import { Settings, ChevronsUpDown, Loader2, Lock, User, ChevronRight, Sparkles, Plus, Palette, Sun, Moon, BriefcaseBusiness } from "lucide-react"
 import { useUserProjects, UserCompany, useSwitchProject, useCreateCompany } from "@/entities/project"
 import { useAuthStore } from "@/entities/session"
 import { useRouter } from "@/shared/lib/i18n/navigation"
@@ -88,21 +88,25 @@ export const ProjectDropdown = ({
   const portalRef = useRef<HTMLDivElement>(null)
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null)
   const [isWorkspacesOpen, setIsWorkspacesOpen] = useState(false)
-  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false)
 
   const { data: pricingData } = useQuery({
-    queryKey: ['pricing-all', apiKey],
+    queryKey: ['pricing-company-stats', apiKey],
     queryFn: async () => {
-      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
-      const { data } = await api.get('/v1/pricing/all', { headers })
+      // const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const { data } = await api.get('/v1/pricing/company-stats')
       return data
     },
     enabled: isProjectPopupOpen,
     staleTime: 30_000,
   })
 
-  const dailyTokens = pricingData?.data?.today_tokens
-  const monthlyTokens = pricingData?.data?.monthly_tokens
+  const toTokenUsage = (t?: { input_tokens?: number; output_tokens?: number; limit?: number }) =>
+    t ? { current: (t.input_tokens ?? 0) + (t.output_tokens ?? 0), limit: t.limit ?? 0 } : undefined
+
+  const dailyTokens = toTokenUsage(pricingData?.data?.tokens?.daily)
+  const monthlyTokens = toTokenUsage(pricingData?.data?.tokens?.monthly)
+  const projectCount = pricingData?.data?.project_count
+  const builderCount = pricingData?.data?.builder_count
 
   useEffect(() => {
     if (isProjectPopupOpen && buttonRef.current) {
@@ -114,7 +118,6 @@ export const ProjectDropdown = ({
   useEffect(() => {
     if (!isProjectPopupOpen) {
       setIsWorkspacesOpen(false)
-      setIsAppearanceOpen(false)
       setIsCreatingWorkspace(false)
       setNewWorkspaceName('')
       return
@@ -137,20 +140,6 @@ export const ProjectDropdown = ({
     setIsWorkspacesOpen((prev) => {
       const next = !prev
       if (!next) {
-        setIsCreatingWorkspace(false)
-        setNewWorkspaceName('')
-      } else {
-        setIsAppearanceOpen(false)
-      }
-      return next
-    })
-  }
-
-  const toggleAppearance = () => {
-    setIsAppearanceOpen((prev) => {
-      const next = !prev
-      if (next) {
-        setIsWorkspacesOpen(false)
         setIsCreatingWorkspace(false)
         setNewWorkspaceName('')
       }
@@ -279,7 +268,7 @@ export const ProjectDropdown = ({
                 title={t("settings") ?? "Settings"}
                 className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
               >
-                <Settings size={14} />
+                <User size={14} />
               </button>
             </div>
 
@@ -289,6 +278,8 @@ export const ProjectDropdown = ({
             <div className="flex flex-col gap-2 px-3 py-2.5">
               <TokenBar label="Daily" item={dailyTokens} color="bg-pink-500" />
               <TokenBar label="Monthly" item={monthlyTokens} color="bg-orange-500" />
+              <TokenBar label="Projects" item={projectCount} color="bg-sky-500" />
+              <TokenBar label="Builders" item={builderCount} color="bg-emerald-500" />
               <button
                 onClick={() => {
                   setIsProjectPopupOpen(false)
@@ -409,35 +400,31 @@ export const ProjectDropdown = ({
                 </div>
               )}
 
-              {/* Appearance accordion */}
-              <button
-                onClick={toggleAppearance}
-                className={`text-text-main hover:bg-hover-bg mt-0.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
-                  isAppearanceOpen ? 'bg-hover-bg' : ''
-                }`}
-              >
+              {/* Appearance theme switch */}
+              <div className="mt-0.5 flex items-center gap-2 px-2 py-1.5">
                 <Palette size={14} className="text-text-muted shrink-0" />
-                <span className="flex-1 truncate text-sm">{t('appearance')}</span>
-                <ChevronRight
-                  size={14}
-                  className={`text-text-muted shrink-0 transition-transform ${isAppearanceOpen ? 'rotate-90' : ''}`}
-                />
-              </button>
-
-              {isAppearanceOpen && (
-                <div className="border-border-subtle/60 mt-1 ml-2 space-y-0.5 border-l pl-1.5">
-                  {(['light', 'dark'] as const).map((tOption) => (
-                    <button
-                      key={tOption}
-                      onClick={() => handleThemeChange(tOption)}
-                      className={`hover:bg-hover-bg flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-sm capitalize ${theme === tOption ? 'text-primary bg-primary/5 font-medium' : 'text-text-main'}`}
-                    >
-                      <span>{t(tOption)}</span>
-                      {theme === tOption && <Check size={14} className="text-primary" />}
-                    </button>
-                  ))}
+                <span className="text-text-main flex-1 truncate text-sm">{t('appearance')}</span>
+                <div className="bg-bg-main border-border-subtle flex items-center gap-1 rounded-lg border p-0.5">
+                  {(['light', 'dark'] as const).map((tOption) => {
+                    const isActive = theme === tOption
+                    const Icon = tOption === 'light' ? Sun : Moon
+                    return (
+                      <button
+                        key={tOption}
+                        onClick={() => handleThemeChange(tOption)}
+                        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium capitalize transition-all duration-200 ${
+                          isActive
+                            ? 'bg-bg-card text-text-main shadow-sm'
+                            : 'text-text-muted hover:text-text-main'
+                        }`}
+                      >
+                        <Icon size={12} className="shrink-0" />
+                        <span>{t(tOption)}</span>
+                      </button>
+                    )
+                  })}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </>,

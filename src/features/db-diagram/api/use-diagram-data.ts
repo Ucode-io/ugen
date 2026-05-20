@@ -11,10 +11,11 @@ interface DiagramData {
   relations: DiagramRelation[];
   isLoading: boolean;
   isError: boolean;
+  error: unknown;
 }
 
 export const useDiagramData = (projectId: string): DiagramData => {
-  const { schemas, relations, isLoading, isError } = useDbDiagram(projectId);
+  const { schemas, relations, isLoading, isError, error } = useDbDiagram(projectId);
 
   const tables = useMemo<DiagramTable[]>(
     () =>
@@ -44,6 +45,11 @@ export const useDiagramData = (projectId: string): DiagramData => {
   });
 
   useEffect(() => {
+    // Wait until ALL schema queries (and therefore relations) have loaded.
+    // Seeding earlier means dagreLayout / generateDbml run with empty or
+    // partial relations, producing a bad layout and incorrect DBML — exactly
+    // what previously forced a manual "Auto layout" / "Regenerate" click.
+    if (isLoading) return;
     if (tables.length === 0) return;
     const state = useDiagramStore.getState();
 
@@ -68,12 +74,13 @@ export const useDiagramData = (projectId: string): DiagramData => {
       state.setDbml(generateDbml(tables, enrichedRelations));
       seededRef.current.dbml = true;
     }
-  }, [tables, enrichedRelations]);
+  }, [isLoading, tables, enrichedRelations]);
 
   return {
     tables,
     relations: enrichedRelations,
     isLoading,
     isError,
+    error,
   };
 };

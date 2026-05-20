@@ -1,5 +1,6 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, githubApi } from '@/shared/api';
+import { getPaymentRequiredFromError } from '@/entities/billing';
 import { Table, Column, TableRecord, TableDetail, SchemaColumn, SchemaConstraint } from '../model/types';
 
 // Mock DB Tables
@@ -88,6 +89,9 @@ export const databaseApi = {
         duration
       };
     } catch (error) {
+      // Surface billing-limit errors so the view can render an inline
+      // "limit reached" state instead of silently showing zero records.
+      if (getPaymentRequiredFromError(error)) throw error;
       console.error(`Error fetching records for table ${tableSlug}:`, error);
       return { items: [], types: {}, duration: 0 };
     }
@@ -666,6 +670,9 @@ export const useDbDiagram = (projectId: string) => {
   const isError =
     tablesQuery.isError || schemaQueries.some((q) => q.isError);
 
+  const error =
+    tablesQuery.error ?? schemaQueries.find((q) => q.error)?.error ?? null;
+
   const schemas: DiagramSchema[] = schemaQueries
     .map((q, i) => {
       const t = tables[i];
@@ -676,6 +683,6 @@ export const useDbDiagram = (projectId: string) => {
 
   const relations = inferRelations(tables, schemas);
 
-  return { tables, schemas, relations, isLoading, isError };
+  return { tables, schemas, relations, isLoading, isError, error };
 };
 

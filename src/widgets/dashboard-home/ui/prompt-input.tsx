@@ -36,6 +36,8 @@ export const PromptInput = () => {
   const setPendingPrompt = useChatStore(state => state.setPendingPrompt)
   const addMessage = useChatStore(state => state.addMessage)
   const clearChat = useChatStore(state => state.clearChat)
+  const pendingDraft = useChatStore(state => state.pendingDraft)
+  const setPendingDraft = useChatStore(state => state.setPendingDraft)
 
   useEffect(() => {
     if (searchParams.get('focus') === 'prompt') {
@@ -52,8 +54,7 @@ export const PromptInput = () => {
     }
   }, [prompt])
 
-  const handleSubmit = async () => {
-    if ((!prompt.trim() && uploadedFiles.length === 0) || isProcessing || isUploading) return
+  const createChatAndNavigate = async (content: string, images: string[], model: string) => {
     setIsProcessing(true)
 
     try {
@@ -61,10 +62,10 @@ export const PromptInput = () => {
 
       // 1. Create chat
       const { data: createData } = await api.post('/v1/ai-chat', {
-        title: prompt.slice(0, 30) || t("newProject"),
-        project_name: prompt.slice(0, 20) || t("newProject"),
+        title: content.slice(0, 30) || t("newProject"),
+        project_name: content.slice(0, 20) || t("newProject"),
         description: "",
-        model: DEFAULT_MODEL_ID
+        model
       })
 
       const chatId = createData.data.id
@@ -73,9 +74,9 @@ export const PromptInput = () => {
       setChatId(chatId)
       setProjectId(projectId)
       setPendingPrompt({
-        content: prompt,
-        images: uploadedFiles.map(f => f.url),
-        model: DEFAULT_MODEL_ID
+        content,
+        images,
+        model
       })
 
       // 2. Navigate
@@ -86,6 +87,24 @@ export const PromptInput = () => {
       setIsProcessing(false)
     }
   }
+
+  const handleSubmit = async () => {
+    if ((!prompt.trim() && uploadedFiles.length === 0) || isProcessing || isUploading) return
+    await createChatAndNavigate(prompt, uploadedFiles.map(f => f.url), DEFAULT_MODEL_ID)
+  }
+
+  // Resume a draft typed on a public page before authentication (see
+  // landing-hero-section). Runs once when this dashboard mounts post-login,
+  // reproducing a normal prompt-input submit.
+  useEffect(() => {
+    if (!pendingDraft) return
+    const draft = pendingDraft
+    setPendingDraft(null)
+    if (!draft.content.trim() && (draft.images?.length ?? 0) === 0) return
+    setPrompt(draft.content)
+    createChatAndNavigate(draft.content, draft.images ?? [], draft.model ?? DEFAULT_MODEL_ID)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {

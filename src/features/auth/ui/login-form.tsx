@@ -7,6 +7,7 @@ import { User as UserIcon, Lock } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { z } from 'zod'
 import { useAuthStore } from '@/entities/session'
+import { useChatStore } from '@/entities/chat'
 import { loginSchema, type LoginFormValues } from '../model/validation'
 import { authApi, api } from '@/shared/api'
 import { useRouter } from '@/shared/lib/i18n/navigation'
@@ -136,7 +137,14 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
     }
 
     onSuccess()
-    router.push('/')
+
+    // If a draft was stashed on a public page (e.g. landing), keep us on '/'
+    // so the dashboard mounts in place and PromptInput can resume the submit
+    // flow, navigating to the new project itself. Pushing '/' here would race
+    // with that navigation and leave the prompt input stuck on a loader.
+    if (!useChatStore.getState().pendingDraft) {
+      router.push('/')
+    }
   }
 
   const onSubmit = async (data: LoginFormValues) => {
@@ -229,10 +237,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-text-main">{t('login.passwordLabel')}</label>
-            <a href="#" className="text-xs text-primary hover:underline">{t('login.forgotPassword')}</a>
-          </div>
+          <label className="text-sm font-medium text-text-main">{t('login.passwordLabel')}</label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
             <input
@@ -243,6 +248,9 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
             />
           </div>
           {form.formState.errors.password && <p className="text-xs text-red-500">{form.formState.errors.password.message}</p>}
+          <div className="flex justify-end">
+            <a href="#" className="text-xs text-primary hover:underline">{t('login.forgotPassword')}</a>
+          </div>
         </div>
 
         <Button

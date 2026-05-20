@@ -7,6 +7,7 @@ import { siteConfig } from "@/shared/config";
 import { routing } from "@/shared/lib/i18n";
 import { ThemeProvider, QueryProvider, YandexMetrika } from "@/shared/providers";
 import { ViewLayoutWrapper } from "@/shared/ui";
+import { BillingLimitDialog } from "@/widgets/billing-limit";
 import { Toaster } from "sonner";
 
 const inter = Inter({
@@ -41,6 +42,7 @@ const RootLayout = async ({ children, params }: Props) => {
               <ViewLayoutWrapper>
                 {children}
               </ViewLayoutWrapper>
+              <BillingLimitDialog />
               <Toaster richColors position="top-right" />
             </NextIntlClientProvider>
           </ThemeProvider>

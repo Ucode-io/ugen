@@ -51,6 +51,8 @@ import {
 import { Skeleton } from "@/shared/ui";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/entities/session";
+import { getPaymentRequiredFromError } from "@/entities/billing";
+import { BillingLimitState } from "@/widgets/billing-limit";
 
 type ActiveTab = "records" | "schema";
 
@@ -130,6 +132,27 @@ const getFilterInputKind = (rawType: string): FilterInputKind => {
     return "datetime";
   return "text";
 };
+
+// Normalizes any date/timestamp value into the format <input type="date"|"datetime-local"> expects.
+const toDateInputValue = (val: any, withTime: boolean): string => {
+  if (!val) return "";
+  const normalized = String(val).replace(" ", "T");
+  return withTime ? normalized.slice(0, 16) : normalized.slice(0, 10);
+};
+
+// Coerces a raw cell value into the string a boolean <select> uses.
+const toBoolSelectValue = (val: any): string =>
+  val === true || val === "true" || val === "1" ? "true" : "false";
+
+// Picks the native input type for a given field kind.
+const inputTypeForKind = (kind: FilterInputKind): string =>
+  kind === "number"
+    ? "number"
+    : kind === "date"
+      ? "date"
+      : kind === "datetime"
+        ? "datetime-local"
+        : "text";
 
 const getRecordLabel = (record: any): string => {
   const keys = Object.keys(record).filter(
@@ -459,6 +482,7 @@ export const RecordsView = ({
   const {
     data,
     isLoading: isRecordsLoading,
+    error: recordsError,
     refetch,
   } = useTableRecords(
     selectedTable,
@@ -469,6 +493,8 @@ export const RecordsView = ({
     appliedFilters,
     selectedColumns,
   );
+
+  const billingLimit = getPaymentRequiredFromError(recordsError);
 
   const records = data?.items || [];
   const fetchDuration = data?.duration || 0;
@@ -773,12 +799,47 @@ export const RecordsView = ({
                 </div>
               );
             }
+            const editKind = getFilterInputKind(schemaFieldEdit?.type || "");
+
+            if (editKind === "bool") {
+              return (
+                <div className="max-w-[400px] min-w-[200px] px-0 py-0 text-[13px] leading-tight">
+                  <select
+                    autoFocus
+                    defaultValue={toBoolSelectValue(editValueRef.current)}
+                    onChange={(e) =>
+                      handleUpdateRecord(row.original, key, e.target.value)
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setEditingCell(null);
+                        setEditValue(null);
+                      }
+                    }}
+                    className="text-text-main w-full cursor-pointer border-none bg-transparent p-0 text-[13px] font-medium outline-none"
+                  >
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                  </select>
+                </div>
+              );
+            }
+
+            const editInputType = inputTypeForKind(editKind);
+            const editDefault =
+              editKind === "date" || editKind === "datetime"
+                ? toDateInputValue(
+                    editValueRef.current,
+                    editKind === "datetime",
+                  )
+                : (editValueRef.current ?? "");
+
             return (
               <div className="max-w-[400px] min-w-[200px] px-0 py-0 text-[13px] leading-tight">
                 <input
                   autoFocus
-                  type="text"
-                  defaultValue={editValueRef.current ?? ""}
+                  type={editInputType}
+                  defaultValue={editDefault}
                   onChange={(e) => {
                     editValueRef.current = e.target.value;
                   }}
@@ -828,11 +889,39 @@ export const RecordsView = ({
               );
             }
 
+            const draftKind = getFilterInputKind(schemaField?.type || "");
+
+            if (draftKind === "bool") {
+              return (
+                <div className="max-w-[400px] min-w-[200px] px-0 py-0 text-[13px] leading-tight">
+                  <select
+                    value={toBoolSelectValue(row.original[key])}
+                    onChange={(e) =>
+                      setInlineRowData((prev) => ({
+                        ...prev,
+                        [key]: e.target.value,
+                      }))
+                    }
+                    className="text-text-main w-full cursor-pointer border-none bg-transparent p-0 text-[13px] outline-none"
+                  >
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                  </select>
+                </div>
+              );
+            }
+
+            const draftInputType = inputTypeForKind(draftKind);
+            const draftValue =
+              draftKind === "date" || draftKind === "datetime"
+                ? toDateInputValue(row.original[key], draftKind === "datetime")
+                : (row.original[key] ?? "");
+
             return (
               <div className="max-w-[400px] min-w-[200px] px-0 py-0 text-[13px] leading-tight">
                 <input
-                  type="text"
-                  value={row.original[key] ?? ""}
+                  type={draftInputType}
+                  value={draftValue}
                   onChange={(e) =>
                     setInlineRowData((prev) => ({
                       ...prev,
@@ -1523,7 +1612,9 @@ export const RecordsView = ({
 
       {activeTab === "records" && (
         <div className="flex-1 overflow-auto">
-          {isRecordsLoading ? (
+          {billingLimit ? (
+            <BillingLimitState data={billingLimit} />
+          ) : isRecordsLoading ? (
             <div className="space-y-4 p-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex gap-4">

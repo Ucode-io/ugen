@@ -9,10 +9,13 @@ import type {
 interface PersistedState {
   showMinimap: boolean;
   leftPanelRatio: number;
-  positions: Record<string, DiagramPosition>;
 }
 
 interface TransientState {
+  // Positions are intentionally NOT persisted: on every load we re-run
+  // auto-layout from the freshly-fetched (complete) schema/relations so the
+  // diagram always opens with a good layout. Manual drags live for the session.
+  positions: Record<string, DiagramPosition>;
   zoom: number;
   pan: DiagramPosition;
   mode: DiagramMode;
@@ -61,9 +64,9 @@ export const useDiagramStore = create<DiagramStore>()(
       // Persisted
       showMinimap: true,
       leftPanelRatio: 0.35,
-      positions: {},
 
       // Transient
+      positions: {},
       zoom: 1,
       pan: { x: 0, y: 0 },
       mode: "select",
@@ -106,10 +109,19 @@ export const useDiagramStore = create<DiagramStore>()(
     }),
     {
       name: "db-diagram-store",
+      // v1: positions are no longer persisted. Strip them from any older
+      // persisted blob so a stale layout can't be rehydrated on load.
+      version: 1,
+      migrate: (persisted: any) => {
+        if (persisted && "positions" in persisted) {
+          const { positions: _drop, ...rest } = persisted;
+          return rest;
+        }
+        return persisted;
+      },
       partialize: (s): PersistedState => ({
         showMinimap: s.showMinimap,
         leftPanelRatio: s.leftPanelRatio,
-        positions: s.positions,
       }),
     },
   ),

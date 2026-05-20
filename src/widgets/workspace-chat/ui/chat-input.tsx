@@ -123,20 +123,23 @@ export const ChatInput = ({
   const [attachOpen, setAttachOpen] = useState(false);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
   const [recentlySelected, setRecentlySelected] = useState(false);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Highlight the folder icon for 10s after a microfrontend/function gets selected.
-  useEffect(() => {
-    if (
-      activeCodeSelection?.kind !== "microfrontend" &&
-      activeCodeSelection?.kind !== "function"
-    ) {
-      setRecentlySelected(false);
-      return;
-    }
+  // Highlight the folder icon green for 15s. Called only from the manual
+  // selection handlers — the auto/bootstrap selection must not trigger it,
+  // otherwise the folder would flash at seemingly random moments (apiKey
+  // arriving, microfrontend list refetching, etc.).
+  const flashFolder = () => {
     setRecentlySelected(true);
-    const t = setTimeout(() => setRecentlySelected(false), 15_000);
-    return () => clearTimeout(t);
-  }, [activeCodeSelection?.kind, activeCodeSelection?.id]);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = setTimeout(() => setRecentlySelected(false), 15_000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    };
+  }, []);
 
   const {
     data: functionsList,
@@ -259,6 +262,7 @@ export const ChatInput = ({
           type: fn.type,
           repoId: fn.repo_id,
         });
+        flashFolder();
       } catch (err) {
         console.error("Failed to load function", err);
       } finally {
@@ -301,6 +305,7 @@ export const ChatInput = ({
           },
           files,
         );
+        flashFolder();
         onSelectMicrofrontend?.(files);
       } catch (err) {
         console.error("Failed to load microfrontend", err);

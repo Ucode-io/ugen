@@ -1,5 +1,6 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/entities/session'
+import { handlePaymentRequired } from '@/entities/billing/model/billing-limit-store'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.admin.u-code.io'
 const AUTH_BASE_URL = process.env.NEXT_PUBLIC_AUTH_BASE_URL || 'https://api.auth.u-code.io'
@@ -23,6 +24,7 @@ const BEARER_ONLY_ENDPOINTS = [
   /^\/v1\/upload(\/|$)/,
   /^\/v1\/files(\/|$)/,
   /^\/v1\/ugen-template(?!\/public)(\/|$)/,
+  /^\/v1\/pricing\/company-stats(\/|$)/,
 ]
 
 const requiresBearerToken = (url: string = '') => {
@@ -83,6 +85,25 @@ api.interceptors.request.use(buildRequestInterceptor(), onRequestError)
 authApi.interceptors.request.use(buildRequestInterceptor(), onRequestError)
 githubApi.interceptors.request.use(buildRequestInterceptor(), onRequestError)
 
+// Billing limit (HTTP 402) → open the global upgrade dialog. Shared by every
+// instance so any limited action (invite, upload, api-key, table/item, function…)
+// surfaces the same popup. Still rejects so callers know the request failed.
+//
+// Only mutating requests trigger the popup. `api_call_limit` is enforced by
+// middleware on every /v2/* request — including background GET queries (lists,
+// polling) — so reacting to GET would flash the popup constantly. Limits the
+// user actually hits via an action are all POST/PUT/PATCH/DELETE.
+const handle402 = (error: any) => {
+  const method = (error?.config?.method || 'get').toLowerCase()
+  if (error?.response?.status === 402 && method !== 'get') {
+    handlePaymentRequired(error.response.data?.data)
+  }
+  return Promise.reject(error)
+}
+
+authApi.interceptors.response.use((res) => res, handle402)
+githubApi.interceptors.response.use((res) => res, handle402)
+
 let isRefreshing = false
 let failedQueue: Array<{ resolve: (value?: unknown) => void; reject: (reason?: unknown) => void }> = []
 
@@ -98,6 +119,15 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+
+    // Skip GET — see handle402 above (api_call_limit fires on background GETs).
+    if (
+      error.response?.status === 402 &&
+      (originalRequest?.method || 'get').toLowerCase() !== 'get'
+    ) {
+      handlePaymentRequired(error.response.data?.data)
+      return Promise.reject(error)
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
