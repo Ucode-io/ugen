@@ -33,6 +33,7 @@ import { FileUploadModal } from '@/features/file-upload'
 import { MediaViewerModal } from './media-viewer-modal'
 import { CreateFolderModal } from './create-folder-modal'
 import { Button, UsageIndicator } from "@/shared/ui";
+import { UpgradePlanDialog } from "@/widgets/sidebar/ui/components/upgrade-plan-dialog";
 import { api } from "@/shared/api";
 import { cn } from '@/shared/lib/utils/cn'
 import { formatMBSmart, formatMBAsGB } from '@/shared/lib/utils/format-bytes'
@@ -73,6 +74,7 @@ export const MediaGallery = ({
     { id: "root", label: "Root" },
   ]);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const {
     data: menusData,
@@ -274,6 +276,7 @@ export const MediaGallery = ({
           variant="default"
           size="sm"
           className="bg-primary hover:bg-primary/90 h-8 rounded-lg px-3 text-[13px] text-white"
+          onClick={() => setUpgradeOpen(true)}
         >
           Upgrade Plan
         </Button>
@@ -682,6 +685,8 @@ export const MediaGallery = ({
           parentId={activeFolderId || parentMenuId}
         />
       )}
+
+      <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 }

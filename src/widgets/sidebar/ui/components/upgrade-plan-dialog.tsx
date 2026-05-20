@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { Check, ChevronDown, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -10,181 +11,89 @@ import {
   DialogTitle,
 } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
+import { api } from "@/shared/api";
+import { useAuthStore } from "@/entities/session";
 
-type TableRow = {
-  label: string;
-  free: string;
-  starter: string;
-  pro: string;
-  ent: string;
-  cls?: string;
-};
-const TABLE_SECTIONS: { heading: string; rows: TableRow[] }[] = [
-  {
-    heading: "Pricing (per user / month)",
-    rows: [
-      {
-        label: "Annual",
-        free: "$0",
-        starter: "$48",
-        pro: "$74",
-        ent: "Custom",
-        cls: "custom",
-      },
-      {
-        label: "6 months",
-        free: "$0",
-        starter: "$55",
-        pro: "$85",
-        ent: "Custom",
-        cls: "custom",
-      },
-      {
-        label: "Monthly",
-        free: "$0",
-        starter: "$63",
-        pro: "$98",
-        ent: "Custom",
-        cls: "custom",
-      },
-    ],
-  },
-  {
-    heading: "Workspace",
-    rows: [
-      { label: "Builders", free: "1", starter: "2", pro: "5", ent: "Custom" },
-      { label: "Projects", free: "1", starter: "5", pro: "10", ent: "Custom" },
-      {
-        label: "Users",
-        free: "—",
-        starter: "1,000",
-        pro: "10,000",
-        ent: "Custom",
-      },
-      {
-        label: "Credit limit / month",
-        free: "50K",
-        starter: "500K",
-        pro: "1M",
-        ent: "Custom",
-      },
-    ],
-  },
-  {
-    heading: "API",
-    rows: [
-      {
-        label: "Requests / month",
-        free: "100K",
-        starter: "250K",
-        pro: "500K",
-        ent: "Custom",
-      },
-      {
-        label: "Requests / second",
-        free: "100",
-        starter: "200",
-        pro: "500",
-        ent: "Custom",
-      },
-    ],
-  },
-  {
-    heading: "Infrastructure",
-    rows: [
-      {
-        label: "Server Functions",
-        free: "1",
-        starter: "10",
-        pro: "20",
-        ent: "Custom",
-      },
-      {
-        label: "Microfrontends",
-        free: "1",
-        starter: "5",
-        pro: "10",
-        ent: "Custom",
-      },
-      {
-        label: "Database size",
-        free: "10 GB",
-        starter: "50 GB",
-        pro: "100 GB",
-        ent: "Custom",
-      },
-      {
-        label: "File storage",
-        free: "10 GB",
-        starter: "50 GB",
-        pro: "100 GB",
-        ent: "Custom",
-      },
-    ],
-  },
-];
-
+/* ── Billing periods ── */
 const PERIODS = [
-  { key: "year", label: "Annual", save: "Save 24%" },
-  { key: "6month", label: "6 months", save: "Save 13%" },
-  { key: "month", label: "Monthly", save: null },
+  {
+    key: "year",
+    label: "Annual",
+    save: "Save 24%",
+    multiplier: 0.76,
+    per: "per user · billed annually",
+  },
+  {
+    key: "6month",
+    label: "6 months",
+    save: "Save 13%",
+    multiplier: 0.87,
+    per: "per user · billed every 6 months",
+  },
+  {
+    key: "month",
+    label: "Monthly",
+    save: null,
+    multiplier: 1,
+    per: "per user · billed monthly",
+  },
 ] as const;
 type Period = (typeof PERIODS)[number]["key"];
 
-const PRICES: Record<Period, { starter: string; pro: string; per: string }> = {
-  year: { starter: "$48", pro: "$74", per: "per user · billed annually" },
-  "6month": {
-    starter: "$55",
-    pro: "$85",
-    per: "per user · billed every 6 months",
-  },
-  month: { starter: "$63", pro: "$98", per: "per user · billed monthly" },
+type PlanMeta = {
+  key: string;
+  fareName: string | null;
+  desc: string;
+  cta: string;
+  featured: boolean;
+  badge?: string;
+  href?: string;
+  perFreeText?: string;
 };
 
-const PLANS = [
+const PLAN_META: PlanMeta[] = [
   {
     key: "free",
-    name: "Free",
-    price: () => "$0",
-    per: "per user · forever free",
+    fareName: "free",
     desc: "Perfect for individuals exploring the platform.",
-    features: ["1 Builder", "50K credit limit / month", "1 Project"],
-    cta: "Current plan",
+    cta: "Get started free",
     featured: false,
+    perFreeText: "per user · forever free",
   },
   {
     key: "starter",
-    name: "Starter",
-    price: (p: Period) => PRICES[p].starter,
-    per: (p: Period) => PRICES[p].per,
+    fareName: "basic",
     desc: "For small teams building and shipping real products.",
-    features: ["2 Builders", "500K credit limit / month", "5 Projects"],
     cta: "Upgrade to Starter",
     featured: false,
   },
   {
     key: "pro",
-    name: "Pro",
-    price: (p: Period) => PRICES[p].pro,
-    per: (p: Period) => PRICES[p].per,
+    fareName: "pro",
     desc: "For growing teams with advanced scale and custom requirements.",
-    features: ["5 Builders", "1M credit limit / month", "10 Projects"],
     cta: "Upgrade to Pro",
     featured: true,
     badge: "Most popular",
   },
   {
     key: "enterprise",
-    name: "Enterprise",
-    price: () => "Custom",
-    per: "tailored to your needs",
+    fareName: null,
     desc: "Custom scale, security, and compliance.",
-    features: ["Custom Builders", "Custom credit limit", "Custom Projects"],
     cta: "Contact sales →",
     href: "mailto:enterprise@u-code.io",
     featured: false,
   },
 ];
+
+const formatFareValue = (value: string | undefined) => {
+  if (!value || value === "-1") return "Unlimited";
+  if (value === "0") return "—";
+  const num = Number(value);
+  if (!isNaN(num)) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+  return value;
+};
 
 interface UpgradePlanDialogProps {
   open: boolean;
@@ -197,13 +106,79 @@ export const UpgradePlanDialog = ({
 }: UpgradePlanDialogProps) => {
   const [period, setPeriod] = useState<Period>("year");
   const [compareOpen, setCompareOpen] = useState(false);
+  const fareId = useAuthStore((state) => state.project?.fare_id);
 
-  const getPrice = (plan: (typeof PLANS)[number]) =>
-    (plan.price as (p?: Period) => string)(period);
-  const getPer = (plan: (typeof PLANS)[number]) =>
-    typeof plan.per === "string"
-      ? plan.per
-      : (plan.per as (p: Period) => string)(period);
+  const { data: fareData } = useQuery({
+    queryKey: ["fares", "ugen"],
+    queryFn: async () => {
+      const { data } = await api.get("/v1/fare", {
+        params: { product_type: "ugen" },
+      });
+      return data;
+    },
+  });
+
+  const fares: any[] = fareData?.data?.fares || [];
+
+  /* ── Build feature rows grouped by feature group (for compare table) ── */
+  const featureMap = new Map<
+    string,
+    { id: string; name: string; type: string; group?: { id: string; name: string } }
+  >();
+  fares.forEach((fare) => {
+    fare.fare_item_prices?.forEach((fip: any) => {
+      if (!featureMap.has(fip.fare_item_id)) {
+        featureMap.set(fip.fare_item_id, fip.fare_item);
+      }
+    });
+  });
+  const featureRows = Array.from(featureMap.values());
+
+  const OTHER_GROUP_KEY = "__other__";
+  const groupedFeatureRows: {
+    key: string;
+    name: string;
+    items: typeof featureRows;
+  }[] = [];
+  const groupIndexMap = new Map<string, number>();
+  featureRows.forEach((featureItem) => {
+    const groupKey = featureItem.group?.id || OTHER_GROUP_KEY;
+    const groupName = featureItem.group?.name || "Other";
+    let idx = groupIndexMap.get(groupKey);
+    if (idx === undefined) {
+      idx = groupedFeatureRows.length;
+      groupIndexMap.set(groupKey, idx);
+      groupedFeatureRows.push({ key: groupKey, name: groupName, items: [] });
+    }
+    groupedFeatureRows[idx].items.push(featureItem);
+  });
+
+  const fareValueMap: Record<string, Record<string, string>> = {};
+  fares.forEach((fare) => {
+    fareValueMap[fare.id] = {};
+    fare.fare_item_prices?.forEach((fip: any) => {
+      fareValueMap[fare.id][fip.fare_item_id] = fip.value;
+    });
+  });
+
+  const fareByName = new Map<string, any>(
+    fares.map((f: any) => [String(f.name || "").toLowerCase(), f]),
+  );
+  const currentPeriod = PERIODS.find((p) => p.key === period) ?? PERIODS[0];
+
+  const formatPeriodPrice = (monthly: number) =>
+    monthly <= 0 ? "$0" : `$${Math.round(monthly * currentPeriod.multiplier)}`;
+
+  const buildFeatures = (fare: any | undefined): string[] => {
+    if (!fare?.fare_item_prices) return [];
+    return (fare.fare_item_prices as any[])
+      .filter((fip) => fip.value && fip.value !== "0")
+      .slice(0, 4)
+      .map((fip) => {
+        const name = fip.fare_item?.name ?? "";
+        return `${formatFareValue(fip.value)} ${name}`.trim();
+      });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -248,196 +223,255 @@ export const UpgradePlanDialog = ({
 
         {/* Pricing cards */}
         <div className="grid grid-cols-1 gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.key}
-              className={cn(
-                "bg-bg-main relative rounded-[10px] border p-6 transition-all hover:shadow-md",
-                plan.featured
-                  ? "border-primary shadow-md"
-                  : "border-border-subtle hover:border-border-subtle/60",
-              )}
-            >
-              {plan.featured && plan.badge && (
-                <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
-                  {plan.badge}
-                </div>
-              )}
-              <div className="text-text-muted mb-[7px] text-[0.74rem] font-semibold tracking-[0.06em] uppercase">
-                {plan.name}
-              </div>
+          {PLAN_META.map((plan) => {
+            const fare = plan.fareName ? fareByName.get(plan.fareName) : null;
+            const isEnterprise = plan.fareName === null;
+            const isFree = fare
+              ? Number(fare.price) <= 0
+              : plan.fareName === "free";
+            const isCurrent = fare ? fare.id === fareId : false;
+
+            const displayName =
+              fare?.name ?? plan.key.charAt(0).toUpperCase() + plan.key.slice(1);
+            const displayPrice = isEnterprise
+              ? "Custom"
+              : fare
+                ? formatPeriodPrice(Number(fare.price) || 0)
+                : "—";
+            const displayPer = isEnterprise
+              ? "tailored to your needs"
+              : isFree
+                ? (plan.perFreeText ?? "forever free")
+                : currentPeriod.per;
+            const features = fare ? buildFeatures(fare) : [];
+            const ctaLabel = isCurrent ? "Current plan" : plan.cta;
+
+            return (
               <div
-                className="text-text-main mb-1 font-black tracking-[-0.05em]"
-                style={{
-                  fontSize: plan.key === "enterprise" ? "1.6rem" : "2.2rem",
-                  lineHeight: 1,
-                }}
+                key={plan.key}
+                className={cn(
+                  "bg-bg-main relative rounded-[10px] border p-6 transition-all hover:shadow-md",
+                  plan.featured
+                    ? "border-primary shadow-md"
+                    : "border-border-subtle hover:border-border-subtle/60",
+                )}
               >
-                {getPrice(plan)}
-                {plan.key !== "enterprise" && (
-                  <span className="text-text-muted text-[0.85rem] font-normal">
-                    /mo
-                  </span>
+                {plan.featured && plan.badge && (
+                  <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
+                    {plan.badge}
+                  </div>
+                )}
+                <div className="text-text-muted mb-[7px] text-[0.74rem] font-semibold tracking-[0.06em] uppercase">
+                  {displayName}
+                </div>
+                <div
+                  className="text-text-main mb-1 font-black tracking-[-0.05em]"
+                  style={{
+                    fontSize: isEnterprise ? "1.6rem" : "2.2rem",
+                    lineHeight: 1,
+                  }}
+                >
+                  {displayPrice}
+                  {!isEnterprise && (
+                    <span className="text-text-muted text-[0.85rem] font-normal">
+                      /mo
+                    </span>
+                  )}
+                </div>
+                <p className="text-text-muted mb-1 text-[0.68rem]">
+                  {displayPer}
+                </p>
+                <p className="text-text-muted mt-3 mb-4 text-[0.78rem] leading-[1.55]">
+                  {plan.desc}
+                </p>
+                <hr className="border-border-subtle mb-4 border-t" />
+                <ul className="mb-5 space-y-2">
+                  {(features.length > 0
+                    ? features
+                    : isEnterprise
+                      ? ["Custom Builders", "Custom credit limit", "Custom Projects"]
+                      : []
+                  ).map((f) => (
+                    <li
+                      key={f}
+                      className="text-text-muted flex items-start gap-2 text-[0.8rem]"
+                    >
+                      <Check
+                        size={13}
+                        className="mt-0.5 flex-shrink-0 text-green-500"
+                        strokeWidth={3}
+                      />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                {plan.href ? (
+                  <a
+                    href={plan.href}
+                    className={cn(
+                      "block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
+                      plan.featured
+                        ? "bg-primary border-primary text-white hover:opacity-85"
+                        : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
+                    )}
+                  >
+                    {ctaLabel}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isCurrent || plan.key === "free"}
+                    className={cn(
+                      "w-full cursor-pointer rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                      plan.featured
+                        ? "bg-primary border-primary text-white hover:opacity-85"
+                        : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
+                    )}
+                  >
+                    {ctaLabel}
+                  </button>
                 )}
               </div>
-              <p className="text-text-muted mb-1 text-[0.68rem]">
-                {getPer(plan)}
-              </p>
-              <p className="text-text-muted mt-3 mb-4 text-[0.78rem] leading-[1.55]">
-                {plan.desc}
-              </p>
-              <hr className="border-border-subtle mb-4 border-t" />
-              <ul className="mb-5 space-y-2">
-                {plan.features.map((f) => (
-                  <li
-                    key={f}
-                    className="text-text-muted flex items-start gap-2 text-[0.8rem]"
-                  >
-                    <Check
-                      size={13}
-                      className="mt-0.5 flex-shrink-0 text-green-500"
-                      strokeWidth={3}
-                    />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              {plan.href ? (
-                <a
-                  href={plan.href}
-                  className={cn(
-                    "block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
-                    plan.featured
-                      ? "bg-primary border-primary text-white hover:opacity-85"
-                      : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
-                  )}
-                >
-                  {plan.cta}
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  disabled={plan.key === "free"}
-                  className={cn(
-                    "w-full cursor-pointer rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                    plan.featured
-                      ? "bg-primary border-primary text-white hover:opacity-85"
-                      : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
-                  )}
-                >
-                  {plan.cta}
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Compare plans (collapsible) */}
-        <div className="border-border-subtle border-t px-6 pb-6">
-          <button
-            type="button"
-            onClick={() => setCompareOpen((v) => !v)}
-            className="text-text-muted hover:text-text-main flex w-full items-center justify-between py-4 text-left text-[0.9rem] font-semibold transition-colors"
-            aria-expanded={compareOpen}
-          >
-            <span>
-              Compare{" "}
-              <em className="from-primary to-accent not-italic bg-linear-to-r bg-clip-text text-transparent">
-                plans
-              </em>
-            </span>
-            <ChevronDown
-              size={16}
-              className={cn(
-                "transition-transform duration-200",
-                compareOpen && "rotate-180",
-              )}
-            />
-          </button>
+        {/* Compare plans (collapsible, dynamic from API) */}
+        {fares.length > 0 && groupedFeatureRows.length > 0 && (
+          <div className="border-border-subtle border-t px-6 pb-6">
+            <button
+              type="button"
+              onClick={() => setCompareOpen((v) => !v)}
+              className="text-text-muted hover:text-text-main flex w-full items-center justify-between py-4 text-left text-[0.9rem] font-semibold transition-colors"
+              aria-expanded={compareOpen}
+            >
+              <span>
+                Compare{" "}
+                <em className="from-primary to-accent not-italic bg-linear-to-r bg-clip-text text-transparent">
+                  plans
+                </em>
+              </span>
+              <ChevronDown
+                size={16}
+                className={cn(
+                  "transition-transform duration-200",
+                  compareOpen && "rotate-180",
+                )}
+              />
+            </button>
 
-          {compareOpen && (
-            <div className="overflow-x-auto">
-              <table
-                className="w-full border-collapse text-[0.82rem]"
-                style={{ minWidth: "600px" }}
-              >
-                <thead>
-                  <tr className="border-border-subtle border-b-2">
-                    <th className="text-text-muted px-3 py-2.5 text-left text-[0.8rem] font-semibold">
-                      Feature
-                    </th>
-                    {["Free", "Starter", "Pro", "Enterprise", "Overlimit"].map(
-                      (h) => (
-                        <th
-                          key={h}
-                          className={cn(
-                            "text-text-main px-3 py-2.5 font-bold",
-                            h === "Pro" && "text-primary",
-                          )}
-                        >
-                          {h}
-                        </th>
-                      ),
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {TABLE_SECTIONS.map((sec) => (
-                    <Fragment key={sec.heading}>
-                      <tr className="bg-hover-bg">
-                        <td
-                          colSpan={6}
-                          className="text-text-muted/70 px-3 py-1.5 text-[0.68rem] font-bold tracking-[0.07em] uppercase"
-                        >
-                          {sec.heading}
-                        </td>
-                      </tr>
-                      {sec.rows.map((row) => (
-                        <tr
-                          key={row.label}
-                          className="border-border-subtle/50 border-b"
-                        >
-                          <td className="text-text-muted px-3 py-2.5">
-                            {row.label}
-                          </td>
-                          <td className="text-text-muted px-3 py-2.5 text-center">
-                            {row.free}
-                          </td>
-                          <td className="text-text-muted px-3 py-2.5 text-center">
-                            {row.starter}
-                          </td>
-                          <td
+            {compareOpen && (
+              <div className="overflow-x-auto">
+                <table
+                  className="w-full border-collapse text-[0.82rem]"
+                  style={{ minWidth: "600px" }}
+                >
+                  <thead>
+                    <tr className="border-border-subtle border-b-2">
+                      <th className="text-text-muted px-3 py-2.5 text-left text-[0.8rem] font-semibold">
+                        Feature
+                      </th>
+                      {fares.map((fare) => {
+                        const isCurrent = fare.id === fareId;
+                        const isRecommended =
+                          String(fare.name || "").toLowerCase() === "pro";
+                        return (
+                          <th
+                            key={fare.id}
                             className={cn(
-                              "px-3 py-2.5 text-center font-bold",
-                              row.cls === "custom"
-                                ? "text-primary"
-                                : "text-text-main",
+                              "relative px-3 py-2.5 font-bold",
+                              isRecommended
+                                ? "bg-primary/5 text-primary border-x border-x-primary/30 border-t-2 border-t-primary"
+                                : isCurrent
+                                  ? "text-primary"
+                                  : "text-text-main",
                             )}
                           >
-                            {row.pro}
-                          </td>
-                          <td
-                            className={cn(
-                              "px-3 py-2.5 text-center",
-                              row.cls === "custom"
-                                ? "text-primary font-semibold"
-                                : "text-text-muted",
-                            )}
-                          >
-                            {row.ent}
-                          </td>
-                          <td className="text-text-muted/60 px-3 py-2.5 text-center text-[0.74rem] italic">
-                            —
-                          </td>
-                        </tr>
-                      ))}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                            <div>
+                              {fare.name}
+                              {isCurrent && " ✓"}
+                            </div>
+                            <div
+                              className={cn(
+                                "mt-0.5 text-[11px] font-normal normal-case",
+                                isRecommended
+                                  ? "text-primary/70"
+                                  : "text-text-muted",
+                              )}
+                            >
+                              {fare.price > 0 ? `$${fare.price}/mo` : "Free"}
+                            </div>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedFeatureRows.map((group, groupIdx) => {
+                      const isLastGroup =
+                        groupIdx === groupedFeatureRows.length - 1;
+                      return (
+                        <Fragment key={group.key}>
+                          <tr className="bg-hover-bg">
+                            <td
+                              colSpan={fares.length + 1}
+                              className="text-text-muted/70 px-3 py-1.5 text-[0.68rem] font-bold tracking-[0.07em] uppercase"
+                            >
+                              {group.name}
+                            </td>
+                          </tr>
+                          {group.items.map((featureItem, itemIdx) => {
+                            const isLastRow =
+                              isLastGroup &&
+                              itemIdx === group.items.length - 1;
+                            return (
+                              <tr
+                                key={featureItem.id}
+                                className="border-border-subtle/50 border-b"
+                              >
+                                <td className="text-text-muted px-3 py-2.5">
+                                  {featureItem.name}
+                                </td>
+                                {fares.map((fare) => {
+                                  const isCurrent = fare.id === fareId;
+                                  const isRecommended =
+                                    String(fare.name || "").toLowerCase() ===
+                                    "pro";
+                                  const rawValue =
+                                    fareValueMap[fare.id]?.[featureItem.id];
+                                  const displayValue = formatFareValue(rawValue);
+                                  return (
+                                    <td
+                                      key={fare.id}
+                                      className={cn(
+                                        "px-3 py-2.5 text-center",
+                                        isRecommended
+                                          ? cn(
+                                              "bg-primary/5 text-primary border-x border-x-primary/30 font-semibold",
+                                              isLastRow &&
+                                                "border-b-2 border-b-primary",
+                                            )
+                                          : isCurrent
+                                            ? "text-primary font-semibold"
+                                            : "text-text-muted",
+                                      )}
+                                    >
+                                      {displayValue}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

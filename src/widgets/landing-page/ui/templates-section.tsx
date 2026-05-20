@@ -28,8 +28,6 @@ export const TemplatesSection = () => {
     refetchOnWindowFocus: false,
   })
 
-  console.log({templates})
-
   const items = templates.slice(0, 8)
 
   if (!isLoading && (isError || items.length === 0)) return null

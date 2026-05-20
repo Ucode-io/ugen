@@ -34,23 +34,31 @@ function Calendar({
           'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1 top-1'
         ),
         month_grid: 'w-full border-collapse',
-        weekdays: 'grid grid-cols-7 mb-1',
+        weekdays: 'flex mb-1',
         weekday:
-          'text-text-muted rounded-md w-8 h-8 flex items-center justify-center font-normal text-[0.7rem] uppercase',
-        week: 'grid grid-cols-7 mt-0',
-        day: cn(
+          'text-text-muted w-9 h-8 flex items-center justify-center font-normal text-[0.7rem] uppercase',
+        week: 'flex w-full mt-0.5',
+        // `day` is the <td> cell — it carries the continuous range strip so
+        // selected days connect edge-to-edge with no gaps between them.
+        day: 'relative h-9 w-9 p-0 text-[13px]',
+        // `day_button` is the actual <button> — make it fill the whole cell so
+        // the entire square is clickable, not just the number.
+        day_button: cn(
           buttonVariants({ variant: 'ghost' }),
-          'h-8 w-8 p-0 font-normal aria-selected:opacity-100 transition-none rounded-lg text-[13px] flex items-center justify-center border border-transparent'
+          'h-9 w-9 p-0 font-normal rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-hover-bg focus-visible:ring-1 focus-visible:ring-primary'
         ),
-        range_end: 'day-range-end',
+        // Solid pill on every selected day (also covers a single picked day).
         selected:
-          'bg-primary text-white hover:bg-primary hover:text-white focus:bg-primary focus:text-white',
-        today: 'bg-hover-bg text-text-main font-bold ring-1 ring-inset ring-primary/20',
-        outside:
-          'day-outside text-text-muted opacity-20 aria-selected:bg-hover-bg/30 aria-selected:text-text-muted aria-selected:opacity-30',
-        disabled: 'text-text-muted opacity-50',
+          '[&>button]:bg-primary [&>button]:text-white [&>button]:hover:bg-primary',
+        range_start: 'bg-primary/10 rounded-l-lg',
+        range_end: 'bg-primary/10 rounded-r-lg',
+        // In-between days: light continuous strip, transparent button on top.
         range_middle:
-          'aria-selected:bg-primary/10 aria-selected:text-primary',
+          'bg-primary/10 rounded-none [&>button]:!bg-transparent [&>button]:!text-primary [&>button]:hover:!bg-primary/15',
+        today: '[&>button]:font-bold [&>button]:ring-1 [&>button]:ring-inset [&>button]:ring-primary/30',
+        outside: '[&>button]:text-text-muted [&>button]:opacity-40',
+        disabled:
+          '[&>button]:text-text-muted [&>button]:opacity-40 [&>button]:cursor-not-allowed [&>button]:pointer-events-none',
         hidden: 'invisible',
         ...classNames,
       }}

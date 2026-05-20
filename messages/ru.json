@@ -350,7 +350,8 @@
       "goHome": "Вернуться на главную"
     },
     "dateRangePicker": {
-      "placeholder": "Выберите диапазон дат"
+      "placeholder": "Выберите диапазон дат",
+      "clear": "Очистить"
     }
   },
   "widgets": {

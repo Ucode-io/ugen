@@ -5,7 +5,6 @@ import Editor from '@monaco-editor/react'
 import {
   Play,
   History,
-  Menu,
   Settings,
   Sparkles,
   RefreshCw,
@@ -51,7 +50,7 @@ export const SqlConsole = () => {
     addScript
   } = useDatabaseStore()
 
-  const { data: tables, isLoading: isTablesLoading } = useTables()
+  const { data: tables } = useTables()
   const tablesRef = useRef(tables)
 
   useEffect(() => {
@@ -251,43 +250,7 @@ export const SqlConsole = () => {
           !isSidebarOpen && "w-0 -translate-x-full pointer-events-none sm:w-0 sm:opacity-0"
         )}
       >
-        {/* <div className="flex items-center justify-between p-4 border-b border-border-subtle h-[57px]">
-          <h4 className="text-sm font-semibold text-text-main flex items-center gap-2">
-            <Database size={14} className="text-primary" />
-            {t('sqlConsole.explorer')}
-          </h4>
-          <button
-            onClick={() => addScript(`Query ${sqlScripts.length + 1}`, 'SELECT * FROM users LIMIT 10;')}
-            className="p-1 px-1.5 rounded-md hover:bg-hover-bg text-text-muted hover:text-text-main transition-all border border-transparent hover:border-border-subtle"
-          >
-            <Plus size={14} />
-          </button>
-        </div> */}
-
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2">
-          {/* Scripts Section */}
-          {/* <div className="space-y-1">
-            <span className="px-2 py-1.5 text-[11px] font-bold text-text-muted/70 uppercase tracking-widest flex items-center gap-2">
-              <History size={12} />
-              {t('sqlConsole.scripts')}
-            </span>
-            {sqlScripts.map(script => (
-              <button
-                key={script.id}
-                onClick={() => setActiveScriptId(script.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all group",
-                  activeScriptId === script.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-text-muted hover:text-text-main hover:bg-hover-bg active:scale-[0.98]"
-                )}
-              >
-                <FileCode size={14} className={cn(activeScriptId === script.id ? "text-primary" : "text-text-muted/60")} />
-                <span className="truncate">{script.name}</span>
-              </button>
-            ))}
-          </div> */}
-
           <div className="space-y-1">
             <span className="px-2 py-1.5 text-[11px] font-bold text-text-muted/70 uppercase tracking-widest flex items-center gap-2">
               <Sparkles size={12} />
@@ -331,10 +294,6 @@ export const SqlConsole = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle text-xs font-semibold text-text-muted hover:text-text-main hover:bg-hover-bg transition-all active:scale-[0.98]">
-              <Sparkles size={14} className="text-primary/60" />
-              {t('sqlConsole.prettify')}
-            </button> */}
             <button
               onClick={() => setIsSaveModalOpen(true)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle text-xs font-semibold text-text-muted hover:text-text-main hover:bg-hover-bg transition-all active:scale-[0.98]"

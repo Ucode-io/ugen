@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ArrowUp } from "lucide-react";
 import { Button } from '@/shared/ui'
+import { UpgradePlanDialog } from '@/widgets/sidebar/ui/components/upgrade-plan-dialog'
 import { cn } from '@/shared/lib/utils/cn'
 import {
   formatBytesAsGB,
@@ -21,6 +22,7 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
   const fares: any[] = fareData?.data?.fares || [];
   const currentFare = currentFareData?.data?.fares?.[0];
   const fareId = currentFare?.id;
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Collect all unique fare items across all fares (preserving order)
   const allFareItemsMap = new Map<
@@ -104,7 +106,7 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
             </span>
           </div>
         </div>
-        <Button className="shrink-0 gap-2">
+        <Button className="shrink-0 gap-2" onClick={() => setUpgradeOpen(true)}>
           <ArrowUp size={16} /> Upgrade Plan
         </Button>
       </div>{" "}
@@ -301,6 +303,7 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
           </WorkspaceTableWrapper>
         </div>
       )}
+      <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 };

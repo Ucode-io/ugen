@@ -1,4 +1,4 @@
-import { githubApi } from '@/shared/api'
+import { api } from '@/shared/api'
 import type {
   GithubIntegration,
   GithubRepo,
@@ -8,14 +8,14 @@ import type {
 
 export const githubIntegrationApi = {
   getConnectUrl: async (): Promise<string> => {
-    const { data } = await githubApi.get('/v1/github/connect')
+    const { data } = await api.get('/v1/github/connect')
     if (data.status !== 'OK') throw new Error(data.data)
     return data.data
   },
 
   getIntegration: async (): Promise<GithubIntegration | null> => {
     try {
-      const { data } = await githubApi.get('/v1/github/integration')
+      const { data } = await api.get('/v1/github/integration')
       if (data.status === 'OK') return data.data
       return null
     } catch (err: any) {
@@ -26,7 +26,7 @@ export const githubIntegrationApi = {
 
   validate: async (): Promise<GithubValidationResult> => {
     try {
-      const { data } = await githubApi.get('/v1/github/integration/validate')
+      const { data } = await api.get('/v1/github/integration/validate')
       if (data.status === 'OK') return { connected: true, user: data.data }
       return { connected: false, reason: 'not_connected' }
     } catch (err: any) {
@@ -38,18 +38,18 @@ export const githubIntegrationApi = {
   },
 
   disconnect: async (id: string): Promise<void> => {
-    const { data } = await githubApi.delete(`/v1/github/integration/${id}`)
+    const { data } = await api.delete(`/v1/github/integration/${id}`)
     if (data.status !== 'OK') throw new Error(data.data)
   },
 
   listRepos: async (): Promise<GithubRepo[]> => {
-    const { data } = await githubApi.get('/v1/github/repos')
+    const { data } = await api.get('/v1/github/repos')
     if (data.status !== 'OK') throw new Error(data.data)
     return data.data
   },
 
   createRepo: async (payload: CreateRepoPayload): Promise<GithubRepo> => {
-    const { data } = await githubApi.post('/v1/github/repo', payload)
+    const { data } = await api.post('/v1/github/repo', payload)
     if (data.status !== 'CREATED') throw new Error(data.data)
     return data.data
   },

@@ -1,4 +1,4 @@
-import { githubApi } from '@/shared/api'
+import { api } from '@/shared/api'
 
 export type Template = {
   id: string
@@ -24,22 +24,22 @@ const unwrapItem = (payload: any): Template | null => {
 }
 
 export const fetchTemplates = async (): Promise<Template[]> => {
-  const { data } = await githubApi.get('/v1/ugen-template')
+  const { data } = await api.get('/v1/ugen-template')
   return unwrapList(data)
 }
 
 export const fetchTemplateDetail = async (id: string): Promise<Template | null> => {
-  const { data } = await githubApi.get(`/v1/ugen-template/${id}`)
+  const { data } = await api.get(`/v1/ugen-template/${id}`)
   return unwrapItem(data)
 }
 
 export const fetchPublicTemplates = async (): Promise<Template[]> => {
-  const { data } = await githubApi.get('/v1/ugen-template/public')
+  const { data } = await api.get('/v1/ugen-template/public')
   return unwrapList(data)
 }
 
 export const fetchPublicTemplateDetail = async (id: string): Promise<Template | null> => {
-  const { data } = await githubApi.get(`/v1/ugen-template/public/${id}`)
+  const { data } = await api.get(`/v1/ugen-template/public/${id}`)
   return unwrapItem(data)
 }
 

@@ -10,6 +10,7 @@ import { Button } from "@/shared/ui";
 import { Search } from "lucide-react";
 import { useAuthStore } from "@/entities/session";
 import { InviteUserModal } from "./invite-user-modal";
+import { UpgradePlanDialog } from "@/widgets/sidebar/ui/components/upgrade-plan-dialog";
 import {
   useClientTypes,
   useRoles,
@@ -77,6 +78,7 @@ export const UsersManagement = ({
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const { data: pricingData } = useQuery({
     queryKey: ["pricing-all"],
@@ -228,6 +230,7 @@ export const UsersManagement = ({
             variant="default"
             size="sm"
             className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-4 text-[13px] font-semibold text-white"
+            onClick={() => setUpgradeOpen(true)}
           >
             Upgrade Plan
           </Button>
@@ -333,6 +336,8 @@ export const UsersManagement = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 };

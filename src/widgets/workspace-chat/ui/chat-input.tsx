@@ -213,8 +213,13 @@ export const ChatInput = ({
           path: string;
           content: string;
         }[];
+        // Bootstrap auto-select on page load: only seed the code selection so the
+        // preview viewer has files. Do NOT call onSelectMicrofrontend here — that
+        // force-switches to the Preview tab, which would yank the user away if
+        // they've navigated to Settings/Code while the codebase was resolving.
+        // (The tab already defaults to "preview" on a fresh open, so switching is
+        // redundant anyway.)
         setActiveCodeSelection(target, files);
-        onSelectMicrofrontend?.(files);
       })
       // On failure set an empty file array (not null) so consumers can tell the
       // codebase finished resolving — `null` means "still loading" and would

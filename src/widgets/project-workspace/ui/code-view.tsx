@@ -8,6 +8,7 @@ import { MicrofrontendPage } from './microfrontend-page'
 import { CodeEditorTarget } from '@/entities/session'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
+import { UpgradePlanDialog } from '@/widgets/sidebar/ui/components/upgrade-plan-dialog'
 
 interface CodeViewProps {
   projectId: string
@@ -17,6 +18,7 @@ interface CodeViewProps {
 
 export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }: CodeViewProps) => {
   const [internalActiveTab, setInternalActiveTab] = useState('microfrontend')
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const activeTab = externalActiveTab || internalActiveTab
   const setActiveTab = externalActiveTab ? () => { } : setInternalActiveTab
 
@@ -54,7 +56,7 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
                 percentage={pagesPercentage}
               />
               
-              <Button variant="primary" size="sm" className="gap-2">
+              <Button variant="primary" size="sm" className="gap-2" onClick={() => setUpgradeOpen(true)}>
                 <ArrowUp size={14} />
                 Upgrade Plan
               </Button>
@@ -102,6 +104,8 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
           />
         )}
       </div>
+
+      <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   )
 }

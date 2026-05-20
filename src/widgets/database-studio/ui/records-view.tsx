@@ -87,6 +87,50 @@ const getRelatedTable = (slug: string): string => {
   return slug;
 };
 
+type FilterInputKind = "number" | "bool" | "date" | "datetime" | "lookup" | "text";
+
+// Maps a field type (UI-level like NUMBER/CHECKBOX or PG-level like integer/boolean)
+// to the most convenient input control for the filter value.
+const getFilterInputKind = (rawType: string): FilterInputKind => {
+  const type = (rawType || "").toUpperCase();
+  if (type === "LOOKUP") return "lookup";
+  if (["CHECKBOX", "SWITCH", "BOOLEAN", "BOOL"].includes(type)) return "bool";
+  if (
+    [
+      "NUMBER",
+      "FLOAT",
+      "FLOAT_NOLIMIT",
+      "FORMULA",
+      "INCREMENT_NUMBER",
+      "INTEGER",
+      "SMALLINT",
+      "BIGINT",
+      "INT2",
+      "INT4",
+      "INT8",
+      "SERIAL",
+      "NUMERIC",
+      "DECIMAL",
+      "REAL",
+      "DOUBLE PRECISION",
+    ].includes(type)
+  )
+    return "number";
+  if (type === "DATE") return "date";
+  if (
+    [
+      "TIMESTAMP",
+      "TIMESTAMPTZ",
+      "TIMESTAMP WITH TIME ZONE",
+      "TIMESTAMP WITHOUT TIME ZONE",
+      "DATE_TIME",
+      "DATETIME",
+    ].includes(type)
+  )
+    return "datetime";
+  return "text";
+};
+
 const getRecordLabel = (record: any): string => {
   const keys = Object.keys(record).filter(
     (k) =>
@@ -281,8 +325,7 @@ export const RecordsView = ({
   const [activeTab, setActiveTab] = useState<ActiveTab>("records");
   const t = useTranslations("widgets.databaseStudio");
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
-  const { selectedTable, setCurrentView, resetToTables, setFilters } =
-    useDatabaseStore();
+  const { selectedTable } = useDatabaseStore();
   const {
     data: tableDetail,
     isLoading: isDetailLoading,
@@ -942,6 +985,73 @@ export const RecordsView = ({
     }
   }, [activeTab]);
 
+  const setFilterValue = (id: string, value: string) =>
+    setLocalFilters((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, value } : f)),
+    );
+
+  const renderFilterValueInput = (filter: {
+    id: string;
+    column: string;
+    operator: string;
+    value: string;
+  }) => {
+    const col = schema?.find((s) => s.slug === filter.column);
+    const inputClass =
+      "bg-bg-card border-border-subtle focus:border-primary/50 h-8 w-[240px] shrink-0 rounded-md border px-3 py-1 text-[13px] font-medium outline-none";
+
+    // The "in" operator always takes a comma-separated list regardless of type.
+    const kind =
+      filter.operator === "in" ? "text" : getFilterInputKind(col?.type || "");
+
+    if (kind === "bool") {
+      return (
+        <select
+          value={filter.value}
+          onChange={(e) => setFilterValue(filter.id, e.target.value)}
+          className={inputClass}
+        >
+          <option value="">Select…</option>
+          <option value="true">true</option>
+          <option value="false">false</option>
+        </select>
+      );
+    }
+
+    if (kind === "lookup") {
+      return (
+        <div className={cn(inputClass, "flex items-center")}>
+          <LookupEditSelect
+            slug={filter.column}
+            value={filter.value}
+            projectId={projectId}
+            clientTypeId={ucodeProjectId || ""}
+            onSelect={(val) => setFilterValue(filter.id, val)}
+          />
+        </div>
+      );
+    }
+
+    const inputType =
+      kind === "number"
+        ? "number"
+        : kind === "date"
+          ? "date"
+          : kind === "datetime"
+            ? "datetime-local"
+            : "text";
+
+    return (
+      <input
+        type={inputType}
+        value={filter.value}
+        onChange={(e) => setFilterValue(filter.id, e.target.value)}
+        placeholder={filter.operator === "in" ? "v1,v2,..." : "..."}
+        className={inputClass}
+      />
+    );
+  };
+
   if (!selectedTable) {
     return (
       <div className="text-text-muted flex h-full flex-col items-center justify-center">
@@ -953,17 +1063,6 @@ export const RecordsView = ({
 
   return (
     <div className="flex h-full w-full max-w-[100%] flex-col overflow-hidden">
-      {/* <div className="flex items-center justify-between p-4 border-b border-border-subtle shrink-0">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-text-main">
-            {tableDetail?.label || selectedTable}
-          </h3>
-          <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-medium tracking-wide flex items-center gap-1.5 uppercase">
-            {t('records.count', { count: records?.length || 0 })}
-          </span>
-        </div>
-      </div> */}
-
       <div className="bg-bg-main/50 border-border-subtle flex min-h-[47px] shrink-0 items-center justify-between overflow-x-auto border-b p-3 whitespace-nowrap">
         <div className="flex items-center gap-2">
           <button
@@ -1379,25 +1478,8 @@ export const RecordsView = ({
                     <option value="in">is in</option>
                   </select>
 
-                  {!["is_null", "is_not_null"].includes(filter.operator) && (
-                    <input
-                      type="text"
-                      value={filter.value}
-                      onChange={(e) =>
-                        setLocalFilters((prev) =>
-                          prev.map((f) =>
-                            f.id === filter.id
-                              ? { ...f, value: e.target.value }
-                              : f,
-                          ),
-                        )
-                      }
-                      placeholder={
-                        filter.operator === "in" ? "v1,v2,..." : "..."
-                      }
-                      className="bg-bg-card border-border-subtle focus:border-primary/50 h-8 w-[240px] shrink-0 rounded-md border px-3 py-1 text-[13px] font-medium outline-none"
-                    />
-                  )}
+                  {!["is_null", "is_not_null"].includes(filter.operator) &&
+                    renderFilterValueInput(filter)}
                 </div>
               ))}
             </div>

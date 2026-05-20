@@ -39,7 +39,7 @@ export const TablesView = () => {
   }, [search]);
 
   const { data: tables, isLoading } = useTables(debouncedSearch);
-  const { setSelectedTable, setCurrentView } = useDatabaseStore();
+  const { setSelectedTable } = useDatabaseStore();
   const deleteTableMutation = useDeleteTable();
   const createTableMutation = useCreateTable();
   const [tableToDelete, setTableToDelete] = React.useState<Table | null>(null);
@@ -114,12 +114,6 @@ export const TablesView = () => {
 
   return (
     <div className="flex h-full flex-col">
-      {/* <div className="px-3 py-2 flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-[0.6px] text-text-muted font-[600]">Tables</span>
-        <button className="h-6 w-6 rounded-md hover:bg-bg-sidebar text-text-muted flex items-center justify-center transition-colors">
-          <Plus size={10} />
-        </button>
-      </div> */}
       <div className="mb-2 px-2">
         <input
           placeholder="Search tables..."
@@ -138,7 +132,6 @@ export const TablesView = () => {
               key={table.id}
               onClick={() => {
                 setSelectedTable(table.slug);
-                // We no longer change setCurrentView because both are displayed together
               }}
               className={cn(
                 "group mx-2 flex cursor-pointer items-center rounded-lg px-3 py-1 text-[13px] transition-colors",

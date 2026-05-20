@@ -4,10 +4,9 @@ import React, { useState } from 'react'
 import {
   Search,
   User,
-  ChevronDown,
-  ChevronRight
+  ChevronDown
 } from 'lucide-react'
-import { format, formatDistanceToNow, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
@@ -38,6 +37,23 @@ const parseJson = (str: string) => {
     return JSON.parse(str)
   } catch (e) {
     return str
+  }
+}
+
+const formatTimeAgo = (raw: string): string => {
+  if (!raw) return '—'
+  try {
+    const diffMs = Date.now() - (new Date(raw).getTime() - 5 * 60 * 60 * 1000)
+    const sec = Math.floor(diffMs / 1000)
+    if (sec < 60) return `${sec}s ago`
+    const min = Math.floor(sec / 60)
+    if (min < 60) return `${min}m ago`
+    const hr = Math.floor(min / 60)
+    if (hr < 24) return `${hr}h ago`
+    const days = Math.floor(hr / 24)
+    return `${days}d ago`
+  } catch {
+    return raw
   }
 }
 
@@ -95,7 +111,7 @@ const LogAccordionItem = ({ item, isExpanded, onToggle, type }: any) => {
   const path = type === 'activity' ? (item.table_slug ? `/api/v2/items/${item.table_slug}` : item.action_source || '/api/v1/system') : (item.name || item.function_name || '/api/v1/function')
 
   const rawDate = (item.date || item.started_at)?.replace('Z', '')
-  const timeAgo = rawDate ? formatDistanceToNow(parseISO(rawDate), { addSuffix: true }) : ''
+  const timeAgo = rawDate ? formatTimeAgo(rawDate) : ''
 
   return (
     <div className={cn(

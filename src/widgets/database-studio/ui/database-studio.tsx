@@ -2,28 +2,16 @@
 
 import React, { useState } from "react";
 import { Table as TableIcon, Terminal, Network } from "lucide-react";
-import { useDatabaseStore, DatabaseView } from "@/entities/database";
-import {
-  TablesView,
-  RecordsView,
-  SqlConsole,
-  QueryView,
-  LogsView,
-  PlaceholderView,
-  DbDiagramView,
-} from "./index";
+import { useDatabaseStore } from "@/entities/database";
+import { TablesView, RecordsView, SqlConsole, DbDiagramView } from "./index";
 import { cn } from "@/shared/lib/utils/cn";
-import { motion, AnimatePresence } from "framer-motion";
-import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api";
 import { UsageIndicator } from "@/shared/ui";
 import { formatMBSmart, formatMBAsGB } from "@/shared/lib/utils/format-bytes";
 
 export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
-  const t = useTranslations("widgets.databaseStudio");
-  const { currentView, setCurrentView, breadcrumbs, resetToTables } =
-    useDatabaseStore();
+  const { currentView, setCurrentView } = useDatabaseStore();
 
   const [isPannelOpen, setIsPannelOpen] = useState(true);
 

@@ -350,7 +350,8 @@
       "goHome": "Bosh sahifaga qaytish"
     },
     "dateRangePicker": {
-      "placeholder": "Sana oralig'ini tanlang"
+      "placeholder": "Sana oralig'ini tanlang",
+      "clear": "Tozalash"
     }
   },
   "widgets": {
