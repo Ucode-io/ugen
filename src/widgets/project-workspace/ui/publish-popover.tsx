@@ -366,89 +366,91 @@ export const PublishPopover = ({
     (m) => (m.startsWith('http') ? m.split('//')[0] + '//' : '')
   );
 
+  // function_id of the active microfrontend — the short link is keyed by it on the BE.
+  const functionId =
+    activeCodeSelection?.kind === 'microfrontend' ? activeCodeSelection.id : undefined;
+
   const shortUrlCacheRef = useRef<Map<string, string>>(new Map());
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [isShortening, setIsShortening] = useState(false);
 
-  const SHORT_URL_STORAGE_PREFIX = 'ugen:tinyurl:';
+  // Stripped of the protocol for a cleaner display; `shortUrl` keeps the full
+  // absolute URL for the href / clipboard.
+  const displayShortUrl = shortUrl?.replace(/^https?:\/\//, '');
 
-  const readShortFromStorage = (key: string): string | null => {
-    try {
-      return typeof window !== 'undefined'
-        ? window.localStorage.getItem(SHORT_URL_STORAGE_PREFIX + key)
-        : null;
-    } catch {
-      return null;
-    }
+  // BE returns short_url without a protocol (e.g. "app.ucode.co/p/slug").
+  // Normalize to an absolute https URL so it works as an href / clipboard value.
+  const pickShortUrl = (data: any): string | null => {
+    const short = data?.data?.short_url;
+    if (typeof short !== 'string' || !short.trim()) return null;
+    return /^https?:\/\//.test(short) ? short : `https://${short}`;
   };
 
-  const writeShortToStorage = (key: string, value: string) => {
+  // The endpoint keys off function_id (not a project in the path), so the BE
+  // can't infer the project — it needs project_id + environment_id explicitly.
+  // Mirror the app-wide convention: `project-id` query param + `Environment-Id` header.
+  const shortLinkRequestConfig = {
+    params: { 'project-id': ucodeProjectId || projectId },
+    headers: { 'Environment-Id': projectEnvId ?? '' },
+  };
+
+  // Resolve the short link for the active microfrontend:
+  //  1. GET by function_id — works for new projects (BE creates it at generation
+  //     time; it also arrives in the SSE `done` event's project_data.short_url).
+  //  2. On 404 (old project, created before this feature) → POST to create it.
+  //     The POST is idempotent, so retrying always returns the same link.
+  const fetchShortLink = async (fnId: string): Promise<string | null> => {
     try {
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(SHORT_URL_STORAGE_PREFIX + key, value);
+      const { data } = await api.get(`/v1/mcp_project/short-link/${fnId}`, shortLinkRequestConfig);
+      const short = pickShortUrl(data);
+      if (short) return short;
+    } catch (err: any) {
+      // 404 is expected for old projects → fall through to create.
+      if (err?.response?.status !== 404) {
+        console.error('Failed to fetch short link', err);
       }
-    } catch {
-      // storage full / blocked — ignore
     }
-  };
 
-  const shortenUrl = async (url: string, alias?: string): Promise<string | null> => {
+    if (!mfUrl) return null;
     try {
-      const res = await fetch('/api/shorten', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, alias }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const short = data?.short_url;
-      return typeof short === 'string' && short.startsWith('http') ? short : null;
-    } catch {
+      const { data } = await api.post(
+        '/v1/mcp_project/short-link',
+        {
+          function_id: fnId,
+          mcp_project_id: projectId,
+          ...(ucodeProjectId ? { project_id: ucodeProjectId } : {}),
+          url: finalUrl,
+          name: projectTitle,
+        },
+        shortLinkRequestConfig,
+      );
+      return pickShortUrl(data);
+    } catch (err) {
+      console.error('Failed to create short link', err);
       return null;
     }
   };
 
-  // Cache key includes the title so renaming the project invalidates the cached short URL.
-  const shortCacheKey = useMemo(
-    () => (mfUrl ? `${mfUrl}|${projectTitle || ''}` : ''),
-    [mfUrl, projectTitle]
-  );
-
+  // Reset / restore from in-memory cache when the active microfrontend changes.
   useEffect(() => {
-    if (!shortCacheKey) {
+    if (!functionId) {
       setShortUrl(null);
       return;
     }
-    const cached =
-      shortUrlCacheRef.current.get(shortCacheKey) ??
-      readShortFromStorage(shortCacheKey);
-    if (cached) {
-      shortUrlCacheRef.current.set(shortCacheKey, cached);
-      setShortUrl(cached);
-    } else {
-      setShortUrl(null);
-    }
-  }, [shortCacheKey]);
+    setShortUrl(shortUrlCacheRef.current.get(functionId) ?? null);
+  }, [functionId]);
 
   useEffect(() => {
-    if (!isOpen || !mfUrl || !shortCacheKey || visibility !== 'public') return;
-    if (shortUrlCacheRef.current.has(shortCacheKey)) return;
-    const stored = readShortFromStorage(shortCacheKey);
-    if (stored) {
-      shortUrlCacheRef.current.set(shortCacheKey, stored);
-      setShortUrl(stored);
-      return;
-    }
+    if (!isOpen || !functionId || visibility !== 'public') return;
+    if (shortUrlCacheRef.current.has(functionId)) return;
 
     let cancelled = false;
     setIsShortening(true);
     (async () => {
-      const target = mfUrl.startsWith('http') ? mfUrl : `https://${mfUrl}`;
-      const short = await shortenUrl(target, projectTitle);
+      const short = await fetchShortLink(functionId);
       if (cancelled) return;
       if (short) {
-        shortUrlCacheRef.current.set(shortCacheKey, short);
-        writeShortToStorage(shortCacheKey, short);
+        shortUrlCacheRef.current.set(functionId, short);
         setShortUrl(short);
       }
       setIsShortening(false);
@@ -458,24 +460,20 @@ export const PublishPopover = ({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, mfUrl, shortCacheKey, visibility, projectTitle]);
+  }, [isOpen, functionId, visibility]);
 
   const copyMfUrl = async () => {
-    if (!mfUrl || !shortCacheKey) return;
+    if (!mfUrl) return;
 
-    const cached =
-      shortUrlCacheRef.current.get(shortCacheKey) ??
-      readShortFromStorage(shortCacheKey);
+    const cached = functionId ? shortUrlCacheRef.current.get(functionId) : undefined;
     let toCopy = cached ?? mfUrl;
 
-    if (!cached) {
+    if (!cached && functionId) {
       setIsShortening(true);
-      const target = finalUrl || mfUrl;
-      const short = await shortenUrl(target, projectTitle);
+      const short = await fetchShortLink(functionId);
       setIsShortening(false);
       if (short) {
-        shortUrlCacheRef.current.set(shortCacheKey, short);
-        writeShortToStorage(shortCacheKey, short);
+        shortUrlCacheRef.current.set(functionId, short);
         setShortUrl(short);
         toCopy = short;
       }
@@ -562,7 +560,7 @@ export const PublishPopover = ({
                     title="Deploy the project first to get a live URL"
                     className="text-text-muted flex-1 truncate font-mono text-xs cursor-not-allowed"
                   >
-                    {shortUrl ?? displayMfUrl}
+                    {displayShortUrl ?? displayMfUrl}
                   </span>
                 ) : (
                   <a
@@ -572,7 +570,7 @@ export const PublishPopover = ({
                     title={mfUrl}
                     className="text-primary flex-1 truncate font-mono text-xs hover:underline"
                   >
-                    {shortUrl ?? displayMfUrl}
+                    {displayShortUrl ?? displayMfUrl}
                   </a>
                 )}
                 <button
@@ -939,7 +937,7 @@ export const PublishPopover = ({
                 >
                   <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />
                   <span className="text-text-muted flex-1 truncate font-mono text-xs">
-                    {shortUrl ?? displayMfUrl}
+                    {displayShortUrl ?? displayMfUrl}
                   </span>
                   <span className="text-[10px] text-text-muted/70 font-mono">
                     going live…
@@ -954,7 +952,7 @@ export const PublishPopover = ({
                 >
                   <Globe size={13} className="text-green-500 shrink-0" />
                   <span className="text-primary flex-1 truncate font-mono text-xs group-hover:underline">
-                    {shortUrl ?? displayMfUrl}
+                    {displayShortUrl ?? displayMfUrl}
                   </span>
                   <ExternalLink size={12} className="text-green-500/50 shrink-0" />
                 </a>

@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl'
 import { z } from 'zod'
 import { useAuthStore } from '@/entities/session'
 import { useChatStore } from '@/entities/chat'
+import { fetchUserProjects } from '@/entities/project'
 import { loginSchema, type LoginFormValues } from '../model/validation'
 import { authApi, api } from '@/shared/api'
 import { useRouter } from '@/shared/lib/i18n/navigation'
@@ -126,6 +127,26 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
       token?.access_token,
       token?.refresh_token
     )
+
+    // The login response's is_ugen flag is unreliable for freshly registered
+    // accounts (it can come back false), which makes the dashboard render the
+    // non-ugen layout. /v1/ugen/user-projects is the source of truth used by
+    // the project dropdown, so reconcile is_ugen from there before navigating.
+    try {
+      const companies = await fetchUserProjects()
+      const matched = companies
+        .flatMap((c) => c.projects)
+        .find((p) => p.id === project_data?.project_id)
+      if (matched) {
+        useAuthStore.setState((state) => ({
+          project: state.project
+            ? { ...state.project, is_ugen: matched.is_ugen }
+            : state.project,
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to reconcile is_ugen from user-projects', err)
+    }
 
     try {
       const langRes = await api.get('/v1/language?search=Admin')

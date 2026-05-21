@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/entities/session'
 import { registerSchema, type RegisterFormValues } from '../model/validation'
 import { api, authApi } from '@/shared/api'
+import { fetchUserProjects } from '@/entities/project'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { GoogleAuthButton } from './google-auth-button'
 
@@ -52,6 +53,24 @@ export const RegisterForm = ({ onSuccess, onAuthenticated }: RegisterFormProps) 
         token?.access_token,
         token?.refresh_token,
       )
+
+      // Reconcile is_ugen from /v1/ugen/user-projects (source of truth); the
+      // auth/session response can return it false for freshly created accounts.
+      try {
+        const companies = await fetchUserProjects()
+        const matched = companies
+          .flatMap((c) => c.projects)
+          .find((p) => p.id === project_data?.project_id)
+        if (matched) {
+          useAuthStore.setState((state) => ({
+            project: state.project
+              ? { ...state.project, is_ugen: matched.is_ugen }
+              : state.project,
+          }))
+        }
+      } catch (err) {
+        console.error('Failed to reconcile is_ugen from user-projects', err)
+      }
 
       try {
         const langRes = await api.get('/v1/language?search=Admin')

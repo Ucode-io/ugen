@@ -251,7 +251,7 @@ export const UpgradePlanDialog = ({
                 key={plan.key}
                 className={cn(
                   "bg-bg-main relative flex flex-col rounded-[10px] border p-6 transition-all hover:shadow-md",
-                  plan.featured
+                  isCurrent
                     ? "border-primary shadow-md"
                     : "border-border-subtle hover:border-border-subtle/60",
                 )}
@@ -376,18 +376,14 @@ export const UpgradePlanDialog = ({
                       </th>
                       {fares.map((fare) => {
                         const isCurrent = fare.id === fareId;
-                        const isRecommended =
-                          String(fare.name || "").toLowerCase() === "pro";
                         return (
                           <th
                             key={fare.id}
                             className={cn(
                               "relative w-[20%] px-3 py-2.5 font-bold",
-                              isRecommended
+                              isCurrent
                                 ? "bg-primary/5 text-primary border-x border-x-primary/30 border-t-2 border-t-primary"
-                                : isCurrent
-                                  ? "text-primary"
-                                  : "text-text-main",
+                                : "text-text-main",
                             )}
                           >
                             <div>
@@ -397,7 +393,7 @@ export const UpgradePlanDialog = ({
                             <div
                               className={cn(
                                 "mt-0.5 text-[11px] font-normal normal-case",
-                                isRecommended
+                                isCurrent
                                   ? "text-primary/70"
                                   : "text-text-muted",
                               )}
@@ -443,9 +439,6 @@ export const UpgradePlanDialog = ({
                                 </td>
                                 {fares.map((fare) => {
                                   const isCurrent = fare.id === fareId;
-                                  const isRecommended =
-                                    String(fare.name || "").toLowerCase() ===
-                                    "pro";
                                   const rawValue =
                                     fareValueMap[fare.id]?.[featureItem.id];
                                   const displayValue = formatFareValue(rawValue);
@@ -454,15 +447,13 @@ export const UpgradePlanDialog = ({
                                       key={fare.id}
                                       className={cn(
                                         "px-3 py-2.5 text-center",
-                                        isRecommended
+                                        isCurrent
                                           ? cn(
                                               "bg-primary/5 text-primary border-x border-x-primary/30 font-semibold",
                                               isLastRow &&
                                                 "border-b-2 border-b-primary",
                                             )
-                                          : isCurrent
-                                            ? "text-primary font-semibold"
-                                            : "text-text-muted",
+                                          : "text-text-muted",
                                       )}
                                     >
                                       {displayValue}

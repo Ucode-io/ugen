@@ -4,5 +4,5 @@ import createMiddleware from "next-intl/middleware";
 export default createMiddleware(routing);
 
 export const config = {
-  matcher: ["/((?!api|go|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|p/|_next|.*\\..*).*)"],
 };
