@@ -16,119 +16,119 @@ type Expert = {
   location: string
   budget: string
   rate: string
-  serviceTag: string
+  serviceTags: string[]
   budgetTag: string
 }
 
 const EXPERTS: Expert[] = [
   {
-    id: 'alex',
-    name: 'Alex Reeve',
-    avatar: '👨‍💻',
+    id: 'udevs',
+    name: 'Udevs',
+    avatar: '💻',
     avatarBg: 'linear-gradient(135deg,#004eea,#00a8e8)',
-    website: 'alexreeve.dev',
-    rating: 4.9,
+    website: 'udevs.io',
+    rating: 5.0,
     services: [
-      { name: 'SaaS Platform Development', desc: 'Designs and builds multi-tenant SaaS apps from scratch — auth, billing, admin panels, and role-based access control.' },
-      { name: 'Workflow Automation', desc: 'Creates custom automation pipelines connecting databases, third-party APIs, and business logic with trigger-based flows.' },
+      { name: 'Backend Development', desc: 'Builds scalable backend systems and microservices in Go, backed by PostgreSQL and MongoDB — clean REST/gRPC APIs, auth, and high-load architecture.' },
+      { name: 'Mobile Development', desc: 'Delivers cross-platform mobile apps with Flutter — a single codebase shipping native-grade iOS and Android experiences.' },
     ],
-    languages: 'English',
-    location: '🇬🇧 United Kingdom',
-    budget: '$5,000 – $50,000',
-    rate: '$120 / hr',
-    serviceTag: 'saas',
+    languages: 'Uzbek, Russian',
+    location: '🇺🇿 Uzbekistan',
+    budget: '$5,000 – $60,000',
+    rate: '$45 / hr',
+    serviceTags: ['backend', 'mobile'],
     budgetTag: 'large',
   },
   {
-    id: 'yuki',
-    name: 'Yuki Tanaka',
-    avatar: '👩‍🎨',
+    id: 'dosux',
+    name: 'DosUX',
+    avatar: '🎨',
     avatarBg: 'linear-gradient(135deg,#db2777,#f59e0b)',
-    website: 'yukitanaka.io',
-    rating: 5.0,
+    website: 'dosux.uz',
+    rating: 4.9,
     services: [
-      { name: 'UI / UX Design', desc: 'Transforms wireframes and ideas into pixel-perfect interfaces with a strong focus on conversion rates and user experience.' },
-      { name: 'Mobile-First Apps', desc: 'Builds fully responsive, touch-optimized apps with accessibility best practices and cross-device compatibility.' },
+      { name: 'UI / UX Design', desc: 'Crafts product interfaces end to end in Figma — research, wireframes, and pixel-perfect high-fidelity screens focused on usability and conversion.' },
+      { name: 'Design Systems & Prototyping', desc: 'Builds reusable component libraries and interactive prototypes that keep design and engineering in sync as products scale.' },
     ],
-    languages: 'English, Japanese',
-    location: '🇯🇵 Japan',
+    languages: 'Uzbek, Russian',
+    location: '🇺🇿 Uzbekistan',
     budget: '$2,000 – $20,000',
-    rate: '$95 / hr',
-    serviceTag: 'design',
+    rate: '$35 / hr',
+    serviceTags: ['design'],
     budgetTag: 'mid',
   },
   {
-    id: 'dmitri',
-    name: 'Dmitri Volkov',
-    avatar: '🔧',
+    id: 'proxima',
+    name: 'Proxima',
+    avatar: '⚙️',
     avatarBg: 'linear-gradient(135deg,#059669,#0891b2)',
-    website: 'dvolkov.dev',
+    website: 'proxima.uz',
     rating: 4.8,
     services: [
-      { name: 'Enterprise Integration', desc: 'Connects u‑gen apps to Salesforce, SAP, and other enterprise platforms via REST, GraphQL, and webhook-based APIs.' },
-      { name: 'Custom API Development', desc: 'Architects and builds robust, well-documented APIs tailored to specific business requirements and data flows.' },
+      { name: 'DevOps & Infrastructure', desc: 'Containerizes and orchestrates workloads with Docker and Kubernetes — automated CI/CD pipelines, zero-downtime deploys, and infrastructure as code.' },
+      { name: 'Cloud & Observability', desc: 'Sets up monitoring, logging, and alerting with Prometheus and Grafana so teams catch issues before users do.' },
     ],
-    languages: 'English, German, Russian',
-    location: '🇩🇪 Germany',
-    budget: '$3,000 – $30,000',
-    rate: '$110 / hr',
-    serviceTag: 'integration',
+    languages: 'Uzbek, Russian, English',
+    location: '🇺🇿 Uzbekistan',
+    budget: '$4,000 – $40,000',
+    rate: '$50 / hr',
+    serviceTags: ['devops'],
     budgetTag: 'large',
   },
-  {
-    id: 'priya',
-    name: 'Priya Sharma',
-    avatar: '👩‍💼',
-    avatarBg: 'linear-gradient(135deg,#d97706,#dc2626)',
-    website: 'priyabuilds.com',
-    rating: 4.7,
-    services: [
-      { name: 'E-commerce Stores', desc: 'Builds high-converting online stores with product management, inventory tracking, cart, and complete checkout flows.' },
-      { name: 'Payment Integration', desc: 'Integrates Stripe, PayPal, and local payment gateways with full PCI compliance and subscription billing support.' },
-    ],
-    languages: 'English, Hindi',
-    location: '🇮🇳 India',
-    budget: '$2,000 – $15,000',
-    rate: '$75 / hr',
-    serviceTag: 'ecommerce',
-    budgetTag: 'mid',
-  },
-  {
-    id: 'carlos',
-    name: 'Carlos Mendez',
-    avatar: '🤖',
-    avatarBg: 'linear-gradient(135deg,#16a34a,#0891b2)',
-    website: 'carlosbuilds.io',
-    rating: 4.9,
-    services: [
-      { name: 'Business Automation', desc: 'Automates repetitive tasks with triggers, cron jobs, and event-driven workflows to save teams hours every week.' },
-      { name: 'CRM & Sales Tools', desc: 'Builds custom CRM systems with lead tracking, pipeline management, and detailed reporting for sales teams.' },
-    ],
-    languages: 'English, Spanish',
-    location: '🇲🇽 Mexico',
-    budget: '$1,000 – $10,000',
-    rate: '$85 / hr',
-    serviceTag: 'automation',
-    budgetTag: 'mid',
-  },
-  {
-    id: 'sarah',
-    name: 'Sarah Chen',
-    avatar: '📊',
-    avatarBg: 'linear-gradient(135deg,#7c3aed,#004eea)',
-    website: 'sarahchen.ca',
-    rating: 5.0,
-    services: [
-      { name: 'Analytics Dashboards', desc: 'Builds real-time BI dashboards with live charts, KPI tracking, and drill-down capabilities for data-driven teams.' },
-      { name: 'Data Pipeline Engineering', desc: 'Designs data ingestion and transformation pipelines ensuring clean, reliable data flows for accurate reporting.' },
-    ],
-    languages: 'English, Mandarin',
-    location: '🇨🇦 Canada',
-    budget: '$5,000 – $40,000',
-    rate: '$130 / hr',
-    serviceTag: 'analytics',
-    budgetTag: 'large',
-  },
+  // {
+  //   id: 'nextify',
+  //   name: 'Nextify',
+  //   avatar: '🧩',
+  //   avatarBg: 'linear-gradient(135deg,#7c3aed,#004eea)',
+  //   website: 'nextify.uz',
+  //   rating: 4.8,
+  //   services: [
+  //     { name: 'Frontend Development', desc: 'Ships fast, accessible web apps with React and Next.js — SSR, design-system-driven UI, and Lighthouse-grade performance out of the box.' },
+  //     { name: 'Web App Modernization', desc: 'Migrates legacy frontends to modern, type-safe stacks with incremental refactors that never block release.' },
+  //   ],
+  //   languages: 'Uzbek, Russian, English',
+  //   location: '🇺🇿 Uzbekistan',
+  //   budget: '$3,000 – $25,000',
+  //   rate: '$40 / hr',
+  //   serviceTags: ['frontend'],
+  //   budgetTag: 'large',
+  // },
+  // {
+  //   id: 'qalab',
+  //   name: 'QAlab',
+  //   avatar: '🧪',
+  //   avatarBg: 'linear-gradient(135deg,#d97706,#dc2626)',
+  //   website: 'qalab.uz',
+  //   rating: 4.7,
+  //   services: [
+  //     { name: 'QA & Test Automation', desc: 'Builds end-to-end and regression test suites with Playwright and Cypress, wired into CI to keep every release green.' },
+  //     { name: 'Manual & Exploratory Testing', desc: 'Runs structured manual passes and bug triage to catch the edge cases automation misses before they reach production.' },
+  //   ],
+  //   languages: 'Uzbek, Russian',
+  //   location: '🇺🇿 Uzbekistan',
+  //   budget: '$1,500 – $15,000',
+  //   rate: '$30 / hr',
+  //   serviceTags: ['qa'],
+  //   budgetTag: 'mid',
+  // },
+  // {
+  //   id: 'dataforge',
+  //   name: 'DataForge',
+  //   avatar: '📊',
+  //   avatarBg: 'linear-gradient(135deg,#16a34a,#0891b2)',
+  //   website: 'dataforge.uz',
+  //   rating: 4.9,
+  //   services: [
+  //     { name: 'Data Engineering', desc: 'Designs ingestion and transformation pipelines that turn raw events into clean, query-ready data for analytics and reporting.' },
+  //     { name: 'AI & Analytics', desc: 'Builds dashboards, recommendation engines, and LLM-powered features grounded in your own data.' },
+  //   ],
+  //   languages: 'Uzbek, Russian, English',
+  //   location: '🇺🇿 Uzbekistan',
+  //   budget: '$5,000 – $50,000',
+  //   rate: '$55 / hr',
+  //   serviceTags: ['data'],
+  //   budgetTag: 'large',
+  // },
 ]
 
 const BECOME_CHECKLIST = [
@@ -145,7 +145,7 @@ export const HireExpertPage = () => {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   const filtered = EXPERTS.filter((e) => {
-    const sMatch = !serviceFilter || e.serviceTag === serviceFilter
+    const sMatch = !serviceFilter || e.serviceTags.includes(serviceFilter)
     const bMatch = !budgetFilter || e.budgetTag === budgetFilter
     return sMatch && bMatch
   })
@@ -200,12 +200,13 @@ export const HireExpertPage = () => {
               className="appearance-none bg-bg-main border border-border-subtle rounded-lg px-3 py-2 pr-8 text-[0.82rem] font-medium text-text-muted cursor-pointer outline-none hover:border-border-subtle/60 focus:border-primary transition-colors"
             >
               <option value="">All Services</option>
-              <option value="saas">SaaS Development</option>
+              <option value="backend">Backend Development</option>
+              <option value="mobile">Mobile Development</option>
+              <option value="frontend">Frontend Development</option>
               <option value="design">UI / UX Design</option>
-              <option value="integration">Integration</option>
-              <option value="ecommerce">E-commerce</option>
-              <option value="automation">Automation</option>
-              <option value="analytics">Analytics</option>
+              <option value="devops">DevOps</option>
+              <option value="qa">QA & Testing</option>
+              <option value="data">Data & AI</option>
             </select>
             <select
               value={budgetFilter}
@@ -332,7 +333,7 @@ export const HireExpertPage = () => {
       </section>
 
       {/* Become an Expert */}
-      <section id="become" className="bg-bg-card border-t border-border-subtle px-6 py-20">
+      {/* <section id="become" className="bg-bg-card border-t border-border-subtle px-6 py-20">
         <div className="max-w-[1100px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
           <div>
             <span className="inline-block text-[0.68rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-3">
@@ -368,7 +369,7 @@ export const HireExpertPage = () => {
           </div>
           <div className="text-[5rem] text-center">🏆</div>
         </div>
-      </section>
+      </section> */}
 
       {/* <LandingCtaSection /> */}
       <Footer />

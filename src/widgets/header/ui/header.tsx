@@ -130,7 +130,7 @@ export const Header = () => {
             </button>
 
             {resourcesOpen && (
-              <div className="absolute top-[calc(100%+6px)] left-0 bg-bg-card border border-border-subtle rounded-[10px] shadow-xl p-1.5 min-w-[200px] z-50">
+              <div className="absolute top-[calc(100%+6px)] left-0 bg-bg-card border border-border-subtle rounded-[10px] shadow-xl p-1.5 min-w-[210px] z-50">
                 {RESOURCES_DROPDOWN.map((item) =>
                   item.external ? (
                     <a
@@ -144,7 +144,7 @@ export const Header = () => {
                       <div className="w-7 h-7 rounded-md flex items-center justify-center text-[0.9rem] flex-shrink-0 bg-hover-bg">
                         {item.icon}
                       </div>
-                      <div>
+                      <div className="flex-1 flex flex-col">
                         <strong className="block text-[0.82rem] font-semibold text-text-main">{item.label}</strong>
                         <span className="text-[0.74rem] text-text-muted">{item.desc}</span>
                       </div>
@@ -159,7 +159,7 @@ export const Header = () => {
                       <div className="w-7 h-7 rounded-md flex items-center justify-center text-[0.9rem] flex-shrink-0 bg-hover-bg">
                         {item.icon}
                       </div>
-                      <div>
+                      <div className="flex-1 flex flex-col ">
                         <strong className="block text-[0.82rem] font-semibold text-text-main">{item.label}</strong>
                         <span className="text-[0.74rem] text-text-muted">{item.desc}</span>
                       </div>
