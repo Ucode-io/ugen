@@ -13,7 +13,7 @@ import {
 } from "@/shared/ui";
 import { useBillingLimitStore } from "@/entities/billing";
 import { UpgradePlanDialog } from "@/widgets/sidebar/ui/components/upgrade-plan-dialog";
-import { LIMIT_COPY, isTokenLimitCode } from "../lib/copy";
+import { getLimitCopy, isTokenLimitCode } from "../lib/copy";
 
 const formatNumber = (n?: number) =>
   typeof n === "number" ? n.toLocaleString() : "—";
@@ -30,13 +30,13 @@ export const BillingLimitDialog = () => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const code = data?.code;
-  const copy = code ? LIMIT_COPY[code] : null;
+  const copy = getLimitCopy(code);
   const isTokenLimit = isTokenLimitCode(code);
   const Icon = isTokenLimit ? Ban : CreditCard;
 
   return (
     <>
-      <Dialog open={open && !!copy} onOpenChange={(o) => !o && close()}>
+      <Dialog open={open && !!data} onOpenChange={(o) => !o && close()}>
         <DialogContent className="max-w-md gap-0 rounded-2xl p-0">
           <div className="flex flex-col items-center gap-4 px-6 pt-8 pb-2 text-center">
             <div className="bg-primary/10 flex h-14 w-14 items-center justify-center rounded-full">

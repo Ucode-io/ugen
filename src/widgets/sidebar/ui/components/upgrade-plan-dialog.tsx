@@ -80,7 +80,7 @@ const PLAN_META: PlanMeta[] = [
     fareName: null,
     desc: "Custom scale, security, and compliance.",
     cta: "Contact sales →",
-    href: "mailto:enterprise@u-code.io",
+    href: "https://calendar.app.google/zUXHa2dh3N3Cv2dp6",
     featured: false,
   },
 ];
@@ -250,7 +250,7 @@ export const UpgradePlanDialog = ({
               <div
                 key={plan.key}
                 className={cn(
-                  "bg-bg-main relative rounded-[10px] border p-6 transition-all hover:shadow-md",
+                  "bg-bg-main relative flex flex-col rounded-[10px] border p-6 transition-all hover:shadow-md",
                   plan.featured
                     ? "border-primary shadow-md"
                     : "border-border-subtle hover:border-border-subtle/60",
@@ -265,10 +265,11 @@ export const UpgradePlanDialog = ({
                   {displayName}
                 </div>
                 <div
-                  className="text-text-main mb-1 font-black tracking-[-0.05em]"
+                  className="text-text-main mb-1 flex items-end font-black tracking-[-0.05em]"
                   style={{
                     fontSize: isEnterprise ? "1.6rem" : "2.2rem",
                     lineHeight: 1,
+                    minHeight: "2.2rem",
                   }}
                 >
                   {displayPrice}
@@ -281,7 +282,7 @@ export const UpgradePlanDialog = ({
                 <p className="text-text-muted mb-1 text-[0.68rem]">
                   {displayPer}
                 </p>
-                <p className="text-text-muted mt-3 mb-4 text-[0.78rem] leading-[1.55]">
+                <p className="text-text-muted mt-3 mb-4 min-h-[3.6rem] text-[0.78rem] leading-[1.55]">
                   {plan.desc}
                 </p>
                 <hr className="border-border-subtle mb-4 border-t" />
@@ -308,8 +309,10 @@ export const UpgradePlanDialog = ({
                 {plan.href ? (
                   <a
                     href={plan.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={cn(
-                      "block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
+                      "mt-auto block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
                       plan.featured
                         ? "bg-primary border-primary text-white hover:opacity-85"
                         : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
@@ -322,7 +325,7 @@ export const UpgradePlanDialog = ({
                     type="button"
                     disabled={isCurrent || plan.key === "free"}
                     className={cn(
-                      "w-full cursor-pointer rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                      "mt-auto w-full cursor-pointer rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
                       plan.featured
                         ? "bg-primary border-primary text-white hover:opacity-85"
                         : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
@@ -363,12 +366,12 @@ export const UpgradePlanDialog = ({
             {compareOpen && (
               <div className="overflow-x-auto">
                 <table
-                  className="w-full border-collapse text-[0.82rem]"
-                  style={{ minWidth: "600px" }}
+                  className="w-full table-fixed border-collapse text-[0.82rem]"
+                  style={{ minWidth: "820px" }}
                 >
                   <thead>
                     <tr className="border-border-subtle border-b-2">
-                      <th className="text-text-muted px-3 py-2.5 text-left text-[0.8rem] font-semibold">
+                      <th className="text-text-muted w-[16%] px-3 py-2.5 text-left text-[0.8rem] font-semibold">
                         Feature
                       </th>
                       {fares.map((fare) => {
@@ -379,7 +382,7 @@ export const UpgradePlanDialog = ({
                           <th
                             key={fare.id}
                             className={cn(
-                              "relative px-3 py-2.5 font-bold",
+                              "relative w-[20%] px-3 py-2.5 font-bold",
                               isRecommended
                                 ? "bg-primary/5 text-primary border-x border-x-primary/30 border-t-2 border-t-primary"
                                 : isCurrent
@@ -404,6 +407,12 @@ export const UpgradePlanDialog = ({
                           </th>
                         );
                       })}
+                      <th className="text-text-main relative w-[20%] px-3 py-2.5 font-bold">
+                        <div>Enterprise</div>
+                        <div className="text-text-muted mt-0.5 text-[11px] font-normal normal-case">
+                          Custom
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -414,7 +423,7 @@ export const UpgradePlanDialog = ({
                         <Fragment key={group.key}>
                           <tr className="bg-hover-bg">
                             <td
-                              colSpan={fares.length + 1}
+                              colSpan={fares.length + 2}
                               className="text-text-muted/70 px-3 py-1.5 text-[0.68rem] font-bold tracking-[0.07em] uppercase"
                             >
                               {group.name}
@@ -460,6 +469,9 @@ export const UpgradePlanDialog = ({
                                     </td>
                                   );
                                 })}
+                                <td className="text-text-muted px-3 py-2.5 text-center">
+                                  Custom
+                                </td>
                               </tr>
                             );
                           })}

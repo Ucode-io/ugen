@@ -55,7 +55,7 @@ const PLAN_META: PlanMeta[] = [
     fareName: null,
     desc: 'For large organisations requiring custom scale, security, and compliance.',
     cta: 'Contact sales →',
-    href: 'mailto:enterprise@u-code.io',
+    href: 'https://calendar.app.google/zUXHa2dh3N3Cv2dp6',
     featured: false,
   },
 ]
@@ -239,7 +239,7 @@ export const PricingPage = () => {
               return (
                 <div
                   key={plan.key}
-                  className={`bg-bg-main border rounded-[10px] p-8 relative transition-all hover:shadow-md ${
+                  className={`bg-bg-main border rounded-[10px] p-8 relative transition-all hover:shadow-md flex flex-col ${
                     plan.featured
                       ? 'border-primary shadow-md'
                       : 'border-border-subtle hover:border-border-subtle/60'
@@ -253,15 +253,15 @@ export const PricingPage = () => {
                   <div className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[7px]">
                     {displayName}
                   </div>
-                  <div className="font-black tracking-[-0.05em] text-text-main mb-1"
-                    style={{ fontSize: isEnterprise ? '2rem' : '2.8rem', lineHeight: 1 }}>
+                  <div className="font-black tracking-[-0.05em] text-text-main mb-1 flex items-end"
+                    style={{ fontSize: isEnterprise ? '2rem' : '2.8rem', lineHeight: 1, minHeight: '2.8rem' }}>
                     {displayPrice}
                     {!isEnterprise && (
                       <span className="text-[0.9rem] font-normal text-text-muted">/mo</span>
                     )}
                   </div>
                   <p className="text-[0.72rem] text-text-muted mb-1">{displayPer}</p>
-                  <p className="text-[0.82rem] text-text-muted leading-[1.6] mb-5 mt-3">{plan.desc}</p>
+                  <p className="text-[0.82rem] text-text-muted leading-[1.6] mb-5 mt-3 min-h-[3.9rem]">{plan.desc}</p>
                   <hr className="border-t border-border-subtle mb-5" />
                   <ul className="space-y-2.5 mb-6 min-h-[100px]">
                     {features.length > 0
@@ -291,7 +291,9 @@ export const PricingPage = () => {
                   {plan.href ? (
                     <a
                       href={plan.href}
-                      className={`block w-full text-center py-2.5 rounded-lg text-[0.85rem] font-semibold transition-all border no-underline ${
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`block w-full text-center py-2.5 rounded-lg text-[0.85rem] font-semibold transition-all border no-underline mt-auto ${
                         plan.featured
                           ? 'bg-primary border-primary text-white hover:opacity-85'
                           : 'bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main'
@@ -302,7 +304,7 @@ export const PricingPage = () => {
                   ) : (
                     <button
                       onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))}
-                      className={`w-full py-2.5 rounded-lg text-[0.85rem] font-semibold cursor-pointer transition-all border ${
+                      className={`w-full py-2.5 rounded-lg text-[0.85rem] font-semibold cursor-pointer transition-all border mt-auto ${
                         plan.featured
                           ? 'bg-primary border-primary text-white hover:opacity-85'
                           : 'bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main'
@@ -324,17 +326,17 @@ export const PricingPage = () => {
                 Compare{' '}
                 <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">plans</em>
               </h2>
-              <table className="w-full border-collapse text-[0.86rem]" style={{ minWidth: '600px' }}>
+              <table className="w-full table-fixed border-collapse text-[0.86rem]" style={{ minWidth: '820px' }}>
                 <thead>
                   <tr className="border-b-2 border-border-subtle">
-                    <th className="py-3 px-3.5 text-left font-semibold text-text-muted text-[0.86rem]">Feature</th>
+                    <th className="w-[16%] py-3 px-3.5 text-left font-semibold text-text-muted text-[0.86rem]">Feature</th>
                     {fares.map((fare) => {
                       const isCurrent = fare.id === fareId
                       const isRecommended = String(fare.name || '').toLowerCase() === 'pro'
                       return (
                         <th
                           key={fare.id}
-                          className={`py-3 px-3.5 font-bold relative ${
+                          className={`w-[20%] py-3 px-3.5 font-bold relative ${
                             isRecommended
                               ? 'bg-primary/5 text-primary border-x border-x-primary/30 border-t-2 border-t-primary'
                               : isCurrent
@@ -349,6 +351,10 @@ export const PricingPage = () => {
                         </th>
                       )
                     })}
+                    <th className="w-[20%] py-3 px-3.5 font-bold relative text-text-main">
+                      <div>Enterprise</div>
+                      <div className="mt-0.5 text-[11px] font-normal normal-case text-text-muted">Custom</div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -357,7 +363,7 @@ export const PricingPage = () => {
                     return (
                       <React.Fragment key={group.key}>
                         <tr className="bg-hover-bg">
-                          <td colSpan={fares.length + 1} className="py-2 px-3.5 text-[0.72rem] font-bold uppercase tracking-[0.07em] text-text-muted/60">
+                          <td colSpan={fares.length + 2} className="py-2 px-3.5 text-[0.72rem] font-bold uppercase tracking-[0.07em] text-text-muted/60">
                             {group.name}
                           </td>
                         </tr>
@@ -388,6 +394,7 @@ export const PricingPage = () => {
                                   </td>
                                 )
                               })}
+                              <td className="py-3 px-3.5 text-center text-text-muted">Custom</td>
                             </tr>
                           )
                         })}

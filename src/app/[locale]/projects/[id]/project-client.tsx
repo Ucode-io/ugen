@@ -330,6 +330,8 @@ export const ProjectWorkspaceClient = ({
 
   const handleEditCode = async (target: CodeEditorTarget) => {
     setCodeEditorTarget(target);
+    // Explicit user action ("Edit with AI") — flash the chat-input folder green.
+    useCodeSelectionStore.getState().flashFolderIcon();
     // Editing a microfrontend with AI: surface the live preview and open the
     // chat so the freshly-selected MF is active everywhere at once (preview
     // viewer + chat both read it from the code-selection store). Done up front

@@ -6,7 +6,7 @@ import { Button } from "@/shared/ui";
 import type { PaymentRequiredData } from "@/entities/billing";
 import { cn } from "@/shared/lib/utils/cn";
 import { UpgradePlanDialog } from "@/widgets/sidebar/ui/components/upgrade-plan-dialog";
-import { LIMIT_COPY, isTokenLimitCode } from "../lib/copy";
+import { getLimitCopy, isTokenLimitCode } from "../lib/copy";
 
 interface BillingLimitStateProps {
   data: PaymentRequiredData;
@@ -21,7 +21,7 @@ interface BillingLimitStateProps {
  */
 export const BillingLimitState = ({ data, className }: BillingLimitStateProps) => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const copy = LIMIT_COPY[data.code];
+  const copy = getLimitCopy(data.code);
   const isTokenLimit = isTokenLimitCode(data.code);
   const Icon = isTokenLimit ? Ban : CreditCard;
 

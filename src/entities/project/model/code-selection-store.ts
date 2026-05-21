@@ -12,6 +12,15 @@ interface CodeSelectionState {
   activeCodeSelection: CodeEditorTarget | null
   /** Files associated with the active microfrontend selection (for preview) */
   activeCodeFiles: CodeSelectionFile[] | null
+  /**
+   * Timestamp bumped whenever a selection is made through an explicit user
+   * action that should visually flash the chat-input folder green (e.g. the
+   * "Edit with AI" button). The chat input watches this value to trigger its
+   * flash — auto/bootstrap selections leave it untouched so the folder doesn't
+   * flash at random moments.
+   */
+  flashFolderAt: number
+  flashFolderIcon: () => void
   setActiveCodeSelection: (target: CodeEditorTarget | null, files?: CodeSelectionFile[] | null) => void
   /**
    * Replace specific files inside activeCodeFiles in place. Adds entries for
@@ -25,6 +34,8 @@ interface CodeSelectionState {
 export const useCodeSelectionStore = create<CodeSelectionState>((set, get) => ({
   activeCodeSelection: null,
   activeCodeFiles: null,
+  flashFolderAt: 0,
+  flashFolderIcon: () => set({ flashFolderAt: Date.now() }),
   setActiveCodeSelection: (target, files = null) => {
     // Preserve dirty content when API responses bring in fresh files for the
     // currently selected microfrontend. The user may still be editing those files.

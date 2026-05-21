@@ -39,7 +39,7 @@ function formatShort(n: number) {
   return n.toString()
 }
 
-function TokenBar({ label, item, color }: { label: string; item: any; color: string }) {
+function TokenBar({ label, item }: { label: string; item: any }) {
   const current = item?.current || 0
   const limit = item?.limit || 0
   const pct = limit > 0 ? Math.min((current / limit) * 100, 100) : 0
@@ -50,14 +50,17 @@ function TokenBar({ label, item, color }: { label: string; item: any; color: str
       className="flex items-center gap-2"
       title={`${current.toLocaleString()} / ${limit.toLocaleString()}`}
     >
-      <span className="text-text-muted w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide">{label}</span>
+      <span className="text-text-muted w-16 shrink-0 text-[10px] font-medium uppercase tracking-wide">{label}</span>
       <div className="bg-bg-main relative h-1 flex-1 overflow-hidden rounded-full">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${isHigh ? 'bg-destructive' : color}`}
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${pct}%`,
+            backgroundColor: isHigh ? 'var(--color-destructive)' : 'var(--color-primary)',
+          }}
         />
       </div>
-      <span className={`shrink-0 text-[10px] font-semibold tabular-nums ${isHigh ? 'text-destructive' : 'text-text-muted'}`}>
+      <span className={`w-16 shrink-0 text-right text-[10px] font-semibold tabular-nums ${isHigh ? 'text-destructive' : 'text-text-muted'}`}>
         {formatShort(current)}/{formatShort(limit)}
       </span>
     </div>
@@ -106,7 +109,7 @@ export const ProjectDropdown = ({
   const dailyTokens = toTokenUsage(pricingData?.data?.tokens?.daily)
   const monthlyTokens = toTokenUsage(pricingData?.data?.tokens?.monthly)
   const projectCount = pricingData?.data?.project_count
-  const builderCount = pricingData?.data?.builder_count
+  // const builderCount = pricingData?.data?.builder_count
 
   useEffect(() => {
     if (isProjectPopupOpen && buttonRef.current) {
@@ -276,10 +279,10 @@ export const ProjectDropdown = ({
 
             {/* Token usage (compact) */}
             <div className="flex flex-col gap-2 px-3 py-2.5">
-              <TokenBar label="Daily" item={dailyTokens} color="bg-pink-500" />
-              <TokenBar label="Monthly" item={monthlyTokens} color="bg-orange-500" />
-              <TokenBar label="Projects" item={projectCount} color="bg-sky-500" />
-              <TokenBar label="Builders" item={builderCount} color="bg-emerald-500" />
+              <TokenBar label="Daily" item={dailyTokens} />
+              <TokenBar label="Monthly" item={monthlyTokens} />
+              <TokenBar label="Projects" item={projectCount} />
+              {/* <TokenBar label="Builders" item={builderCount} color="bg-emerald-500" /> */}
               <button
                 onClick={() => {
                   setIsProjectPopupOpen(false)

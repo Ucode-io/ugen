@@ -114,6 +114,7 @@ export const ChatInput = ({
   const setActiveCodeSelection = useCodeSelectionStore(
     (s) => s.setActiveCodeSelection,
   );
+  const flashFolderAt = useCodeSelectionStore((s) => s.flashFolderAt);
   const getApiKeyHeaders = () =>
     apiKey ? { Authorization: "API-KEY", "x-api-key": apiKey } : {};
 
@@ -140,6 +141,14 @@ export const ChatInput = ({
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     };
   }, []);
+
+  // Flash the folder green when an explicit "Edit with AI" selection is made
+  // elsewhere (e.g. the microfrontend table). Skip the initial 0 so the folder
+  // doesn't flash on mount.
+  useEffect(() => {
+    if (!flashFolderAt) return;
+    flashFolder();
+  }, [flashFolderAt]);
 
   const {
     data: functionsList,

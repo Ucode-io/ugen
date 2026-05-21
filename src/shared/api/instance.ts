@@ -22,7 +22,6 @@ const BEARER_ONLY_ENDPOINTS = [
   /^\/v1\/ai-chat(\/|$)/,
   /^\/v1\/mcp_project(\/|$)/,
   /^\/v1\/upload(\/|$)/,
-  /^\/v1\/files(\/|$)/,
   /^\/v1\/ugen-template(?!\/public)(\/|$)/,
   /^\/v1\/pricing\/company-stats(\/|$)/,
 ]

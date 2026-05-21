@@ -1,13 +1,22 @@
 import { create } from "zustand";
 
-export type BillingLimitCode =
+// Known codes get tailored copy + autocomplete. The backend defines limit
+// codes in several services, so the union stays open (`string & {}`) — any
+// unknown code still surfaces a generic popup instead of silently failing.
+export type KnownBillingLimitCode =
   | "project_limit"
   | "table_limit"
   | "asset_limit"
   | "database_limit"
   | "api_call_limit"
+  | "api_key_limit"
+  | "function_limit"
+  | "microfrontend_limit"
+  | "user_limit"
   | "token_day_limit"
   | "token_month_limit";
+
+export type BillingLimitCode = KnownBillingLimitCode | (string & {});
 
 export interface PaymentRequiredData {
   type: "payment_required";
