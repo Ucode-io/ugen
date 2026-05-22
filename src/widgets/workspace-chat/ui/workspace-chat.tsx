@@ -243,8 +243,11 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
 
   const displayMessages = messages.length > 0 ? messages : (!isLoadingHistory && offset === 0 ? MOCK_CHAT : []);
 
-  const fetchHistory = async (currentOffset: number) => {
-    if (!projectId || !hasMore || isLoadingHistory) return;
+  const fetchHistory = async (currentOffset: number, force = false) => {
+    // `force` is used to reload the first page after an SSE `done`, where
+    // hasMore may already be false (scrolled to the end) and we still want
+    // the canonical, server-persisted messages.
+    if (!projectId || (!hasMore && !force) || (isLoadingHistory && !force)) return;
     setIsLoadingHistory(true);
 
     try {
@@ -271,6 +274,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
 
         if (currentOffset === 0) {
           setMessages(formatted);
+          if (force) setHasMore(true);
         } else {
           unshiftMessages(formatted);
         }
@@ -613,7 +617,13 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
           while (true) {
             const { done, value } = await reader.read();
             if (done) {
-              if (finalDoneData) processDoneData(finalDoneData);
+              if (finalDoneData) {
+                processDoneData(finalDoneData);
+                // Reload the canonical, server-persisted history so the chat
+                // reflects exactly what the backend stored (correct ids/order),
+                // not just the optimistically appended message.
+                fetchHistory(0, true);
+              }
               break;
             }
 

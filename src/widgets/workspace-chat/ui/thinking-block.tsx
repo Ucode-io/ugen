@@ -479,6 +479,17 @@ export function ThinkingBlock({
   const [isOpen, setIsOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Collapse the accordion once generation is done, leaving a tidy
+  // "Размышлял Xс" summary. Guarded by a ref so the user can re-open it
+  // afterwards without it snapping shut again.
+  const collapsedOnDoneRef = useRef(false);
+  useEffect(() => {
+    if (isDone && !collapsedOnDoneRef.current) {
+      collapsedOnDoneRef.current = true;
+      setIsOpen(false);
+    }
+  }, [isDone]);
+
   // Auto-scroll thought list to bottom whenever thoughts grow
   useEffect(() => {
     if (!isOpen) return;
