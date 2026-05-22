@@ -803,6 +803,28 @@
           "pwa": "PWA qo'llab-quvvatlash",
           "analytics": "Analitika"
         }
+      },
+      "projectSummary": {
+        "typeWeb": "Veb-sayt",
+        "typeAdminPanel": "Admin panel",
+        "typeLanding": "Lending",
+        "statFiles": "fayl",
+        "statComponents": "komponent",
+        "statPages": "sahifa",
+        "statModules": "modul",
+        "statHooks": "hook",
+        "design": "Dizayn",
+        "database": "Maʼlumotlar bazasi",
+        "tablesCount": "{count} ta jadval",
+        "auth": "avtorizatsiya: {table}",
+        "mockData": "Test maʼlumotlari {count} ta jadvalga yuklandi",
+        "pages": "Sahifalar",
+        "modules": "Modullar",
+        "sections": "Boʻlimlar",
+        "roles": "Rollar",
+        "stats": "Statistika",
+        "relations": "Bogʻlanishlar",
+        "tech": "Texnologiyalar"
       }
     },
     "mediaGallery": {

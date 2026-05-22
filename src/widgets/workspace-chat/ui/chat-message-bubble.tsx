@@ -34,14 +34,14 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
   if (role === 'user') {
     return (
       <div className="flex w-full justify-end px-4 pt-3 pb-1">
-        <div className="max-w-[85%] rounded-[22px] bg-primary/8 px-4 py-2.5 text-[15px] text-text-main flex flex-col gap-3 transition-colors">
+        <div className="max-w-[80%] rounded-[26px] bg-muted px-5 py-2.5 text-[16px] text-text-main flex flex-col gap-3">
           {type === 'audio' && audioUrl ? (
             <div className="rounded-xl bg-bg-card/60 p-2">
               <audio src={audioUrl} controls className="h-9 w-[220px]" />
             </div>
           ) : null}
           {content && (
-            <span className="leading-[1.55] tracking-[-0.003em] whitespace-pre-wrap break-words">
+            <span className="leading-[1.75] whitespace-pre-wrap break-words">
               {content}
             </span>
           )}
@@ -53,38 +53,46 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
   return (
     <div className="group flex w-full justify-start px-4 py-2">
       <div className="w-full max-w-full overflow-hidden">
-        <div className="w-full max-w-full transition-all duration-300 text-[15px] leading-[1.7] tracking-[-0.003em] text-text-main">
+        <div className="w-full max-w-full text-[16px] leading-[1.75] text-text-main">
           <ReactMarkdown
             remarkPlugins={[remarkBreaks]}
             components={{
-              // Custom Paragraph
+              // Paragraph
               p({ children }) {
-                return <p className="mb-4 last:mb-0 leading-[1.7] tracking-[-0.003em] text-[15px] text-text-main">{children}</p>
+                return <p className="mb-5 last:mb-0 text-[16px] leading-[1.75] text-text-main">{children}</p>
               },
               // Headings
               h1({ children }) {
-                return <h1 className="mb-4 mt-7 text-[26px] font-semibold leading-[1.25] tracking-[-0.02em] text-text-main first:mt-0">{children}</h1>
+                return <h1 className="mb-4 mt-7 text-[1.5rem] font-semibold leading-[1.35] text-text-main first:mt-0">{children}</h1>
               },
               h2({ children }) {
-                return <h2 className="mb-3 mt-6 text-[20px] font-semibold leading-[1.3] tracking-[-0.015em] text-text-main first:mt-0">{children}</h2>
+                return <h2 className="mb-3 mt-7 text-[1.25rem] font-semibold leading-[1.4] text-text-main first:mt-0">{children}</h2>
               },
               h3({ children }) {
-                return <h3 className="mb-2 mt-5 text-[17px] font-semibold leading-[1.35] tracking-[-0.01em] text-text-main first:mt-0">{children}</h3>
+                return <h3 className="mb-2 mt-6 text-[1.125rem] font-semibold leading-[1.45] text-text-main first:mt-0">{children}</h3>
+              },
+              // Bold — ChatGPT uses 600, not browser-default 700
+              strong({ children }) {
+                return <strong className="font-semibold text-text-main">{children}</strong>
               },
               // Lists
               ul({ children }) {
-                return <ul className="mb-4 ml-5 list-disc space-y-1.5 text-[15px] leading-[1.7] text-text-main marker:text-text-muted">{children}</ul>
+                return <ul className="mb-5 list-disc pl-6 space-y-2 text-[16px] leading-[1.75] text-text-main marker:text-text-muted">{children}</ul>
               },
               ol({ children }) {
-                return <ol className="mb-4 ml-5 list-decimal space-y-1.5 text-[15px] leading-[1.7] text-text-main marker:text-text-muted marker:font-medium">{children}</ol>
+                return <ol className="mb-5 list-decimal pl-6 space-y-2 text-[16px] leading-[1.75] text-text-main marker:text-text-muted">{children}</ol>
               },
               li({ children }) {
-                return <li className="pl-1 leading-[1.7] [&>p]:mb-2 [&>p:last-child]:mb-0">{children}</li>
+                return <li className="pl-1.5 leading-[1.75] [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mt-2 [&>ol]:mt-2">{children}</li>
+              },
+              // Horizontal rule
+              hr() {
+                return <hr className="my-7 border-0 border-t border-border-subtle" />
               },
               // Blockquote
               blockquote({ children }) {
                 return (
-                  <blockquote className="mb-4 border-l-[3px] border-primary/40 bg-primary/[0.04] px-4 py-2.5 rounded-r-lg text-text-muted leading-[1.7] [&>p]:mb-0">
+                  <blockquote className="mb-5 border-l-2 border-border-subtle pl-4 text-text-muted leading-[1.75] [&>p]:mb-0">
                     {children}
                   </blockquote>
                 )
@@ -106,7 +114,7 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
                 return (
                   <code
                     {...rest}
-                    className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.85em] font-medium text-primary border border-border-subtle/50 whitespace-pre-wrap"
+                    className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.875em] text-text-main whitespace-pre-wrap"
                   >
                     {children}
                   </code>
@@ -118,7 +126,7 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
                 return (
                   <a
                     {...rest}
-                    className="font-medium text-primary underline decoration-primary/30 underline-offset-[3px] transition-all hover:text-primary-hover hover:decoration-primary"
+                    className="text-text-main underline decoration-text-muted/50 underline-offset-[3px] transition-colors hover:decoration-text-main"
                     target="_blank"
                     rel="noopener noreferrer"
                   />
@@ -127,8 +135,8 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
               // Tables
               table({ children }) {
                 return (
-                  <div className="my-5 w-full overflow-hidden rounded-ai border border-border-subtle">
-                    <table className="w-full border-collapse bg-bg-card text-[14px] leading-[1.55]">
+                  <div className="my-5 w-full overflow-hidden rounded-lg border border-border-subtle">
+                    <table className="w-full border-collapse text-[14px] leading-[1.6]">
                       {children}
                     </table>
                   </div>
@@ -138,10 +146,10 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
                 return <thead className="bg-muted/50 text-text-main">{children}</thead>
               },
               th({ children }) {
-                return <th className="border-b border-border-subtle px-4 py-2.5 text-left font-semibold tracking-[-0.005em]">{children}</th>
+                return <th className="border-b border-border-subtle px-4 py-2.5 text-left font-semibold">{children}</th>
               },
               td({ children }) {
-                return <td className="border-b border-border-subtle px-4 py-2.5 text-text-muted">{children}</td>
+                return <td className="border-b border-border-subtle px-4 py-2.5 text-text-main">{children}</td>
               }
             }}
           >

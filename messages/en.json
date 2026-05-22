@@ -803,6 +803,28 @@
           "pwa": "PWA Support",
           "analytics": "Analytics"
         }
+      },
+      "projectSummary": {
+        "typeWeb": "Website",
+        "typeAdminPanel": "Admin panel",
+        "typeLanding": "Landing",
+        "statFiles": "files",
+        "statComponents": "components",
+        "statPages": "pages",
+        "statModules": "modules",
+        "statHooks": "hooks",
+        "design": "Design",
+        "database": "Database",
+        "tablesCount": "{count} tables",
+        "auth": "auth: {table}",
+        "mockData": "Mock data loaded into {count} tables",
+        "pages": "Pages",
+        "modules": "Modules",
+        "sections": "Sections",
+        "roles": "Roles",
+        "stats": "Statistics",
+        "relations": "Relations",
+        "tech": "Tech stack"
       }
     },
     "mediaGallery": {

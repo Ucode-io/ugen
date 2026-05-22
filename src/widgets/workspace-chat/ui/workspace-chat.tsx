@@ -17,6 +17,8 @@ import { cn } from "@/shared/lib/utils/cn";
 import { useTranslations } from "next-intl";
 import { VersionHistoryPanel, VersionPreviewFile } from "@/widgets/project-workspace/ui/version-history-panel";
 import { ThinkingBlock, type SseEvent } from "./thinking-block";
+import { ProjectSummaryMessage } from "./project-summary-message";
+import { isProjectSummary } from "../lib/parse-project-summary";
 import { useGuardedAction } from "@/widgets/project-workspace/lib/save-flow";
 
 const getLanguageByPath = (path: string) => {
@@ -769,13 +771,17 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                   </div>
                 )}
                 {msg.content && (
-                  <ChatMessageBubble
-                    key={msg.id}
-                    role={msg.role}
-                    content={msg.content}
-                    isFromResponse={msg.isFromResponse}
-                    onAutoScroll={handleAutoScroll}
-                  />
+                  msg.role !== 'user' && isProjectSummary(msg.content) ? (
+                    <ProjectSummaryMessage key={msg.id} content={msg.content} onAutoScroll={handleAutoScroll} />
+                  ) : (
+                    <ChatMessageBubble
+                      key={msg.id}
+                      role={msg.role}
+                      content={msg.content}
+                      isFromResponse={msg.isFromResponse}
+                      onAutoScroll={handleAutoScroll}
+                    />
+                  )
                 )}
                 {msg.bpmnXml && (
                   <>

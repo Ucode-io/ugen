@@ -803,6 +803,28 @@
           "pwa": "PWA поддержка",
           "analytics": "Аналитика"
         }
+      },
+      "projectSummary": {
+        "typeWeb": "Веб-сайт",
+        "typeAdminPanel": "Админ панель",
+        "typeLanding": "Лендинг",
+        "statFiles": "файлов",
+        "statComponents": "компонентов",
+        "statPages": "страниц",
+        "statModules": "модулей",
+        "statHooks": "хуков",
+        "design": "Дизайн",
+        "database": "База данных",
+        "tablesCount": "{count} таблиц",
+        "auth": "авторизация: {table}",
+        "mockData": "Тестовые данные загружены в {count} таблицах",
+        "pages": "Страницы",
+        "modules": "Модули",
+        "sections": "Секции",
+        "roles": "Роли",
+        "stats": "Статистика",
+        "relations": "Связи",
+        "tech": "Технологии"
       }
     },
     "mediaGallery": {
