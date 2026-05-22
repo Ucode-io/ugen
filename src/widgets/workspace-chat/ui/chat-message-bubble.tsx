@@ -53,13 +53,13 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
   return (
     <div className="group flex w-full justify-start px-4 py-2">
       <div className="w-full max-w-full overflow-hidden">
-        <div className="w-full max-w-full text-[16px] leading-[1.75] text-text-main">
+        <div className="w-full max-w-full text-[14px] leading-[1.75] text-text-main">
           <ReactMarkdown
             remarkPlugins={[remarkBreaks]}
             components={{
               // Paragraph
               p({ children }) {
-                return <p className="mb-5 last:mb-0 text-[16px] leading-[1.75] text-text-main">{children}</p>
+                return <p className="mb-5 last:mb-0 text-[14px] leading-[1.75] text-text-main">{children}</p>
               },
               // Headings
               h1({ children }) {
