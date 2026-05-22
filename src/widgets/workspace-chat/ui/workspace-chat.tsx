@@ -275,6 +275,21 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         if (currentOffset === 0) {
           setMessages(formatted);
           if (force) setHasMore(true);
+
+          // Restore a pending questionnaire after refresh: the backend keeps the
+          // `questions` array on the last assistant message until it's answered,
+          // but our formatted Message drops it — so read it from the raw payload.
+          const lastRaw: any = historyMessages[historyMessages.length - 1];
+          const pendingQuestions = lastRaw?.questions;
+          if (Array.isArray(pendingQuestions) && pendingQuestions.length > 0) {
+            setQuestionData(pendingQuestions);
+            setCurrentQuestionIndex(0);
+            setAnswers({});
+            setCustomAnswers({});
+            setShowQuestionnaire(true);
+          } else {
+            setShowQuestionnaire(false);
+          }
         } else {
           unshiftMessages(formatted);
         }
@@ -863,7 +878,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 max-h-[45vh] overflow-y-auto pr-1 -mr-1">
                   {questionData[currentQuestionIndex].options.map((option) => {
                     const isChecked = (answers[questionData[currentQuestionIndex].id] || []).includes(option.id);
                     return (

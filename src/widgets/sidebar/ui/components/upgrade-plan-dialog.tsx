@@ -1,8 +1,9 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { Check, ChevronDown, Sparkles } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Check, ChevronDown, Loader2, Sparkles } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -106,7 +107,37 @@ export const UpgradePlanDialog = ({
 }: UpgradePlanDialogProps) => {
   const [period, setPeriod] = useState<Period>("year");
   const [compareOpen, setCompareOpen] = useState(false);
+  const [pendingFareId, setPendingFareId] = useState<string | null>(null);
   const fareId = useAuthStore((state) => state.project?.fare_id);
+  const environmentId = useAuthStore((state) => state.project?.environment_id);
+  const queryClient = useQueryClient();
+
+  const { mutate: attachFare, isPending: isAttaching } = useMutation({
+    mutationFn: async (targetFareId: string) => {
+      const { data } = await api.patch(
+        "/v1/company/project/attach-fare",
+        { fare_id: targetFareId, discount_id: "" },
+        {
+          headers: {
+            Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
+            "Environment-Id": environmentId ?? "",
+          },
+        },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["fares", "ugen"] });
+      toast.success("Plan updated successfully");
+      onOpenChange(false);
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.description || "Failed to update plan");
+    },
+    onSettled: () => {
+      setPendingFareId(null);
+    },
+  });
 
   const { data: fareData } = useQuery({
     queryKey: ["fares", "ugen"],
@@ -244,6 +275,7 @@ export const UpgradePlanDialog = ({
                 ? (plan.perFreeText ?? "forever free")
                 : currentPeriod.per;
             const features = fare ? buildFeatures(fare) : [];
+            const isPlanLoading = isAttaching && pendingFareId === fare?.id;
             const ctaLabel = isCurrent ? "Current plan" : plan.cta;
 
             return (
@@ -330,14 +362,24 @@ export const UpgradePlanDialog = ({
                 ) : (
                   <button
                     type="button"
-                    disabled={isCurrent || plan.key === "free"}
+                    disabled={
+                      isCurrent || plan.key === "free" || !fare || isAttaching
+                    }
+                    onClick={() => {
+                      if (!fare) return;
+                      setPendingFareId(fare.id);
+                      attachFare(fare.id);
+                    }}
                     className={cn(
-                      "mt-auto w-full cursor-pointer rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                      "mt-auto flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
                       !isFree
                         ? "bg-primary border-primary text-white hover:opacity-85"
                         : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
                     )}
                   >
+                    {isPlanLoading && (
+                      <Loader2 size={14} className="animate-spin" />
+                    )}
                     {ctaLabel}
                   </button>
                 )}
