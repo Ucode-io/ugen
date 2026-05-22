@@ -256,10 +256,17 @@ export const UpgradePlanDialog = ({
                     : "border-border-subtle hover:border-border-subtle/60",
                 )}
               >
-                {plan.featured && plan.badge && (
+                {isCurrent ? (
                   <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
-                    {plan.badge}
+                    Current
                   </div>
+                ) : (
+                  plan.featured &&
+                  plan.badge && (
+                    <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
+                      {plan.badge}
+                    </div>
+                  )
                 )}
                 <div className="text-text-muted mb-[7px] text-[0.74rem] font-semibold tracking-[0.06em] uppercase">
                   {displayName}
@@ -313,7 +320,7 @@ export const UpgradePlanDialog = ({
                     rel="noopener noreferrer"
                     className={cn(
                       "mt-auto block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
-                      plan.featured
+                      !isFree
                         ? "bg-primary border-primary text-white hover:opacity-85"
                         : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
                     )}
@@ -326,7 +333,7 @@ export const UpgradePlanDialog = ({
                     disabled={isCurrent || plan.key === "free"}
                     className={cn(
                       "mt-auto w-full cursor-pointer rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                      plan.featured
+                      !isFree
                         ? "bg-primary border-primary text-white hover:opacity-85"
                         : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
                     )}

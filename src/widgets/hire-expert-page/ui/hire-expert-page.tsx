@@ -9,7 +9,9 @@ type Expert = {
   name: string
   avatar: string
   avatarBg: string
-  website: string
+  website?: string
+  telegram: string
+  phone: string
   rating: number
   services: { name: string; desc: string }[]
   languages: string
@@ -27,6 +29,8 @@ const EXPERTS: Expert[] = [
     avatar: '💻',
     avatarBg: 'linear-gradient(135deg,#004eea,#00a8e8)',
     website: 'udevs.io',
+    telegram: '@udevs_sales',
+    phone: '+998336600999',
     rating: 5.0,
     services: [
       { name: 'Backend Development', desc: 'Builds scalable backend systems and microservices in Go, backed by PostgreSQL and MongoDB — clean REST/gRPC APIs, auth, and high-load architecture.' },
@@ -41,10 +45,11 @@ const EXPERTS: Expert[] = [
   },
   {
     id: 'dosux',
-    name: 'DosUX',
+    name: 'Doston inc',
     avatar: '🎨',
     avatarBg: 'linear-gradient(135deg,#db2777,#f59e0b)',
-    website: 'dosux.uz',
+    telegram: '@doston_inc',
+    phone: '+998977026123',
     rating: 4.9,
     services: [
       { name: 'UI / UX Design', desc: 'Crafts product interfaces end to end in Figma — research, wireframes, and pixel-perfect high-fidelity screens focused on usability and conversion.' },
@@ -62,7 +67,9 @@ const EXPERTS: Expert[] = [
     name: 'Proxima',
     avatar: '⚙️',
     avatarBg: 'linear-gradient(135deg,#059669,#0891b2)',
-    website: 'proxima.uz',
+    website: 'proximaops.io',
+    telegram: '@jamshidyerzakov',
+    phone: '+998901108889',
     rating: 4.8,
     services: [
       { name: 'DevOps & Infrastructure', desc: 'Containerizes and orchestrates workloads with Docker and Kubernetes — automated CI/CD pipelines, zero-downtime deploys, and infrastructure as code.' },
@@ -249,9 +256,31 @@ export const HireExpertPage = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-[0.95rem] font-bold text-text-main mb-1">{expert.name}</h3>
-                        <div className="flex gap-2.5">
-                          <span className="text-[0.74rem] text-text-muted/60">🌐 {expert.website}</span>
-                          <span className="text-[0.74rem] text-text-muted/60">in LinkedIn</span>
+                        <div className="flex flex-wrap gap-x-2.5 gap-y-1">
+                          {expert.website && (
+                            <a
+                              href={`https://${expert.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[0.74rem] text-text-muted/60 no-underline hover:text-text-main transition-colors"
+                            >
+                              🌐 {expert.website}
+                            </a>
+                          )}
+                          <a
+                            href={`https://t.me/${expert.telegram.replace(/^@/, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[0.74rem] text-text-muted/60 no-underline hover:text-text-main transition-colors"
+                          >
+                            ✈️ {expert.telegram}
+                          </a>
+                          <a
+                            href={`tel:${expert.phone}`}
+                            className="text-[0.74rem] text-text-muted/60 no-underline hover:text-text-main transition-colors"
+                          >
+                            📞 {expert.phone}
+                          </a>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-[0.82rem] font-bold text-text-main whitespace-nowrap">
@@ -302,7 +331,9 @@ export const HireExpertPage = () => {
                     {/* Actions */}
                     <div className="px-5 py-3.5 border-t border-border-subtle flex items-center justify-between mt-auto">
                       <a
-                        href="mailto:hello@u-gen.io"
+                        href={`https://t.me/${expert.telegram.replace(/^@/, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="bg-primary text-white rounded-lg px-4 py-2 text-[0.82rem] font-semibold hover:opacity-80 transition-opacity no-underline"
                       >
                         Contact
