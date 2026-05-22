@@ -13,7 +13,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
 
-# ---------- Runner ----------
 FROM node:20-alpine AS runner
 WORKDIR /app
 
