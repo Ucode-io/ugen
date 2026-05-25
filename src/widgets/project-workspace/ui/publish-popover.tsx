@@ -265,14 +265,17 @@ export const PublishPopover = ({
   const handleClosePublishStatus = (open: boolean) => {
     setPublishStatusOpen(open)
     if (!open) {
-      stopPolling()
-      stopLiveLoading()
-      // reset only when terminal so user doesn't lose in-progress info
-      if (
+      const isTerminal =
         publishStatus === 'success' ||
         publishStatus === 'failed' ||
         publishStatus === 'canceled'
-      ) {
+      // While the pipeline is still pending/running we only hide the dialog —
+      // polling must keep going in the background so the floating indicator and
+      // the dialog (when reopened) reflect progress. Tearing down here would
+      // cancel the poll chain and leave the UI stuck on step 1 ("Queued").
+      if (isTerminal) {
+        stopPolling()
+        stopLiveLoading()
         setPublishStatus('idle')
         setPublishError(null)
       }
@@ -517,6 +520,13 @@ export const PublishPopover = ({
   const selected =
     allOptions.find((o) => o.value === visibility) ?? allOptions[0];
 
+  // The public link must stay disabled until the whole pipeline is done:
+  //  - never deployed yet (everPromoted === false), or
+  //  - a publish pipeline is currently in progress, or
+  //  - the deploy succeeded but the URL isn't live yet (isLiveLoading).
+  const isLinkDisabled =
+    everPromoted === false || isPublishing || isLiveLoading;
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild >
@@ -551,13 +561,17 @@ export const PublishPopover = ({
               </span>
               <div className={cn(
                 "border-bg-main flex items-center gap-1 rounded-lg border px-3 py-2",
-                everPromoted === false
+                isLinkDisabled
                   ? "border-border-subtle bg-bg-sidebar opacity-60"
                   : "border-border-subtle bg-bg-main"
               )}>
-                {everPromoted === false ? (
+                {isLinkDisabled ? (
                   <span
-                    title="Deploy the project first to get a live URL"
+                    title={
+                      everPromoted === false
+                        ? "Deploy the project first to get a live URL"
+                        : "Publishing… the link will be live once the pipeline finishes"
+                    }
                     className="text-text-muted flex-1 truncate font-mono text-xs cursor-not-allowed"
                   >
                     {displayShortUrl ?? displayMfUrl}
@@ -576,7 +590,7 @@ export const PublishPopover = ({
                 <button
                   type="button"
                   onClick={copyMfUrl}
-                  disabled={isShortening || everPromoted === false}
+                  disabled={isShortening || isLinkDisabled}
                   className="text-text-muted hover:text-text-main shrink-0 rounded p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isShortening ? (

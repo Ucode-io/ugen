@@ -973,6 +973,13 @@ export const ProjectPreviewViewer = ({
     if (pendingScreenshot && builtHtml) {
       setPendingScreenshot(false);
       captureAndUploadScreenshot(builtHtml);
+    } else if (needsScreenshotRef.current && builtHtml) {
+      // Backfill: the project built cleanly (builtHtml is only set on a
+      // successful build — the catch branch leaves it null) but had no saved
+      // screenshot. Capture once; the upload then sets project_image so this
+      // won't fire again on later rebuilds.
+      needsScreenshotRef.current = false;
+      captureAndUploadScreenshot(builtHtml);
     }
   };
 
@@ -1013,6 +1020,40 @@ export const ProjectPreviewViewer = ({
   // First build runs immediately so the preview shows as fast as possible on
   // open/refresh; later rebuilds stay debounced to coalesce rapid file changes.
   const hasBuiltRef = useRef(false);
+
+  // Safety net for projects that have a buildable codebase but no saved
+  // screenshot yet (e.g. generated before screenshots existed, or whose initial
+  // capture never fired). When true, the next successful build captures one even
+  // without a `pendingScreenshot` flag. Guarded by `screenshotCheckedRef` so the
+  // mcp_project lookup runs once per project.
+  const needsScreenshotRef = useRef(false);
+  const screenshotCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!projectId) return;
+    // Don't backfill while browsing version history — those files aren't the
+    // project's current state.
+    if (isVersionHistory || (versionPreviewFiles && versionPreviewFiles.length > 0))
+      return;
+    if (screenshotCheckedRef.current) return;
+    screenshotCheckedRef.current = true;
+    api
+      .get(`/v1/mcp_project/${projectId}`)
+      .then((res) => {
+        const existing = res.data?.data?.project_image;
+        if (!existing) {
+          needsScreenshotRef.current = true;
+          console.log(
+            "[preview screenshot] no existing project_image — will capture on next successful build",
+          );
+        }
+      })
+      .catch((err) => {
+        console.error(
+          "[preview screenshot] failed to check existing project_image:",
+          err,
+        );
+      });
+  }, [projectId, isVersionHistory, versionPreviewFiles]);
 
   useEffect(() => {
     // Skip while microfrontend codebase is still loading or chat is streaming —
