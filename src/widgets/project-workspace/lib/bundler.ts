@@ -1,51 +1,88 @@
 import * as esbuild from "esbuild-wasm"
 import { virtualFsPlugin } from "./esbuildPlugin"
 
-let initPromise: Promise<void> | null = null;
-
 // Hosted locally in /public — esm.sh hangs/blocks in some prod environments
-// (CSP, corp proxies). The file is copied at install time; see scripts/copy-esbuild-wasm.
-const WASM_URL = "/esbuild.wasm";
+// (CSP, corp proxies). The file is copied at install time; see the `postinstall`
+// script in package.json. The `?v=<version>` query busts the browser cache on
+// upgrade while letting us serve the file `immutable` (see next.config.ts headers).
+const WASM_URL = `/esbuild.wasm?v=${esbuild.version}`;
 
-export function ensureEsbuild() {
-  // 1. Проверяем локальный промис (текущая сессия)
-  if (initPromise) return initPromise;
+// 13.5 MB WASM на холодную (cache miss + медленная сеть) может качаться дольше
+// прежних 15с. Даём больше времени, но НЕ ретраим повторным initialize() —
+// см. ниже.
+const INIT_TIMEOUT_MS = 60_000;
 
-  // 2. Проверяем глобальный флаг (на случай, если компонент пересоздался)
-  if ((window as any).__ESBUILD_READY__) {
-    initPromise = Promise.resolve();
-    return initPromise;
+// esbuild.initialize() можно вызвать ровно ОДИН раз за жизнь страницы. Повторный
+// вызов всегда кидает 'Cannot call "initialize" more than once' — поэтому любые
+// "ретраи" должны переиспользовать тот же самый промис, а не звать initialize
+// заново. Промис кладём на window, чтобы он пережил HMR и повторные импорты
+// модуля (разные чанки могут получить свою копию bundler.ts).
+const INIT_KEY = "__ESBUILD_INIT_PROMISE__";
+
+function isAlreadyInitialized(err: unknown) {
+  const msg = (err as Error)?.message ?? "";
+  // 'Cannot call "initialize" more than once' означает, что initialize уже был
+  // вызван где-то ещё (другая копия модуля / гонка) — это не ошибка для нас.
+  return msg.includes("Cannot call") || msg.includes("more than once") || msg.includes("already");
+}
+
+// Единственный на всю страницу вызов esbuild.initialize(). Все последующие
+// обращения переиспользуют этот промис.
+function getInitPromise(): Promise<void> {
+  const w = window as any;
+  if (w[INIT_KEY]) return w[INIT_KEY] as Promise<void>;
+
+  let raw: Promise<unknown>;
+  try {
+    raw = esbuild.initialize({ worker: true, wasmURL: WASM_URL });
+  } catch (err) {
+    // initialize может бросить синхронно, если её уже звали.
+    raw = isAlreadyInitialized(err) ? Promise.resolve() : Promise.reject(err);
   }
 
-  // 3. Если ничего нет, инициализируем. Гонка с таймаутом нужна для прода:
-  //    esbuild.initialize иногда никогда не resolve/reject (например, если WASM
-  //    блокируется CSP или CDN недоступен) — без таймаута сборка зависает молча.
-  const init = esbuild.initialize({
-    worker: true,
-    wasmURL: WASM_URL,
-  });
+  const guarded = raw.then(
+    () => {
+      w.__ESBUILD_READY__ = true;
+    },
+    (err) => {
+      if (isAlreadyInitialized(err)) {
+        w.__ESBUILD_READY__ = true;
+        return;
+      }
+      // Реальная ошибка инициализации (например, WASM вообще не загрузился).
+      // esbuild.initialize в рамках страницы повторно звать нельзя, поэтому
+      // оставляем этот (отклонённый) промис в кэше: следующие вызовы получат тот
+      // же понятный текст ошибки, а не "more than once". Восстановление — только
+      // перезагрузкой страницы.
+      throw err;
+    },
+  );
 
+  w[INIT_KEY] = guarded;
+  return guarded;
+}
+
+export function ensureEsbuild(): Promise<void> {
+  // Уже готов — мгновенно.
+  if ((window as any).__ESBUILD_READY__) return Promise.resolve();
+
+  // Гонка с таймаутом нужна для UI: esbuild.initialize иногда никогда не
+  // resolve/reject (WASM блокируется CSP или CDN недоступен) — без таймаута
+  // сборка зависает молча. Сам initialize при этом НЕ перезапускаем.
+  const init = getInitPromise();
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(
-      () => reject(new Error(`esbuild.initialize timed out (15s) — couldn't load ${WASM_URL}`)),
-      15_000,
+      () =>
+        reject(
+          new Error(
+            `esbuild.initialize timed out (${INIT_TIMEOUT_MS / 1000}s) — couldn't load ${WASM_URL}`,
+          ),
+        ),
+      INIT_TIMEOUT_MS,
     ),
   );
 
-  initPromise = Promise.race([init, timeout])
-    .then(() => {
-      (window as any).__ESBUILD_READY__ = true;
-    })
-    .catch((err) => {
-      if (err.message?.includes("Cannot call") || err.message?.includes("already")) {
-        (window as any).__ESBUILD_READY__ = true;
-        return;
-      }
-      initPromise = null;
-      throw err;
-    });
-
-  return initPromise;
+  return Promise.race([init, timeout]);
 }
 
 

@@ -15,7 +15,6 @@ interface AuthModalProps {
 export const AuthModal = ({ isOpen, onOpenChange, defaultTab = 'login' }: AuthModalProps) => {
   const t = useTranslations('features.auth')
   const [authType, setAuthType] = useState<'login' | 'register'>(defaultTab)
-  const [defaultCredentials, setDefaultCredentials] = useState<{ login?: string; password?: string }>()
 
   useEffect(() => {
     if (isOpen) {
@@ -28,11 +27,6 @@ export const AuthModal = ({ isOpen, onOpenChange, defaultTab = 'login' }: AuthMo
   }
 
   const handleClose = () => onOpenChange(false)
-
-  const handleRegistered = (login?: string, password?: string) => {
-    setDefaultCredentials({ login, password })
-    setAuthType('login')
-  }
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
@@ -59,7 +53,7 @@ export const AuthModal = ({ isOpen, onOpenChange, defaultTab = 'login' }: AuthMo
                 <p className="text-sm text-text-muted">{t('login.subtitle')}</p>
               </div>
 
-              <LoginForm onSuccess={handleClose} defaultValues={defaultCredentials} />
+              <LoginForm onSuccess={handleClose} />
 
               <div className="text-center mt-4">
                 <p className="text-sm text-text-muted">
@@ -77,7 +71,7 @@ export const AuthModal = ({ isOpen, onOpenChange, defaultTab = 'login' }: AuthMo
                 <p className="text-sm text-text-muted">{t('register.subtitle')}</p>
               </div>
 
-              <RegisterForm onSuccess={handleRegistered} onAuthenticated={handleClose} />
+              <RegisterForm onAuthenticated={handleClose} />
 
               <div className="text-center mt-4">
                 <p className="text-sm text-text-muted">

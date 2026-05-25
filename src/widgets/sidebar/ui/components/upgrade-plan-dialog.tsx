@@ -116,7 +116,10 @@ export const UpgradePlanDialog = ({
     mutationFn: async (targetFareId: string) => {
       const { data } = await api.patch(
         "/v1/company/project/attach-fare",
-        { fare_id: targetFareId, discount_id: "" },
+        {
+          fare_id: targetFareId,
+          discount_id: "ce1809e3-85db-4f94-b7fd-a8623530297b",
+        },
         {
           headers: {
             Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
@@ -126,8 +129,16 @@ export const UpgradePlanDialog = ({
       );
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, targetFareId) => {
+      // Reflect the new plan in the store immediately (no dedicated setter exists)
+      const currentProject = useAuthStore.getState().project;
+      if (currentProject) {
+        useAuthStore.setState({
+          project: { ...currentProject, fare_id: targetFareId },
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["fares", "ugen"] });
+      queryClient.invalidateQueries({ queryKey: ["pricing-company-stats"] });
       toast.success("Plan updated successfully");
       onOpenChange(false);
     },
@@ -195,6 +206,8 @@ export const UpgradePlanDialog = ({
   const fareByName = new Map<string, any>(
     fares.map((f: any) => [String(f.name || "").toLowerCase(), f]),
   );
+  const currentFare = fares.find((f: any) => f.id === fareId);
+  const currentPrice = currentFare ? Number(currentFare.price) || 0 : null;
   const currentPeriod = PERIODS.find((p) => p.key === period) ?? PERIODS[0];
 
   const formatPeriodPrice = (monthly: number) =>
@@ -276,7 +289,17 @@ export const UpgradePlanDialog = ({
                 : currentPeriod.per;
             const features = fare ? buildFeatures(fare) : [];
             const isPlanLoading = isAttaching && pendingFareId === fare?.id;
-            const ctaLabel = isCurrent ? "Current plan" : plan.cta;
+            const isDowngrade =
+              !isCurrent &&
+              !isEnterprise &&
+              fare != null &&
+              currentPrice != null &&
+              (Number(fare.price) || 0) < currentPrice;
+            const ctaLabel = isCurrent
+              ? "Current plan"
+              : isDowngrade
+                ? `Downgrade to ${displayName}`
+                : plan.cta;
 
             return (
               <div

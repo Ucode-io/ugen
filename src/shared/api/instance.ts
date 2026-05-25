@@ -114,6 +114,36 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = []
 }
 
+// Reconcile is_ugen from /v1/ugen/user-projects (the source of truth used by
+// the project dropdown). The /v2/refresh response's is_ugen is unreliable —
+// it can come back false (mirrors the login response, see login-form.tsx) —
+// so trusting it after a background 401 refresh flips is_ugen to false and
+// makes the sidebar project list / home nav vanish until the user manually
+// re-selects the project. We pass an explicit Bearer header so the request
+// interceptor skips the project-scoped API-KEY path even on a project page.
+const reconcileIsUgenFromUserProjects = async (token: string) => {
+  try {
+    const projectId = useAuthStore.getState().project?.project_id
+    if (!projectId) return
+    const { data } = await api.get('/v1/ugen/user-projects', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const companies = data?.data?.companies ?? []
+    const matched = companies
+      .flatMap((c: any) => c.projects ?? [])
+      .find((p: any) => p.id === projectId)
+    if (matched) {
+      useAuthStore.setState((state) => ({
+        project: state.project
+          ? { ...state.project, is_ugen: matched.is_ugen }
+          : state.project,
+      }))
+    }
+  } catch (err) {
+    console.error('Failed to reconcile is_ugen after token refresh', err)
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -158,19 +188,20 @@ api.interceptors.response.use(
         const tokenData = data?.data?.response?.token || data?.data?.token || data?.data || data?.response?.token || data
         const newAccessToken = tokenData?.access_token
         const newRefreshToken = tokenData?.refresh_token
-        const refreshedIsUgen = data?.data?.is_ugen
 
         if (newAccessToken) {
-          useAuthStore.setState((state) => ({
+          useAuthStore.setState({
             accessToken: newAccessToken,
             ...(newRefreshToken && { refreshToken: newRefreshToken }),
-            ...(refreshedIsUgen !== undefined && state.project
-              ? { project: { ...state.project, is_ugen: refreshedIsUgen } }
-              : {}),
-          }))
+          })
 
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
           processQueue(null, newAccessToken)
+
+          // is_ugen from /v2/refresh is unreliable; reconcile from the source
+          // of truth without blocking the retried request.
+          void reconcileIsUgenFromUserProjects(newAccessToken)
+
           return api(originalRequest)
         } else {
           throw new Error('No access token in refresh response')

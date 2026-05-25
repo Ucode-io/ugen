@@ -493,6 +493,22 @@ export const ProjectPreviewViewer = ({
     staleTime: 0,
   });
 
+  // Warm up esbuild WASM on idle so the 13.5 MB file is fetched/compiled before
+  // the user triggers the first build — otherwise runCode() pays the full cold
+  // load and can hit the init timeout.
+  useEffect(() => {
+    const warm = () => void ensureEsbuild().catch(() => {});
+    const ric = (window as any).requestIdleCallback as
+      | ((cb: () => void, opts?: { timeout: number }) => number)
+      | undefined;
+    if (ric) {
+      const id = ric(warm, { timeout: 3000 });
+      return () => (window as any).cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(warm, 1500);
+    return () => clearTimeout(t);
+  }, []);
+
   // Fallback auto-select: chat-input has identical logic, but in production it
   // sometimes doesn't fire (chat-input isn't mounted yet, or apiKey arrives after
   // its query settles). Without a selection, isMicrofrontendLoading stays true

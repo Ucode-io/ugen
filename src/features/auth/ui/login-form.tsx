@@ -105,6 +105,13 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
   const handleLoginResponse = async (responseData: any) => {
     // NOTE: response shape expected from /v3/ugen/login:
     // { response: { user, permissions, role, app_permissions, global_permission, environment_id, token }, project_data }
+
+    // Capture this *before* setAuth flips activeView to 'dashboard'. Once that
+    // happens, DashboardHome/PromptInput mount and PromptInput clears
+    // pendingDraft synchronously in its mount effect — so reading it after the
+    // awaits below would always see null and wrongly trigger router.push('/').
+    const hadPendingDraft = !!useChatStore.getState().pendingDraft
+
     const { project_data } = responseData
     const response = responseData?.response || responseData
     const { user, permissions, role, app_permissions, global_permission, environment_id, token } = response
@@ -163,7 +170,7 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
     // so the dashboard mounts in place and PromptInput can resume the submit
     // flow, navigating to the new project itself. Pushing '/' here would race
     // with that navigation and leave the prompt input stuck on a loader.
-    if (!useChatStore.getState().pendingDraft) {
+    if (!hadPendingDraft) {
       router.push('/')
     }
   }

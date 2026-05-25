@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Mail, Lock, User as UserIcon, Building } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/entities/session'
+import { useChatStore } from '@/entities/chat'
 import { registerSchema, type RegisterFormValues } from '../model/validation'
 import { api, authApi } from '@/shared/api'
 import { fetchUserProjects } from '@/entities/project'
@@ -11,11 +12,10 @@ import { useRouter } from '@/shared/lib/i18n/navigation'
 import { GoogleAuthButton } from './google-auth-button'
 
 interface RegisterFormProps {
-  onSuccess: (login?: string, password?: string) => void
   onAuthenticated?: () => void
 }
 
-export const RegisterForm = ({ onSuccess, onAuthenticated }: RegisterFormProps) => {
+export const RegisterForm = ({ onAuthenticated }: RegisterFormProps) => {
   const t = useTranslations('features.auth.register')
   const tAuth = useTranslations('features.auth')
   const { setAuth } = useAuthStore()
@@ -25,64 +25,82 @@ export const RegisterForm = ({ onSuccess, onAuthenticated }: RegisterFormProps) 
     resolver: zodResolver(registerSchema)
   })
 
+  const processAuthResponse = async (responseData: any) => {
+    // Capture this *before* setAuth flips activeView to 'dashboard'. Once that
+    // happens, DashboardHome/PromptInput mount and PromptInput clears
+    // pendingDraft synchronously in its mount effect — so reading it after the
+    // awaits below would always see null and wrongly trigger router.push('/').
+    const hadPendingDraft = !!useChatStore.getState().pendingDraft
+
+    const { project_data } = responseData
+    const response = responseData?.response || responseData
+    const { user, permissions, role, app_permissions, global_permission, environment_id, token } = response
+
+    const userData = {
+      id: user?.id,
+      login: user?.login,
+      email: user?.email,
+      company_id: user?.company_id,
+      environment_id,
+      role,
+    }
+
+    setAuth(
+      userData,
+      { ...project_data, is_ugen: responseData?.is_ugen ?? project_data?.is_ugen ?? false },
+      permissions || [],
+      app_permissions || [],
+      global_permission,
+      token?.access_token,
+      token?.refresh_token,
+    )
+
+    // Reconcile is_ugen from /v1/ugen/user-projects (source of truth); the
+    // auth response can return it false for freshly created accounts.
+    try {
+      const companies = await fetchUserProjects()
+      const matched = companies
+        .flatMap((c) => c.projects)
+        .find((p) => p.id === project_data?.project_id)
+      if (matched) {
+        useAuthStore.setState((state) => ({
+          project: state.project
+            ? { ...state.project, is_ugen: matched.is_ugen }
+            : state.project,
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to reconcile is_ugen from user-projects', err)
+    }
+
+    try {
+      const langRes = await api.get('/v1/language?search=Admin')
+      if (langRes.data?.data?.languages) {
+        useAuthStore.getState().setLanguages(langRes.data.data.languages)
+      }
+    } catch (err) {
+      console.error('Failed to fetch languages', err)
+    }
+
+    onAuthenticated?.()
+
+    // If a draft was stashed on a public page (e.g. landing), keep us on '/'
+    // so the dashboard mounts in place (activeView flips to 'dashboard') and
+    // PromptInput resumes the submit flow, navigating to the new project
+    // itself. Pushing '/' here would race with that navigation and leave the
+    // prompt input stuck on a loader.
+    if (!hadPendingDraft) {
+      router.push('/')
+    }
+  }
+
   const handleGoogleAuth = async () => {
     try {
       const res = await authApi.get('/v3/ugen/auth/session', { withCredentials: true })
       const responseData = res.data?.data
       if (!responseData) throw new Error('Invalid response')
 
-      const { project_data } = responseData
-      const response = responseData?.response || responseData
-      const { user, permissions, role, app_permissions, global_permission, environment_id, token } = response
-
-      const userData = {
-        id: user?.id,
-        login: user?.login,
-        email: user?.email,
-        company_id: user?.company_id,
-        environment_id,
-        role,
-      }
-
-      setAuth(
-        userData,
-        { ...project_data, is_ugen: responseData?.is_ugen ?? project_data?.is_ugen ?? false },
-        permissions || [],
-        app_permissions || [],
-        global_permission,
-        token?.access_token,
-        token?.refresh_token,
-      )
-
-      // Reconcile is_ugen from /v1/ugen/user-projects (source of truth); the
-      // auth/session response can return it false for freshly created accounts.
-      try {
-        const companies = await fetchUserProjects()
-        const matched = companies
-          .flatMap((c) => c.projects)
-          .find((p) => p.id === project_data?.project_id)
-        if (matched) {
-          useAuthStore.setState((state) => ({
-            project: state.project
-              ? { ...state.project, is_ugen: matched.is_ugen }
-              : state.project,
-          }))
-        }
-      } catch (err) {
-        console.error('Failed to reconcile is_ugen from user-projects', err)
-      }
-
-      try {
-        const langRes = await api.get('/v1/language?search=Admin')
-        if (langRes.data?.data?.languages) {
-          useAuthStore.getState().setLanguages(langRes.data.data.languages)
-        }
-      } catch (err) {
-        console.error('Failed to fetch languages', err)
-      }
-
-      onAuthenticated?.()
-      router.push('/')
+      await processAuthResponse(responseData)
     } catch (error: any) {
       console.error(error)
       setError('root', {
@@ -104,7 +122,16 @@ export const RegisterForm = ({ onSuccess, onAuthenticated }: RegisterFormProps) 
 
       await authApi.post('/v3/ugen/register', { ...data, fare_id })
 
-      onSuccess(data.user_info.login, data.user_info.password)
+      // Auto-login right after a successful registration so the user lands in
+      // the dashboard instead of being bounced to the login tab.
+      const loginRes = await authApi.post('/v3/ugen/login', {
+        login: data.user_info.login,
+        password: data.user_info.password,
+      })
+      const responseData = loginRes.data?.data
+      if (!responseData) throw new Error('Invalid response')
+
+      await processAuthResponse(responseData)
     } catch (error: any) {
       console.error(error)
       setError('root', {
