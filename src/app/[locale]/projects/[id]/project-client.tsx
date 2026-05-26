@@ -149,6 +149,7 @@ export const ProjectWorkspaceClient = ({
   const setApiKey = useAuthStore((state) => state.setApiKey);
   const setUcodeProjectId = useAuthStore((state) => state.setUcodeProjectId);
   const setProjectEnvId = useAuthStore((state) => state.setProjectEnvId);
+  const setResourceEnvId = useAuthStore((state) => state.setResourceEnvId);
   const setActiveProjectTab = useAuthStore(
     (state) => state.setActiveProjectTab,
   );
@@ -406,6 +407,10 @@ export const ProjectWorkspaceClient = ({
 
           if (projectData.environment_id) {
             setProjectEnvId(projectData.environment_id);
+          }
+
+          if (projectData.resource_env_id) {
+            setResourceEnvId(projectData.resource_env_id);
           }
 
           if (projectData.title) {

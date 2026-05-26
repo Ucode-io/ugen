@@ -66,6 +66,7 @@ export interface AuthState {
   apiKeyProjectId: string | null;
   ucodeProjectId: string | null;
   projectEnvId: string | null;
+  resourceEnvId: string | null;
   activeProjectTab: 'dashboard' | 'code' | 'preview' | null;
   activeCompanyId: string | null;
   codeEditorTarget: CodeEditorTarget | null;
@@ -73,6 +74,7 @@ export interface AuthState {
   setApiKey: (key: string | null, projectId?: string | null) => void;
   setUcodeProjectId: (key: string | null) => void;
   setProjectEnvId: (key: string | null) => void;
+  setResourceEnvId: (key: string | null) => void;
   setActiveProjectTab: (tab: 'dashboard' | 'code' | 'preview' | null) => void;
   setCodeEditorTarget: (target: CodeEditorTarget | null) => void;
   setLanguages: (languages: Language[]) => void;
@@ -110,6 +112,7 @@ export const useAuthStore = create<AuthState>()(
       apiKeyProjectId: null,
       ucodeProjectId: null,
       projectEnvId: null,
+      resourceEnvId: null,
       activeProjectTab: null,
       activeCompanyId: null,
       codeEditorTarget: null,
@@ -117,6 +120,7 @@ export const useAuthStore = create<AuthState>()(
       setApiKey: (key, projectId = null) => set({ apiKey: key, apiKeyProjectId: key ? projectId : null }),
       setUcodeProjectId: (key) => set({ ucodeProjectId: key }),
       setProjectEnvId: (key) => set({ projectEnvId: key }),
+      setResourceEnvId: (key) => set({ resourceEnvId: key }),
       setActiveProjectTab: (tab) => set({ activeProjectTab: tab }),
       setCodeEditorTarget: (target) => set({ codeEditorTarget: target }),
       setLanguages: (languages: Language[]) => set({ languages }),
