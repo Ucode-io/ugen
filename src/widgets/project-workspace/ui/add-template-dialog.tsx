@@ -3,7 +3,7 @@ import { BookTemplate, ImagePlus, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { githubApi, api } from "@/shared/api";
+import { api } from "@/shared/api";
 import { useRouter } from "@/shared/lib/i18n/navigation";
 import { useAuthStore } from "@/entities/session";
 import {
@@ -155,7 +155,7 @@ export const AddTemplateDialog = ({
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await githubApi.post(
+      await api.post(
         "/v1/ugen-template",
         {
           name: templateName.trim() || projectTitle,

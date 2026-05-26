@@ -377,7 +377,8 @@
       "deleting": "Deleting...",
       "title": "Title",
       "description": "Description",
-      "status": "Status"
+      "status": "Status",
+      "logout": "Logout"
     },
     "sidebar": {
       "profile": "Profile",

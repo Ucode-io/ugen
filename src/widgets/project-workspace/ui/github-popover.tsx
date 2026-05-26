@@ -1,10 +1,12 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Loader2, RefreshCw, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui'
 import { githubIntegrationApi } from '@/features/github-integration'
 import { cn } from '@/shared/lib/utils/cn'
+import { centeredPopupFeatures } from '@/shared/lib/utils/centered-popup'
 
 const GithubIcon = ({ size = 16, className }: { size?: number; className?: string }) => (
   <svg
@@ -45,12 +47,21 @@ export const GithubPopover = () => {
     staleTime: 5 * 60 * 1000,
   })
 
+  // Popup is opened synchronously on click (see openOAuthPopup) so popup
+  // blockers allow it; the mutation then points it at the fetched authorize URL.
+  const openOAuthPopup = () =>
+    window.open('about:blank', '_blank', centeredPopupFeatures(600, 720, 'popup'))
+
   const { mutate: connectGithub, isPending: isConnecting } = useMutation({
-    mutationFn: async () => {
-      const returnPath = window.location.pathname
-      sessionStorage.setItem('github_oauth_return_path', returnPath)
-      const url = await githubIntegrationApi.getConnectUrl()
-      window.location.href = url
+    mutationFn: async (popup: Window | null) => {
+      try {
+        const url = await githubIntegrationApi.getConnectUrl()
+        if (popup && !popup.closed) popup.location.href = url
+        else window.open(url, '_blank')
+      } catch (err) {
+        popup?.close()
+        throw err
+      }
     },
   })
 
@@ -61,6 +72,19 @@ export const GithubPopover = () => {
       queryClient.invalidateQueries({ queryKey: ['github-integration'] })
     },
   })
+
+  // The /oauth/success popup postMessages back when the connection lands.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      const d = e.data
+      if (d?.source !== 'ucode-oauth' || d.provider !== 'github' || d.status !== 'success') return
+      queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
+      queryClient.invalidateQueries({ queryKey: ['github-integration'] })
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [queryClient])
 
   const isConnected = githubStatus?.connected === true
   const isExpired = githubStatus?.connected === false && githubStatus?.reason === 'token_expired'
@@ -161,7 +185,7 @@ export const GithubPopover = () => {
               </button>
             )}
             <button
-              onClick={() => connectGithub()}
+              onClick={() => connectGithub(openOAuthPopup())}
               disabled={isConnecting}
               className={cn(
                 'flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50',

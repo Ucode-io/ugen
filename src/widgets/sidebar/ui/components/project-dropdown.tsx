@@ -263,7 +263,8 @@ export const ProjectDropdown = ({
                   {displayName}
                 </div>
                 <div className="text-text-muted truncate text-[11px] capitalize leading-tight">
-                  {project?.subscription_type || t("freePlan")}
+                  {project?.subscription_type}
+                  {/* || t("freePlan") */}
                 </div>
               </div>
               <button

@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi, api } from '@/shared/api'
 import { githubIntegrationApi } from '@/features/github-integration'
 import type { GithubIntegration } from '@/features/github-integration'
+import { gitlabIntegrationApi } from '@/features/gitlab-integration'
 import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
 import { Switch } from '@/shared/ui'
@@ -26,6 +27,7 @@ import {
 } from '@/shared/ui'
 import { DataLoadingState } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
+import { centeredPopupFeatures } from '@/shared/lib/utils/centered-popup'
 
 // Resource type options — these are static, no API needed
 const resourceTypes = [
@@ -277,12 +279,18 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     staleTime: 5 * 60 * 1000,
   })
 
+  // The popup is opened synchronously on click (see openOAuthPopup) and handed
+  // to the mutation — opening it after the await would trip popup blockers.
   const { mutate: connectGithub, isPending: isConnectingGithub } = useMutation({
-    mutationFn: async () => {
-      const returnPath = window.location.pathname
-      sessionStorage.setItem('github_oauth_return_path', returnPath)
-      const url = await githubIntegrationApi.getConnectUrl()
-      window.location.href = url
+    mutationFn: async (popup: Window | null) => {
+      try {
+        const url = await githubIntegrationApi.getConnectUrl()
+        if (popup && !popup.closed) popup.location.href = url
+        else window.open(url, '_blank')
+      } catch (err) {
+        popup?.close()
+        throw err
+      }
     },
   })
 
@@ -293,6 +301,92 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       queryClient.invalidateQueries({ queryKey: ['github-integration'] })
     },
   })
+
+  // Environment options — loaded as soon as the project is known (not just in
+  // detail view), because the GitLab scope below derives environment_id from
+  // the first environment.
+  const { data: environments = [], isLoading: isLoadingEnvs } = useQuery({
+    queryKey: ['resource-environments', projectId],
+    queryFn: async () => {
+      const { data } = await authApi.get('/v2/resource-environment', {
+        params: { project_id: projectId, 'project-id': projectId }
+      })
+      const items = data.data.data || []
+      return items.map((item: any) => ({
+        label: item.name,
+        value: item.id
+      }))
+    },
+    enabled: !!projectId
+  })
+
+  // GitLab integration — unlike GitHub (user-level), it's scoped to a project
+  // environment, so project_id + environment_id key the cache and gate the calls.
+  // environment_id comes from the first available environment.
+  const gitlabEnvId: string = environments[0]?.value ?? ''
+  const gitlabScope = { project_id: projectId, environment_id: gitlabEnvId }
+  const gitlabScopeReady = !!projectId && !!gitlabEnvId
+
+  const { data: gitlabStatus } = useQuery({
+    queryKey: ['gitlab-integration-status', projectId, gitlabEnvId],
+    queryFn: () => gitlabIntegrationApi.validate(gitlabScope),
+    enabled: gitlabScopeReady,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: gitlabIntegration } = useQuery({
+    queryKey: ['gitlab-integration', projectId, gitlabEnvId],
+    queryFn: () => gitlabIntegrationApi.getIntegration(gitlabScope),
+    enabled: gitlabScopeReady && gitlabStatus?.connected === true,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { mutate: connectGitlab, isPending: isConnectingGitlab } = useMutation({
+    mutationFn: async (popup: Window | null) => {
+      try {
+        const url = await gitlabIntegrationApi.getConnectUrl(gitlabScope)
+        if (popup && !popup.closed) popup.location.href = url
+        else window.open(url, '_blank')
+      } catch (err) {
+        popup?.close()
+        throw err
+      }
+    },
+  })
+
+  const { mutate: disconnectGitlab, isPending: isDisconnectingGitlab } = useMutation({
+    mutationFn: (id: string) => gitlabIntegrationApi.disconnect(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gitlab-integration-status', projectId, gitlabEnvId] })
+      queryClient.invalidateQueries({ queryKey: ['gitlab-integration', projectId, gitlabEnvId] })
+    },
+  })
+
+  // Open the OAuth window synchronously (within the click) so popup blockers
+  // allow it, then let the mutation point it at the fetched authorize URL.
+  const openOAuthPopup = () =>
+    window.open('about:blank', '_blank', centeredPopupFeatures(600, 720, 'popup'))
+
+  // The /oauth/success page (opened in the popup) postMessages back here when
+  // the connection lands, so we refresh the matching integration card.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      const d = e.data
+      if (d?.source !== 'ucode-oauth' || d.status !== 'success') return
+      if (d.provider === 'github') {
+        queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
+        queryClient.invalidateQueries({ queryKey: ['github-integration'] })
+      } else if (d.provider === 'gitlab') {
+        queryClient.invalidateQueries({ queryKey: ['gitlab-integration-status', projectId, gitlabEnvId] })
+        queryClient.invalidateQueries({ queryKey: ['gitlab-integration', projectId, gitlabEnvId] })
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [queryClient, projectId, gitlabEnvId])
 
   // Source 1: V2 resources list
   const { data: resourcesV2 = [], isLoading: isLoadingV2 } = useQuery({
@@ -349,22 +443,6 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   }, [resourcesV2, resourcesV1, clickHouseList])
 
   const isListLoading = isLoadingV2
-
-  // 2. Get Environment Options
-  const { data: environments = [], isLoading: isLoadingEnvs } = useQuery({
-    queryKey: ['resource-environments', projectId],
-    queryFn: async () => {
-      const { data } = await authApi.get('/v2/resource-environment', {
-        params: { project_id: projectId, 'project-id': projectId }
-      })
-      const items = data.data.data || []
-      return items.map((item: any) => ({
-        label: item.name,
-        value: item.id
-      }))
-    },
-    enabled: !!projectId && view === 'detail'
-  })
 
   // 3. Get Resource Detail for Edit
   const { data: resourceDetail } = useQuery({
@@ -536,21 +614,15 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   const handleSelectResource = (item: ResourceItem) => {
-    // GitHub — connect via backend OAuth flow
+    // GitHub — connect via backend OAuth flow (opens in a popup window)
     if (item.typeValue === 5) {
-      connectGithub()
+      connectGithub(openOAuthPopup())
       return
     }
 
-    // GitLab — OAuth immediately, no detail view
+    // GitLab — connect via backend OAuth flow (same pattern as GitHub)
     if (item.typeValue === 8) {
-      const clientId = process.env.NEXT_PUBLIC_GITLAB_CLIENT_ID ?? ''
-      const redirectUri = process.env.NEXT_PUBLIC_GITLAB_REDIRECT_URI ?? ''
-      window.open(
-        `https://gitlab.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=api read_api read_user read_repository write_repository read_registry write_registry`,
-        '_blank',
-        'noopener,noreferrer'
-      )
+      connectGitlab(openOAuthPopup())
       return
     }
 
@@ -860,6 +932,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const isGithubConnected = githubStatus?.connected === true
   const isGithubExpired = githubStatus?.connected === false && githubStatus?.reason === 'token_expired'
 
+  const isGitlabConnected = gitlabStatus?.connected === true
+  const isGitlabExpired = gitlabStatus?.connected === false && gitlabStatus?.reason === 'token_expired'
+
   const filteredConnectedResources = resourcesList.filter((resource: any) => {
     const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === resource.resource_type)
     const categoryId = resourceCategories.find(c => c.items.includes(categoryItem as any))?.id
@@ -871,6 +946,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   // Types that are already connected — exclude them from Available
   const connectedTypeValues = new Set(resourcesList.map((r: any) => r.resource_type))
   if (isGithubConnected || isGithubExpired) connectedTypeValues.add(5)
+  if (isGitlabConnected || isGitlabExpired) connectedTypeValues.add(8)
 
   const availableResources = resourceCategories.flatMap(c => c.items.map(i => ({...i, categoryId: c.id, categoryLabel: c.label})))
   const filteredAvailableResources = availableResources.filter(item => {
@@ -880,9 +956,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     return matchesSearch && matchesCategory
   })
 
-  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired
+  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired || isGitlabConnected || isGitlabExpired
   const githubMatchesSearch = 'github'.includes(searchQuery.toLowerCase()) || searchQuery === ''
   const githubMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
+  const gitlabMatchesSearch = 'gitlab'.includes(searchQuery.toLowerCase()) || searchQuery === ''
+  const gitlabMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
 
   return (
     <div className="@container space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
@@ -979,11 +1057,76 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       variant="outline"
                       size="sm"
                       className="flex-1 min-w-27.5 justify-center gap-2 rounded-lg font-semibold border-border-subtle bg-bg-main text-text-muted hover:bg-primary/5 hover:text-primary"
-                      onClick={() => connectGithub()}
+                      onClick={() => connectGithub(openOAuthPopup())}
                       disabled={isConnectingGithub}
                     >
                       {isConnectingGithub ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                       {isConnectingGithub ? 'Connecting…' : 'Reconnect'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* GitLab card (new API) */}
+              {(isGitlabConnected || isGitlabExpired) && gitlabMatchesSearch && gitlabMatchesCategory && (
+                <div
+                  className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 shadow-sm"
+                  style={{ borderLeftWidth: '3px', borderLeftColor: isGitlabConnected ? 'var(--green, #22c55e)' : 'var(--destructive, #ef4444)' }}
+                >
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <ResourceIcon type="gitlab" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm text-text-main truncate">GitLab</div>
+                      {isGitlabConnected && gitlabStatus.user
+                        ? <div className="text-[11px] text-text-muted truncate">@{gitlabStatus.user.username}</div>
+                        : <div className="text-[11px] text-text-muted">Source Code Version Control</div>
+                      }
+                    </div>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border ml-auto",
+                      isGitlabConnected
+                        ? "bg-green-500/10 text-green-500 border-green-500/20"
+                        : "bg-destructive/10 text-destructive border-destructive/20"
+                    )}>
+                      {isGitlabConnected ? 'Connected' : 'Expired'}
+                    </span>
+                  </div>
+
+                  {isGitlabConnected && gitlabStatus.user?.avatar_url && (
+                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-bg-sidebar border border-border-subtle">
+                      <img src={gitlabStatus.user.avatar_url} alt={gitlabStatus.user.username} className="w-5 h-5 rounded-full shrink-0" />
+                      <span className="text-xs text-text-main font-medium truncate">@{gitlabStatus.user.username}</span>
+                    </div>
+                  )}
+
+                  {isGitlabExpired && (
+                    <div className="text-xs text-text-muted leading-relaxed">
+                      Token expired — reconnect to restore access.
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 mt-auto">
+                    {isGitlabConnected && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 min-w-27.5 justify-center gap-2 rounded-lg font-semibold text-destructive hover:bg-destructive/5 hover:text-destructive border-border-subtle bg-bg-main"
+                        onClick={() => gitlabIntegration && disconnectGitlab(gitlabIntegration.id)}
+                        disabled={isDisconnectingGitlab || !gitlabIntegration}
+                      >
+                        {isDisconnectingGitlab ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                        Disconnect
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 min-w-27.5 justify-center gap-2 rounded-lg font-semibold border-border-subtle bg-bg-main text-text-muted hover:bg-primary/5 hover:text-primary"
+                      onClick={() => connectGitlab(openOAuthPopup())}
+                      disabled={isConnectingGitlab}
+                    >
+                      {isConnectingGitlab ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                      {isConnectingGitlab ? 'Connecting…' : 'Reconnect'}
                     </Button>
                   </div>
                 </div>
@@ -1042,19 +1185,23 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                   <div className="text-xs text-text-muted leading-relaxed flex-1">
                     Connect {item.label} to configure your infrastructure integration.
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main"
-                    onClick={() => handleSelectResource(item)}
-                    disabled={item.typeValue === 5 && isConnectingGithub}
-                  >
-                    {item.typeValue === 5 && isConnectingGithub
-                      ? <Loader2 size={14} className="animate-spin" />
-                      : <Plug size={14} />
-                    }
-                    {item.typeValue === 5 && isConnectingGithub ? 'Connecting…' : 'Connect'}
-                  </Button>
+                  {(() => {
+                    const isConnecting =
+                      (item.typeValue === 5 && isConnectingGithub) ||
+                      (item.typeValue === 8 && isConnectingGitlab)
+                    return (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main"
+                        onClick={() => handleSelectResource(item)}
+                        disabled={isConnecting}
+                      >
+                        {isConnecting ? <Loader2 size={14} className="animate-spin" /> : <Plug size={14} />}
+                        {isConnecting ? 'Connecting…' : 'Connect'}
+                      </Button>
+                    )
+                  })()}
                 </div>
               ))}
             </div>

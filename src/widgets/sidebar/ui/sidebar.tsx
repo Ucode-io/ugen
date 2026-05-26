@@ -123,7 +123,7 @@ export const Sidebar = ({ className, hideLogo, isHidden, onProfilePopupChange, o
         <RecentsNav />
       </div>
 
-      <ProfileFooter
+      {/* <ProfileFooter
         isCollapsed={false}
         user={user}
         userInitial={userInitial}
@@ -131,7 +131,7 @@ export const Sidebar = ({ className, hideLogo, isHidden, onProfilePopupChange, o
         setIsProfilePopupOpen={setIsProfilePopupOpen}
         profilePopupRef={profilePopupRef}
         handleLogout={handleLogout}
-      />
+      /> */}
 
       <SearchModal isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
       <ProfileModal isOpen={isProfileModalOpen} onOpenChange={setIsProfileModalOpen} />

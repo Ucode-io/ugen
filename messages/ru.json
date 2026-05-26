@@ -377,7 +377,8 @@
       "deleting": "Удаление...",
       "title": "Название",
       "description": "Описание",
-      "status": "Статус"
+      "status": "Статус",
+      "logout": "Выйти"
     },
     "sidebar": {
       "profile": "Профиль",

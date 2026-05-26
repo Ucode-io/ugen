@@ -19,9 +19,7 @@ type ResourceItem = {
 }
 
 const RESOURCES_DROPDOWN: ResourceItem[] = [
-  { icon: '📦', label: 'Templates', desc: 'Ready-made apps', href: '/templates' },
   { icon: '🔌', label: 'Connectors', desc: '300+ integrations', href: 'https://ucode-2d4e6635.mintlify.app/integrations/integrations-list' },
-  { icon: '👤', label: 'Hire an Expert', desc: 'Get help building', href: '/hire-expert' },
   { icon: '📖', label: 'Docs', desc: 'Guides & API reference', href: 'https://ucode-2d4e6635.mintlify.app/' },
 ]
 
@@ -115,6 +113,18 @@ export const Header = () => {
           >
             Community
           </a>
+          <Link
+            href="/templates"
+            className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${pathname === '/templates' ? 'text-text-main bg-hover-bg' : 'text-text-muted hover:text-text-main hover:bg-hover-bg'}`}
+          >
+            Templates
+          </Link>
+          <Link
+            href="/hire-expert"
+            className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${pathname === '/hire-expert' ? 'text-text-main bg-hover-bg' : 'text-text-muted hover:text-text-main hover:bg-hover-bg'}`}
+          >
+            Hire an Expert
+          </Link>
 
           {/* Resources dropdown */}
           <div className="relative" ref={dropdownRef}>

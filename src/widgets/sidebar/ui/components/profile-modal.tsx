@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@/shared/lib/i18n/navigation";
 import { api, authApi } from "@/shared/api";
 import { useAuthStore } from "@/entities/session";
 import {
@@ -29,6 +30,7 @@ import {
   Activity,
   CreditCard,
   UserCog,
+  LogOut,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -45,9 +47,12 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
   const tWidgets = useTranslations("widgets.appSettings");
   const tCommon = useTranslations("widgets.common");
 
+  const router = useRouter();
+
   const user = useAuthStore((s) => s.user);
   const project = useAuthStore((s) => s.project);
   const accessToken = useAuthStore((s) => s.accessToken);
+  const logout = useAuthStore((s) => s.logout);
   const projectId = project?.project_id ?? "";
   const companyId = user?.company_id ?? "";
   const userId = user?.id ?? "";
@@ -185,6 +190,13 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
   const userInitial = user?.login?.[0]?.toUpperCase() || "U";
   const userRole = typeof user?.role === "string" ? user.role : "Member";
 
+  const handleLogout = () => {
+    logout();
+    queryClient.clear();
+    onOpenChange(false);
+    router.push("/");
+  };
+
   const tabs = [
     { id: "profile", label: "Profile", icon: <UserCog size={14} /> },
     { id: "billing", label: "Billing", icon: <CreditCard size={14} /> },
@@ -232,7 +244,7 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
               setAvatarPreview(URL.createObjectURL(file));
             }}
           />
-          <div className="min-w-0 flex-1 pr-8">
+          <div className="min-w-0 flex-1">
             <DialogTitle className="text-text-main truncate text-[15px] leading-tight font-semibold">
               {user?.login || "User"}
             </DialogTitle>
@@ -247,6 +259,17 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
               <span className="text-text-muted capitalize">{userRole}</span>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="text-text-muted hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive border-border-subtle bg-bg-card group mr-8 flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-[12px] font-semibold transition-colors"
+          >
+            <LogOut
+              size={14}
+              className="text-text-muted group-hover:text-destructive"
+            />
+            <span className="hidden sm:inline">{tCommon("logout")}</span>
+          </button>
         </header>
 
         {/* Tabs */}

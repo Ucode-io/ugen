@@ -377,7 +377,8 @@
       "deleting": "O'chirilmoqda...",
       "title": "Nomi",
       "description": "Tavsif",
-      "status": "Holat"
+      "status": "Holat",
+      "logout": "Chiqish"
     },
     "sidebar": {
       "profile": "Profil",
