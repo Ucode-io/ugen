@@ -14,8 +14,6 @@ import { PublishPopover } from "./publish-popover"
 import { GithubPopover } from "./github-popover"
 import { Sidebar } from "@/widgets/sidebar"
 import { cn } from "@/shared/lib/utils/cn"
-import { useAuthStore } from "@/entities/session"
-import { useUserProjects } from "@/entities/project"
 
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
 
@@ -57,12 +55,7 @@ export const ProjectHeader = ({
   const [isPinned, setIsPinned] = useState(false)
   const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false)
   const sidebarWrapRef = useRef<HTMLDivElement>(null)
-
-  const { user, project, activeCompanyId } = useAuthStore()
-  const { data: companies = [] } = useUserProjects()
-  const currentCompanyId = activeCompanyId ?? user?.company_id ?? null
-  const currentCompany = companies.find((c) => c.id === currentCompanyId)
-  const workspaceName = currentCompany?.name || project?.title || projectTitle
+  const workspaceName = projectTitle
 
   const isSidebarVisible = (isHovered || isSidebarForced || isPinned) && !isSidebarModalOpen
 
