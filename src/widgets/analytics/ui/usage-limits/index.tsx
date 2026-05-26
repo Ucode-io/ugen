@@ -132,13 +132,6 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
             textColor: "text-blue-500",
           },
           {
-            key: "items",
-            label: "DB records (row)",
-            color: "bg-green-500",
-            textColor: "text-green-500",
-            infoOnly: true,
-          },
-          {
             key: "asset_size",
             label: "File size",
             color: "bg-purple-500",
@@ -155,6 +148,24 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
             label: "Daily Tokens",
             color: "bg-pink-500",
             textColor: "text-pink-500",
+          },
+          {
+            key: "functions",
+            label: "Functions",
+            color: "bg-primary",
+            textColor: "text-primary",
+          },
+          {
+            key: "microfrontend",
+            label: "Microfrontends",
+            color: "bg-violet-500",
+            textColor: "text-violet-500",
+          },
+          {
+            key: "users",
+            label: "Users",
+            color: "bg-emerald-500",
+            textColor: "text-emerald-500",
           },
         ].map((metric) => {
           const item = d[metric.key];
@@ -192,29 +203,25 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
                   >
                     {formatCurrent(current)}
                   </span>
-                  {!metric.infoOnly && (
-                    <span className="text-text-muted text-[12px]">
-                      / {formatLimit(limit)}
-                    </span>
-                  )}
+                  <span className="text-text-muted text-[12px]">
+                    / {formatLimit(limit)}
+                  </span>
                 </div>
               </div>
-              {!metric.infoOnly && (
-                <div>
-                  <div className="bg-bg-sidebar mb-1.5 h-1.5 overflow-hidden rounded-full">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        metric.color,
-                      )}
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                  <div className="text-text-muted text-[11px]">
-                    {formatCurrent(Math.max(limit - current, 0))} remaining
-                  </div>
+              <div>
+                <div className="bg-bg-sidebar mb-1.5 h-1.5 overflow-hidden rounded-full">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      metric.color,
+                    )}
+                    style={{ width: `${percentage}%` }}
+                  />
                 </div>
-              )}
+                <div className="text-text-muted text-[11px]">
+                  {formatCurrent(Math.max(limit - current, 0))} remaining
+                </div>
+              </div>
             </div>
           );
         })}

@@ -32,8 +32,6 @@ import {
   UserCog,
   LogOut,
   BarChart2,
-  Gauge,
-  BarChart,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -331,7 +329,6 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
 
 const AnalyticsTab = () => {
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
-  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState("usage-limits");
 
   const { data: pricingData } = useQuery({
     queryKey: ["pricing-all"],
@@ -363,35 +360,14 @@ const AnalyticsTab = () => {
     enabled: !!ucodeProjectId,
   });
 
-  const analyticsTabs = [
-    { id: "usage-limits", label: "Usage Limits", icon: <Gauge size={14} /> },
-    {
-      id: "project-statistics",
-      label: "Project Statistics",
-      icon: <BarChart size={14} />,
-    },
-  ];
-
   return (
-    <div className="space-y-0">
-      <ReusableTabs
-        options={analyticsTabs}
-        activeId={activeAnalyticsTab}
-        onTabChange={setActiveAnalyticsTab}
+    <div className="animate-in fade-in space-y-8 duration-300">
+      <UsageLimitsTab
+        pricingData={pricingData}
+        fareData={fareData}
+        currentFareData={currentFareData}
       />
-
-      <div className="animate-in fade-in duration-300">
-        {activeAnalyticsTab === "usage-limits" && (
-          <UsageLimitsTab
-            pricingData={pricingData}
-            fareData={fareData}
-            currentFareData={currentFareData}
-          />
-        )}
-        {activeAnalyticsTab === "project-statistics" && (
-          <ProjectStatisticsTab pricingData={pricingData} />
-        )}
-      </div>
+      <ProjectStatisticsTab />
     </div>
   );
 };

@@ -1,7 +1,13 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { Check, ChevronDown, Loader2, Sparkles } from "lucide-react";
+import {
+  CalendarClock,
+  Check,
+  ChevronDown,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -14,6 +20,7 @@ import {
 import { cn } from "@/shared/lib/utils/cn";
 import { api } from "@/shared/api";
 import { useAuthStore } from "@/entities/session";
+import { useFare } from "@/entities/billing";
 
 /* ── Billing periods ── */
 const PERIODS = [
@@ -86,6 +93,53 @@ const PLAN_META: PlanMeta[] = [
   },
 ];
 
+/* ── AttachFare error mapping ──
+ * The backend returns the raw reason in the response description; map known
+ * reasons to user-facing copy. Matching is a case-insensitive substring check
+ * so we tolerate minor wording changes on the backend. */
+const ATTACH_FARE_ERRORS: { match: string; message: string }[] = [
+  {
+    match: "ucode plans cannot be changed",
+    message: "Plan changes are not available for this project",
+  },
+  {
+    match: "cannot switch between ucode and ugen",
+    message: "Cannot switch plan type",
+  },
+  {
+    match: "already subscribed to this plan",
+    message: "You're already on this plan",
+  },
+  {
+    match: "balance + credit limit is less than",
+    message: "Insufficient balance. Please top up.",
+  },
+];
+
+const mapAttachFareError = (err: any): string => {
+  const payload = err?.response?.data;
+  const raw = [payload?.description, payload?.data, payload?.custom_message]
+    .filter((v) => typeof v === "string")
+    .join(" ")
+    .toLowerCase();
+  const matched = ATTACH_FARE_ERRORS.find((e) => raw.includes(e.match));
+  if (matched) return matched.message;
+  return typeof payload?.description === "string" && payload.description.trim()
+    ? payload.description
+    : "Failed to update plan";
+};
+
+const formatSubscriptionDate = (value?: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 const formatFareValue = (value: string | undefined) => {
   if (!value || value === "-1") return "Unlimited";
   if (value === "0") return "—";
@@ -109,8 +163,32 @@ export const UpgradePlanDialog = ({
   const [compareOpen, setCompareOpen] = useState(false);
   const [pendingFareId, setPendingFareId] = useState<string | null>(null);
   const fareId = useAuthStore((state) => state.project?.fare_id);
+  const projectId = useAuthStore((state) => state.project?.project_id);
   const environmentId = useAuthStore((state) => state.project?.environment_id);
   const queryClient = useQueryClient();
+
+  // AttachFare returns an empty (null) project, so after a successful change we
+  // re-fetch the project to reflect the real fare_id in the store and refresh
+  // the subscription detail (status / pending downgrade).
+  const refreshProject = async () => {
+    const id = useAuthStore.getState().project?.project_id;
+    if (!id) return;
+    const { data } = await api.get("/v1/company-project", {
+      params: { "project-id": id },
+      headers: {
+        Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
+      },
+    });
+    const info = data?.data;
+    const project = Array.isArray(info) ? info[0] : info;
+    const nextFareId = project?.fare_id;
+    const currentProject = useAuthStore.getState().project;
+    if (nextFareId && currentProject) {
+      useAuthStore.setState({
+        project: { ...currentProject, fare_id: nextFareId },
+      });
+    }
+  };
 
   const { mutate: attachFare, isPending: isAttaching } = useMutation({
     mutationFn: async (targetFareId: string) => {
@@ -129,26 +207,36 @@ export const UpgradePlanDialog = ({
       );
       return data;
     },
-    onSuccess: (_data, targetFareId) => {
-      // Reflect the new plan in the store immediately (no dedicated setter exists)
-      const currentProject = useAuthStore.getState().project;
-      if (currentProject) {
-        useAuthStore.setState({
-          project: { ...currentProject, fare_id: targetFareId },
-        });
-      }
+    onSuccess: async (_data, targetFareId) => {
+      // Calling AttachFare with the fare the project is already on cancels a
+      // scheduled downgrade (see "Cancel downgrade") rather than switching plan.
+      const isCancelDowngrade = targetFareId === fareId;
+      await refreshProject();
       queryClient.invalidateQueries({ queryKey: ["fares", "ugen"] });
+      queryClient.invalidateQueries({ queryKey: ["billing", "fare"] });
       queryClient.invalidateQueries({ queryKey: ["pricing-company-stats"] });
-      toast.success("Plan updated successfully");
-      onOpenChange(false);
+      if (isCancelDowngrade) {
+        toast.success("Downgrade canceled");
+      } else {
+        toast.success("Plan updated successfully");
+        onOpenChange(false);
+      }
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.description || "Failed to update plan");
+      toast.error(mapAttachFareError(err));
     },
     onSettled: () => {
       setPendingFareId(null);
     },
   });
+
+  // Current subscription detail (status, end_date, pending_fare_id). Embedded
+  // in the fare-by-id response; only fetched while the dialog is open.
+  const { data: currentFareDetail } = useFare(open ? fareId : null, projectId);
+  const subscription = currentFareDetail?.subscription;
+  const isPendingDowngrade = subscription?.status === "pending_downgrade";
+  const pendingDowngradeFareId = subscription?.pending_fare_id ?? null;
+  const subscriptionEndDate = subscription?.end_date;
 
   const { data: fareData } = useQuery({
     queryKey: ["fares", "ugen"],
@@ -208,6 +296,9 @@ export const UpgradePlanDialog = ({
   );
   const currentFare = fares.find((f: any) => f.id === fareId);
   const currentPrice = currentFare ? Number(currentFare.price) || 0 : null;
+  const pendingDowngradeFare = pendingDowngradeFareId
+    ? fares.find((f: any) => f.id === pendingDowngradeFareId)
+    : null;
   const currentPeriod = PERIODS.find((p) => p.key === period) ?? PERIODS[0];
 
   const formatPeriodPrice = (monthly: number) =>
@@ -265,6 +356,32 @@ export const UpgradePlanDialog = ({
           </div>
         </div>
 
+        {/* Scheduled downgrade banner */}
+        {isPendingDowngrade && (
+          <div className="bg-amber-500/10 mx-6 mt-6 flex items-start gap-3 rounded-xl border border-amber-500/30 px-4 py-3">
+            <CalendarClock
+              size={16}
+              className="mt-0.5 shrink-0 text-amber-600"
+            />
+            <div className="text-[12px] leading-relaxed">
+              <p className="font-semibold text-amber-700">
+                Downgrade
+                {pendingDowngradeFare?.name
+                  ? ` to ${pendingDowngradeFare.name}`
+                  : ""}{" "}
+                scheduled
+                {subscriptionEndDate
+                  ? ` for ${formatSubscriptionDate(subscriptionEndDate)}`
+                  : ""}
+              </p>
+              <p className="text-amber-700/80">
+                Your current plan stays active until then. Use “Cancel
+                downgrade” to keep it.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Pricing cards */}
         <div className="grid grid-cols-1 gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
           {PLAN_META.map((plan) => {
@@ -295,11 +412,42 @@ export const UpgradePlanDialog = ({
               fare != null &&
               currentPrice != null &&
               (Number(fare.price) || 0) < currentPrice;
-            const ctaLabel = isCurrent
-              ? "Current plan"
-              : isDowngrade
-                ? `Downgrade to ${displayName}`
-                : plan.cta;
+
+            // The fare the project will downgrade to at period end.
+            const isScheduled =
+              isPendingDowngrade &&
+              fare != null &&
+              fare.id === pendingDowngradeFareId;
+            // Re-attaching the current fare cancels a scheduled downgrade.
+            const isCancelDowngrade = isCurrent && isPendingDowngrade;
+
+            const currentBadgeLabel =
+              isCurrent && isPendingDowngrade && subscriptionEndDate
+                ? `Current · until ${formatSubscriptionDate(subscriptionEndDate)}`
+                : "Current";
+
+            let ctaLabel: string;
+            if (isCancelDowngrade) {
+              ctaLabel = "Cancel downgrade";
+            } else if (isCurrent) {
+              ctaLabel = "Current plan";
+            } else if (isScheduled) {
+              ctaLabel = "Scheduled";
+            } else if (isDowngrade) {
+              ctaLabel = `Downgrade to ${displayName}`;
+            } else {
+              ctaLabel = plan.cta;
+            }
+
+            // The current plan's button is normally disabled, but stays
+            // actionable when it cancels a pending downgrade.
+            const buttonDisabled =
+              isCancelDowngrade || isScheduled
+                ? isScheduled || isAttaching
+                : isCurrent || plan.key === "free" || !fare || isAttaching;
+            // Cancel-downgrade re-attaches the current fare; everything else
+            // attaches the card's own fare.
+            const targetFareId = isCancelDowngrade ? fareId : fare?.id;
 
             return (
               <div
@@ -313,7 +461,11 @@ export const UpgradePlanDialog = ({
               >
                 {isCurrent ? (
                   <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
-                    Current
+                    {currentBadgeLabel}
+                  </div>
+                ) : isScheduled ? (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
+                    Scheduled
                   </div>
                 ) : (
                   plan.featured &&
@@ -385,19 +537,19 @@ export const UpgradePlanDialog = ({
                 ) : (
                   <button
                     type="button"
-                    disabled={
-                      isCurrent || plan.key === "free" || !fare || isAttaching
-                    }
+                    disabled={buttonDisabled}
                     onClick={() => {
-                      if (!fare) return;
-                      setPendingFareId(fare.id);
-                      attachFare(fare.id);
+                      if (!targetFareId) return;
+                      setPendingFareId(targetFareId);
+                      attachFare(targetFareId);
                     }}
                     className={cn(
                       "mt-auto flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                      !isFree
-                        ? "bg-primary border-primary text-white hover:opacity-85"
-                        : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
+                      isCancelDowngrade
+                        ? "border-amber-500 bg-amber-500 text-white hover:opacity-85"
+                        : !isFree
+                          ? "bg-primary border-primary text-white hover:opacity-85"
+                          : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
                     )}
                   >
                     {isPlanLoading && (

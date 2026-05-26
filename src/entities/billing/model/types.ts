@@ -8,13 +8,22 @@ export interface ProjectCard {
   verify?: boolean;
 }
 
+export type SubscriptionStatus =
+  | "active"
+  | "pending_downgrade"
+  | (string & {});
+
 export interface Fare {
   id: string;
   name: string;
   price: number;
   currency: string;
   subscription?: {
+    id?: string;
     end_date?: string;
+    status?: SubscriptionStatus;
+    /** Fare the subscription will downgrade to at the end of the period. */
+    pending_fare_id?: string;
   };
 }
 
