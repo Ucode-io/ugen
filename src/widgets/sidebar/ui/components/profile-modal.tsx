@@ -31,17 +31,22 @@ import {
   CreditCard,
   UserCog,
   LogOut,
+  BarChart2,
+  Gauge,
+  BarChart,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { BillingTab } from "./billing-tab";
+import { UsageLimitsTab } from "@/widgets/analytics/ui/usage-limits";
+import { ProjectStatisticsTab } from "@/widgets/analytics/ui/project-statistics";
 
 interface ProfileModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type TabId = "profile" | "billing";
+type TabId = "profile" | "billing" | "analytics";
 
 export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
   const tWidgets = useTranslations("widgets.appSettings");
@@ -200,6 +205,7 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
   const tabs = [
     { id: "profile", label: "Profile", icon: <UserCog size={14} /> },
     { id: "billing", label: "Billing", icon: <CreditCard size={14} /> },
+    { id: "analytics", label: "Analytics", icon: <BarChart2 size={14} /> },
   ];
 
   return (
@@ -313,9 +319,80 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
           )}
 
           {activeTab === "billing" && <BillingTab />}
+
+          {activeTab === "analytics" && <AnalyticsTab />}
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+/* -------------------- Analytics Tab -------------------- */
+
+const AnalyticsTab = () => {
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
+  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState("usage-limits");
+
+  const { data: pricingData } = useQuery({
+    queryKey: ["pricing-all"],
+    queryFn: async () => {
+      const { data } = await api.get("/v1/pricing/all");
+      return data;
+    },
+    staleTime: 0,
+  });
+
+  const { data: fareData } = useQuery({
+    queryKey: ["fares", "ugen"],
+    queryFn: async () => {
+      const { data } = await api.get("/v1/fare", {
+        params: { product_type: "ugen" },
+      });
+      return data;
+    },
+  });
+
+  const { data: currentFareData } = useQuery({
+    queryKey: ["fares", "ugen", "current", ucodeProjectId],
+    queryFn: async () => {
+      const { data } = await api.get("/v1/fare", {
+        params: { "project-id": ucodeProjectId },
+      });
+      return data;
+    },
+    enabled: !!ucodeProjectId,
+  });
+
+  const analyticsTabs = [
+    { id: "usage-limits", label: "Usage Limits", icon: <Gauge size={14} /> },
+    {
+      id: "project-statistics",
+      label: "Project Statistics",
+      icon: <BarChart size={14} />,
+    },
+  ];
+
+  return (
+    <div className="space-y-0">
+      <ReusableTabs
+        options={analyticsTabs}
+        activeId={activeAnalyticsTab}
+        onTabChange={setActiveAnalyticsTab}
+      />
+
+      <div className="animate-in fade-in duration-300">
+        {activeAnalyticsTab === "usage-limits" && (
+          <UsageLimitsTab
+            pricingData={pricingData}
+            fareData={fareData}
+            currentFareData={currentFareData}
+          />
+        )}
+        {activeAnalyticsTab === "project-statistics" && (
+          <ProjectStatisticsTab pricingData={pricingData} />
+        )}
+      </div>
+    </div>
   );
 };
 

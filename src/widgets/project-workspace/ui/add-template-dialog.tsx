@@ -170,7 +170,7 @@ export const AddTemplateDialog = ({
           source_project_id: project?.project_id ?? "",
           // source_environment_id: project?.environment_id ?? "",
           // source_resource_env_id: microfrontendsList?.[0]?.environment_id || "",
-          source_mcp_resource_env_id: resourceEnvId ?? "",
+          source_mcp_resource_env_id: microfrontendsList?.[0]?.project_id ?? "",
           source_environment_id: "3acc5294-c3a3-456e-9c8c-b0c74043967b",
           source_function_id: microfrontendsList?.[0]?.id || "",
           source_repo_id: microfrontendsList?.[0]?.repo_id || "",

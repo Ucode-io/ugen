@@ -141,14 +141,21 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
     // the project dropdown, so reconcile is_ugen from there before navigating.
     try {
       const companies = await fetchUserProjects()
-      const matched = companies
-        .flatMap((c) => c.projects)
-        .find((p) => p.id === project_data?.project_id)
+      const matchedCompany = companies.find((c) =>
+        c.projects.some((p) => p.id === project_data?.project_id)
+      )
+      const matched = matchedCompany?.projects.find(
+        (p) => p.id === project_data?.project_id
+      )
       if (matched) {
         useAuthStore.setState((state) => ({
           project: state.project
             ? { ...state.project, is_ugen: matched.is_ugen }
             : state.project,
+          // user-projects is the source of truth for company ids used by the
+          // project dropdown, so align activeCompanyId with it instead of the
+          // (possibly different id-space) project_data.company_id.
+          activeCompanyId: matchedCompany?.id ?? state.activeCompanyId,
         }))
       }
     } catch (err) {

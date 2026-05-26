@@ -136,6 +136,7 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
             label: "DB records (row)",
             color: "bg-green-500",
             textColor: "text-green-500",
+            infoOnly: true,
           },
           {
             key: "asset_size",
@@ -191,25 +192,29 @@ export const UsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) 
                   >
                     {formatCurrent(current)}
                   </span>
-                  <span className="text-text-muted text-[12px]">
-                    / {formatLimit(limit)}
-                  </span>
+                  {!metric.infoOnly && (
+                    <span className="text-text-muted text-[12px]">
+                      / {formatLimit(limit)}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div>
-                <div className="bg-bg-sidebar mb-1.5 h-1.5 overflow-hidden rounded-full">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      metric.color,
-                    )}
-                    style={{ width: `${percentage}%` }}
-                  />
+              {!metric.infoOnly && (
+                <div>
+                  <div className="bg-bg-sidebar mb-1.5 h-1.5 overflow-hidden rounded-full">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        metric.color,
+                      )}
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                  <div className="text-text-muted text-[11px]">
+                    {formatCurrent(Math.max(limit - current, 0))} remaining
+                  </div>
                 </div>
-                <div className="text-text-muted text-[11px]">
-                  {formatCurrent(Math.max(limit - current, 0))} remaining
-                </div>
-              </div>
+              )}
             </div>
           );
         })}

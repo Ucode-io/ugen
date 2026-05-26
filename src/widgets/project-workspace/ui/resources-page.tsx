@@ -7,6 +7,7 @@ import { authApi, api } from '@/shared/api'
 import { githubIntegrationApi } from '@/features/github-integration'
 import type { GithubIntegration } from '@/features/github-integration'
 import { gitlabIntegrationApi } from '@/features/gitlab-integration'
+import { bitbucketIntegrationApi } from '@/features/bitbucket-integration'
 import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
 import { Switch } from '@/shared/ui'
@@ -39,6 +40,7 @@ const resourceTypes = [
   { label: "Sms", value: 6 },
   { label: "Smtp", value: 7 },
   { label: "Gitlab", value: 8 },
+  { label: "Bitbucket", value: 9 },
   { label: "Superset", value: 11 },
   { label: "Metabase", value: 12 },
   { label: "Transcode", value: 13 },
@@ -57,6 +59,7 @@ const RESOURCE_TYPE_STRING_TO_VALUE: Record<string, number> = {
   SMS: 6,
   SMTP: 7,
   GITLAB: 8,
+  BITBUCKET: 9,
   SUPERSET: 11,
   METABASE: 12,
   TRANSCODE: 13,
@@ -102,6 +105,7 @@ const resourceCategories = [
     items: [
       { label: 'GitHub', typeValue: 5, icon: 'github' },
       { label: 'Gitlab', typeValue: 8, icon: 'gitlab' },
+      { label: 'Bitbucket', typeValue: 9, icon: 'bitbucket' },
     ]
   },
   {
@@ -134,6 +138,18 @@ const ResourceIcon = ({ type }: { type: string }) => {
         <path d="M16.7667 8.55169L16.747 8.5C15.8186 8.69571 14.9437 9.09949 14.1848 9.68251L10 12.9314C11.4251 14.0383 12.6657 15 12.6657 15L15.5858 12.7548L15.593 12.7489C16.8506 11.7738 17.329 10.063 16.7667 8.55169Z" fill="#FC6D26" />
         <path d="M7 15.0761L8.6156 16.196L9.59977 16.8766C9.71487 16.9566 9.85545 17 10 17C10.1446 17 10.2851 16.9566 10.4002 16.8766L11.3844 16.196L13 15.0761C13 15.0761 11.6026 14.1079 9.99925 13C8.99888 13.6913 7.99913 14.3833 7 15.0761Z" fill="#FCA326" />
         <path d="M5.8144 9.68551C5.0562 9.1012 4.18147 8.69635 3.25293 8.5L3.23399 8.55169C2.67053 10.0633 3.14901 11.7756 4.40758 12.7503L4.41416 12.7556L4.43164 12.7683L7.33427 15L10 12.9313L5.8144 9.68551Z" fill="#FC6D26" />
+      </svg>
+    ),
+    bitbucket: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 62 62" fill="none">
+        <path d="M2.99 5.99a1.5 1.5 0 0 0-1.48 1.74l8.06 48.96a2.04 2.04 0 0 0 2 1.71h38.66a1.5 1.5 0 0 0 1.49-1.26l8.06-49.4a1.5 1.5 0 0 0-1.48-1.75L2.99 5.99ZM37.13 40.3H24.94l-3.3-17.25h18.4L37.13 40.3Z" fill="#2684FF" />
+        <path d="M59.36 23.05H40.04l-3.24 17.25H24.94l-15.8 18.75c.5.43 1.13.67 1.79.68h38.67a1.5 1.5 0 0 0 1.49-1.26l8.28-35.42Z" fill="url(#bb-grad)" />
+        <defs>
+          <linearGradient id="bb-grad" x1="62.27" y1="27.88" x2="35.97" y2="48.41" gradientUnits="userSpaceOnUse">
+            <stop offset=".18" stopColor="#0052CC" />
+            <stop offset="1" stopColor="#2684FF" />
+          </linearGradient>
+        </defs>
       </svg>
     ),
     sms: (
@@ -320,15 +336,17 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     enabled: !!projectId
   })
 
-  // GitLab integration — unlike GitHub (user-level), it's scoped to a project
-  // environment, so project_id + environment_id key the cache and gate the calls.
-  // environment_id comes from the first available environment.
-  const gitlabEnvId: string = environments[0]?.value ?? ''
-  const gitlabScope = { project_id: projectId, environment_id: gitlabEnvId }
-  const gitlabScopeReady = !!projectId && !!gitlabEnvId
+  // GitLab & Bitbucket — unlike GitHub (user-level), these are scoped to a
+  // project environment, so project_id + environment_id key the cache and gate
+  // the calls. environment_id comes from the first available environment.
+  const integrationEnvId: string = environments[0]?.value ?? ''
+  const integrationScope = { project_id: projectId, environment_id: integrationEnvId }
+  const integrationScopeReady = !!projectId && !!integrationEnvId
+  const gitlabScope = integrationScope
+  const gitlabScopeReady = integrationScopeReady
 
   const { data: gitlabStatus } = useQuery({
-    queryKey: ['gitlab-integration-status', projectId, gitlabEnvId],
+    queryKey: ['gitlab-integration-status', projectId, integrationEnvId],
     queryFn: () => gitlabIntegrationApi.validate(gitlabScope),
     enabled: gitlabScopeReady,
     retry: false,
@@ -336,7 +354,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   const { data: gitlabIntegration } = useQuery({
-    queryKey: ['gitlab-integration', projectId, gitlabEnvId],
+    queryKey: ['gitlab-integration', projectId, integrationEnvId],
     queryFn: () => gitlabIntegrationApi.getIntegration(gitlabScope),
     enabled: gitlabScopeReady && gitlabStatus?.connected === true,
     retry: false,
@@ -359,8 +377,46 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const { mutate: disconnectGitlab, isPending: isDisconnectingGitlab } = useMutation({
     mutationFn: (id: string) => gitlabIntegrationApi.disconnect(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gitlab-integration-status', projectId, gitlabEnvId] })
-      queryClient.invalidateQueries({ queryKey: ['gitlab-integration', projectId, gitlabEnvId] })
+      queryClient.invalidateQueries({ queryKey: ['gitlab-integration-status', projectId, integrationEnvId] })
+      queryClient.invalidateQueries({ queryKey: ['gitlab-integration', projectId, integrationEnvId] })
+    },
+  })
+
+  // Bitbucket integration — same project-environment scope as GitLab.
+  const { data: bitbucketStatus } = useQuery({
+    queryKey: ['bitbucket-integration-status', projectId, integrationEnvId],
+    queryFn: () => bitbucketIntegrationApi.validate(integrationScope),
+    enabled: integrationScopeReady,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: bitbucketIntegration } = useQuery({
+    queryKey: ['bitbucket-integration', projectId, integrationEnvId],
+    queryFn: () => bitbucketIntegrationApi.getIntegration(integrationScope),
+    enabled: integrationScopeReady && bitbucketStatus?.connected === true,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { mutate: connectBitbucket, isPending: isConnectingBitbucket } = useMutation({
+    mutationFn: async (popup: Window | null) => {
+      try {
+        const url = await bitbucketIntegrationApi.getConnectUrl(integrationScope)
+        if (popup && !popup.closed) popup.location.href = url
+        else window.open(url, '_blank')
+      } catch (err) {
+        popup?.close()
+        throw err
+      }
+    },
+  })
+
+  const { mutate: disconnectBitbucket, isPending: isDisconnectingBitbucket } = useMutation({
+    mutationFn: (id: string) => bitbucketIntegrationApi.disconnect(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bitbucket-integration-status', projectId, integrationEnvId] })
+      queryClient.invalidateQueries({ queryKey: ['bitbucket-integration', projectId, integrationEnvId] })
     },
   })
 
@@ -380,13 +436,16 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
         queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
         queryClient.invalidateQueries({ queryKey: ['github-integration'] })
       } else if (d.provider === 'gitlab') {
-        queryClient.invalidateQueries({ queryKey: ['gitlab-integration-status', projectId, gitlabEnvId] })
-        queryClient.invalidateQueries({ queryKey: ['gitlab-integration', projectId, gitlabEnvId] })
+        queryClient.invalidateQueries({ queryKey: ['gitlab-integration-status', projectId, integrationEnvId] })
+        queryClient.invalidateQueries({ queryKey: ['gitlab-integration', projectId, integrationEnvId] })
+      } else if (d.provider === 'bitbucket') {
+        queryClient.invalidateQueries({ queryKey: ['bitbucket-integration-status', projectId, integrationEnvId] })
+        queryClient.invalidateQueries({ queryKey: ['bitbucket-integration', projectId, integrationEnvId] })
       }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [queryClient, projectId, gitlabEnvId])
+  }, [queryClient, projectId, integrationEnvId])
 
   // Source 1: V2 resources list
   const { data: resourcesV2 = [], isLoading: isLoadingV2 } = useQuery({
@@ -623,6 +682,12 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     // GitLab — connect via backend OAuth flow (same pattern as GitHub)
     if (item.typeValue === 8) {
       connectGitlab(openOAuthPopup())
+      return
+    }
+
+    // Bitbucket — connect via backend OAuth flow (same pattern as GitLab)
+    if (item.typeValue === 9) {
+      connectBitbucket(openOAuthPopup())
       return
     }
 
@@ -935,6 +1000,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const isGitlabConnected = gitlabStatus?.connected === true
   const isGitlabExpired = gitlabStatus?.connected === false && gitlabStatus?.reason === 'token_expired'
 
+  const isBitbucketConnected = bitbucketStatus?.connected === true
+  const isBitbucketExpired = bitbucketStatus?.connected === false && bitbucketStatus?.reason === 'token_expired'
+
   const filteredConnectedResources = resourcesList.filter((resource: any) => {
     const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === resource.resource_type)
     const categoryId = resourceCategories.find(c => c.items.includes(categoryItem as any))?.id
@@ -947,6 +1015,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const connectedTypeValues = new Set(resourcesList.map((r: any) => r.resource_type))
   if (isGithubConnected || isGithubExpired) connectedTypeValues.add(5)
   if (isGitlabConnected || isGitlabExpired) connectedTypeValues.add(8)
+  if (isBitbucketConnected || isBitbucketExpired) connectedTypeValues.add(9)
 
   const availableResources = resourceCategories.flatMap(c => c.items.map(i => ({...i, categoryId: c.id, categoryLabel: c.label})))
   const filteredAvailableResources = availableResources.filter(item => {
@@ -956,11 +1025,13 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     return matchesSearch && matchesCategory
   })
 
-  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired || isGitlabConnected || isGitlabExpired
+  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired || isGitlabConnected || isGitlabExpired || isBitbucketConnected || isBitbucketExpired
   const githubMatchesSearch = 'github'.includes(searchQuery.toLowerCase()) || searchQuery === ''
   const githubMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
   const gitlabMatchesSearch = 'gitlab'.includes(searchQuery.toLowerCase()) || searchQuery === ''
   const gitlabMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
+  const bitbucketMatchesSearch = 'bitbucket'.includes(searchQuery.toLowerCase()) || searchQuery === ''
+  const bitbucketMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
 
   return (
     <div className="@container space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
@@ -1132,6 +1203,71 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                 </div>
               )}
 
+              {/* Bitbucket card (new API) */}
+              {(isBitbucketConnected || isBitbucketExpired) && bitbucketMatchesSearch && bitbucketMatchesCategory && (
+                <div
+                  className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 shadow-sm"
+                  style={{ borderLeftWidth: '3px', borderLeftColor: isBitbucketConnected ? 'var(--green, #22c55e)' : 'var(--destructive, #ef4444)' }}
+                >
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <ResourceIcon type="bitbucket" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm text-text-main truncate">Bitbucket</div>
+                      {isBitbucketConnected && bitbucketStatus.user
+                        ? <div className="text-[11px] text-text-muted truncate">@{bitbucketStatus.user.username}</div>
+                        : <div className="text-[11px] text-text-muted">Source Code Version Control</div>
+                      }
+                    </div>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border ml-auto",
+                      isBitbucketConnected
+                        ? "bg-green-500/10 text-green-500 border-green-500/20"
+                        : "bg-destructive/10 text-destructive border-destructive/20"
+                    )}>
+                      {isBitbucketConnected ? 'Connected' : 'Expired'}
+                    </span>
+                  </div>
+
+                  {isBitbucketConnected && bitbucketStatus.user?.avatar_url && (
+                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-bg-sidebar border border-border-subtle">
+                      <img src={bitbucketStatus.user.avatar_url} alt={bitbucketStatus.user.username} className="w-5 h-5 rounded-full shrink-0" />
+                      <span className="text-xs text-text-main font-medium truncate">@{bitbucketStatus.user.username}</span>
+                    </div>
+                  )}
+
+                  {isBitbucketExpired && (
+                    <div className="text-xs text-text-muted leading-relaxed">
+                      Token expired — reconnect to restore access.
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 mt-auto">
+                    {isBitbucketConnected && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 min-w-27.5 justify-center gap-2 rounded-lg font-semibold text-destructive hover:bg-destructive/5 hover:text-destructive border-border-subtle bg-bg-main"
+                        onClick={() => bitbucketIntegration && disconnectBitbucket(bitbucketIntegration.id)}
+                        disabled={isDisconnectingBitbucket || !bitbucketIntegration}
+                      >
+                        {isDisconnectingBitbucket ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                        Disconnect
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 min-w-27.5 justify-center gap-2 rounded-lg font-semibold border-border-subtle bg-bg-main text-text-muted hover:bg-primary/5 hover:text-primary"
+                      onClick={() => connectBitbucket(openOAuthPopup())}
+                      disabled={isConnectingBitbucket}
+                    >
+                      {isConnectingBitbucket ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                      {isConnectingBitbucket ? 'Connecting…' : 'Reconnect'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Old-API connected resources */}
               {filteredConnectedResources.map((resource: any) => {
                 const typeInfo = resourceTypes.find(t => t.value === resource.resource_type)
@@ -1188,7 +1324,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                   {(() => {
                     const isConnecting =
                       (item.typeValue === 5 && isConnectingGithub) ||
-                      (item.typeValue === 8 && isConnectingGitlab)
+                      (item.typeValue === 8 && isConnectingGitlab) ||
+                      (item.typeValue === 9 && isConnectingBitbucket)
                     return (
                       <Button
                         variant="outline"

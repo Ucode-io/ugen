@@ -134,7 +134,11 @@ export const useAuthStore = create<AuthState>()(
           accessToken,
           refreshToken,
           isAuthenticated: true,
-          activeView: 'dashboard'
+          activeView: 'dashboard',
+          // Reset on every login so a stale activeCompanyId persisted from a
+          // previous session can't leak into a new one. Seed it from the fresh
+          // project_data when available.
+          activeCompanyId: project?.company_id ?? null,
         }),
       switchProjectAuth: (projectPatch, accessToken, refreshToken) =>
         set((state) => ({
@@ -166,6 +170,7 @@ export const useAuthStore = create<AuthState>()(
           apiKey: null,
           apiKeyProjectId: null,
           activeProjectTab: null,
+          activeCompanyId: null,
           codeEditorTarget: null,
           languages: [],
         })

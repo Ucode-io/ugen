@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle2, XCircle, Github, Gitlab } from 'lucide-react'
+import { CheckCircle2, XCircle, Github, Gitlab, GitBranch } from 'lucide-react'
 import { Button } from '@/shared/ui'
 
 // Backend redirects the OAuth popup here after handling the provider callback:
@@ -26,8 +26,15 @@ export default function OAuthSuccessPage() {
 
   const [closeFailed, setCloseFailed] = useState(false)
 
-  const label = provider === 'gitlab' ? 'GitLab' : provider === 'github' ? 'GitHub' : 'Integration'
-  const Icon = provider === 'gitlab' ? Gitlab : Github
+  const label =
+    provider === 'gitlab' ? 'GitLab'
+      : provider === 'github' ? 'GitHub'
+      : provider === 'bitbucket' ? 'Bitbucket'
+      : 'Integration'
+  const Icon =
+    provider === 'gitlab' ? Gitlab
+      : provider === 'bitbucket' ? GitBranch
+      : Github
 
   // Notify the app window that opened this popup so it can refresh the card.
   useEffect(() => {
