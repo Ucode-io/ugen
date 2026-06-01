@@ -535,6 +535,13 @@ export const ProjectWorkspaceClient = ({
     }
 
     if (tab === "preview") {
+      const webAppUrl = projectInfo?.url || projectInfo?.project_url || "";
+      const shareUrl = webAppUrl
+        ? webAppUrl.startsWith("http")
+          ? webAppUrl
+          : `https://${webAppUrl}`
+        : "";
+
       return (
         <ProjectPreviewViewer
           key={projectId}
@@ -542,6 +549,7 @@ export const ProjectWorkspaceClient = ({
           isMaximized={isPreviewMaximized}
           versionPreviewFiles={versionPreviewFiles}
           projectId={projectId}
+          shareUrl={shareUrl}
           onDeviceChange={setDevice}
           onToggleMaximize={handleTogglePreviewMaximize}
           isChatCollapsed={isChatCollapsed}

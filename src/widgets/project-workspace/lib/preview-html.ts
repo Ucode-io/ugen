@@ -384,6 +384,11 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
       <style>
         html, body, #root { height: 100%; margin: 0; padding: 0; }
 
+        /* Hide the page scrollbar (content stays scrollable) — keeps the
+           device-frame preview clean. Inner component scrollbars are untouched. */
+        html, body { scrollbar-width: none; -ms-overflow-style: none; }
+        html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
         html.dark .leaflet-layer,
         html.dark .leaflet-control { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
 

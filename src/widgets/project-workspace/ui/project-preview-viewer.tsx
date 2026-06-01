@@ -36,6 +36,8 @@ import {
   type ColorDefinition,
   type ColorGroup,
 } from "./theme-popover";
+import { MobilePreviewPanel } from "./mobile-web-preview";
+import { PhoneShell } from "./mobile-phone-shell";
 
 // Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
@@ -396,6 +398,8 @@ interface ProjectPreviewViewerProps {
   chatPosition?: "left" | "right";
   versionPreviewFiles?: { path: string; content: string }[] | null;
   projectId?: string;
+  /** Hosted URL of the published app, used for the mobile QR preview panel. */
+  shareUrl?: string;
   onDeviceChange?: (device: DeviceType) => void;
   onToggleMaximize?: () => void;
   isVersionHistory?: boolean;
@@ -437,6 +441,7 @@ export const ProjectPreviewViewer = ({
   isMaximized = false,
   versionPreviewFiles,
   projectId,
+  shareUrl,
   onDeviceChange,
   onToggleMaximize,
   isChatCollapsed,
@@ -950,7 +955,10 @@ export const ProjectPreviewViewer = ({
     try {
       // Safety timeout — in production esbuild WASM (loaded from esm.sh) can hang
       // silently if blocked by CSP or a flaky CDN. Without this race, the await
-      // would never settle and the loader would spin forever.
+      // would never settle and the loader would spin forever. Matches the 60s
+      // ensureEsbuild() init timeout so a slow cold WASM download (~13.5 MB)
+      // doesn't false-timeout here before the loader itself gives up.
+      const BUILD_TIMEOUT_MS = 60_000;
       await Promise.race([
         build(),
         new Promise<never>((_, reject) =>
@@ -958,10 +966,10 @@ export const ProjectPreviewViewer = ({
             () =>
               reject(
                 new Error(
-                  "Preview build timed out after 30s — esbuild may have failed to load.",
+                  `Preview build timed out after ${BUILD_TIMEOUT_MS / 1000}s — esbuild may have failed to load.`,
                 ),
               ),
-            30_000,
+            BUILD_TIMEOUT_MS,
           ),
         ),
       ]);
@@ -1315,6 +1323,21 @@ export const ProjectPreviewViewer = ({
   const iframeWidth = DEVICE_WIDTHS[device];
   const selectedDevice = DEVICES.find((d) => d.id === device) ?? DEVICES[0];
 
+  // TEMP (testing): treat every project as a web app statically. Once the
+  // backend exposes a real app type, replace this with that signal.
+  const isWebApp = true;
+
+  // Web-app preview mode: render the live preview inside a phone frame next to
+  // the "preview on your phone" QR panel — always for a previewable web app,
+  // independent of the device picker. Skipped for functions, full-screen, and
+  // version-history views (which keep the plain browser card).
+  const webAppMode =
+    isWebApp &&
+    !isFunction &&
+    hasPreviewEntry &&
+    !isMaximized &&
+    !isVersionHistory;
+
   // Shared browser header JSX (rendered inside the card)
   const browserHeader = (
     <div className="border-border-subtle bg-bg-card flex h-10 shrink-0 items-center justify-between gap-2 border-b px-2">
@@ -1498,6 +1521,61 @@ export const ProjectPreviewViewer = ({
         )}
       </div>
     </div>
+  );
+
+  // Loading overlays + the live preview iframe. Shared between the plain
+  // browser card and the phone-framed web-app view so the build/error/iframe
+  // behaviour stays identical in both.
+  const previewSurface = (
+    <>
+      {/* Microfrontend loading overlay (takes priority) */}
+      {(!!loadingPreviewId || isMicrofrontendLoading) && (
+        <WorkspaceLoader
+          message="Loading microfrontend..."
+          subMessage="Fetching codebase"
+        />
+      )}
+      {/* Streaming pre-build overlay — the build effect waits for SSE to
+          close before building, so when storeFiles populates mid-stream
+          (and this viewer mounts to replace ProjectBuildingAnimation in
+          the parent), the iframe would otherwise sit on its default
+          white background until the post-stream build lands. */}
+      {isStreaming &&
+        !srcDoc &&
+        !runtimeError &&
+        !loadingPreviewId &&
+        !isMicrofrontendLoading && (
+          <WorkspaceLoader
+            message="Generating preview..."
+            subMessage="Waiting for AI to finish"
+          />
+        )}
+      {/* Build loading overlay — hidden when an error is shown */}
+      {isLoading &&
+        !runtimeError &&
+        !loadingPreviewId &&
+        !isMicrofrontendLoading && (
+          <WorkspaceLoader
+            message="Building preview..."
+            subMessage="Running esbuild"
+          />
+        )}
+      <iframe
+        key={refreshKey}
+        ref={iframeRef}
+        className="w-full flex-1 border-none bg-white"
+        srcDoc={srcDoc}
+        title="Project Preview"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+        onLoad={() => {
+          // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
+          themeSavePendingRef.current = false;
+          clearThemeOverride();
+          // If the popover is still open (e.g. user kept it open through a save), re-inject.
+          if (themeOpen) injectThemeOverride();
+        }}
+      />
+    </>
   );
 
   return (
@@ -1715,6 +1793,32 @@ export const ProjectPreviewViewer = ({
             </div>
           </div>
         </div>
+      ) : webAppMode ? (
+        /* Web-app preview — live preview inside a phone frame + QR panel */
+        <div
+          className={cn(
+            "flex h-full flex-1 flex-col overflow-hidden transition-all duration-300",
+            chatPosition === "left"
+              ? isChatCollapsed
+                ? "px-4"
+                : "pr-4 pl-0"
+              : isChatCollapsed
+                ? "px-4"
+                : "pr-0 pl-4",
+          )}
+        >
+          {browserHeader}
+          <div className="flex min-h-0 flex-1 items-stretch justify-center gap-6 overflow-hidden py-2">
+            {/* Phone frame holding the live preview (Claude Design PhoneShell) */}
+            <div className="flex min-h-0 flex-1 items-stretch justify-center">
+              <PhoneShell>{previewSurface}</PhoneShell>
+            </div>
+            <MobilePreviewPanel
+              shareUrl={shareUrl}
+              className="max-h-full self-stretch"
+            />
+          </div>
+        </div>
       ) : (
         /* Normal preview — browser card with header + iframe as one unit */
         <div
@@ -1743,53 +1847,7 @@ export const ProjectPreviewViewer = ({
             }}
           >
             {browserHeader}
-            {/* Microfrontend loading overlay (takes priority) */}
-            {(!!loadingPreviewId || isMicrofrontendLoading) && (
-              <WorkspaceLoader
-                message="Loading microfrontend..."
-                subMessage="Fetching codebase"
-              />
-            )}
-            {/* Streaming pre-build overlay — the build effect waits for SSE to
-                close before building, so when storeFiles populates mid-stream
-                (and this viewer mounts to replace ProjectBuildingAnimation in
-                the parent), the iframe would otherwise sit on its default
-                white background until the post-stream build lands. */}
-            {isStreaming &&
-              !srcDoc &&
-              !runtimeError &&
-              !loadingPreviewId &&
-              !isMicrofrontendLoading && (
-                <WorkspaceLoader
-                  message="Generating preview..."
-                  subMessage="Waiting for AI to finish"
-                />
-              )}
-            {/* Build loading overlay — hidden when an error is shown */}
-            {isLoading &&
-              !runtimeError &&
-              !loadingPreviewId &&
-              !isMicrofrontendLoading && (
-                <WorkspaceLoader
-                  message="Building preview..."
-                  subMessage="Running esbuild"
-                />
-              )}
-            <iframe
-              key={refreshKey}
-              ref={iframeRef}
-              className="w-full flex-1 border-none bg-white"
-              srcDoc={srcDoc}
-              title="Project Preview"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-              onLoad={() => {
-                // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
-                themeSavePendingRef.current = false;
-                clearThemeOverride();
-                // If the popover is still open (e.g. user kept it open through a save), re-inject.
-                if (themeOpen) injectThemeOverride();
-              }}
-            />
+            {previewSurface}
           </div>
         </div>
       )}
