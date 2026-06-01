@@ -21,6 +21,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ChevronRight, MoreHorizontal, FolderPlus } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMemo } from "react";
+import { UpgradePlanButton } from "@/widgets/sidebar/ui/components/upgrade-plan-button";
 
 export const ProjectsBoard = () => {
   const tNav = useTranslations("Navigation");
@@ -278,6 +279,8 @@ export const ProjectsBoard = () => {
             </button>
           </div>
         )}
+
+        <UpgradePlanButton variant="solid" className="ml-auto" />
       </div>
 
       <ProjectsToolbar
