@@ -1,10 +1,13 @@
 'use client'
 import React, { useState } from 'react'
-import { Check } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { CheckCircle2 } from 'lucide-react'
+import NumberFlow from '@number-flow/react'
 import { useQuery } from '@tanstack/react-query'
 import { Footer } from '@/widgets/footer'
 import { api } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
+import { cn } from '@/shared/lib/utils/cn'
 // import { LandingCtaSection } from '@/widgets/landing-page/ui/landing-cta-section'
 
 /* ── Billing data ── */
@@ -192,23 +195,32 @@ export const PricingPage = () => {
         </p>
 
         {/* Billing toggle */}
-        <div className="inline-flex bg-hover-bg border border-border-subtle rounded-[10px] p-1 gap-0.5">
+        <div className="bg-hover-bg border-border-subtle inline-flex rounded-full border p-1 shadow-sm">
           {PERIODS.map((p) => (
             <button
               key={p.key}
+              type="button"
               onClick={() => setPeriod(p.key)}
-              className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-[0.82rem] font-medium cursor-pointer border-none transition-all whitespace-nowrap ${
-                period === p.key
-                  ? 'bg-bg-card text-text-main font-semibold shadow-sm'
-                  : 'bg-transparent text-text-muted hover:text-text-main'
-              }`}
+              className="relative px-5 py-1.5 text-[0.8rem] font-medium"
             >
-              {p.label}
-              {p.save && (
-                <span className="bg-green-600 text-white text-[0.62rem] font-bold px-1.5 py-0.5 rounded-full tracking-[0.02em]">
-                  {p.save}
-                </span>
+              {period === p.key && (
+                <motion.span
+                  className="bg-bg-card absolute inset-0 rounded-full shadow-sm"
+                  layoutId="period-bg"
+                  transition={{ type: 'spring', duration: 0.4 }}
+                />
               )}
+              <span className={cn(
+                'relative z-10 flex items-center gap-1.5 whitespace-nowrap',
+                period === p.key ? 'text-text-main font-semibold' : 'text-text-muted',
+              )}>
+                {p.label}
+                {p.save && (
+                  <span className="rounded-full bg-green-600 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-[0.02em] text-white">
+                    {p.save}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
         </div>
@@ -217,102 +229,111 @@ export const PricingPage = () => {
       {/* Pricing Cards */}
       <section className="px-6 pt-0 pb-20" style={{ marginTop: '-20px' }}>
         <div className="max-w-[1100px] mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
             {PLAN_META.map((plan) => {
               const fare = plan.fareName ? fareByName.get(plan.fareName) : null
               const isEnterprise = plan.fareName === null
               const isFree = fare ? Number(fare.price) <= 0 : plan.fareName === 'free'
 
               const displayName = fare?.name ?? plan.key.charAt(0).toUpperCase() + plan.key.slice(1)
-              const displayPrice = isEnterprise
-                ? 'Custom'
-                : fare
-                  ? formatPeriodPrice(Number(fare.price) || 0)
-                  : '—'
+              const displayPrice = isEnterprise ? 'Custom' : fare ? formatPeriodPrice(Number(fare.price) || 0) : '--'
+              const numericPrice =
+                !isEnterprise && fare
+                  ? Math.round((Number(fare.price) || 0) * currentPeriod.multiplier)
+                  : null
               const displayPer = isEnterprise
                 ? 'tailored to your needs'
                 : isFree
                   ? (plan.perFreeText ?? 'forever free')
                   : currentPeriod.per
               const features = fare ? buildFeatures(fare) : []
+              const featuresDisplay =
+                features.length > 0
+                  ? features
+                  : isEnterprise
+                    ? ['Custom Builders', 'Custom credit limit', 'Custom Projects']
+                    : []
 
               return (
                 <div
                   key={plan.key}
-                  className={`bg-bg-main border rounded-[10px] p-8 relative transition-all hover:shadow-md flex flex-col ${
+                  className={cn(
+                    'relative flex flex-col overflow-hidden rounded-xl border bg-bg-card transition-all',
                     plan.featured
-                      ? 'border-primary shadow-md'
-                      : 'border-border-subtle hover:border-border-subtle/60'
-                  }`}
-                >
-                  {plan.featured && plan.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[0.66rem] font-bold uppercase tracking-[0.07em] px-3 py-1 rounded-full whitespace-nowrap">
-                      {plan.badge}
-                    </div>
+                      ? 'z-10 scale-[1.03] border-primary shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]'
+                      : 'border-border-subtle shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]',
                   )}
-                  <div className="text-[0.8rem] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[7px]">
-                    {displayName}
+                >
+                  {/* ── Card Header ── */}
+                  <div className={cn('relative border-b border-border-subtle/50 p-5', plan.featured && 'bg-primary/8')}>
+                    {plan.featured && plan.badge && (
+                      <div className="absolute top-3 right-3 rounded-md bg-primary px-2 py-0.5 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase">
+                        {plan.badge}
+                      </div>
+                    )}
+
+                    <div className="text-text-main pr-16 font-medium text-base">{displayName}</div>
+                    <p className="text-text-muted mt-0.5 text-[0.75rem]">{plan.desc}</p>
+
+                    <div className="mt-5 mb-1 flex items-end gap-1">
+                      {numericPrice !== null ? (
+                        <NumberFlow
+                          value={numericPrice}
+                          prefix="$"
+                          suffix="/mo"
+                          format={{ notation: 'compact' }}
+                          className="text-text-main font-extrabold leading-none text-[2.2rem] [&::part(suffix)]:text-text-muted [&::part(suffix)]:text-sm [&::part(suffix)]:font-normal"
+                        />
+                      ) : (
+                        <span className="text-text-main font-extrabold leading-none text-[2.2rem]">
+                          {displayPrice}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-text-muted text-[0.7rem]">{displayPer}</p>
                   </div>
-                  <div className="font-black tracking-[-0.05em] text-text-main mb-1 flex items-end"
-                    style={{ fontSize: isEnterprise ? '2rem' : '2.8rem', lineHeight: 1, minHeight: '2.8rem' }}>
-                    {displayPrice}
-                    {!isEnterprise && (
-                      <span className="text-[0.9rem] font-normal text-text-muted">/mo</span>
+
+                  {/* ── Features ── */}
+                  <div className="flex-1 space-y-2.5 px-5 pt-5 pb-6">
+                    {featuresDisplay.map((f) => (
+                      <div key={f} className="flex items-start gap-2">
+                        <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-green-500" strokeWidth={2.5} />
+                        <p className="text-text-muted text-[0.8rem]">{f}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── CTA ── */}
+                  <div className="mt-auto border-t border-border-subtle/50 p-3">
+                    {plan.href ? (
+                      <a
+                        href={plan.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          'block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all',
+                          !isFree
+                            ? 'bg-primary border-primary text-white hover:opacity-85'
+                            : 'bg-hover-bg border-border-subtle text-text-muted hover:text-text-main',
+                        )}
+                      >
+                        {plan.cta}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))}
+                        className={cn(
+                          'flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 text-[0.82rem] font-semibold transition-all',
+                          isFree
+                            ? 'bg-hover-bg border-border-subtle text-text-muted hover:text-text-main'
+                            : 'bg-primary border-primary text-white hover:opacity-85',
+                        )}
+                      >
+                        {plan.cta}
+                      </button>
                     )}
                   </div>
-                  <p className="text-[0.72rem] text-text-muted mb-1">{displayPer}</p>
-                  <p className="text-[0.82rem] text-text-muted leading-[1.6] mb-5 mt-3 min-h-[3.9rem]">{plan.desc}</p>
-                  <hr className="border-t border-border-subtle mb-5" />
-                  <ul className="space-y-2.5 mb-6 min-h-[100px]">
-                    {features.length > 0
-                      ? features.map((f) => (
-                          <li key={f} className="flex items-start gap-2 text-[0.83rem] text-text-muted">
-                            <Check size={14} className="text-green-500 flex-shrink-0 mt-0.5" strokeWidth={3} />
-                            {f}
-                          </li>
-                        ))
-                      : isEnterprise && (
-                          <>
-                            <li className="flex items-start gap-2 text-[0.83rem] text-text-muted">
-                              <Check size={14} className="text-green-500 flex-shrink-0 mt-0.5" strokeWidth={3} />
-                              Custom Builders
-                            </li>
-                            <li className="flex items-start gap-2 text-[0.83rem] text-text-muted">
-                              <Check size={14} className="text-green-500 flex-shrink-0 mt-0.5" strokeWidth={3} />
-                              Custom credit limit
-                            </li>
-                            <li className="flex items-start gap-2 text-[0.83rem] text-text-muted">
-                              <Check size={14} className="text-green-500 flex-shrink-0 mt-0.5" strokeWidth={3} />
-                              Custom Projects
-                            </li>
-                          </>
-                        )}
-                  </ul>
-                  {plan.href ? (
-                    <a
-                      href={plan.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`block w-full text-center py-2.5 rounded-lg text-[0.85rem] font-semibold transition-all border no-underline mt-auto ${
-                        plan.featured
-                          ? 'bg-primary border-primary text-white hover:opacity-85'
-                          : 'bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main'
-                      }`}
-                    >
-                      {plan.cta}
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))}
-                      className={`w-full py-2.5 rounded-lg text-[0.85rem] font-semibold cursor-pointer transition-all border mt-auto ${
-                        plan.featured
-                          ? 'bg-primary border-primary text-white hover:opacity-85'
-                          : 'bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main'
-                      }`}
-                    >
-                      {plan.cta}
-                    </button>
-                  )}
                 </div>
               )
             })}
