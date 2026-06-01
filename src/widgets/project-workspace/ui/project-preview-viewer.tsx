@@ -36,6 +36,7 @@ import {
   type ColorDefinition,
   type ColorGroup,
 } from "./theme-popover";
+import { MobilePreviewPanel } from "./mobile-web-preview";
 
 // Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
@@ -396,6 +397,8 @@ interface ProjectPreviewViewerProps {
   chatPosition?: "left" | "right";
   versionPreviewFiles?: { path: string; content: string }[] | null;
   projectId?: string;
+  /** Hosted URL of the published app, used for the mobile QR preview panel. */
+  shareUrl?: string;
   onDeviceChange?: (device: DeviceType) => void;
   onToggleMaximize?: () => void;
   isVersionHistory?: boolean;
@@ -437,6 +440,7 @@ export const ProjectPreviewViewer = ({
   isMaximized = false,
   versionPreviewFiles,
   projectId,
+  shareUrl,
   onDeviceChange,
   onToggleMaximize,
   isChatCollapsed,
@@ -1315,6 +1319,21 @@ export const ProjectPreviewViewer = ({
   const iframeWidth = DEVICE_WIDTHS[device];
   const selectedDevice = DEVICES.find((d) => d.id === device) ?? DEVICES[0];
 
+  // TEMP (testing): treat every project as a web app statically. Once the
+  // backend exposes a real app type, replace this with that signal.
+  const isWebApp = true;
+
+  // Show the QR "preview on your phone" panel only for a previewable web app:
+  // not a function, has a renderable entry (src/App.*), and not a full-screen /
+  // version-history view.
+  const showMobilePanel =
+    isWebApp &&
+    device === "mobile" &&
+    !isFunction &&
+    hasPreviewEntry &&
+    !isMaximized &&
+    !isVersionHistory;
+
   // Shared browser header JSX (rendered inside the card)
   const browserHeader = (
     <div className="border-border-subtle bg-bg-card flex h-10 shrink-0 items-center justify-between gap-2 border-b px-2">
@@ -1721,6 +1740,7 @@ export const ProjectPreviewViewer = ({
           className={cn(
             "flex h-full flex-1 items-start justify-center overflow-auto transition-all duration-300",
             isMaximized ? "p-0" : "pb-2",
+            showMobilePanel && "gap-6",
             !isMaximized &&
               chatPosition === "left" &&
               (isChatCollapsed ? "px-4" : "pr-4 pl-0"),
@@ -1791,6 +1811,13 @@ export const ProjectPreviewViewer = ({
               }}
             />
           </div>
+          {showMobilePanel && (
+            <MobilePreviewPanel
+              shareUrl={shareUrl}
+              onClose={() => onDeviceChange?.("desktop")}
+              className="max-h-full self-stretch"
+            />
+          )}
         </div>
       )}
     </div>
