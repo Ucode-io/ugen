@@ -21,7 +21,13 @@ import {
 import { cn } from "@/shared/lib/utils/cn";
 import { api } from "@/shared/api";
 import { useAuthStore } from "@/entities/session";
-import { useCompanyProjectsList, useFare } from "@/entities/billing";
+import {
+  useCompanyProjectsList,
+  useFare,
+  useUsdRate,
+  uzsToUsd,
+  formatUsd,
+} from "@/entities/billing";
 import { TopUpModal, formatAmount } from "./top-up-modal";
 
 /* ── Billing periods ── */
@@ -49,6 +55,13 @@ const PERIODS = [
   },
 ] as const;
 type Period = (typeof PERIODS)[number]["key"];
+
+/** Months billed per period — used to size the top-up to the full billing cycle. */
+const PERIOD_MONTHS: Record<Period, number> = {
+  year: 12,
+  "6month": 6,
+  month: 1,
+};
 
 type PlanMeta = {
   key: string;
@@ -184,7 +197,9 @@ export const UpgradePlanDialog = ({
   const [compareOpen, setCompareOpen] = useState(false);
   const [pendingFareId, setPendingFareId] = useState<string | null>(null);
   const [topUpOpen, setTopUpOpen] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState<number | undefined>(undefined);
+  const [topUpAmountUsd, setTopUpAmountUsd] = useState<number | undefined>(
+    undefined,
+  );
   const fareId = useAuthStore((state) => state.project?.fare_id);
   const projectId = useAuthStore((state) => state.project?.project_id);
   const environmentId = useAuthStore((state) => state.project?.environment_id);
@@ -204,7 +219,6 @@ export const UpgradePlanDialog = ({
     (p) => p.project_id === projectId,
   );
   const balance = projectBalanceInfo?.balance ?? 0;
-  const creditLimit = projectBalanceInfo?.credit_limit ?? 0;
 
   // AttachFare returns an empty (null) project, so after a successful change we
   // re-fetch the project to reflect the real fare_id in the store and refresh
@@ -262,14 +276,11 @@ export const UpgradePlanDialog = ({
       }
     },
     onError: (err: any) => {
-      const required = parseInsufficientBalance(err);
-      if (required !== null) {
-        // Can't cover the plan — open top-up pre-filled with the shortfall (or
-        // the full required amount when the deficit can't be computed).
-        const shortfall = required - (balance + creditLimit);
-        setTopUpAmount(shortfall > 0 ? shortfall : required || undefined);
+      // Not enough balance to cover the plan — silently open the top-up modal
+      // (no error toast). The suggested amount was staged on the upgrade click,
+      // computed from the plan price and active period (USD → UZS).
+      if (parseInsufficientBalance(err) !== null) {
         setTopUpOpen(true);
-        toast.error("Insufficient balance — top up to complete your upgrade.");
         return;
       }
       toast.error(mapAttachFareError(err));
@@ -287,6 +298,13 @@ export const UpgradePlanDialog = ({
   const pendingDowngradeFareId = subscription?.pending_fare_id ?? null;
   const subscriptionEndDate = subscription?.end_date;
   const currency = (currentFareDetail?.currency || "uzs").toUpperCase();
+
+  // USD → UZS rate from the Central Bank of Uzbekistan, used to convert the plan
+  // price into a suggested top-up amount and to show a dollar equivalent for the
+  // balance. Only fetched while the dialog is open.
+  const { data: usdRate } = useUsdRate(open);
+  const balanceUsd =
+    currency === "UZS" ? uzsToUsd(balance, usdRate) : null;
 
   const { data: fareData } = useQuery({
     queryKey: ["fares", "ugen"],
@@ -359,6 +377,17 @@ export const UpgradePlanDialog = ({
   const formatPeriodPrice = (monthly: number) =>
     monthly <= 0 ? "$0" : `$${Math.round(monthly * currentPeriod.multiplier)}`;
 
+  // Suggested top-up (USD) for a plan = its dollar price for the active period
+  // (per-period monthly × number of months in that period). The top-up modal
+  // converts this to UZS for the actual charge.
+  const computeTopUpAmountUsd = (fare: any): number | undefined => {
+    const monthly = Number(fare?.price) || 0;
+    if (monthly <= 0) return undefined;
+    return (
+      Math.round(monthly * currentPeriod.multiplier) * PERIOD_MONTHS[period]
+    );
+  };
+
   const buildFeatures = (fare: any | undefined): string[] => {
     if (!fare?.fare_item_prices) return [];
     return (fare.fare_item_prices as any[])
@@ -410,16 +439,28 @@ export const UpgradePlanDialog = ({
                 ))}
               </div>
 
-              {/* Current balance */}
+              {/* Current balance — USD first, UZS as the secondary value */}
               <div className="border-border-subtle bg-bg-card text-text-muted inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px]">
                 <Wallet size={14} className="text-primary" />
                 <span className="font-medium">Balance</span>
-                <span className="text-text-main font-semibold whitespace-nowrap">
-                  {formatAmount(balance)}{" "}
-                  <span className="text-text-muted text-[10px] font-bold uppercase">
-                    {currency}
+                {balanceUsd != null ? (
+                  <>
+                    <span className="text-text-main font-semibold whitespace-nowrap">
+                      {formatUsd(balanceUsd)}
+                    </span>
+                    <span className="bg-border-subtle h-3 w-px" />
+                    <span className="text-text-muted whitespace-nowrap">
+                      ≈ {formatAmount(balance)} {currency}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-text-main font-semibold whitespace-nowrap">
+                    {formatAmount(balance)}{" "}
+                    <span className="text-text-muted text-[10px] font-bold uppercase">
+                      {currency}
+                    </span>
                   </span>
-                </span>
+                )}
               </div>
             </div>
           </div>
@@ -613,6 +654,10 @@ export const UpgradePlanDialog = ({
                       disabled={buttonDisabled}
                       onClick={() => {
                         if (!targetFareId) return;
+                        // Stage the suggested top-up (USD) from this plan's
+                        // price for the active period; used if AttachFare
+                        // reports the balance can't cover it.
+                        setTopUpAmountUsd(computeTopUpAmountUsd(fare));
                         setPendingFareId(targetFareId);
                         attachFare(targetFareId);
                       }}
@@ -780,7 +825,7 @@ export const UpgradePlanDialog = ({
         open={topUpOpen}
         onOpenChange={setTopUpOpen}
         projectId={projectId ?? null}
-        initialAmount={topUpAmount}
+        initialAmount={topUpAmountUsd}
         onSuccess={() => {
           // Reflect the new balance in the header so the user can complete the
           // upgrade with sufficient funds.

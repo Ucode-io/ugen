@@ -18,6 +18,9 @@ import {
   useCompanyProjectsList,
   useFare,
   useTransactions,
+  useUsdRate,
+  uzsToUsd,
+  formatUsd,
   type BillingTransaction,
 } from "@/entities/billing";
 import { UpgradePlanDialog } from "./upgrade-plan-dialog";
@@ -57,10 +60,15 @@ export const BillingTab = () => {
 
   const currency = (fare?.currency || "uzs").toLowerCase();
 
+  const { data: usdRate } = useUsdRate();
+  const balance = currentProject?.balance ?? 0;
+  const balanceUsd = currency === "uzs" ? uzsToUsd(balance, usdRate) : null;
+
   return (
     <div className="space-y-4">
       <InvoiceSummaryCard
-        balance={currentProject?.balance ?? 0}
+        balance={balance}
+        balanceUsd={balanceUsd}
         planName={fare?.name}
         totalAmount={fare?.price}
         expireDate={fare?.subscription?.end_date}
@@ -87,6 +95,7 @@ export const BillingTab = () => {
 
 const InvoiceSummaryCard = ({
   balance,
+  balanceUsd,
   planName,
   totalAmount,
   expireDate,
@@ -96,6 +105,7 @@ const InvoiceSummaryCard = ({
   onUpgrade,
 }: {
   balance: number;
+  balanceUsd?: number | null;
   planName?: string;
   totalAmount?: number;
   expireDate?: string;
@@ -141,12 +151,20 @@ const InvoiceSummaryCard = ({
           </div>
           <div className="relative mt-3 flex items-baseline gap-1.5">
             <span className="text-text-main text-[34px] leading-none font-semibold tracking-tight">
-              {formatAmount(balance)}
+              {balanceUsd != null ? formatUsd(balanceUsd) : formatAmount(balance)}
             </span>
-            <span className="text-text-muted text-[11px] font-bold tracking-wider uppercase">
-              {currency}
-            </span>
+            {balanceUsd == null && (
+              <span className="text-text-muted text-[11px] font-bold tracking-wider uppercase">
+                {currency}
+              </span>
+            )}
           </div>
+          {balanceUsd != null && (
+            <p className="text-text-muted relative mt-1.5 text-[13px] font-medium">
+              ≈ {formatAmount(balance)}{" "}
+              <span className="uppercase">{currency}</span>
+            </p>
+          )}
           <p className="text-text-muted relative mt-2 text-[11px]">
             Funds available for project usage and upcoming charges.
           </p>

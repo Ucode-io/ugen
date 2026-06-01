@@ -34,12 +34,20 @@ import {
   useCardOtpVerify,
   useCardVerify,
   useReceiptPay,
+  useUsdRate,
   type CardBrand,
   type ProjectCard,
 } from "@/entities/billing";
 
 export const formatAmount = (value: number | undefined | null) =>
   new Intl.NumberFormat("ru-RU").format(Number(value ?? 0));
+
+/** Keeps digits and a single decimal point (max 2 places) for USD entry. */
+const sanitizeUsd = (raw: string): string => {
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  const [intPart, ...rest] = cleaned.split(".");
+  return rest.length > 0 ? `${intPart}.${rest.join("").slice(0, 2)}` : intPart;
+};
 
 export const pickErrorMessage = (err: any, fallback: string): string => {
   const payload = err?.response?.data;
@@ -69,12 +77,13 @@ export const TopUpModal = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string | null;
-  /** Pre-fills the amount field (e.g. the shortfall when upgrading). */
+  /** Pre-fills the amount field, in USD (e.g. the plan price when upgrading). */
   initialAmount?: number;
   /** Fired after a successful top-up, before the modal closes. */
   onSuccess?: () => void;
 }) => {
-  const [amount, setAmount] = useState("");
+  // The user enters USD; we charge the converted UZS amount via the API.
+  const [amountUsd, setAmountUsd] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<ProjectCard | null>(null);
@@ -83,10 +92,14 @@ export const TopUpModal = ({
     projectId,
     open,
   );
+  const { data: usdRate } = useUsdRate(open);
   const { mutateAsync: receiptPay, isPending: submitting } =
     useReceiptPay(projectId);
   const { mutateAsync: deleteCard, isPending: deletingCard } =
     useCardDelete(projectId);
+
+  // The UZS amount actually sent to the API (USD × rate).
+  const amountUzs = Math.round((Number(amountUsd) || 0) * (usdRate ?? 0));
 
   const selectedCard = useMemo(
     () => cards.find((c) => c.id === selectedCardId) ?? null,
@@ -95,16 +108,16 @@ export const TopUpModal = ({
 
   useEffect(() => {
     if (!open) {
-      setAmount("");
+      setAmountUsd("");
       setSelectedCardId(null);
     }
   }, [open]);
 
-  // Seed the amount with a suggested value (e.g. the upgrade shortfall) when the
-  // modal opens. Runs after the reset effect above, so it wins on open.
+  // Seed the amount (USD) with a suggested value when the modal opens. Runs
+  // after the reset effect above, so it wins on open.
   useEffect(() => {
     if (open && initialAmount && initialAmount > 0) {
-      setAmount(String(Math.ceil(initialAmount)));
+      setAmountUsd(String(initialAmount));
     }
   }, [open, initialAmount]);
 
@@ -116,11 +129,12 @@ export const TopUpModal = ({
   }, [open, cards]);
 
   const handleAddBalance = async () => {
-    if (!selectedCard || !amount) return;
+    if (!selectedCard || amountUzs <= 0) return;
     try {
+      // API expects the amount in UZS, not the entered USD value.
       await receiptPay({
         project_card_id: selectedCard.id,
-        amount: Number(amount),
+        amount: amountUzs,
       });
       toast.success("Transaction successfully created!");
       onSuccess?.();
@@ -131,8 +145,8 @@ export const TopUpModal = ({
   };
 
   const canSubmit =
-    Boolean(amount) &&
-    Number(amount) > 0 &&
+    Number(amountUsd) > 0 &&
+    amountUzs > 0 &&
     Boolean(selectedCard) &&
     selectedCard?.verify !== false;
 
@@ -188,22 +202,36 @@ export const TopUpModal = ({
                   Amount
                 </label>
                 <div className="relative">
+                  <span className="text-text-muted absolute top-1/2 left-3 -translate-y-1/2 text-[14px] font-semibold">
+                    $
+                  </span>
                   <Input
                     type="text"
-                    inputMode="numeric"
+                    inputMode="decimal"
                     autoComplete="off"
-                    placeholder="Write amount..."
-                    value={amount ? formatAmount(Number(amount)) : ""}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      setAmount(digits);
-                    }}
-                    className="bg-bg-sidebar border-border-subtle h-10 pr-14 text-[13px]"
+                    placeholder="0.00"
+                    value={amountUsd}
+                    onChange={(e) => setAmountUsd(sanitizeUsd(e.target.value))}
+                    className="bg-bg-sidebar border-border-subtle h-10 pr-14 pl-7 text-[13px]"
                   />
                   <span className="text-text-muted absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-semibold tracking-wider uppercase">
-                    uzs
+                    usd
                   </span>
                 </div>
+                {/* UZS equivalent that will actually be charged */}
+                <p className="text-text-muted text-[11px]">
+                  {usdRate ? (
+                    <>
+                      ≈{" "}
+                      <span className="text-text-main font-semibold">
+                        {formatAmount(amountUzs)} UZS
+                      </span>{" "}
+                      will be charged
+                    </>
+                  ) : (
+                    "Loading exchange rate…"
+                  )}
+                </p>
               </div>
 
               <div>
