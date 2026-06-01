@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Loader2,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -20,7 +21,8 @@ import {
 import { cn } from "@/shared/lib/utils/cn";
 import { api } from "@/shared/api";
 import { useAuthStore } from "@/entities/session";
-import { useFare } from "@/entities/billing";
+import { useCompanyProjectsList, useFare } from "@/entities/billing";
+import { TopUpModal, formatAmount } from "./top-up-modal";
 
 /* ── Billing periods ── */
 const PERIODS = [
@@ -129,6 +131,25 @@ const mapAttachFareError = (err: any): string => {
     : "Failed to update plan";
 };
 
+/* ── Insufficient-balance detection ──
+ * AttachFare rejects with "balance + credit limit is less than {amount}" when
+ * the project can't cover the plan. We detect that case to route the user into
+ * the top-up flow, and parse the required amount to pre-fill the suggested sum.
+ * Returns the required amount, 0 when insufficient but the amount can't be
+ * parsed, or null when it isn't an insufficient-balance error at all. */
+const parseInsufficientBalance = (err: any): number | null => {
+  const payload = err?.response?.data;
+  const raw = [payload?.description, payload?.data, payload?.custom_message]
+    .filter((v) => typeof v === "string")
+    .join(" ")
+    .toLowerCase();
+  if (!raw.includes("balance + credit limit is less than")) return null;
+  const match = raw.match(/less than\s*([\d\s.,]+)/);
+  if (!match) return 0;
+  const num = Number(match[1].replace(/[\s,]/g, ""));
+  return Number.isFinite(num) ? num : 0;
+};
+
 const formatSubscriptionDate = (value?: string) => {
   if (!value) return "";
   const date = new Date(value);
@@ -162,10 +183,28 @@ export const UpgradePlanDialog = ({
   const [period, setPeriod] = useState<Period>("year");
   const [compareOpen, setCompareOpen] = useState(false);
   const [pendingFareId, setPendingFareId] = useState<string | null>(null);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState<number | undefined>(undefined);
   const fareId = useAuthStore((state) => state.project?.fare_id);
   const projectId = useAuthStore((state) => state.project?.project_id);
   const environmentId = useAuthStore((state) => state.project?.environment_id);
+  const companyId = useAuthStore(
+    (state) => state.user?.company_id ?? state.project?.company_id,
+  );
   const queryClient = useQueryClient();
+
+  // Balance + credit limit for the current project. Shown in the header and used
+  // to route the user into top-up when a plan can't be covered. Only fetched
+  // while the dialog is open; shares its cache with the billing tab.
+  const { data: companyProjects = [] } = useCompanyProjectsList(
+    open ? companyId : null,
+    projectId,
+  );
+  const projectBalanceInfo = companyProjects.find(
+    (p) => p.project_id === projectId,
+  );
+  const balance = projectBalanceInfo?.balance ?? 0;
+  const creditLimit = projectBalanceInfo?.credit_limit ?? 0;
 
   // AttachFare returns an empty (null) project, so after a successful change we
   // re-fetch the project to reflect the real fare_id in the store and refresh
@@ -223,6 +262,16 @@ export const UpgradePlanDialog = ({
       }
     },
     onError: (err: any) => {
+      const required = parseInsufficientBalance(err);
+      if (required !== null) {
+        // Can't cover the plan — open top-up pre-filled with the shortfall (or
+        // the full required amount when the deficit can't be computed).
+        const shortfall = required - (balance + creditLimit);
+        setTopUpAmount(shortfall > 0 ? shortfall : required || undefined);
+        setTopUpOpen(true);
+        toast.error("Insufficient balance — top up to complete your upgrade.");
+        return;
+      }
       toast.error(mapAttachFareError(err));
     },
     onSettled: () => {
@@ -237,6 +286,7 @@ export const UpgradePlanDialog = ({
   const isPendingDowngrade = subscription?.status === "pending_downgrade";
   const pendingDowngradeFareId = subscription?.pending_fare_id ?? null;
   const subscriptionEndDate = subscription?.end_date;
+  const currency = (currentFareDetail?.currency || "uzs").toUpperCase();
 
   const { data: fareData } = useQuery({
     queryKey: ["fares", "ugen"],
@@ -253,7 +303,12 @@ export const UpgradePlanDialog = ({
   /* ── Build feature rows grouped by feature group (for compare table) ── */
   const featureMap = new Map<
     string,
-    { id: string; name: string; type: string; group?: { id: string; name: string } }
+    {
+      id: string;
+      name: string;
+      type: string;
+      group?: { id: string; name: string };
+    }
   >();
   fares.forEach((fare) => {
     fare.fare_item_prices?.forEach((fip: any) => {
@@ -316,390 +371,424 @@ export const UpgradePlanDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[min(96vw,1100px)] max-w-none gap-0 overflow-y-auto rounded-2xl p-0">
-        <div className="border-border-subtle border-b px-6 py-5">
-          <DialogHeader>
-            <DialogTitle className="text-text-main flex items-center gap-2 text-[1.05rem]">
-              <Sparkles size={18} className="text-primary" />
-              Upgrade your plan
-            </DialogTitle>
-            <DialogDescription className="text-text-muted text-[12px]">
-              Choose the plan that fits your team. Per-user pricing — pay only
-              for what you use.
-            </DialogDescription>
-          </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[90vh] w-[min(96vw,1100px)] max-w-none gap-0 overflow-y-auto rounded-2xl p-0">
+          <div className="border-border-subtle border-b px-6 py-5">
+            <DialogHeader>
+              <DialogTitle className="text-text-main flex items-center gap-2 text-[1.05rem]">
+                <Sparkles size={18} className="text-primary" />
+                Upgrade your plan
+              </DialogTitle>
+              <DialogDescription className="text-text-muted text-[12px]">
+                Choose the plan that fits your team. Per-user pricing — pay only
+                for what you use.
+              </DialogDescription>
+            </DialogHeader>
 
-          {/* Billing toggle */}
-          <div className="mt-4 flex justify-center">
-            <div className="bg-hover-bg border-border-subtle inline-flex gap-0.5 rounded-[10px] border p-1">
-              {PERIODS.map((p) => (
-                <button
-                  key={p.key}
-                  onClick={() => setPeriod(p.key)}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-1.5 rounded-lg border-none px-4 py-1.5 text-[0.8rem] font-medium whitespace-nowrap transition-all",
-                    period === p.key
-                      ? "bg-bg-card text-text-main font-semibold shadow-sm"
-                      : "text-text-muted hover:text-text-main bg-transparent",
-                  )}
-                >
-                  {p.label}
-                  {p.save && (
-                    <span className="rounded-full bg-green-600 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-[0.02em] text-white">
-                      {p.save}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Scheduled downgrade banner */}
-        {isPendingDowngrade && (
-          <div className="bg-amber-500/10 mx-6 mt-6 flex items-start gap-3 rounded-xl border border-amber-500/30 px-4 py-3">
-            <CalendarClock
-              size={16}
-              className="mt-0.5 shrink-0 text-amber-600"
-            />
-            <div className="text-[12px] leading-relaxed">
-              <p className="font-semibold text-amber-700">
-                Downgrade
-                {pendingDowngradeFare?.name
-                  ? ` to ${pendingDowngradeFare.name}`
-                  : ""}{" "}
-                scheduled
-                {subscriptionEndDate
-                  ? ` for ${formatSubscriptionDate(subscriptionEndDate)}`
-                  : ""}
-              </p>
-              <p className="text-amber-700/80">
-                Your current plan stays active until then. Use “Cancel
-                downgrade” to keep it.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Pricing cards */}
-        <div className="grid grid-cols-1 gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
-          {PLAN_META.map((plan) => {
-            const fare = plan.fareName ? fareByName.get(plan.fareName) : null;
-            const isEnterprise = plan.fareName === null;
-            const isFree = fare
-              ? Number(fare.price) <= 0
-              : plan.fareName === "free";
-            const isCurrent = fare ? fare.id === fareId : false;
-
-            const displayName =
-              fare?.name ?? plan.key.charAt(0).toUpperCase() + plan.key.slice(1);
-            const displayPrice = isEnterprise
-              ? "Custom"
-              : fare
-                ? formatPeriodPrice(Number(fare.price) || 0)
-                : "—";
-            const displayPer = isEnterprise
-              ? "tailored to your needs"
-              : isFree
-                ? (plan.perFreeText ?? "forever free")
-                : currentPeriod.per;
-            const features = fare ? buildFeatures(fare) : [];
-            const isPlanLoading = isAttaching && pendingFareId === fare?.id;
-            const isDowngrade =
-              !isCurrent &&
-              !isEnterprise &&
-              fare != null &&
-              currentPrice != null &&
-              (Number(fare.price) || 0) < currentPrice;
-
-            // The fare the project will downgrade to at period end.
-            const isScheduled =
-              isPendingDowngrade &&
-              fare != null &&
-              fare.id === pendingDowngradeFareId;
-            // Re-attaching the current fare cancels a scheduled downgrade.
-            const isCancelDowngrade = isCurrent && isPendingDowngrade;
-
-            const currentBadgeLabel =
-              isCurrent && isPendingDowngrade && subscriptionEndDate
-                ? `Current · until ${formatSubscriptionDate(subscriptionEndDate)}`
-                : "Current";
-
-            let ctaLabel: string;
-            if (isCancelDowngrade) {
-              ctaLabel = "Cancel downgrade";
-            } else if (isCurrent) {
-              ctaLabel = "Current plan";
-            } else if (isScheduled) {
-              ctaLabel = "Scheduled";
-            } else if (isDowngrade) {
-              ctaLabel = `Downgrade to ${displayName}`;
-            } else {
-              ctaLabel = plan.cta;
-            }
-
-            // The current plan's button is normally disabled, but stays
-            // actionable when it cancels a pending downgrade.
-            const buttonDisabled =
-              isCancelDowngrade || isScheduled
-                ? isScheduled || isAttaching
-                : isCurrent || plan.key === "free" || !fare || isAttaching;
-            // Cancel-downgrade re-attaches the current fare; everything else
-            // attaches the card's own fare.
-            const targetFareId = isCancelDowngrade ? fareId : fare?.id;
-
-            return (
-              <div
-                key={plan.key}
-                className={cn(
-                  "bg-bg-main relative flex flex-col rounded-[10px] border p-6 transition-all hover:shadow-md",
-                  isCurrent
-                    ? "border-primary shadow-md"
-                    : "border-border-subtle hover:border-border-subtle/60",
-                )}
-              >
-                {isCurrent ? (
-                  <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
-                    {currentBadgeLabel}
-                  </div>
-                ) : isScheduled ? (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
-                    Scheduled
-                  </div>
-                ) : (
-                  plan.featured &&
-                  plan.badge && (
-                    <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] text-white uppercase whitespace-nowrap">
-                      {plan.badge}
-                    </div>
-                  )
-                )}
-                <div className="text-text-muted mb-[7px] text-[0.74rem] font-semibold tracking-[0.06em] uppercase">
-                  {displayName}
-                </div>
-                <div
-                  className="text-text-main mb-1 flex items-end font-black tracking-[-0.05em]"
-                  style={{
-                    fontSize: isEnterprise ? "1.6rem" : "2.2rem",
-                    lineHeight: 1,
-                    minHeight: "2.2rem",
-                  }}
-                >
-                  {displayPrice}
-                  {!isEnterprise && (
-                    <span className="text-text-muted text-[0.85rem] font-normal">
-                      /mo
-                    </span>
-                  )}
-                </div>
-                <p className="text-text-muted mb-1 text-[0.68rem]">
-                  {displayPer}
-                </p>
-                <p className="text-text-muted mt-3 mb-4 min-h-[3.6rem] text-[0.78rem] leading-[1.55]">
-                  {plan.desc}
-                </p>
-                <hr className="border-border-subtle mb-4 border-t" />
-                <ul className="mb-5 space-y-2">
-                  {(features.length > 0
-                    ? features
-                    : isEnterprise
-                      ? ["Custom Builders", "Custom credit limit", "Custom Projects"]
-                      : []
-                  ).map((f) => (
-                    <li
-                      key={f}
-                      className="text-text-muted flex items-start gap-2 text-[0.8rem]"
-                    >
-                      <Check
-                        size={13}
-                        className="mt-0.5 flex-shrink-0 text-green-500"
-                        strokeWidth={3}
-                      />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                {plan.href ? (
-                  <a
-                    href={plan.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
+            {/* Billing toggle + current balance */}
+            <div className="mt-4 flex flex-col items-center gap-2.5">
+              <div className="bg-hover-bg border-border-subtle inline-flex gap-0.5 rounded-[10px] border p-1">
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPeriod(p.key)}
                     className={cn(
-                      "mt-auto block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
-                      !isFree
-                        ? "bg-primary border-primary text-white hover:opacity-85"
-                        : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
+                      "flex cursor-pointer items-center gap-1.5 rounded-lg border-none px-4 py-1.5 text-[0.8rem] font-medium whitespace-nowrap transition-all",
+                      period === p.key
+                        ? "bg-bg-card text-text-main font-semibold shadow-sm"
+                        : "text-text-muted hover:text-text-main bg-transparent",
                     )}
                   >
-                    {ctaLabel}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={buttonDisabled}
-                    onClick={() => {
-                      if (!targetFareId) return;
-                      setPendingFareId(targetFareId);
-                      attachFare(targetFareId);
+                    {p.label}
+                    {p.save && (
+                      <span className="rounded-full bg-green-600 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-[0.02em] text-white">
+                        {p.save}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Current balance */}
+              <div className="border-border-subtle bg-bg-card text-text-muted inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px]">
+                <Wallet size={14} className="text-primary" />
+                <span className="font-medium">Balance</span>
+                <span className="text-text-main font-semibold whitespace-nowrap">
+                  {formatAmount(balance)}{" "}
+                  <span className="text-text-muted text-[10px] font-bold uppercase">
+                    {currency}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Scheduled downgrade banner */}
+          {isPendingDowngrade && (
+            <div className="mx-6 mt-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <CalendarClock
+                size={16}
+                className="mt-0.5 shrink-0 text-amber-600"
+              />
+              <div className="text-[12px] leading-relaxed">
+                <p className="font-semibold text-amber-700">
+                  Downgrade
+                  {pendingDowngradeFare?.name
+                    ? ` to ${pendingDowngradeFare.name}`
+                    : ""}{" "}
+                  scheduled
+                  {subscriptionEndDate
+                    ? ` for ${formatSubscriptionDate(subscriptionEndDate)}`
+                    : ""}
+                </p>
+                <p className="text-amber-700/80">
+                  Your current plan stays active until then. Use “Cancel
+                  downgrade” to keep it.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Pricing cards */}
+          <div className="grid grid-cols-1 gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
+            {PLAN_META.map((plan) => {
+              const fare = plan.fareName ? fareByName.get(plan.fareName) : null;
+              const isEnterprise = plan.fareName === null;
+              const isFree = fare
+                ? Number(fare.price) <= 0
+                : plan.fareName === "free";
+              const isCurrent = fare ? fare.id === fareId : false;
+
+              const displayName =
+                fare?.name ??
+                plan.key.charAt(0).toUpperCase() + plan.key.slice(1);
+              const displayPrice = isEnterprise
+                ? "Custom"
+                : fare
+                  ? formatPeriodPrice(Number(fare.price) || 0)
+                  : "—";
+              const displayPer = isEnterprise
+                ? "tailored to your needs"
+                : isFree
+                  ? (plan.perFreeText ?? "forever free")
+                  : currentPeriod.per;
+              const features = fare ? buildFeatures(fare) : [];
+              const isPlanLoading = isAttaching && pendingFareId === fare?.id;
+              const isDowngrade =
+                !isCurrent &&
+                !isEnterprise &&
+                fare != null &&
+                currentPrice != null &&
+                (Number(fare.price) || 0) < currentPrice;
+
+              // The fare the project will downgrade to at period end.
+              const isScheduled =
+                isPendingDowngrade &&
+                fare != null &&
+                fare.id === pendingDowngradeFareId;
+              // Re-attaching the current fare cancels a scheduled downgrade.
+              const isCancelDowngrade = isCurrent && isPendingDowngrade;
+
+              const currentBadgeLabel =
+                isCurrent && isPendingDowngrade && subscriptionEndDate
+                  ? `Current · until ${formatSubscriptionDate(subscriptionEndDate)}`
+                  : "Current";
+
+              let ctaLabel: string;
+              if (isCancelDowngrade) {
+                ctaLabel = "Cancel downgrade";
+              } else if (isCurrent) {
+                ctaLabel = "Current plan";
+              } else if (isScheduled) {
+                ctaLabel = "Scheduled";
+              } else if (isDowngrade) {
+                ctaLabel = `Downgrade to ${displayName}`;
+              } else {
+                ctaLabel = plan.cta;
+              }
+
+              // The current plan's button is normally disabled, but stays
+              // actionable when it cancels a pending downgrade.
+              const buttonDisabled =
+                isCancelDowngrade || isScheduled
+                  ? isScheduled || isAttaching
+                  : isCurrent || plan.key === "free" || !fare || isAttaching;
+              // Cancel-downgrade re-attaches the current fare; everything else
+              // attaches the card's own fare.
+              const targetFareId = isCancelDowngrade ? fareId : fare?.id;
+
+              return (
+                <div
+                  key={plan.key}
+                  className={cn(
+                    "bg-bg-main relative flex flex-col rounded-[10px] border p-6 transition-all hover:shadow-md",
+                    isCurrent
+                      ? "border-primary shadow-md"
+                      : "border-border-subtle hover:border-border-subtle/60",
+                  )}
+                >
+                  {isCurrent ? (
+                    <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase">
+                      {currentBadgeLabel}
+                    </div>
+                  ) : isScheduled ? (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase">
+                      Scheduled
+                    </div>
+                  ) : (
+                    plan.featured &&
+                    plan.badge && (
+                      <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase">
+                        {plan.badge}
+                      </div>
+                    )
+                  )}
+                  <div className="text-text-muted mb-[7px] text-[0.74rem] font-semibold tracking-[0.06em] uppercase">
+                    {displayName}
+                  </div>
+                  <div
+                    className="text-text-main mb-1 flex items-end font-black tracking-[-0.05em]"
+                    style={{
+                      fontSize: isEnterprise ? "1.6rem" : "2.2rem",
+                      lineHeight: 1,
+                      minHeight: "2.2rem",
                     }}
-                    className={cn(
-                      "mt-auto flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                      isCancelDowngrade
-                        ? "border-amber-500 bg-amber-500 text-white hover:opacity-85"
-                        : !isFree
+                  >
+                    {displayPrice}
+                    {!isEnterprise && (
+                      <span className="text-text-muted text-[0.85rem] font-normal">
+                        /mo
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-text-muted mb-1 text-[0.68rem]">
+                    {displayPer}
+                  </p>
+                  <p className="text-text-muted mt-3 mb-4 min-h-[3.6rem] text-[0.78rem] leading-[1.55]">
+                    {plan.desc}
+                  </p>
+                  <hr className="border-border-subtle mb-4 border-t" />
+                  <ul className="mb-5 space-y-2">
+                    {(features.length > 0
+                      ? features
+                      : isEnterprise
+                        ? [
+                            "Custom Builders",
+                            "Custom credit limit",
+                            "Custom Projects",
+                          ]
+                        : []
+                    ).map((f) => (
+                      <li
+                        key={f}
+                        className="text-text-muted flex items-start gap-2 text-[0.8rem]"
+                      >
+                        <Check
+                          size={13}
+                          className="mt-0.5 flex-shrink-0 text-green-500"
+                          strokeWidth={3}
+                        />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  {plan.href ? (
+                    <a
+                      href={plan.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "mt-auto block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
+                        !isFree
                           ? "bg-primary border-primary text-white hover:opacity-85"
                           : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
-                    )}
+                      )}
+                    >
+                      {ctaLabel}
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={buttonDisabled}
+                      onClick={() => {
+                        if (!targetFareId) return;
+                        setPendingFareId(targetFareId);
+                        attachFare(targetFareId);
+                      }}
+                      className={cn(
+                        "mt-auto flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                        isCancelDowngrade
+                          ? "border-amber-500 bg-amber-500 text-white hover:opacity-85"
+                          : !isFree
+                            ? "bg-primary border-primary text-white hover:opacity-85"
+                            : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
+                      )}
+                    >
+                      {isPlanLoading && (
+                        <Loader2 size={14} className="animate-spin" />
+                      )}
+                      {ctaLabel}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Compare plans (collapsible, dynamic from API) */}
+          {fares.length > 0 && groupedFeatureRows.length > 0 && (
+            <div className="border-border-subtle border-t px-6 pb-6">
+              <button
+                type="button"
+                onClick={() => setCompareOpen((v) => !v)}
+                className="text-text-muted hover:text-text-main flex w-full items-center justify-between py-4 text-left text-[0.9rem] font-semibold transition-colors"
+                aria-expanded={compareOpen}
+              >
+                <span>
+                  Compare{" "}
+                  <em className="from-primary to-accent bg-linear-to-r bg-clip-text text-transparent not-italic">
+                    plans
+                  </em>
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={cn(
+                    "transition-transform duration-200",
+                    compareOpen && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {compareOpen && (
+                <div className="overflow-x-auto">
+                  <table
+                    className="w-full table-fixed border-collapse text-[0.82rem]"
+                    style={{ minWidth: "820px" }}
                   >
-                    {isPlanLoading && (
-                      <Loader2 size={14} className="animate-spin" />
-                    )}
-                    {ctaLabel}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Compare plans (collapsible, dynamic from API) */}
-        {fares.length > 0 && groupedFeatureRows.length > 0 && (
-          <div className="border-border-subtle border-t px-6 pb-6">
-            <button
-              type="button"
-              onClick={() => setCompareOpen((v) => !v)}
-              className="text-text-muted hover:text-text-main flex w-full items-center justify-between py-4 text-left text-[0.9rem] font-semibold transition-colors"
-              aria-expanded={compareOpen}
-            >
-              <span>
-                Compare{" "}
-                <em className="from-primary to-accent not-italic bg-linear-to-r bg-clip-text text-transparent">
-                  plans
-                </em>
-              </span>
-              <ChevronDown
-                size={16}
-                className={cn(
-                  "transition-transform duration-200",
-                  compareOpen && "rotate-180",
-                )}
-              />
-            </button>
-
-            {compareOpen && (
-              <div className="overflow-x-auto">
-                <table
-                  className="w-full table-fixed border-collapse text-[0.82rem]"
-                  style={{ minWidth: "820px" }}
-                >
-                  <thead>
-                    <tr className="border-border-subtle border-b-2">
-                      <th className="text-text-muted w-[16%] px-3 py-2.5 text-left text-[0.8rem] font-semibold">
-                        Feature
-                      </th>
-                      {fares.map((fare) => {
-                        const isCurrent = fare.id === fareId;
-                        return (
-                          <th
-                            key={fare.id}
-                            className={cn(
-                              "relative w-[20%] px-3 py-2.5 font-bold",
-                              isCurrent
-                                ? "bg-primary/5 text-primary border-x border-x-primary/30 border-t-2 border-t-primary"
-                                : "text-text-main",
-                            )}
-                          >
-                            <div>
-                              {fare.name}
-                              {isCurrent && " ✓"}
-                            </div>
-                            <div
+                    <thead>
+                      <tr className="border-border-subtle border-b-2">
+                        <th className="text-text-muted w-[16%] px-3 py-2.5 text-left text-[0.8rem] font-semibold">
+                          Feature
+                        </th>
+                        {fares.map((fare) => {
+                          const isCurrent = fare.id === fareId;
+                          return (
+                            <th
+                              key={fare.id}
                               className={cn(
-                                "mt-0.5 text-[11px] font-normal normal-case",
+                                "relative w-[20%] px-3 py-2.5 font-bold",
                                 isCurrent
-                                  ? "text-primary/70"
-                                  : "text-text-muted",
+                                  ? "bg-primary/5 text-primary border-x-primary/30 border-t-primary border-x border-t-2"
+                                  : "text-text-main",
                               )}
                             >
-                              {fare.price > 0 ? `$${fare.price}/mo` : "Free"}
-                            </div>
-                          </th>
+                              <div>
+                                {fare.name}
+                                {isCurrent && " ✓"}
+                              </div>
+                              <div
+                                className={cn(
+                                  "mt-0.5 text-[11px] font-normal normal-case",
+                                  isCurrent
+                                    ? "text-primary/70"
+                                    : "text-text-muted",
+                                )}
+                              >
+                                {fare.price > 0 ? `$${fare.price}/mo` : "Free"}
+                              </div>
+                            </th>
+                          );
+                        })}
+                        <th className="text-text-main relative w-[20%] px-3 py-2.5 font-bold">
+                          <div>Enterprise</div>
+                          <div className="text-text-muted mt-0.5 text-[11px] font-normal normal-case">
+                            Custom
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupedFeatureRows.map((group, groupIdx) => {
+                        const isLastGroup =
+                          groupIdx === groupedFeatureRows.length - 1;
+                        return (
+                          <Fragment key={group.key}>
+                            <tr className="bg-hover-bg">
+                              <td
+                                colSpan={fares.length + 2}
+                                className="text-text-muted/70 px-3 py-1.5 text-[0.68rem] font-bold tracking-[0.07em] uppercase"
+                              >
+                                {group.name}
+                              </td>
+                            </tr>
+                            {group.items.map((featureItem, itemIdx) => {
+                              const isLastRow =
+                                isLastGroup &&
+                                itemIdx === group.items.length - 1;
+                              return (
+                                <tr
+                                  key={featureItem.id}
+                                  className="border-border-subtle/50 border-b"
+                                >
+                                  <td className="text-text-muted px-3 py-2.5">
+                                    {featureItem.name}
+                                  </td>
+                                  {fares.map((fare) => {
+                                    const isCurrent = fare.id === fareId;
+                                    const rawValue =
+                                      fareValueMap[fare.id]?.[featureItem.id];
+                                    const displayValue =
+                                      formatFareValue(rawValue);
+                                    return (
+                                      <td
+                                        key={fare.id}
+                                        className={cn(
+                                          "px-3 py-2.5 text-center",
+                                          isCurrent
+                                            ? cn(
+                                                "bg-primary/5 text-primary border-x-primary/30 border-x font-semibold",
+                                                isLastRow &&
+                                                  "border-b-primary border-b-2",
+                                              )
+                                            : "text-text-muted",
+                                        )}
+                                      >
+                                        {displayValue}
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="text-text-muted px-3 py-2.5 text-center">
+                                    Custom
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </Fragment>
                         );
                       })}
-                      <th className="text-text-main relative w-[20%] px-3 py-2.5 font-bold">
-                        <div>Enterprise</div>
-                        <div className="text-text-muted mt-0.5 text-[11px] font-normal normal-case">
-                          Custom
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupedFeatureRows.map((group, groupIdx) => {
-                      const isLastGroup =
-                        groupIdx === groupedFeatureRows.length - 1;
-                      return (
-                        <Fragment key={group.key}>
-                          <tr className="bg-hover-bg">
-                            <td
-                              colSpan={fares.length + 2}
-                              className="text-text-muted/70 px-3 py-1.5 text-[0.68rem] font-bold tracking-[0.07em] uppercase"
-                            >
-                              {group.name}
-                            </td>
-                          </tr>
-                          {group.items.map((featureItem, itemIdx) => {
-                            const isLastRow =
-                              isLastGroup &&
-                              itemIdx === group.items.length - 1;
-                            return (
-                              <tr
-                                key={featureItem.id}
-                                className="border-border-subtle/50 border-b"
-                              >
-                                <td className="text-text-muted px-3 py-2.5">
-                                  {featureItem.name}
-                                </td>
-                                {fares.map((fare) => {
-                                  const isCurrent = fare.id === fareId;
-                                  const rawValue =
-                                    fareValueMap[fare.id]?.[featureItem.id];
-                                  const displayValue = formatFareValue(rawValue);
-                                  return (
-                                    <td
-                                      key={fare.id}
-                                      className={cn(
-                                        "px-3 py-2.5 text-center",
-                                        isCurrent
-                                          ? cn(
-                                              "bg-primary/5 text-primary border-x border-x-primary/30 font-semibold",
-                                              isLastRow &&
-                                                "border-b-2 border-b-primary",
-                                            )
-                                          : "text-text-muted",
-                                      )}
-                                    >
-                                      {displayValue}
-                                    </td>
-                                  );
-                                })}
-                                <td className="text-text-muted px-3 py-2.5 text-center">
-                                  Custom
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <TopUpModal
+        open={topUpOpen}
+        onOpenChange={setTopUpOpen}
+        projectId={projectId ?? null}
+        initialAmount={topUpAmount}
+        onSuccess={() => {
+          // Reflect the new balance in the header so the user can complete the
+          // upgrade with sufficient funds.
+          queryClient.invalidateQueries({
+            queryKey: ["billing", "company-project"],
+          });
+        }}
+      />
+    </>
   );
 };

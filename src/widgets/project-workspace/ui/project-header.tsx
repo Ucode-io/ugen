@@ -13,6 +13,7 @@ import { ReusableTabs } from "@/shared/ui"
 import { PublishPopover } from "./publish-popover"
 import { GithubPopover } from "./github-popover"
 import { Sidebar } from "@/widgets/sidebar"
+import { UpgradePlanButton } from "@/widgets/sidebar/ui/components/upgrade-plan-button"
 import { cn } from "@/shared/lib/utils/cn"
 
 export type DeviceType = 'desktop' | 'tablet' | 'mobile'
@@ -150,6 +151,7 @@ export const ProjectHeader = ({
       />
 
       <div className="flex items-center gap-1.5 justify-end min-w-[135px]">
+        <UpgradePlanButton variant="compact" />
         <GithubPopover />
         {toggleButton}
         {isUgen && (

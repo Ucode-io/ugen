@@ -15,6 +15,7 @@ import { ProjectDropdown } from "./components/project-dropdown";
 import { ProfileFooter } from "./components/profile-footer";
 import { ProfileModal } from "./components/profile-modal";
 import { UpgradePlanDialog } from "./components/upgrade-plan-dialog";
+import { UpgradePlanCard } from "./components/upgrade-plan-card";
 import { cn } from "@/shared/lib/utils/cn";
 
 interface SidebarProps {
@@ -122,6 +123,12 @@ export const Sidebar = ({ className, hideLogo, isHidden, onProfilePopupChange, o
 
         <RecentsNav />
       </div>
+
+      {/* Upgrade card — pinned at the bottom, only on the free plan */}
+      <UpgradePlanCard
+        onUpgrade={() => setIsUpgradeDialogOpen(true)}
+        className="mx-3 mb-3"
+      />
 
       {/* <ProfileFooter
         isCollapsed={false}
