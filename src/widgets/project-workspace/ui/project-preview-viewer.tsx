@@ -37,6 +37,7 @@ import {
   type ColorGroup,
 } from "./theme-popover";
 import { MobilePreviewPanel } from "./mobile-web-preview";
+import { PhoneShell } from "./mobile-phone-shell";
 
 // Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
@@ -954,7 +955,10 @@ export const ProjectPreviewViewer = ({
     try {
       // Safety timeout — in production esbuild WASM (loaded from esm.sh) can hang
       // silently if blocked by CSP or a flaky CDN. Without this race, the await
-      // would never settle and the loader would spin forever.
+      // would never settle and the loader would spin forever. Matches the 60s
+      // ensureEsbuild() init timeout so a slow cold WASM download (~13.5 MB)
+      // doesn't false-timeout here before the loader itself gives up.
+      const BUILD_TIMEOUT_MS = 60_000;
       await Promise.race([
         build(),
         new Promise<never>((_, reject) =>
@@ -962,10 +966,10 @@ export const ProjectPreviewViewer = ({
             () =>
               reject(
                 new Error(
-                  "Preview build timed out after 30s — esbuild may have failed to load.",
+                  `Preview build timed out after ${BUILD_TIMEOUT_MS / 1000}s — esbuild may have failed to load.`,
                 ),
               ),
-            30_000,
+            BUILD_TIMEOUT_MS,
           ),
         ),
       ]);
@@ -1804,20 +1808,10 @@ export const ProjectPreviewViewer = ({
           )}
         >
           {browserHeader}
-          <div className="flex flex-1 items-stretch justify-center gap-6 overflow-auto py-4">
-            {/* Phone frame holding the live preview */}
-            <div className="flex flex-1 items-center justify-center">
-              <div
-                className="border-border-subtle bg-text-main/90 relative w-[360px] max-w-full shrink-0 rounded-[44px] border-[6px] p-2 shadow-2xl"
-                style={{ height: "min(760px, 100%)" }}
-              >
-                {/* Notch */}
-                <div className="absolute top-3 left-1/2 z-10 h-7 w-32 -translate-x-1/2 rounded-full bg-black" />
-                {/* Screen */}
-                <div className="bg-bg-card relative flex h-full w-full flex-col overflow-hidden rounded-[34px]">
-                  {previewSurface}
-                </div>
-              </div>
+          <div className="flex min-h-0 flex-1 items-stretch justify-center gap-6 overflow-hidden py-2">
+            {/* Phone frame holding the live preview (Claude Design PhoneShell) */}
+            <div className="flex min-h-0 flex-1 items-stretch justify-center">
+              <PhoneShell>{previewSurface}</PhoneShell>
             </div>
             <MobilePreviewPanel
               shareUrl={shareUrl}
