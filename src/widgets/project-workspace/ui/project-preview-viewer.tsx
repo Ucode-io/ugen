@@ -1323,12 +1323,12 @@ export const ProjectPreviewViewer = ({
   // backend exposes a real app type, replace this with that signal.
   const isWebApp = true;
 
-  // Show the QR "preview on your phone" panel only for a previewable web app:
-  // not a function, has a renderable entry (src/App.*), and not a full-screen /
-  // version-history view.
-  const showMobilePanel =
+  // Web-app preview mode: render the live preview inside a phone frame next to
+  // the "preview on your phone" QR panel — always for a previewable web app,
+  // independent of the device picker. Skipped for functions, full-screen, and
+  // version-history views (which keep the plain browser card).
+  const webAppMode =
     isWebApp &&
-    device === "mobile" &&
     !isFunction &&
     hasPreviewEntry &&
     !isMaximized &&
@@ -1517,6 +1517,61 @@ export const ProjectPreviewViewer = ({
         )}
       </div>
     </div>
+  );
+
+  // Loading overlays + the live preview iframe. Shared between the plain
+  // browser card and the phone-framed web-app view so the build/error/iframe
+  // behaviour stays identical in both.
+  const previewSurface = (
+    <>
+      {/* Microfrontend loading overlay (takes priority) */}
+      {(!!loadingPreviewId || isMicrofrontendLoading) && (
+        <WorkspaceLoader
+          message="Loading microfrontend..."
+          subMessage="Fetching codebase"
+        />
+      )}
+      {/* Streaming pre-build overlay — the build effect waits for SSE to
+          close before building, so when storeFiles populates mid-stream
+          (and this viewer mounts to replace ProjectBuildingAnimation in
+          the parent), the iframe would otherwise sit on its default
+          white background until the post-stream build lands. */}
+      {isStreaming &&
+        !srcDoc &&
+        !runtimeError &&
+        !loadingPreviewId &&
+        !isMicrofrontendLoading && (
+          <WorkspaceLoader
+            message="Generating preview..."
+            subMessage="Waiting for AI to finish"
+          />
+        )}
+      {/* Build loading overlay — hidden when an error is shown */}
+      {isLoading &&
+        !runtimeError &&
+        !loadingPreviewId &&
+        !isMicrofrontendLoading && (
+          <WorkspaceLoader
+            message="Building preview..."
+            subMessage="Running esbuild"
+          />
+        )}
+      <iframe
+        key={refreshKey}
+        ref={iframeRef}
+        className="w-full flex-1 border-none bg-white"
+        srcDoc={srcDoc}
+        title="Project Preview"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+        onLoad={() => {
+          // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
+          themeSavePendingRef.current = false;
+          clearThemeOverride();
+          // If the popover is still open (e.g. user kept it open through a save), re-inject.
+          if (themeOpen) injectThemeOverride();
+        }}
+      />
+    </>
   );
 
   return (
@@ -1734,13 +1789,48 @@ export const ProjectPreviewViewer = ({
             </div>
           </div>
         </div>
+      ) : webAppMode ? (
+        /* Web-app preview — live preview inside a phone frame + QR panel */
+        <div
+          className={cn(
+            "flex h-full flex-1 flex-col overflow-hidden transition-all duration-300",
+            chatPosition === "left"
+              ? isChatCollapsed
+                ? "px-4"
+                : "pr-4 pl-0"
+              : isChatCollapsed
+                ? "px-4"
+                : "pr-0 pl-4",
+          )}
+        >
+          {browserHeader}
+          <div className="flex flex-1 items-stretch justify-center gap-6 overflow-auto py-4">
+            {/* Phone frame holding the live preview */}
+            <div className="flex flex-1 items-center justify-center">
+              <div
+                className="border-border-subtle bg-text-main/90 relative w-[360px] max-w-full shrink-0 rounded-[44px] border-[6px] p-2 shadow-2xl"
+                style={{ height: "min(760px, 100%)" }}
+              >
+                {/* Notch */}
+                <div className="absolute top-3 left-1/2 z-10 h-7 w-32 -translate-x-1/2 rounded-full bg-black" />
+                {/* Screen */}
+                <div className="bg-bg-card relative flex h-full w-full flex-col overflow-hidden rounded-[34px]">
+                  {previewSurface}
+                </div>
+              </div>
+            </div>
+            <MobilePreviewPanel
+              shareUrl={shareUrl}
+              className="max-h-full self-stretch"
+            />
+          </div>
+        </div>
       ) : (
         /* Normal preview — browser card with header + iframe as one unit */
         <div
           className={cn(
             "flex h-full flex-1 items-start justify-center overflow-auto transition-all duration-300",
             isMaximized ? "p-0" : "pb-2",
-            showMobilePanel && "gap-6",
             !isMaximized &&
               chatPosition === "left" &&
               (isChatCollapsed ? "px-4" : "pr-4 pl-0"),
@@ -1763,61 +1853,8 @@ export const ProjectPreviewViewer = ({
             }}
           >
             {browserHeader}
-            {/* Microfrontend loading overlay (takes priority) */}
-            {(!!loadingPreviewId || isMicrofrontendLoading) && (
-              <WorkspaceLoader
-                message="Loading microfrontend..."
-                subMessage="Fetching codebase"
-              />
-            )}
-            {/* Streaming pre-build overlay — the build effect waits for SSE to
-                close before building, so when storeFiles populates mid-stream
-                (and this viewer mounts to replace ProjectBuildingAnimation in
-                the parent), the iframe would otherwise sit on its default
-                white background until the post-stream build lands. */}
-            {isStreaming &&
-              !srcDoc &&
-              !runtimeError &&
-              !loadingPreviewId &&
-              !isMicrofrontendLoading && (
-                <WorkspaceLoader
-                  message="Generating preview..."
-                  subMessage="Waiting for AI to finish"
-                />
-              )}
-            {/* Build loading overlay — hidden when an error is shown */}
-            {isLoading &&
-              !runtimeError &&
-              !loadingPreviewId &&
-              !isMicrofrontendLoading && (
-                <WorkspaceLoader
-                  message="Building preview..."
-                  subMessage="Running esbuild"
-                />
-              )}
-            <iframe
-              key={refreshKey}
-              ref={iframeRef}
-              className="w-full flex-1 border-none bg-white"
-              srcDoc={srcDoc}
-              title="Project Preview"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-              onLoad={() => {
-                // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
-                themeSavePendingRef.current = false;
-                clearThemeOverride();
-                // If the popover is still open (e.g. user kept it open through a save), re-inject.
-                if (themeOpen) injectThemeOverride();
-              }}
-            />
+            {previewSurface}
           </div>
-          {showMobilePanel && (
-            <MobilePreviewPanel
-              shareUrl={shareUrl}
-              onClose={() => onDeviceChange?.("desktop")}
-              className="max-h-full self-stretch"
-            />
-          )}
         </div>
       )}
     </div>
