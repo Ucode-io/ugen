@@ -12,11 +12,10 @@ import {
   WorkspaceTableHead,
   WorkspaceTableCell,
 } from '@/widgets/project-workspace/ui/workspace-table'
-export const UsageLimitsTab = ({ companyStats, fareData, currentFareData }: any) => {
+export const UsageLimitsTab = ({ companyStats, fareData, fareId }: any) => {
   const stats = companyStats?.data || {};
   const fares: any[] = fareData?.data?.fares || [];
-  const currentFare = currentFareData?.data?.fares?.[0];
-  const fareId = currentFare?.id;
+  const currentFare = fares.find((f) => f.id === fareId);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Collect all unique fare items across all fares (preserving order)

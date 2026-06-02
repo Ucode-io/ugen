@@ -103,13 +103,30 @@ export const ProjectDropdown = ({
     staleTime: 30_000,
   })
 
+  const fareId = useAuthStore((state) => state.project?.fare_id)
+
+  const { data: fareData } = useQuery({
+    queryKey: ['fares', 'ugen'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/fare', {
+        params: { product_type: 'ugen' },
+      })
+      return data
+    },
+    enabled: isProjectPopupOpen,
+  })
+
+  const fares: any[] = fareData?.data?.fares || []
+  const currentFare = fares.find((f) => f.id === fareId)
+
   const toTokenUsage = (t?: { input_tokens?: number; output_tokens?: number; limit?: number }) =>
     t ? { current: (t.input_tokens ?? 0) + (t.output_tokens ?? 0), limit: t.limit ?? 0 } : undefined
 
   const dailyTokens = toTokenUsage(pricingData?.data?.tokens?.daily)
   const monthlyTokens = toTokenUsage(pricingData?.data?.tokens?.monthly)
   const projectCount = pricingData?.data?.project_count
-  // const builderCount = pricingData?.data?.builder_count
+  const userCount = pricingData?.data?.user_count
+  // const builderCount = pricingData?.data?.builders
 
   useEffect(() => {
     if (isProjectPopupOpen && buttonRef.current) {
@@ -263,7 +280,7 @@ export const ProjectDropdown = ({
                   {displayName}
                 </div>
                 <div className="text-text-muted truncate text-[11px] capitalize leading-tight">
-                  {project?.subscription_type}
+                  {currentFare?.name || project?.subscription_type}
                   {/* || t("freePlan") */}
                 </div>
               </div>
@@ -283,6 +300,7 @@ export const ProjectDropdown = ({
               <TokenBar label="Daily" item={dailyTokens} />
               <TokenBar label="Monthly" item={monthlyTokens} />
               <TokenBar label="Projects" item={projectCount} />
+              <TokenBar label="Users" item={userCount} />
               {/* <TokenBar label="Builders" item={builderCount} color="bg-emerald-500" /> */}
               <button
                 onClick={() => {

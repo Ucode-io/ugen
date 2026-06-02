@@ -1,4 +1,5 @@
 import { api, authApi } from "@/shared/api/instance";
+import { useAuthStore } from "@/entities/session";
 
 export interface UserPayload {
   client_type_id: string;
@@ -39,6 +40,33 @@ export const userApi = {
     return data?.data || [];
   },
 
+  // Lists "builder" users from the auth service with the user's Bearer token
+  // (forced via explicit Authorization header) instead of the project API-KEY.
+  getBuilders: async (params: {
+    clientTypeId: string;
+    projectId: string;
+    limit: number;
+    offset: number;
+  }) => {
+    const token = useAuthStore.getState().accessToken;
+    const { data } = await authApi.get("/v2/user", {
+      params: {
+        "client-type-id": params.clientTypeId,
+        "project-id": params.projectId,
+        limit: params.limit,
+        offset: params.offset,
+      },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    // Auth list returns { data: { count, users: [...] } }.
+    const root = data?.data;
+    const inner = root?.data ?? root;
+    return {
+      response: inner?.users ?? inner?.response ?? [],
+      count: inner?.count ?? 0,
+    };
+  },
+
   createUser: async (data: UserPayload) => {
     const { role_id, env_id, ...body } = data;
     return api.post("/v2/items/user", body, {
@@ -53,6 +81,16 @@ export const userApi = {
   inviteUser: async (data: UserPayload) => {
     return authApi.post("/v2/user", data, {
       params: { "project-id": data.project_id },
+    });
+  },
+
+  // Same endpoint as inviteUser, but forces the user's Bearer token instead of
+  // the project-scoped API-KEY (the "Add Builder" flow).
+  inviteBuilder: async (data: UserPayload) => {
+    const token = useAuthStore.getState().accessToken;
+    return authApi.post("/v2/user", data, {
+      params: { "project-id": data.project_id },
+      headers: { Authorization: `Bearer ${token}` },
     });
   },
 
