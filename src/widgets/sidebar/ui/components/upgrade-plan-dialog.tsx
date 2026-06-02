@@ -1,12 +1,15 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import NumberFlow from "@number-flow/react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarClock,
-  Check,
+  CheckCircle2,
   ChevronDown,
   Loader2,
   Sparkles,
+  Star,
   Wallet,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -33,11 +36,11 @@ import { TopUpModal, formatAmount } from "./top-up-modal";
 /* ── Billing periods ── */
 const PERIODS = [
   {
-    key: "year",
-    label: "Annual",
-    save: "Save 24%",
-    multiplier: 0.76,
-    per: "per user · billed annually",
+    key: "month",
+    label: "Monthly",
+    save: null,
+    multiplier: 1,
+    per: "per user · billed monthly",
   },
   {
     key: "6month",
@@ -47,16 +50,16 @@ const PERIODS = [
     per: "per user · billed every 6 months",
   },
   {
-    key: "month",
-    label: "Monthly",
-    save: null,
-    multiplier: 1,
-    per: "per user · billed monthly",
+    key: "year",
+    label: "Annual",
+    save: "Save 24%",
+    multiplier: 0.76,
+    per: "per user · billed annually",
   },
 ] as const;
 type Period = (typeof PERIODS)[number]["key"];
 
-/** Months billed per period — used to size the top-up to the full billing cycle. */
+/** Months billed per period -- used to size the top-up to the full billing cycle. */
 const PERIOD_MONTHS: Record<Period, number> = {
   year: 12,
   "6month": 6,
@@ -96,7 +99,7 @@ const PLAN_META: PlanMeta[] = [
     desc: "For growing teams with advanced scale and custom requirements.",
     cta: "Upgrade to Pro",
     featured: true,
-    badge: "Most popular",
+    badge: "Popular",
   },
   {
     key: "enterprise",
@@ -176,7 +179,7 @@ const formatSubscriptionDate = (value?: string) => {
 
 const formatFareValue = (value: string | undefined) => {
   if (!value || value === "-1") return "Unlimited";
-  if (value === "0") return "—";
+  if (value === "0") return "--";
   const num = Number(value);
   if (!isNaN(num)) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -276,7 +279,7 @@ export const UpgradePlanDialog = ({
       }
     },
     onError: (err: any) => {
-      // Not enough balance to cover the plan — silently open the top-up modal
+      // Not enough balance to cover the plan -- silently open the top-up modal
       // (no error toast). The suggested amount was staged on the upgrade click,
       // computed from the plan price and active period (USD → UZS).
       if (parseInsufficientBalance(err) !== null) {
@@ -417,29 +420,42 @@ export const UpgradePlanDialog = ({
 
             {/* Billing toggle + current balance */}
             <div className="mt-4 flex flex-col items-center gap-2.5">
-              <div className="bg-hover-bg border-border-subtle inline-flex gap-0.5 rounded-[10px] border p-1">
+              {/* Animated period toggle */}
+              <div className="bg-hover-bg border-border-subtle inline-flex rounded-full border p-1 shadow-sm">
                 {PERIODS.map((p) => (
                   <button
                     key={p.key}
+                    type="button"
                     onClick={() => setPeriod(p.key)}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-1.5 rounded-lg border-none px-4 py-1.5 text-[0.8rem] font-medium whitespace-nowrap transition-all",
-                      period === p.key
-                        ? "bg-bg-card text-text-main font-semibold shadow-sm"
-                        : "text-text-muted hover:text-text-main bg-transparent",
-                    )}
+                    className="relative px-5 py-1.5 text-[0.8rem] font-medium"
                   >
-                    {p.label}
-                    {p.save && (
-                      <span className="rounded-full bg-green-600 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-[0.02em] text-white">
-                        {p.save}
-                      </span>
+                    {period === p.key && (
+                      <motion.span
+                        className="bg-bg-card absolute inset-0 rounded-full shadow-sm"
+                        layoutId="period-bg"
+                        transition={{ type: "spring", duration: 0.4 }}
+                      />
                     )}
+                    <span
+                      className={cn(
+                        "relative z-10 flex items-center gap-1.5 whitespace-nowrap",
+                        period === p.key
+                          ? "text-text-main font-semibold"
+                          : "text-text-muted",
+                      )}
+                    >
+                      {p.label}
+                      {p.save && (
+                        <span className="rounded-full bg-green-600 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-[0.02em] text-white">
+                          {p.save}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 ))}
               </div>
 
-              {/* Current balance — USD first, UZS as the secondary value */}
+              {/* Current balance -- USD first, UZS as the secondary value */}
               <div className="border-border-subtle bg-bg-card text-text-muted inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px]">
                 <Wallet size={14} className="text-primary" />
                 <span className="font-medium">Balance</span>
@@ -484,15 +500,15 @@ export const UpgradePlanDialog = ({
                     : ""}
                 </p>
                 <p className="text-amber-700/80">
-                  Your current plan stays active until then. Use “Cancel
-                  downgrade” to keep it.
+                  Your current plan stays active until then. Use "Cancel
+                  downgrade" to keep it.
                 </p>
               </div>
             </div>
           )}
 
           {/* Pricing cards */}
-          <div className="grid grid-cols-1 gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
             {PLAN_META.map((plan) => {
               const fare = plan.fareName ? fareByName.get(plan.fareName) : null;
               const isEnterprise = plan.fareName === null;
@@ -508,7 +524,11 @@ export const UpgradePlanDialog = ({
                 ? "Custom"
                 : fare
                   ? formatPeriodPrice(Number(fare.price) || 0)
-                  : "—";
+                  : "--";
+              const numericPrice =
+                !isEnterprise && fare
+                  ? Math.round((Number(fare.price) || 0) * currentPeriod.multiplier)
+                  : null;
               const displayPer = isEnterprise
                 ? "tailored to your needs"
                 : isFree
@@ -559,123 +579,162 @@ export const UpgradePlanDialog = ({
               // attaches the card's own fare.
               const targetFareId = isCancelDowngrade ? fareId : fare?.id;
 
+              const featuresDisplay =
+                features.length > 0
+                  ? features
+                  : isEnterprise
+                    ? [
+                        "Custom Builders",
+                        "Custom credit limit",
+                        "Custom Projects",
+                      ]
+                    : [];
+
               return (
                 <div
                   key={plan.key}
                   className={cn(
-                    "bg-bg-main relative flex flex-col rounded-[10px] border p-6 transition-all hover:shadow-md",
+                    "relative flex flex-col overflow-hidden rounded-xl border shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]",
+                    plan.featured && "z-10 scale-[1.03]",
                     isCurrent
-                      ? "border-primary shadow-md"
-                      : "border-border-subtle hover:border-border-subtle/60",
+                      ? "border-primary shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]"
+                      : "border-border-subtle",
                   )}
                 >
-                  {isCurrent ? (
-                    <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase">
-                      {currentBadgeLabel}
-                    </div>
-                  ) : isScheduled ? (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase">
-                      Scheduled
-                    </div>
-                  ) : (
-                    plan.featured &&
-                    plan.badge && (
-                      <div className="bg-primary absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase">
-                        {plan.badge}
-                      </div>
-                    )
-                  )}
-                  <div className="text-text-muted mb-[7px] text-[0.74rem] font-semibold tracking-[0.06em] uppercase">
-                    {displayName}
-                  </div>
+                  {/* ── Card Header ── */}
                   <div
-                    className="text-text-main mb-1 flex items-end font-black tracking-[-0.05em]"
-                    style={{
-                      fontSize: isEnterprise ? "1.6rem" : "2.2rem",
-                      lineHeight: 1,
-                      minHeight: "2.2rem",
-                    }}
+                    className={cn(
+                      "relative border-b border-border-subtle/50 p-5",
+                      isCurrent && "bg-primary/8",
+                    )}
                   >
-                    {displayPrice}
-                    {!isEnterprise && (
-                      <span className="text-text-muted text-[0.85rem] font-normal">
-                        /mo
-                      </span>
+                    {/* Badges -- top-right corner */}
+                    <AnimatePresence mode="popLayout">
+                      <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1">
+                        {isCurrent ? (
+                          <motion.div
+                            key="current-badge"
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-primary rounded-md px-2 py-0.5 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase"
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                          >
+                            {currentBadgeLabel}
+                          </motion.div>
+                        ) : isScheduled ? (
+                          <motion.div
+                            key="scheduled-badge"
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="rounded-md bg-amber-500 px-2 py-0.5 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase"
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                          >
+                            Scheduled
+                          </motion.div>
+                        ) : plan.featured && plan.badge ? (
+                          <motion.div
+                            key="popular-badge"
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="border-border-subtle bg-bg-card flex items-center gap-1 rounded-md border px-2 py-0.5 text-[0.7rem]"
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                          >
+                            <Star
+                              size={10}
+                              className="text-text-main fill-current"
+                            />
+                            <span className="text-text-main font-medium">
+                              {plan.badge}
+                            </span>
+                          </motion.div>
+                        ) : null}
+
+                      </div>
+                    </AnimatePresence>
+
+                    <div className="text-text-main pr-16 font-medium text-base">
+                      {displayName}
+                    </div>
+                    <p className="text-text-muted mt-0.5 text-[0.75rem]">
+                      {plan.desc}
+                    </p>
+
+                    <div className="mt-5 mb-1 flex items-end gap-1">
+                      {numericPrice !== null ? (
+                        <NumberFlow
+                          value={numericPrice}
+                          prefix="$"
+                          suffix="/mo"
+                          format={{ notation: "compact" }}
+                          className="text-text-main font-extrabold leading-none text-[2.2rem] [&::part(suffix)]:text-text-muted [&::part(suffix)]:text-sm [&::part(suffix)]:font-normal"
+                        />
+                      ) : (
+                        <span className="text-text-main font-extrabold leading-none text-[2.2rem]">
+                          {displayPrice}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-text-muted text-[0.7rem]">{displayPer}</p>
+                  </div>
+
+                  {/* ── Features ── */}
+                  <div
+                    className="flex-1 space-y-2.5 px-5 pt-5 pb-6"
+                  >
+                    {featuresDisplay.map((f) => (
+                      <div key={f} className="flex items-start gap-2">
+                        <CheckCircle2
+                          size={14}
+                          className="mt-0.5 shrink-0 text-green-500"
+                          strokeWidth={2.5}
+                        />
+                        <p className="text-text-muted text-[0.8rem]">{f}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── CTA ── */}
+                  <div className="mt-auto border-t border-border-subtle/50 p-3">
+                    {plan.href ? (
+                      <a
+                        href={plan.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
+                          !isFree
+                            ? "bg-primary border-primary text-white hover:opacity-85"
+                            : "bg-hover-bg border-border-subtle text-text-muted hover:text-text-main",
+                        )}
+                      >
+                        {ctaLabel}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={buttonDisabled}
+                        onClick={() => {
+                          if (!targetFareId) return;
+                          setTopUpAmountUsd(computeTopUpAmountUsd(fare));
+                          setPendingFareId(targetFareId);
+                          attachFare(targetFareId);
+                        }}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                          isCancelDowngrade
+                            ? "border-amber-500 bg-amber-500 text-white hover:opacity-85"
+                            : !isFree
+                              ? "bg-primary border-primary text-white hover:opacity-85"
+                              : "bg-hover-bg border-border-subtle text-text-muted hover:text-text-main",
+                        )}
+                      >
+                        {isPlanLoading && (
+                          <Loader2 size={14} className="animate-spin" />
+                        )}
+                        {ctaLabel}
+                      </button>
                     )}
                   </div>
-                  <p className="text-text-muted mb-1 text-[0.68rem]">
-                    {displayPer}
-                  </p>
-                  <p className="text-text-muted mt-3 mb-4 min-h-[3.6rem] text-[0.78rem] leading-[1.55]">
-                    {plan.desc}
-                  </p>
-                  <hr className="border-border-subtle mb-4 border-t" />
-                  <ul className="mb-5 space-y-2">
-                    {(features.length > 0
-                      ? features
-                      : isEnterprise
-                        ? [
-                            "Custom Builders",
-                            "Custom credit limit",
-                            "Custom Projects",
-                          ]
-                        : []
-                    ).map((f) => (
-                      <li
-                        key={f}
-                        className="text-text-muted flex items-start gap-2 text-[0.8rem]"
-                      >
-                        <Check
-                          size={13}
-                          className="mt-0.5 flex-shrink-0 text-green-500"
-                          strokeWidth={3}
-                        />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  {plan.href ? (
-                    <a
-                      href={plan.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "mt-auto block w-full rounded-lg border py-2 text-center text-[0.82rem] font-semibold no-underline transition-all",
-                        !isFree
-                          ? "bg-primary border-primary text-white hover:opacity-85"
-                          : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
-                      )}
-                    >
-                      {ctaLabel}
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={buttonDisabled}
-                      onClick={() => {
-                        if (!targetFareId) return;
-                        // Stage the suggested top-up (USD) from this plan's
-                        // price for the active period; used if AttachFare
-                        // reports the balance can't cover it.
-                        setTopUpAmountUsd(computeTopUpAmountUsd(fare));
-                        setPendingFareId(targetFareId);
-                        attachFare(targetFareId);
-                      }}
-                      className={cn(
-                        "mt-auto flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border py-2 text-[0.82rem] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                        isCancelDowngrade
-                          ? "border-amber-500 bg-amber-500 text-white hover:opacity-85"
-                          : !isFree
-                            ? "bg-primary border-primary text-white hover:opacity-85"
-                            : "bg-hover-bg border-border-subtle text-text-muted hover:border-border-subtle/60 hover:text-text-main",
-                      )}
-                    >
-                      {isPlanLoading && (
-                        <Loader2 size={14} className="animate-spin" />
-                      )}
-                      {ctaLabel}
-                    </button>
-                  )}
                 </div>
               );
             })}
