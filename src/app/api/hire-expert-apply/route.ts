@@ -30,8 +30,23 @@ export async function POST(req: Request) {
     const chatId = process.env.HIRE_EXPERT_TELEGRAM_CHAT_ID;
 
     if (!token || !chatId) {
+      // TEMP DIAGNOSTIC: report presence/length only (never the values) so we can
+      // tell whether the Vault secrets reach the runtime container. Remove once fixed.
       return NextResponse.json(
-        { error: "Telegram credentials are not configured" },
+        {
+          error: "Telegram credentials are not configured",
+          debug: {
+            hasToken: Boolean(token),
+            tokenLen: token?.length ?? 0,
+            hasChatId: Boolean(chatId),
+            chatIdLen: chatId?.length ?? 0,
+            // surface which HIRE_EXPERT_* keys exist in the runtime env at all
+            hireExpertKeys: Object.keys(process.env).filter((k) =>
+              k.startsWith("HIRE_EXPERT_"),
+            ),
+            nodeEnv: process.env.NODE_ENV,
+          },
+        },
         { status: 500 },
       );
     }
