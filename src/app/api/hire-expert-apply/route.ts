@@ -29,6 +29,18 @@ export async function POST(req: Request) {
     const token = process.env.HIRE_EXPERT_TELEGRAM_BOT_TOKEN;
     const chatId = process.env.HIRE_EXPERT_TELEGRAM_CHAT_ID;
 
+    // TEMP DIAGNOSTIC: dump what the runtime process actually sees, straight from
+    // process.env. Goes to container stdout (pod logs). Remove once fixed.
+    const allEnvKeys = Object.keys(process.env).sort();
+    console.log("[hire-expert-apply] direct process.env access:", {
+      HIRE_EXPERT_TELEGRAM_BOT_TOKEN:
+        process.env.HIRE_EXPERT_TELEGRAM_BOT_TOKEN ?? "<undefined>",
+      HIRE_EXPERT_TELEGRAM_CHAT_ID:
+        process.env.HIRE_EXPERT_TELEGRAM_CHAT_ID ?? "<undefined>",
+      totalEnvKeys: allEnvKeys.length,
+      allEnvKeys,
+    });
+
     if (!token || !chatId) {
       // TEMP DIAGNOSTIC: report presence/length only (never the values) so we can
       // tell whether the Vault secrets reach the runtime container. Remove once fixed.
@@ -55,6 +67,10 @@ export async function POST(req: Request) {
               k.startsWith("NEXT_PUBLIC_"),
             ).length,
             nodeEnv: process.env.NODE_ENV,
+            // Full key list (names only, no values) so we see exactly what the
+            // runtime process has — proves process.env is populated or not.
+            totalEnvKeys: allEnvKeys.length,
+            allEnvKeys,
           },
         },
         { status: 500 },
