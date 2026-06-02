@@ -26,53 +26,12 @@ const row = (label: string, value?: string) => {
 
 export async function POST(req: Request) {
   try {
-    const token = process.env.HIRE_EXPERT_TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.HIRE_EXPERT_TELEGRAM_CHAT_ID;
-
-    // TEMP DIAGNOSTIC: dump what the runtime process actually sees, straight from
-    // process.env. Goes to container stdout (pod logs). Remove once fixed.
-    const allEnvKeys = Object.keys(process.env).sort();
-    console.log("[hire-expert-apply] direct process.env access:", {
-      HIRE_EXPERT_TELEGRAM_BOT_TOKEN:
-        process.env.HIRE_EXPERT_TELEGRAM_BOT_TOKEN ?? "<undefined>",
-      HIRE_EXPERT_TELEGRAM_CHAT_ID:
-        process.env.HIRE_EXPERT_TELEGRAM_CHAT_ID ?? "<undefined>",
-      totalEnvKeys: allEnvKeys.length,
-      allEnvKeys,
-    });
+    const token = process.env.NEXT_PUBLIC_HIRE_EXPERT_TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.NEXT_PUBLIC_HIRE_EXPERT_TELEGRAM_CHAT_ID;
 
     if (!token || !chatId) {
-      // TEMP DIAGNOSTIC: report presence/length only (never the values) so we can
-      // tell whether the Vault secrets reach the runtime container. Remove once fixed.
       return NextResponse.json(
-        {
-          error: "Telegram credentials are not configured",
-          debug: {
-            hasToken: Boolean(token),
-            tokenLen: token?.length ?? 0,
-            hasChatId: Boolean(chatId),
-            chatIdLen: chatId?.length ?? 0,
-            // surface which HIRE_EXPERT_* keys exist in the runtime env at all
-            hireExpertKeys: Object.keys(process.env).filter((k) =>
-              k.startsWith("HIRE_EXPERT_"),
-            ),
-            // Do other server-only Vault secrets reach runtime? Presence only.
-            otherServerSecrets: {
-              ELEVENLABS_API_KEY: Boolean(process.env.ELEVENLABS_API_KEY),
-              EDGE_CONFIG: Boolean(process.env.EDGE_CONFIG),
-              VERCEL_API_TOKEN: Boolean(process.env.VERCEL_API_TOKEN),
-            },
-            // How many NEXT_PUBLIC_* (build-time) made it through, for comparison.
-            nextPublicCount: Object.keys(process.env).filter((k) =>
-              k.startsWith("NEXT_PUBLIC_"),
-            ).length,
-            nodeEnv: process.env.NODE_ENV,
-            // Full key list (names only, no values) so we see exactly what the
-            // runtime process has — proves process.env is populated or not.
-            totalEnvKeys: allEnvKeys.length,
-            allEnvKeys,
-          },
-        },
+        { error: "Telegram credentials are not configured" },
         { status: 500 },
       );
     }

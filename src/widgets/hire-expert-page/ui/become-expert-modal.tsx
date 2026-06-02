@@ -69,11 +69,8 @@ export const BecomeExpertModal = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      // TEMP DIAGNOSTIC: log the full server response (incl. env debug) to the
-      // browser console. Remove once the apply issue is fixed.
-      const data = await res.clone().json().catch(() => null)
-      console.log('[hire-expert client] /api/hire-expert-apply response:', res.status, data)
       if (!res.ok) {
+        const data = await res.json().catch(() => null)
         throw new Error(data?.error ?? 'Failed to submit application')
       }
       toast.success("Application sent! We'll get back to you soon.")

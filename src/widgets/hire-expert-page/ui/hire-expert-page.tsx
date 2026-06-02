@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Footer } from '@/widgets/footer'
 import { BecomeExpertModal } from './become-expert-modal'
@@ -152,20 +152,6 @@ export const HireExpertPage = () => {
   const [budgetFilter, setBudgetFilter] = useState('')
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
   const [applyOpen, setApplyOpen] = useState(false)
-
-  // TEMP DIAGNOSTIC: what does the CLIENT see in process.env? Only NEXT_PUBLIC_*
-  // are inlined at build; server secrets (HIRE_EXPERT_*) are NEVER present here
-  // by design. Logged to the browser console. Remove once the apply issue is fixed.
-  useEffect(() => {
-    console.log('[hire-expert client] process.env on client:', {
-      HIRE_EXPERT_TELEGRAM_BOT_TOKEN:
-        process.env.HIRE_EXPERT_TELEGRAM_BOT_TOKEN ?? '<undefined on client>',
-      HIRE_EXPERT_TELEGRAM_CHAT_ID:
-        process.env.HIRE_EXPERT_TELEGRAM_CHAT_ID ?? '<undefined on client>',
-      NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL ?? '<undefined>',
-      nodeEnv: process.env.NODE_ENV,
-    })
-  }, [])
 
   const filtered = EXPERTS.filter((e) => {
     const sMatch = !serviceFilter || e.serviceTags.includes(serviceFilter)
