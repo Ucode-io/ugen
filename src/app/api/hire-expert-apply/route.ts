@@ -44,6 +44,16 @@ export async function POST(req: Request) {
             hireExpertKeys: Object.keys(process.env).filter((k) =>
               k.startsWith("HIRE_EXPERT_"),
             ),
+            // Do other server-only Vault secrets reach runtime? Presence only.
+            otherServerSecrets: {
+              ELEVENLABS_API_KEY: Boolean(process.env.ELEVENLABS_API_KEY),
+              EDGE_CONFIG: Boolean(process.env.EDGE_CONFIG),
+              VERCEL_API_TOKEN: Boolean(process.env.VERCEL_API_TOKEN),
+            },
+            // How many NEXT_PUBLIC_* (build-time) made it through, for comparison.
+            nextPublicCount: Object.keys(process.env).filter((k) =>
+              k.startsWith("NEXT_PUBLIC_"),
+            ).length,
             nodeEnv: process.env.NODE_ENV,
           },
         },
