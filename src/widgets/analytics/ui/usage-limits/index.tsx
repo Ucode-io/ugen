@@ -108,10 +108,18 @@ export const UsageLimitsTab = ({ companyStats, fareData, currentFareData }: any)
     {
       key: "builder",
       label: "Builder user",
-      current: stats.builder_count?.current ?? 0,
-      limit: stats.builder_count?.limit ?? 0,
+      current: stats.builders?.current ?? 0,
+      limit: stats.builders?.limit ?? 0,
       color: "bg-emerald-500",
       textColor: "text-emerald-500",
+    },
+    {
+      key: "users",
+      label: "Users",
+      current: stats.user_count?.current ?? 0,
+      limit: stats.user_count?.limit ?? 0,
+      color: "bg-blue-500",
+      textColor: "text-blue-500",
     },
   ];
 
