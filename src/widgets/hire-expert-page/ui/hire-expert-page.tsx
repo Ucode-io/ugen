@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Footer } from '@/widgets/footer'
+import { BecomeExpertModal } from './become-expert-modal'
 // import { LandingCtaSection } from '@/widgets/landing-page/ui/landing-cta-section'
 
 type Expert = {
@@ -150,6 +151,7 @@ export const HireExpertPage = () => {
   const [serviceFilter, setServiceFilter] = useState('')
   const [budgetFilter, setBudgetFilter] = useState('')
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
+  const [applyOpen, setApplyOpen] = useState(false)
 
   const filtered = EXPERTS.filter((e) => {
     const sMatch = !serviceFilter || e.serviceTags.includes(serviceFilter)
@@ -189,9 +191,13 @@ export const HireExpertPage = () => {
           </p>
           <p className="text-[0.84rem] text-text-muted/70">
             Want to become a u&#8209;gen Expert?{' '}
-            <a href="#become" className="text-primary font-semibold no-underline hover:underline">
+            <button
+              type="button"
+              onClick={() => setApplyOpen(true)}
+              className="text-primary font-semibold no-underline hover:underline bg-transparent border-none cursor-pointer p-0"
+            >
               Apply here →
-            </a>
+            </button>
           </p>
         </div>
       </div>
@@ -404,6 +410,8 @@ export const HireExpertPage = () => {
 
       {/* <LandingCtaSection /> */}
       <Footer />
+
+      <BecomeExpertModal open={applyOpen} onOpenChange={setApplyOpen} />
     </div>
   )
 }
