@@ -196,7 +196,7 @@ export const UpgradePlanDialog = ({
   open,
   onOpenChange,
 }: UpgradePlanDialogProps) => {
-  const [period, setPeriod] = useState<Period>("year");
+  const [period, setPeriod] = useState<Period>("month");
   const [compareOpen, setCompareOpen] = useState(false);
   const [pendingFareId, setPendingFareId] = useState<string | null>(null);
   const [topUpOpen, setTopUpOpen] = useState(false);

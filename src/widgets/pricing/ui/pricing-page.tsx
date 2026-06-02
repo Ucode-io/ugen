@@ -12,9 +12,9 @@ import { cn } from '@/shared/lib/utils/cn'
 
 /* ── Billing data ── */
 const PERIODS = [
-  { key: 'year',    label: 'Annual',   save: 'Save 24%', multiplier: 0.76, per: 'per user · billed annually' },
-  { key: '6month',  label: '6 months', save: 'Save 13%', multiplier: 0.87, per: 'per user · billed every 6 months' },
   { key: 'month',   label: 'Monthly',  save: null,        multiplier: 1,    per: 'per user · billed monthly' },
+  { key: '6month',  label: '6 months', save: 'Save 13%', multiplier: 0.87, per: 'per user · billed every 6 months' },
+  { key: 'year',    label: 'Annual',   save: 'Save 24%', multiplier: 0.76, per: 'per user · billed annually' },
 ] as const
 type Period = typeof PERIODS[number]['key']
 
@@ -104,7 +104,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export const PricingPage = () => {
-  const [period, setPeriod] = useState<Period>('year')
+  const [period, setPeriod] = useState<Period>('month')
   const fareId = useAuthStore((state) => state.project?.fare_id)
 
   const { data: fareData } = useQuery({
