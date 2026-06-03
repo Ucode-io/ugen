@@ -18,9 +18,13 @@ const FRAME_H = SCREEN_H + 2 * (RAIL + BEZEL); // 846
 // iOS status-bar height (the clock / signal / battery strip overlaid on top).
 const STATUS_BAR_H = 50;
 
-const STATUS_COLOR = "#ECECEF";
+// Max top safe-area the frame will reserve. Exported so the preview can measure
+// how much top clearance the app already has and only pad the remainder.
+export const PHONE_SAFE_AREA_TOP = STATUS_BAR_H;
 
-function StatusBar() {
+const LIGHT_STATUS = "#ECECEF";
+
+function StatusBar({ color }: { color: string }) {
   return (
     <div
       style={{
@@ -42,7 +46,7 @@ function StatusBar() {
         style={{
           fontSize: 16,
           fontWeight: 600,
-          color: STATUS_COLOR,
+          color,
           letterSpacing: 0.2,
         }}
       >
@@ -51,22 +55,22 @@ function StatusBar() {
       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
         {/* Cellular */}
         <svg width="18" height="11" viewBox="0 0 18 11" aria-hidden="true">
-          <rect x="0" y="6.5" width="3" height="4.5" rx="0.7" fill={STATUS_COLOR} />
-          <rect x="4.5" y="4.3" width="3" height="6.7" rx="0.7" fill={STATUS_COLOR} />
-          <rect x="9" y="2" width="3" height="9" rx="0.7" fill={STATUS_COLOR} />
-          <rect x="13.5" y="0" width="3" height="11" rx="0.7" fill={STATUS_COLOR} />
+          <rect x="0" y="6.5" width="3" height="4.5" rx="0.7" fill={color} />
+          <rect x="4.5" y="4.3" width="3" height="6.7" rx="0.7" fill={color} />
+          <rect x="9" y="2" width="3" height="9" rx="0.7" fill={color} />
+          <rect x="13.5" y="0" width="3" height="11" rx="0.7" fill={color} />
         </svg>
         {/* Wi-Fi */}
         <svg width="16" height="11" viewBox="0 0 16 11" aria-hidden="true">
           <path
             d="M8 2.8c2.1 0 4 .8 5.4 2.2l1-1A9 9 0 0 0 8 1.2 9 9 0 0 0 1.6 4l1 1A7.5 7.5 0 0 1 8 2.8Z"
-            fill={STATUS_COLOR}
+            fill={color}
           />
           <path
             d="M8 6c1.2 0 2.3.5 3.1 1.3l1-1A6 6 0 0 0 8 4.5 6 6 0 0 0 3.9 6.3l1 1A4.4 4.4 0 0 1 8 6Z"
-            fill={STATUS_COLOR}
+            fill={color}
           />
-          <circle cx="8" cy="9.4" r="1.4" fill={STATUS_COLOR} />
+          <circle cx="8" cy="9.4" r="1.4" fill={color} />
         </svg>
         {/* Battery */}
         <svg width="25" height="12" viewBox="0 0 25 12" aria-hidden="true">
@@ -76,14 +80,14 @@ function StatusBar() {
             width="21"
             height="11"
             rx="3"
-            stroke={STATUS_COLOR}
+            stroke={color}
             strokeOpacity="0.4"
             fill="none"
           />
-          <rect x="2" y="2" width="18" height="8" rx="1.8" fill={STATUS_COLOR} />
+          <rect x="2" y="2" width="18" height="8" rx="1.8" fill={color} />
           <path
             d="M23 4v4c.7-.3 1.3-1.1 1.3-2S23.7 4.3 23 4Z"
-            fill={STATUS_COLOR}
+            fill={color}
             fillOpacity="0.5"
           />
         </svg>
@@ -174,6 +178,11 @@ interface PhoneShellProps {
   /** Background for the screen / top safe-area strip. Pass the app's own top
    *  color so the status-bar area reads as part of the app, not a separate band. */
   screenBg?: string;
+  /** Top padding reserved for the status bar / island. Pass only the clearance
+   *  the app is missing (0 when the app already reserves its own top space). */
+  safeTop?: number;
+  /** Color for the status-bar clock/icons — pass dark for light app backgrounds. */
+  statusColor?: string;
 }
 
 /**
@@ -181,7 +190,13 @@ interface PhoneShellProps {
  * scales down (preserving every proportion — buttons, camera, radii) to fit
  * the available space via a ResizeObserver.
  */
-export function PhoneShell({ children, className, screenBg }: PhoneShellProps) {
+export function PhoneShell({
+  children,
+  className,
+  screenBg,
+  safeTop = STATUS_BAR_H,
+  statusColor = LIGHT_STATUS,
+}: PhoneShellProps) {
   const fitRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -259,17 +274,17 @@ export function PhoneShell({ children, className, screenBg }: PhoneShellProps) {
             background: screenBg ?? "#141416",
           }}
         >
-          {/* Screen content — pushed below the status bar / camera island by the
-              status-bar height so the app's own header (menu, title, profile)
-              is never hidden under the clock, even when the generated app does
-              not reserve a top safe area itself. The reserved strip shows the
-              dark screen background, which blends with dark apps. (A mobile-first
-              app should still pad env(safe-area-inset-top) for real devices.) */}
+          {/* Screen content — pushed down only by `safeTop`, i.e. the top
+              clearance the app does NOT already provide itself. Apps that
+              reserve their own status-bar space get safeTop≈0 (no double gap);
+              apps that don't get the full status-bar height so their header is
+              never hidden under the clock/island. The strip shows screenBg
+              (the app's own top color) so it reads as part of the app. */}
           <div
             style={{
               position: "absolute",
               inset: 0,
-              paddingTop: STATUS_BAR_H,
+              paddingTop: safeTop,
               display: "flex",
               flexDirection: "column",
             }}
@@ -277,7 +292,7 @@ export function PhoneShell({ children, className, screenBg }: PhoneShellProps) {
             {children}
           </div>
           <CameraIsland />
-          <StatusBar />
+          <StatusBar color={statusColor} />
         </div>
       </div>
     </div>
