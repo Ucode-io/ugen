@@ -366,7 +366,7 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
       <!-- Конфиг ПОСЛЕ загрузки CDN через tailwind.config -->
       <script src="https://cdn.tailwindcss.com"></script>
       <script>
@@ -388,6 +388,23 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
            device-frame preview clean. Inner component scrollbars are untouched. */
         html, body { scrollbar-width: none; -ms-overflow-style: none; }
         html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+        /* The preview already renders the device frame, so flatten any phone /
+           device-mockup wrapper the generated app added of its own accord —
+           otherwise the app sits inside a second frame with extra padding and
+           looks unnatural. We only neutralise the framing (size/padding/border),
+           never the background, so the app's own colors still bleed edge-to-edge. */
+        .phone-frame-backdrop, .phone-frame, .phone-mockup, .phone-wrapper,
+        .device-frame, .device-mockup, .device-wrapper, .mobile-frame, .iphone-frame {
+          padding: 0 !important;
+          margin: 0 !important;
+          width: 100% !important;
+          max-width: none !important;
+          min-height: 100% !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
 
         html.dark .leaflet-layer,
         html.dark .leaflet-control { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }

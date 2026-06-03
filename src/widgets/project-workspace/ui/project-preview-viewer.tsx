@@ -37,7 +37,7 @@ import {
   type ColorGroup,
 } from "./theme-popover";
 import { MobilePreviewPanel } from "./mobile-web-preview";
-import { PhoneShell } from "./mobile-phone-shell";
+import { PhoneShell, PHONE_SAFE_AREA_TOP } from "./mobile-phone-shell";
 
 // Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
@@ -672,6 +672,14 @@ export const ProjectPreviewViewer = ({
 
   const setPendingPrompt = useChatStore((s) => s.setPendingPrompt);
   const [srcDoc, setSrcDoc] = useState("");
+  // Background color sampled from the app's top edge. The phone frame tints its
+  // top safe-area strip with this so the status-bar area reads as a continuous
+  // extension of the app header instead of a separate band. Re-sampled on load.
+  const [appTopBg, setAppTopBg] = useState<string | undefined>(undefined);
+  // How much top safe-area the frame must add: the status-bar height minus the
+  // clearance the app already reserves itself (so apps that handle their own
+  // top space don't get a double gap). Re-measured on load.
+  const [topInset, setTopInset] = useState<number>(PHONE_SAFE_AREA_TOP);
   // Bumped on explicit refresh to force iframe remount even when srcDoc is
   // byte-identical (deterministic build → unchanged string → no React re-render
   // → iframe wouldn't reload). Used as the iframe `key`.
@@ -811,6 +819,66 @@ export const ProjectPreviewViewer = ({
     root.style.removeProperty("--font-body");
     const body = iframeRef.current?.contentDocument?.body;
     if (body) body.style.removeProperty("font-family");
+  };
+
+  // Read the effective background color at the app's top edge so the frame's
+  // top safe-area strip can match it (keeps the header visually connected to
+  // the top of the screen). Walks ancestors for the first opaque background,
+  // falling back to body/html. Cross-origin/not-ready failures are ignored.
+  const sampleAppTopBg = () => {
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      const win = iframeRef.current?.contentWindow;
+      if (!doc || !win || !doc.body) return;
+      const isOpaque = (c: string) =>
+        !!c && c !== "transparent" && !c.replace(/\s/g, "").startsWith("rgba(0,0,0,0)");
+      const w = doc.documentElement.clientWidth || 320;
+      let el: Element | null = doc.elementFromPoint(Math.floor(w / 2), 2);
+      let color = "";
+      while (el) {
+        const bg = win.getComputedStyle(el).backgroundColor;
+        if (isOpaque(bg)) {
+          color = bg;
+          break;
+        }
+        el = el.parentElement;
+      }
+      if (!color) {
+        const bodyBg = win.getComputedStyle(doc.body).backgroundColor;
+        const htmlBg = win.getComputedStyle(doc.documentElement).backgroundColor;
+        color = isOpaque(bodyBg) ? bodyBg : isOpaque(htmlBg) ? htmlBg : "";
+      }
+      if (color) setAppTopBg(color);
+
+      // --- top content clearance: y of the highest text/media element, so we
+      // only reserve the safe area the app is missing (avoids a double gap). ---
+      const media = new Set([
+        "SVG", "IMG", "INPUT", "BUTTON", "CANVAS", "VIDEO", "SELECT", "TEXTAREA",
+      ]);
+      const nodes = doc.body.querySelectorAll<HTMLElement>("*");
+      let minTop = Infinity;
+      for (let i = 0; i < nodes.length && minTop > 1; i++) {
+        const node = nodes[i];
+        if (!media.has(node.tagName.toUpperCase())) {
+          let hasText = false;
+          for (let j = 0; j < node.childNodes.length; j++) {
+            const ch = node.childNodes[j];
+            if (ch.nodeType === 3 && ch.textContent && ch.textContent.trim()) {
+              hasText = true;
+              break;
+            }
+          }
+          if (!hasText) continue;
+        }
+        const r = node.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) continue;
+        if (r.top >= 0 && r.top < minTop) minTop = r.top;
+      }
+      const clearance = minTop === Infinity ? PHONE_SAFE_AREA_TOP : minTop;
+      setTopInset(Math.max(0, Math.min(PHONE_SAFE_AREA_TOP, PHONE_SAFE_AREA_TOP - clearance)));
+    } catch {
+      // same-origin read failed or DOM not ready — keep the default strip color.
+    }
   };
 
   // Set true between Save click and the rebuild landing the saved CSS — keeps
@@ -1325,7 +1393,8 @@ export const ProjectPreviewViewer = ({
 
   // TEMP (testing): treat every project as a web app statically. Once the
   // backend exposes a real app type, replace this with that signal.
-  const isWebApp = true;
+  // const isWebApp = true;
+  const isWebApp = false;
 
   // Web-app preview mode: render the live preview inside a phone frame next to
   // the "preview on your phone" QR panel — always for a previewable web app,
@@ -1337,6 +1406,16 @@ export const ProjectPreviewViewer = ({
     hasPreviewEntry &&
     !isMaximized &&
     !isVersionHistory;
+
+  // Status-bar (clock/icons) color: dark on light app backgrounds, light on
+  // dark ones, so it stays readable whatever theme the generated app uses.
+  const statusBarColor = (() => {
+    const m = appTopBg?.match(/rgba?\(([^)]+)\)/);
+    if (!m) return "#ECECEF";
+    const [r, g, b] = m[1].split(",").map((s) => parseFloat(s));
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luma > 150 ? "#1c1c1e" : "#ECECEF";
+  })();
 
   // Shared browser header JSX (rendered inside the card)
   const browserHeader = (
@@ -1573,6 +1652,9 @@ export const ProjectPreviewViewer = ({
           clearThemeOverride();
           // If the popover is still open (e.g. user kept it open through a save), re-inject.
           if (themeOpen) injectThemeOverride();
+          // Tint the frame's top safe-area strip to the app's top color (after
+          // first paint) so the header stays visually connected to the top.
+          requestAnimationFrame(() => requestAnimationFrame(sampleAppTopBg));
         }}
       />
     </>
@@ -1811,7 +1893,13 @@ export const ProjectPreviewViewer = ({
           <div className="flex min-h-0 flex-1 items-stretch justify-center gap-6 overflow-hidden py-2">
             {/* Phone frame holding the live preview (Claude Design PhoneShell) */}
             <div className="flex min-h-0 flex-1 items-stretch justify-center">
-              <PhoneShell>{previewSurface}</PhoneShell>
+              <PhoneShell
+                screenBg={appTopBg}
+                safeTop={topInset}
+                statusColor={statusBarColor}
+              >
+                {previewSurface}
+              </PhoneShell>
             </div>
             <MobilePreviewPanel
               shareUrl={shareUrl}

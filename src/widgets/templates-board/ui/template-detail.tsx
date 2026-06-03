@@ -29,10 +29,14 @@ import {
   fetchTemplateDetail,
   getTemplateDemoUrl,
   getTemplateDescription,
+  getTemplateDislikeCount,
   getTemplateImage,
+  getTemplateLikeCount,
+  getTemplateMyReaction,
   getTemplateTitle,
 } from "../model/templates";
 import { useTemplateLaunch } from "../model/use-template-launch";
+import { TemplateReactions } from "./template-reactions";
 
 const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
 
@@ -276,6 +280,13 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
           </h1>
 
           <div className="flex shrink-0 items-center gap-2">
+            <TemplateReactions
+              key={template.id}
+              templateId={template.id}
+              initialReaction={getTemplateMyReaction(template)}
+              initialLikeCount={getTemplateLikeCount(template)}
+              initialDislikeCount={getTemplateDislikeCount(template)}
+            />
             <button
               onClick={() => launchTemplate(template, { title })}
               disabled={launchingTemplateId === template.id}
