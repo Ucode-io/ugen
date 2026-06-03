@@ -445,7 +445,24 @@ export const ProjectPreviewViewer = ({
 }: ProjectPreviewViewerProps) => {
   const { isInspectMode, addSelectedElement, setInspectMode } =
     useVisualEditorStore();
-  const { files: storeFiles, updateFile } = useFilesStore();
+  const { files: rawStoreFiles, updateFile } = useFilesStore();
+  const filesProjectId = useFilesStore((s) => s.filesProjectId);
+  // The files store is global and shared across projects. On a project switch
+  // this viewer is re-keyed and mounts *before* the previous effect's cleanup
+  // clears the store, so for one commit `rawStoreFiles` still holds the
+  // previous project's files — building them would show the wrong (stale)
+  // preview until something happens to trigger a rebuild (hence the
+  // "shows project A in project B until refresh" bug). Treat the store files as
+  // empty whenever they are stamped for a *different* project; once the current
+  // project's files land (stamp matches) or the store is cleared (stamp null)
+  // they flow through normally.
+  const storeFiles = useMemo(
+    () =>
+      filesProjectId !== null && filesProjectId !== projectId
+        ? []
+        : rawStoreFiles,
+    [rawStoreFiles, filesProjectId, projectId],
+  );
   const activeCodeSelection = useCodeSelectionStore(
     (s) => s.activeCodeSelection,
   );

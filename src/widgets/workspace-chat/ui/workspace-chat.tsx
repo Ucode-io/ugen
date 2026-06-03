@@ -572,7 +572,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
               if (projectData.project_files?.length > 0) {
                 setFiles(projectData.project_files.map((f: any) => ({
                   path: f.path, content: f.content, language: getLanguageByPath(f.path),
-                })));
+                })), projectId);
               }
             })
             .catch((err) => console.error('Failed to refresh project after first generation', err));
@@ -581,7 +581,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         if (data?.project?.project_files) {
           setFiles(data.project.project_files.map((f: any) => ({
             path: f.path, content: f.content, language: getLanguageByPath(f.path),
-          })));
+          })), projectId);
         }
 
         const responseMsg = data?.message;
@@ -656,7 +656,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                   accumulatedFilesRef.current = [...accumulatedFilesRef.current, ...event.data.files];
                   setFiles(accumulatedFilesRef.current.map((f: any) => ({
                     path: f.path, content: f.content, language: getLanguageByPath(f.path),
-                  })));
+                  })), projectId);
                 } else if (event.type === 'error') {
                   // Billing limit hit mid-stream → open the global upgrade
                   // popup instead of showing a generic stream error.
