@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { WorkspaceChat } from "@/widgets/workspace-chat";
@@ -145,7 +145,24 @@ export const ProjectWorkspaceClient = ({
     url: string;
   } | null>(null);
   const [isMicrofrontendLoading, setIsMicrofrontendLoading] = useState(false);
-  const { files, updatedFiles, setFiles, clearWorkspace } = useFilesStore();
+  const {
+    files: rawFiles,
+    updatedFiles,
+    setFiles,
+    clearWorkspace,
+  } = useFilesStore();
+  const filesProjectId = useFilesStore((s) => s.filesProjectId);
+  // Ignore files still stamped for the *previous* project: the store is global
+  // and is only cleared in an effect cleanup that runs after this render, so on
+  // the first commit after a project switch it transiently holds the old
+  // project's files. Treating those as "no files" keeps the loader up instead
+  // of mounting the preview viewer with stale content (the "project A shows
+  // inside project B until refresh" bug).
+  const files = useMemo(
+    () =>
+      filesProjectId !== null && filesProjectId !== projectId ? [] : rawFiles,
+    [rawFiles, filesProjectId, projectId],
+  );
   const setApiKey = useAuthStore((state) => state.setApiKey);
   const setUcodeProjectId = useAuthStore((state) => state.setUcodeProjectId);
   const setProjectEnvId = useAuthStore((state) => state.setProjectEnvId);
@@ -428,7 +445,7 @@ export const ProjectWorkspaceClient = ({
                 language: getLanguageByPath(file.path),
               }),
             );
-            setFiles(mappedFiles);
+            setFiles(mappedFiles, projectId);
           }
         })
         .catch((err) => {

@@ -24,12 +24,13 @@ import {
   SelectValue,
 } from "@/shared/ui"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs"
-import { useClientTypes, useRoles, useCreateUser, useUpdateUser } from "../api/users"
+import { useClientTypes, useRoles, useBuilderRoles, useCreateUser, useCreateBuilder, useUpdateUser } from "../api/users"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAuthStore } from "@/entities/session"
 
-const getInviteSchema = (isEdit: boolean, changePassword: boolean) => z.object({
-  clientType: z.string().min(1, "Required"),
-  role: z.string().min(1, "Required"),
+const getInviteSchema = (isEdit: boolean, changePassword: boolean, isBuilder: boolean = false) => z.object({
+  clientType: isBuilder ? z.string().optional() : z.string().min(1, "Required"),
+  role: isBuilder ? z.string().optional() : z.string().min(1, "Required"),
   status: z.string().min(1, "Required").default('ACTIVE'),
   login: z.string().optional(),
   phone: z.string().optional(),
@@ -77,6 +78,7 @@ interface InviteUserModalProps {
   envId: string
   initialData?: any
   password?: string
+  isBuilder?: boolean
 }
 
 export const InviteUserModal = ({
@@ -87,13 +89,19 @@ export const InviteUserModal = ({
   companyName,
   envId,
   initialData,
+  isBuilder = false,
 }: InviteUserModalProps) => {
   const isEdit = !!initialData
+  // The builder flow authenticates as the platform user, so it must use the
+  // auth project_id from the session store (not the selected ucode project).
+  const sessionProjectId = useAuthStore((s) => s.project?.project_id) || ''
+  const builderProjectId = isBuilder ? sessionProjectId : projectId
   const { data: clientTypeOptions = [], isLoading: isLoadingTypes } = useClientTypes(projectId)
   const [isCopied, setIsCopied] = useState(false)
   const [changePassword, setChangePassword] = useState(!isEdit)
   const queryClient = useQueryClient()
   const createUser = useCreateUser()
+  const createBuilder = useCreateBuilder()
   const updateUser = useUpdateUser()
 
   const {
@@ -105,7 +113,7 @@ export const InviteUserModal = ({
     setValue,
     formState: { errors }
   } = useForm<InviteFormValues>({
-    resolver: zodResolver(getInviteSchema(isEdit, changePassword)) as any,
+    resolver: zodResolver(getInviteSchema(isEdit, changePassword, isBuilder)) as any,
     defaultValues: {
       clientType: '',
       role: '',
@@ -136,11 +144,27 @@ export const InviteUserModal = ({
       queryClient.invalidateQueries({ queryKey: ['users-workspace'] })
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['pricing-all'] })
+      queryClient.invalidateQueries({ queryKey: ['company-stats'] })
       onOpenChange(false)
       reset()
     },
     onError: (error) => {
       console.error("Failed to invite user:", error)
+    }
+  })
+
+  const { mutate: createBuilderMutation, isPending: isCreatingBuilder } = useMutation({
+    mutationFn: createBuilder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-workspace'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['pricing-all'] })
+      queryClient.invalidateQueries({ queryKey: ['company-stats'] })
+      onOpenChange(false)
+      reset()
+    },
+    onError: (error) => {
+      console.error("Failed to add builder:", error)
     }
   })
 
@@ -165,6 +189,14 @@ export const InviteUserModal = ({
     id: currentClientType || '',
     projectId
   })
+
+  // Builder flow: fetch roles with the user's Bearer token and resolve the
+  // "DEFAULT ADMIN" role — its role_id / client_type_id are used on submit.
+  const { data: builderRoles = [] } = useBuilderRoles(isBuilder && open ? builderProjectId : '')
+  const defaultAdminRole = useMemo(
+    () => (builderRoles as any[]).find((r) => r?.name === 'DEFAULT ADMIN'),
+    [builderRoles]
+  )
 
   // Auto-select first client type and role for create mode
   useEffect(() => {
@@ -245,6 +277,26 @@ export const InviteUserModal = ({
   }
 
   const onSubmit = (data: InviteFormValues) => {
+    if (isBuilder) {
+      if (!defaultAdminRole) {
+        console.error("DEFAULT ADMIN role not found")
+        return
+      }
+      createBuilderMutation({
+        data: {
+          client_type_id: defaultAdminRole.client_type_id,
+          role_id: defaultAdminRole.guid,
+          project_id: builderProjectId,
+          status: data.status,
+          login: data.inviteMethod === 'login' ? data.login : undefined,
+          phone: data.inviteMethod === 'phone' ? data.phone : undefined,
+          email: data.inviteMethod === 'email' ? data.email : undefined,
+          password: data.inviteMethod === 'login' ? data.password : undefined,
+        }
+      })
+      return
+    }
+
     if (data.inviteMethod === 'link' && !isEdit) {
       onOpenChange(false);
       return;
@@ -284,13 +336,13 @@ export const InviteUserModal = ({
     })
   }
 
-  const isLoading = isInviting || isUpdating
+  const isLoading = isInviting || isUpdating || isCreatingBuilder
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-0 flex flex-col max-h-[90vh] overflow-hidden max-w-lg">
         <DialogHeader className="p-4 pb-1">
-          <DialogTitle className="font-size-[16px] ">{isEdit ? "Edit User" : "Invite User"}</DialogTitle>
+          <DialogTitle className="font-size-[16px] ">{isEdit ? "Edit User" : isBuilder ? "Add Builder" : "Invite User"}</DialogTitle>
           {/* <DialogDescription>
             {isEdit ? "Update user details below." : "Enter the user details to generate an invite link."}
           </DialogDescription> */}
@@ -306,6 +358,7 @@ export const InviteUserModal = ({
               className="w-full"
             >
               <div className="flex items-center gap-3 mb-6">
+                {!isBuilder && (
                 <div className="w-[130px] flex-shrink-0">
                   <Controller
                     name="clientType"
@@ -331,7 +384,9 @@ export const InviteUserModal = ({
                   />
                   {errors.clientType && <p className="text-[10px] text-destructive absolute mt-0.5">{errors.clientType.message}</p>}
                 </div>
+                )}
 
+                {!isBuilder && (
                 <div className="w-[130px] flex-shrink-0">
                   <Controller
                     name="role"
@@ -357,12 +412,13 @@ export const InviteUserModal = ({
                   />
                   {errors.role && <p className="text-[10px] text-destructive absolute mt-0.5">{errors.role.message}</p>}
                 </div>
+                )}
 
                 <TabsList className="flex flex-1 h-8 p-1 rounded-lg bg-bg-sidebar">
                   <TabsTrigger value="login" className="flex-1 h-6 text-[11px] px-1">Login</TabsTrigger>
                   <TabsTrigger value="phone" className="flex-1 h-6 text-[11px] px-1">Phone</TabsTrigger>
                   <TabsTrigger value="email" className="flex-1 h-6 text-[11px] px-1">Email</TabsTrigger>
-                  {!isEdit && <TabsTrigger value="link" className="flex-1 h-6 text-[11px] px-1">Link</TabsTrigger>}
+                  {!isEdit && !isBuilder && <TabsTrigger value="link" className="flex-1 h-6 text-[11px] px-1">Link</TabsTrigger>}
                 </TabsList>
               </div>
 
@@ -432,7 +488,7 @@ export const InviteUserModal = ({
                 </div>
               </TabsContent>
 
-              {!isEdit && (
+              {!isEdit && !isBuilder && (
                 <TabsContent value="link" className="space-y-4 outline-none pb-1">
                   <div className="p-3 rounded-lg bg-bg-sidebar border border-border-subtle space-y-2">
                     <div className="flex items-center justify-between">
@@ -469,9 +525,11 @@ export const InviteUserModal = ({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="w-[120px]">
-              {activeTab === 'link' && !isEdit
+              {activeTab === 'link' && !isEdit && !isBuilder
                 ? "Done"
-                : isEdit ? (isLoading ? "Saving..." : "Save Changes") : (isLoading ? "Inviting..." : "Invite User")}
+                : isEdit ? (isLoading ? "Saving..." : "Save Changes")
+                : isBuilder ? (isLoading ? "Adding..." : "Add Builder")
+                : (isLoading ? "Inviting..." : "Invite User")}
             </Button>
           </div>
         </form>

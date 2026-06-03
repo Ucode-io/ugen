@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { UserPlus, Trash2 } from "lucide-react";
+import { UserPlus, Trash2, Wrench } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 
 import { ReusableTabs, UsageIndicator, Input } from "@/shared/ui";
@@ -15,8 +15,12 @@ import {
   useClientTypes,
   useRoles,
   useUsers,
+  useBuilders,
+  useBuilderRoles,
   useDeleteUser,
 } from "../api/users";
+
+const BUILDERS_TAB_ID = "__builders__";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api";
 import {
@@ -75,21 +79,25 @@ export const UsersManagement = ({
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isBuilderModalOpen, setIsBuilderModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
-  const { data: pricingData } = useQuery({
-    queryKey: ["pricing-all"],
+  // company-stats is a Bearer-only endpoint (see instance.ts), so it
+  // authenticates with the user token instead of the project API-KEY.
+  const { data: companyStats } = useQuery({
+    queryKey: ["company-stats"],
     queryFn: async () => {
-      const { data } = await api.get("/v1/pricing/all");
+      const { data } = await api.get("/v1/pricing/company-stats");
       return data;
     },
     staleTime: 0,
   });
 
-  console.log({ pricingData });
+  const usersStat = companyStats?.data?.user_count;
+  const buildersStat = companyStats?.data?.builders;
 
   const { data: clientTypeOptions = [] } = useClientTypes(projectId);
   const queryClient = useQueryClient();
@@ -112,6 +120,26 @@ export const UsersManagement = ({
     projectId,
   });
 
+  // Static "Builders" tab: lists auth-service builder users with the token.
+  const isBuildersTab = activeClientType === BUILDERS_TAB_ID;
+  const sessionProjectId = authProject?.project_id || "";
+
+  const { data: builderRoles = [] } = useBuilderRoles(sessionProjectId);
+  const buildersClientTypeId = useMemo(
+    () =>
+      (builderRoles as any[]).find((r) => r?.name === "DEFAULT ADMIN")
+        ?.client_type_id || "",
+    [builderRoles],
+  );
+
+  const { data: buildersData, isLoading: isLoadingBuilders } = useBuilders({
+    clientTypeId: buildersClientTypeId,
+    projectId: sessionProjectId,
+    limit: pageSize,
+    offset: currentPage,
+    enabled: isBuildersTab,
+  });
+
   const {
     data,
     isLoading,
@@ -123,13 +151,23 @@ export const UsersManagement = ({
     projectId,
     search: searchTerm,
     tableSlug: activeTableSlug,
+    enabled: !isBuildersTab,
   });
+
+  const tableData = isBuildersTab
+    ? buildersData?.response || []
+    : data?.data?.response || [];
+  const tableCount = isBuildersTab
+    ? buildersData?.count || 0
+    : data?.data?.count || 0;
+  const tableLoading = isBuildersTab ? isLoadingBuilders : isLoading;
 
   const { mutate: deleteMutation, isPending: isDeleting } = useMutation({
     mutationFn: deleteUser,
     onSuccess: () => {
       refetchUsers();
       queryClient.invalidateQueries({ queryKey: ["pricing-all"] });
+      queryClient.invalidateQueries({ queryKey: ["company-stats"] });
       setUserToDelete(null);
     },
     onError: (error) => {
@@ -196,11 +234,34 @@ export const UsersManagement = ({
     [roles],
   );
 
-  const subTabOptions = clientTypeOptions.map((opt) => ({
-    id: opt.value,
-    label: opt.label,
-  }));
-  console.log("userToDeleteuserToDelete", userToDelete);
+  // Builders come from the auth service and only carry login / email / status.
+  const buildersColumns = useMemo<ColumnDef<User>[]>(
+    () => [
+      { accessorKey: "login", header: "Login" },
+      { accessorKey: "email", header: "Email" },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <span className="bg-primary/10 text-primary border-primary/20 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold">
+            {row.original.status}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const activeColumns = isBuildersTab ? buildersColumns : columns;
+
+  const subTabOptions = [
+    ...clientTypeOptions.map((opt) => ({
+      id: opt.value,
+      label: opt.label,
+    })),
+    { id: BUILDERS_TAB_ID, label: "Builders", icon: <Wrench size={14} /> },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -213,14 +274,25 @@ export const UsersManagement = ({
         <div className="flex items-center gap-4">
           <UsageIndicator
             label="Users"
-            value={pricingData?.data?.users?.current || 0}
-            total={pricingData?.data?.users?.limit || 0}
+            value={usersStat?.current || 0}
+            total={usersStat?.limit || 0}
             percentage={
-              pricingData?.data?.users?.limit
+              usersStat?.limit
                 ? Math.min(
-                    ((pricingData.data.users.current || 0) /
-                      pricingData.data.users.limit) *
-                      100,
+                    ((usersStat.current || 0) / usersStat.limit) * 100,
+                    100,
+                  )
+                : 0
+            }
+          />
+          <UsageIndicator
+            label="Builders"
+            value={buildersStat?.current || 0}
+            total={buildersStat?.limit || 0}
+            percentage={
+              buildersStat?.limit
+                ? Math.min(
+                    ((buildersStat.current || 0) / buildersStat.limit) * 100,
                     100,
                   )
                 : 0
@@ -263,25 +335,35 @@ export const UsersManagement = ({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button
-          className="bg-primary hover:bg-primary/90 h-9 gap-2 px-8 font-semibold text-white"
-          onClick={() => setIsInviteModalOpen(true)}
-        >
-          <UserPlus size={16} />
-          Invite User
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            className="border-border-subtle h-9 gap-2 px-8 font-semibold"
+            onClick={() => setIsBuilderModalOpen(true)}
+          >
+            <UserPlus size={16} />
+            Add Builder
+          </Button>
+          <Button
+            className="bg-primary hover:bg-primary/90 h-9 gap-2 px-8 font-semibold text-white"
+            onClick={() => setIsInviteModalOpen(true)}
+          >
+            <UserPlus size={16} />
+            Invite User
+          </Button>
+        </div>
       </div>
 
       <WorkspaceDataTable
-        data={data?.data?.response || []}
-        columns={columns}
-        totalCount={data?.data?.count || 0}
+        data={tableData}
+        columns={activeColumns}
+        totalCount={tableCount}
         page={currentPage + 1}
         limit={pageSize}
         onPageChange={(p) => setCurrentPage(p - 1)}
         onLimitChange={setPageSize}
-        isLoading={isLoading}
-        onRowClick={handleRowClick}
+        isLoading={tableLoading}
+        onRowClick={isBuildersTab ? undefined : handleRowClick}
         containerClassName="max-h-[480px] overflow-y-auto"
       />
 
@@ -293,6 +375,16 @@ export const UsersManagement = ({
         companyName={companyName}
         envId={envId}
         initialData={selectedUser}
+      />
+
+      <InviteUserModal
+        open={isBuilderModalOpen}
+        onOpenChange={setIsBuilderModalOpen}
+        projectId={ucodeProjectId || ""}
+        projectName={projectName}
+        companyName={companyName}
+        envId={envId}
+        isBuilder
       />
 
       <Dialog

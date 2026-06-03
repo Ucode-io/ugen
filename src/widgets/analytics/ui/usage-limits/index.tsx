@@ -12,11 +12,10 @@ import {
   WorkspaceTableHead,
   WorkspaceTableCell,
 } from '@/widgets/project-workspace/ui/workspace-table'
-export const UsageLimitsTab = ({ companyStats, fareData, currentFareData }: any) => {
+export const UsageLimitsTab = ({ companyStats, fareData, fareId }: any) => {
   const stats = companyStats?.data || {};
   const fares: any[] = fareData?.data?.fares || [];
-  const currentFare = currentFareData?.data?.fares?.[0];
-  const fareId = currentFare?.id;
+  const currentFare = fares.find((f) => f.id === fareId);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Collect all unique fare items across all fares (preserving order)
@@ -108,10 +107,18 @@ export const UsageLimitsTab = ({ companyStats, fareData, currentFareData }: any)
     {
       key: "builder",
       label: "Builder user",
-      current: stats.builder_count?.current ?? 0,
-      limit: stats.builder_count?.limit ?? 0,
+      current: stats.builders?.current ?? 0,
+      limit: stats.builders?.limit ?? 0,
       color: "bg-emerald-500",
       textColor: "text-emerald-500",
+    },
+    {
+      key: "users",
+      label: "Users",
+      current: stats.user_count?.current ?? 0,
+      limit: stats.user_count?.limit ?? 0,
+      color: "bg-blue-500",
+      textColor: "text-blue-500",
     },
   ];
 
