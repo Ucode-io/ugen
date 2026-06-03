@@ -255,11 +255,11 @@ export const UsersManagement = ({
   const activeColumns = isBuildersTab ? buildersColumns : columns;
 
   const subTabOptions = [
+    { id: BUILDERS_TAB_ID, label: "Builders", icon: <Wrench size={14} /> },
     ...clientTypeOptions.map((opt) => ({
       id: opt.value,
       label: opt.label,
     })),
-    { id: BUILDERS_TAB_ID, label: "Builders", icon: <Wrench size={14} /> },
   ];
 
   return (
@@ -273,19 +273,6 @@ export const UsersManagement = ({
         </div>
         <div className="flex items-center gap-4">
           <UsageIndicator
-            label="Users"
-            value={usersStat?.current || 0}
-            total={usersStat?.limit || 0}
-            percentage={
-              usersStat?.limit
-                ? Math.min(
-                    ((usersStat.current || 0) / usersStat.limit) * 100,
-                    100,
-                  )
-                : 0
-            }
-          />
-          <UsageIndicator
             label="Builders"
             value={buildersStat?.current || 0}
             total={buildersStat?.limit || 0}
@@ -293,6 +280,19 @@ export const UsersManagement = ({
               buildersStat?.limit
                 ? Math.min(
                     ((buildersStat.current || 0) / buildersStat.limit) * 100,
+                    100,
+                  )
+                : 0
+            }
+          />
+          <UsageIndicator
+            label="Users"
+            value={usersStat?.current || 0}
+            total={usersStat?.limit || 0}
+            percentage={
+              usersStat?.limit
+                ? Math.min(
+                    ((usersStat.current || 0) / usersStat.limit) * 100,
                     100,
                   )
                 : 0

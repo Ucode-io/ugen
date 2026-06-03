@@ -6,6 +6,14 @@ import { useFilesStore } from "@/entities/project/model/files-store";
 import { useChatStore } from "@/entities/chat";
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler";
 import { generatePreviewHtml } from "../lib/preview-html";
+import { createBuildTimer, type BuildTimer } from "../lib/build-timer";
+import {
+  getCachedBuild,
+  setCachedBuild,
+  hashFiles,
+  makeBuildCacheKey,
+} from "../lib/build-cache";
+import { previewOptimizationsEnabled } from "../lib/preview-flags";
 import {
   AlertTriangle,
   Loader2,
@@ -747,6 +755,8 @@ export const ProjectPreviewViewer = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isBuilding = useRef(false);
+  // Timer for the in-flight build; finalized when the iframe reports PREVIEW_READY.
+  const buildTimerRef = useRef<BuildTimer | null>(null);
 
   // Keep a ref to files so message handler always sees the latest value
   const filesRef = useRef(files);
@@ -1008,7 +1018,7 @@ export const ProjectPreviewViewer = ({
     outerHTML: string | null;
   } | null>(null);
 
-  const runCode = async () => {
+  const runCode = async (opts?: { force?: boolean }) => {
     if (isBuilding.current) return;
     // Hard guard: never build while a chat stream is open. Reads from the store
     // directly (not the closured `isStreaming` prop) so a stale closure from a
@@ -1021,57 +1031,123 @@ export const ProjectPreviewViewer = ({
     setIsLoading(true);
     setRuntimeError(null);
 
+    const selectionKind = activeCodeSelection?.kind;
+    const selectionId =
+      activeCodeSelection && "id" in activeCodeSelection
+        ? (activeCodeSelection as { id?: string }).id
+        : undefined;
+    const cacheKey = makeBuildCacheKey({
+      projectId,
+      selectionKind,
+      selectionId,
+      contentHash: hashFiles(files),
+    });
+
+    // Mutable so the cache fast-path can flip cacheHit before the timer logs
+    // (createBuildTimer keeps this object by reference).
+    const buildMeta: Record<string, unknown> = {
+      projectId,
+      selection: selectionKind ?? "frontend",
+      files: files.length,
+      cacheHit: false,
+    };
+    const timer = createBuildTimer(buildMeta);
+    buildTimerRef.current = timer;
+
     let builtHtml: string | null = null;
+
+    // ── Cache fast-path ──
+    // Deterministic build → identical inputs reuse the previous srcDoc and skip
+    // esbuild entirely (undo/redo, tab away & back, no-op rebuilds). Manual
+    // Refresh (force) always bypasses so the user gets a genuine fresh build.
+    if (!opts?.force && previewOptimizationsEnabled()) {
+      const cached = getCachedBuild(cacheKey);
+      if (cached) {
+        timer.mark("cache-hit");
+        buildMeta.cacheHit = true;
+        builtHtml = cached;
+        // Only touch srcDoc when it actually differs — an identical string is
+        // already on screen, so re-setting it would needlessly remount the
+        // iframe and re-run the esm.sh waterfall.
+        if (cached !== srcDoc) setSrcDoc(cached);
+        timer.markSrcDocSet();
+        setIsLoading(false);
+        isBuilding.current = false;
+      }
+    }
+
     const build = async () => {
-      await ensureEsbuild();
-      const { code, dependencies } = await buildProjectFromFiles(files, {
-        VITE_API_BASE_URL: "http://localhost:3000",
-        VITE_API_KEY: "",
-        VITE_X_API_KEY: "",
-        VITE_MAP_TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        VITE_APP_NAME: "App",
-        NODE_ENV: "development",
-      });
-      const html = generatePreviewHtml(code, dependencies, files);
+      await timer.measure("esbuild-init", () => ensureEsbuild());
+      const { code, dependencies } = await timer.measure("bundle", () =>
+        buildProjectFromFiles(files, {
+          VITE_API_BASE_URL: "http://localhost:3000",
+          VITE_API_KEY: "",
+          VITE_X_API_KEY: "",
+          VITE_MAP_TILE_URL:
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          VITE_APP_NAME: "App",
+          NODE_ENV: "development",
+        }),
+      );
+      const html = await timer.measure("generate-html", () =>
+        generatePreviewHtml(code, dependencies, files),
+      );
       builtHtml = html;
+      // Cache only successful builds (this line is unreachable on error).
+      setCachedBuild(cacheKey, html);
       setSrcDoc(html);
+      timer.markSrcDocSet();
     };
 
-    try {
-      // Safety timeout — in production esbuild WASM (loaded from esm.sh) can hang
-      // silently if blocked by CSP or a flaky CDN. Without this race, the await
-      // would never settle and the loader would spin forever. Matches the 60s
-      // ensureEsbuild() init timeout so a slow cold WASM download (~13.5 MB)
-      // doesn't false-timeout here before the loader itself gives up.
-      const BUILD_TIMEOUT_MS = 60_000;
-      await Promise.race([
-        build(),
-        new Promise<never>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  `Preview build timed out after ${BUILD_TIMEOUT_MS / 1000}s — esbuild may have failed to load.`,
+    if (!builtHtml) {
+      // Cold builds pay the full 13 MB WASM download; warm builds (esbuild
+      // already initialized) only re-bundle. Give cold a much larger budget so a
+      // slow network doesn't trip a false timeout. Keep INIT_TIMEOUT_MS in
+      // bundler.ts >= the cold budget here.
+      const warm = (window as { __ESBUILD_READY__?: boolean }).__ESBUILD_READY__ === true;
+      const timeoutMs = warm ? 30_000 : 90_000;
+      try {
+        // Safety timeout — in production esbuild WASM can hang silently if
+        // blocked by CSP or a flaky CDN. Without this race, the await would
+        // never settle and the loader would spin forever.
+        await Promise.race([
+          build(),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Preview build timed out after ${timeoutMs / 1000}s — esbuild may have failed to load.`,
+                  ),
                 ),
-              ),
-            BUILD_TIMEOUT_MS,
+              timeoutMs,
+            ),
           ),
-        ),
-      ]);
-    } catch (err: any) {
-      const errorMessage = err.message || "Unknown build error";
-      console.error("[preview] build failed:", err);
-      setSrcDoc(
-        `<html><body style="background:#1e1e1e;color:#f87171;padding:2rem;font-family:monospace;white-space:pre-wrap;">${errorMessage}</body></html>`,
-      );
-      setRuntimeError({
-        message: errorMessage,
-        stack: err.stack ?? null,
-        isBuildError: true,
-      });
-    } finally {
-      setIsLoading(false);
-      isBuilding.current = false;
+        ]);
+      } catch (err: any) {
+        const errorMessage = err.message || "Unknown build error";
+        console.error("[preview] build failed:", err);
+        timer.report();
+        setSrcDoc(
+          `<html><body style="background:#1e1e1e;color:#f87171;padding:2rem;font-family:monospace;white-space:pre-wrap;">${errorMessage}</body></html>`,
+        );
+        setRuntimeError({
+          message: errorMessage,
+          stack: err.stack ?? null,
+          isBuildError: true,
+        });
+      } finally {
+        setIsLoading(false);
+        isBuilding.current = false;
+      }
+    }
+
+    // Fallback finalize: the build (JS) half is done, but the iframe normally
+    // finalizes the timer when it posts PREVIEW_READY. If that never arrives
+    // (runtime error, identical-srcDoc cache hit with no remount), log the build
+    // half after a grace period. report() is idempotent.
+    if (builtHtml) {
+      setTimeout(() => timer.report(), 15_000);
     }
 
     // Capture the screenshot once the post-SSE build settles. The pending flag
@@ -1099,7 +1175,8 @@ export const ProjectPreviewViewer = ({
     // Force iframe remount — the build is deterministic, so without this the
     // srcDoc string stays identical and React skips the iframe re-render.
     setRefreshKey((k) => k + 1);
-    runCode();
+    // force: skip the result cache so Refresh always rebuilds from scratch.
+    runCode({ force: true });
   };
 
   const handleUrlNavigate = () => {
@@ -1293,6 +1370,12 @@ export const ProjectPreviewViewer = ({
       // navigated away from also post to `window.parent` — without this guard a
       // build/runtime error from the previous project surfaces in the new one.
       if (e.source !== iframeRef.current?.contentWindow) return;
+
+      if (e.data?.type === "PREVIEW_READY") {
+        // Preview revealed → finalize the build timer with the runtime half.
+        buildTimerRef.current?.reportVisible();
+        return;
+      }
 
       if (e.data?.type === "ROUTE_CHANGE") {
         const url = e.data.url || "/";

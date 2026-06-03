@@ -13,6 +13,7 @@ export type KnownBillingLimitCode =
   | "function_limit"
   | "microfrontend_limit"
   | "user_limit"
+  | "builders_limit"
   | "token_day_limit"
   | "token_month_limit";
 

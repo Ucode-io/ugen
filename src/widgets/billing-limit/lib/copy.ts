@@ -51,6 +51,11 @@ export const LIMIT_COPY: Record<KnownBillingLimitCode, LimitCopy> = {
     description:
       "You've reached the maximum number of users for your plan. Upgrade to invite more users.",
   },
+  builders_limit: {
+    title: "Builder limit reached",
+    description:
+      "You've reached the maximum number of builders for your plan. Upgrade to add more builders.",
+  },
   token_day_limit: {
     title: "Daily token limit reached",
     description: "Достигнут лимит токенов для этого проекта на сегодня.",

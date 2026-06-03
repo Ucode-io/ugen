@@ -1,3 +1,5 @@
+import { previewOptimizationsEnabled } from "./preview-flags";
+
 export const PREVIEW_Refresher_SCRIPT = `
   window.addEventListener("error", (e) => {
     console.error("Preview Error:", e);
@@ -303,6 +305,10 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     }
   }
 
+  // IMPORTANT: keep `?deps=react@…,react-dom@…` on every esm.sh URL. It pins all
+  // packages to a single /react@18.3.1/…/react.mjs instance — dropping it (or
+  // switching to ?bundle/?standalone) reintroduces a second React graph and
+  // "Invalid hook call". Exact versions also avoid 302 redirects from esm.sh.
   const depsParam = `?deps=react@${REACT_VERSION},react-dom@${REACT_VERSION}`;
 
   // Static imports: only React core (version must be pinned and consistent)
@@ -361,12 +367,35 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     }
   }
 
+  // ── Warm up the runtime network early ──
+  // The bundle externalizes react/radix/lucide/etc and resolves them from esm.sh
+  // at iframe runtime. Left alone the browser discovers those URLs only while
+  // parsing the module graph → a serial waterfall. preconnect opens the esm.sh
+  // (and Tailwind CDN) connections up front, and modulepreload kicks off the
+  // fetch of every top-level importmap URL in parallel before the module script
+  // runs. `crossorigin` is required so the preload matches the CORS-mode fetch
+  // the module graph issues (otherwise it would double-fetch). Zero correctness
+  // risk — these are the exact URLs the bundle imports.
+  // jsx-dev-runtime is excluded: optimized builds use jsxDev:false so it's never
+  // imported (preloading it would warn "preloaded but not used").
+  // Gated by the kill-switch so the build-timer can A/B with this off.
+  const warmupHead = previewOptimizationsEnabled()
+    ? [
+        `<link rel="preconnect" href="https://esm.sh" crossorigin>`,
+        `<link rel="preconnect" href="https://cdn.tailwindcss.com">`,
+        ...Object.entries(imports)
+          .filter(([spec]) => spec !== "react/jsx-dev-runtime")
+          .map(([, url]) => `<link rel="modulepreload" href="${url}" crossorigin>`),
+      ].join("\n      ")
+    : "";
+
   return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      ${warmupHead}
       <!-- Конфиг ПОСЛЕ загрузки CDN через tailwind.config -->
       <script src="https://cdn.tailwindcss.com"></script>
       <script>
@@ -470,6 +499,9 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
             revealed = true;
             var cloak = document.getElementById('preview-cloak');
             if (cloak) cloak.remove();
+            // Tell the parent the preview is on screen so it can measure the
+            // srcDoc -> visible runtime half of build time (see build-timer.ts).
+            try { window.parent.postMessage({ type: 'PREVIEW_READY' }, '*'); } catch (_) {}
           }
 
           function refreshAndReveal() {
