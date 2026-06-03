@@ -448,6 +448,9 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
             revealed = true;
             var cloak = document.getElementById('preview-cloak');
             if (cloak) cloak.remove();
+            // Tell the parent the preview is on screen so it can measure the
+            // srcDoc -> visible runtime half of build time (see build-timer.ts).
+            try { window.parent.postMessage({ type: 'PREVIEW_READY' }, '*'); } catch (_) {}
           }
 
           function refreshAndReveal() {
