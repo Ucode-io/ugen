@@ -6,6 +6,7 @@ import { useFilesStore } from "@/entities/project/model/files-store";
 import { useChatStore } from "@/entities/chat";
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler";
 import { generatePreviewHtml } from "../lib/preview-html";
+import { createBuildTimer, type BuildTimer } from "../lib/build-timer";
 import {
   AlertTriangle,
   Loader2,
@@ -734,6 +735,8 @@ export const ProjectPreviewViewer = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isBuilding = useRef(false);
+  // Timer for the in-flight build; finalized when the iframe reports PREVIEW_READY.
+  const buildTimerRef = useRef<BuildTimer | null>(null);
 
   // Keep a ref to files so message handler always sees the latest value
   const filesRef = useRef(files);
@@ -948,20 +951,32 @@ export const ProjectPreviewViewer = ({
     setIsLoading(true);
     setRuntimeError(null);
 
+    // Stopwatch for this build. Logs build (init+bundle+html) and, once the
+    // iframe posts PREVIEW_READY, the runtime "visible" half. Pure measurement —
+    // no behavior change. See build-timer.ts; aggregate via window.previewBuildStats().
+    const timer = createBuildTimer({ projectId, files: files.length });
+    buildTimerRef.current = timer;
+
     let builtHtml: string | null = null;
     const build = async () => {
-      await ensureEsbuild();
-      const { code, dependencies } = await buildProjectFromFiles(files, {
-        VITE_API_BASE_URL: "http://localhost:3000",
-        VITE_API_KEY: "",
-        VITE_X_API_KEY: "",
-        VITE_MAP_TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        VITE_APP_NAME: "App",
-        NODE_ENV: "development",
-      });
-      const html = generatePreviewHtml(code, dependencies, files);
+      await timer.measure("esbuild-init", () => ensureEsbuild());
+      const { code, dependencies } = await timer.measure("bundle", () =>
+        buildProjectFromFiles(files, {
+          VITE_API_BASE_URL: "http://localhost:3000",
+          VITE_API_KEY: "",
+          VITE_X_API_KEY: "",
+          VITE_MAP_TILE_URL:
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          VITE_APP_NAME: "App",
+          NODE_ENV: "development",
+        }),
+      );
+      const html = await timer.measure("generate-html", () =>
+        generatePreviewHtml(code, dependencies, files),
+      );
       builtHtml = html;
       setSrcDoc(html);
+      timer.markSrcDocSet();
     };
 
     try {
@@ -985,6 +1000,7 @@ export const ProjectPreviewViewer = ({
     } catch (err: any) {
       const errorMessage = err.message || "Unknown build error";
       console.error("[preview] build failed:", err);
+      timer.report();
       setSrcDoc(
         `<html><body style="background:#1e1e1e;color:#f87171;padding:2rem;font-family:monospace;white-space:pre-wrap;">${errorMessage}</body></html>`,
       );
@@ -996,6 +1012,13 @@ export const ProjectPreviewViewer = ({
     } finally {
       setIsLoading(false);
       isBuilding.current = false;
+    }
+
+    // The iframe normally finalizes the timer when it posts PREVIEW_READY. If
+    // that never arrives (runtime error), log the build half after a grace
+    // period. report() is idempotent.
+    if (builtHtml) {
+      setTimeout(() => timer.report(), 15_000);
     }
 
     // Capture the screenshot once the post-SSE build settles. The pending flag
@@ -1217,6 +1240,12 @@ export const ProjectPreviewViewer = ({
       // navigated away from also post to `window.parent` — without this guard a
       // build/runtime error from the previous project surfaces in the new one.
       if (e.source !== iframeRef.current?.contentWindow) return;
+
+      if (e.data?.type === "PREVIEW_READY") {
+        // Preview revealed → finalize the build timer with the runtime half.
+        buildTimerRef.current?.reportVisible();
+        return;
+      }
 
       if (e.data?.type === "ROUTE_CHANGE") {
         const url = e.data.url || "/";
