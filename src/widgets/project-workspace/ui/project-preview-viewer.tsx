@@ -1393,8 +1393,7 @@ export const ProjectPreviewViewer = ({
 
   // TEMP (testing): treat every project as a web app statically. Once the
   // backend exposes a real app type, replace this with that signal.
-  // const isWebApp = true;
-  const isWebApp = false;
+  const isWebApp = true;
 
   // Web-app preview mode: render the live preview inside a phone frame next to
   // the "preview on your phone" QR panel — always for a previewable web app,
