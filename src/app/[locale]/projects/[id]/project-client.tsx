@@ -6,6 +6,10 @@ import { WorkspaceChat } from "@/widgets/workspace-chat";
 import { Loader2 } from "lucide-react";
 import { ProjectCodeViewer } from "@/widgets/project-workspace/ui/project-code-viewer";
 import { ProjectPreviewViewer } from "@/widgets/project-workspace/ui/project-preview-viewer";
+import {
+  ensureEsbuild,
+  WASM_URL,
+} from "@/widgets/project-workspace/lib/bundler";
 import { useRouter } from "@/shared/lib/i18n/navigation";
 import { api } from "@/shared/api";
 import { useTranslations } from "next-intl";
@@ -346,6 +350,17 @@ export const ProjectWorkspaceClient = ({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, []);
 
+  // Start fetching + compiling the 13 MB esbuild WASM as soon as the project
+  // route mounts, in parallel with the codebase fetch above. ProjectPreviewViewer
+  // only mounts once files have loaded, so its own idle-time warmup starts too
+  // late to overlap that fetch — kicking off here hides the cold WASM cost behind
+  // network latency the user is already waiting on. Idempotent (cached on
+  // window[INIT_KEY]); the viewer's idle warmup stays as a fallback.
+  useEffect(() => {
+    if (!isUgen) return;
+    void ensureEsbuild().catch(() => {});
+  }, [isUgen]);
+
   const handleEditCode = async (target: CodeEditorTarget) => {
     setCodeEditorTarget(target);
     // Explicit user action ("Edit with AI") — flash the chat-input folder green.
@@ -645,6 +660,11 @@ export const ProjectWorkspaceClient = ({
 
   return (
     <ErrorBoundary>
+      {/* Preload the esbuild WASM so the 13 MB download starts before the esbuild
+          JS chunk even loads. as="fetch" + no crossorigin matches the same-origin
+          fetch the worker issues, so it's reused (not double-fetched). React 19
+          hoists this <link> into <head>. */}
+      <link rel="preload" as="fetch" href={WASM_URL} type="application/wasm" />
       <div
         className="bg-bg-main relative h-screen w-full overflow-hidden"
         style={{
