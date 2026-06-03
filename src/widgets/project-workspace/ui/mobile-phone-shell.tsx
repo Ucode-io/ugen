@@ -15,8 +15,7 @@ const BEZEL = 8;
 const FRAME_W = SCREEN_W + 2 * (RAIL + BEZEL); // 418
 const FRAME_H = SCREEN_H + 2 * (RAIL + BEZEL); // 846
 
-// Status bar height — also the safe-area we reserve at the top of the screen so
-// an arbitrary previewed site never renders under the camera island / clock.
+// iOS status-bar height (the clock / signal / battery strip overlaid on top).
 const STATUS_BAR_H = 50;
 
 const STATUS_COLOR = "#ECECEF";
@@ -172,6 +171,9 @@ function SideBtn({
 interface PhoneShellProps {
   children: ReactNode;
   className?: string;
+  /** Background for the screen / top safe-area strip. Pass the app's own top
+   *  color so the status-bar area reads as part of the app, not a separate band. */
+  screenBg?: string;
 }
 
 /**
@@ -179,7 +181,7 @@ interface PhoneShellProps {
  * scales down (preserving every proportion — buttons, camera, radii) to fit
  * the available space via a ResizeObserver.
  */
-export function PhoneShell({ children, className }: PhoneShellProps) {
+export function PhoneShell({ children, className, screenBg }: PhoneShellProps) {
   const fitRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -254,11 +256,15 @@ export function PhoneShell({ children, className }: PhoneShellProps) {
             inset: RAIL + BEZEL,
             borderRadius: 46,
             overflow: "hidden",
-            background: "#141416",
+            background: screenBg ?? "#141416",
           }}
         >
-          {/* Screen content — reserve the status-bar height so the previewed
-              site stays clear of the camera island / clock. */}
+          {/* Screen content — pushed below the status bar / camera island by the
+              status-bar height so the app's own header (menu, title, profile)
+              is never hidden under the clock, even when the generated app does
+              not reserve a top safe area itself. The reserved strip shows the
+              dark screen background, which blends with dark apps. (A mobile-first
+              app should still pad env(safe-area-inset-top) for real devices.) */}
           <div
             style={{
               position: "absolute",

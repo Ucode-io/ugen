@@ -672,6 +672,10 @@ export const ProjectPreviewViewer = ({
 
   const setPendingPrompt = useChatStore((s) => s.setPendingPrompt);
   const [srcDoc, setSrcDoc] = useState("");
+  // Background color sampled from the app's top edge. The phone frame tints its
+  // top safe-area strip with this so the status-bar area reads as a continuous
+  // extension of the app header instead of a separate band. Re-sampled on load.
+  const [appTopBg, setAppTopBg] = useState<string | undefined>(undefined);
   // Bumped on explicit refresh to force iframe remount even when srcDoc is
   // byte-identical (deterministic build → unchanged string → no React re-render
   // → iframe wouldn't reload). Used as the iframe `key`.
@@ -811,6 +815,39 @@ export const ProjectPreviewViewer = ({
     root.style.removeProperty("--font-body");
     const body = iframeRef.current?.contentDocument?.body;
     if (body) body.style.removeProperty("font-family");
+  };
+
+  // Read the effective background color at the app's top edge so the frame's
+  // top safe-area strip can match it (keeps the header visually connected to
+  // the top of the screen). Walks ancestors for the first opaque background,
+  // falling back to body/html. Cross-origin/not-ready failures are ignored.
+  const sampleAppTopBg = () => {
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      const win = iframeRef.current?.contentWindow;
+      if (!doc || !win || !doc.body) return;
+      const isOpaque = (c: string) =>
+        !!c && c !== "transparent" && !c.replace(/\s/g, "").startsWith("rgba(0,0,0,0)");
+      const w = doc.documentElement.clientWidth || 320;
+      let el: Element | null = doc.elementFromPoint(Math.floor(w / 2), 2);
+      let color = "";
+      while (el) {
+        const bg = win.getComputedStyle(el).backgroundColor;
+        if (isOpaque(bg)) {
+          color = bg;
+          break;
+        }
+        el = el.parentElement;
+      }
+      if (!color) {
+        const bodyBg = win.getComputedStyle(doc.body).backgroundColor;
+        const htmlBg = win.getComputedStyle(doc.documentElement).backgroundColor;
+        color = isOpaque(bodyBg) ? bodyBg : isOpaque(htmlBg) ? htmlBg : "";
+      }
+      if (color) setAppTopBg(color);
+    } catch {
+      // same-origin read failed or DOM not ready — keep the default strip color.
+    }
   };
 
   // Set true between Save click and the rebuild landing the saved CSS — keeps
@@ -1573,6 +1610,9 @@ export const ProjectPreviewViewer = ({
           clearThemeOverride();
           // If the popover is still open (e.g. user kept it open through a save), re-inject.
           if (themeOpen) injectThemeOverride();
+          // Tint the frame's top safe-area strip to the app's top color (after
+          // first paint) so the header stays visually connected to the top.
+          requestAnimationFrame(() => requestAnimationFrame(sampleAppTopBg));
         }}
       />
     </>
@@ -1811,7 +1851,7 @@ export const ProjectPreviewViewer = ({
           <div className="flex min-h-0 flex-1 items-stretch justify-center gap-6 overflow-hidden py-2">
             {/* Phone frame holding the live preview (Claude Design PhoneShell) */}
             <div className="flex min-h-0 flex-1 items-stretch justify-center">
-              <PhoneShell>{previewSurface}</PhoneShell>
+              <PhoneShell screenBg={appTopBg}>{previewSurface}</PhoneShell>
             </div>
             <MobilePreviewPanel
               shareUrl={shareUrl}
