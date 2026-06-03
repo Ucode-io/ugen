@@ -126,7 +126,7 @@ export const ProjectDropdown = ({
   const monthlyTokens = toTokenUsage(pricingData?.data?.tokens?.monthly)
   const projectCount = pricingData?.data?.project_count
   const userCount = pricingData?.data?.user_count
-  // const builderCount = pricingData?.data?.builders
+  const builderCount = pricingData?.data?.builders
 
   useEffect(() => {
     if (isProjectPopupOpen && buttonRef.current) {
@@ -301,7 +301,7 @@ export const ProjectDropdown = ({
               <TokenBar label="Monthly" item={monthlyTokens} />
               <TokenBar label="Projects" item={projectCount} />
               <TokenBar label="Users" item={userCount} />
-              {/* <TokenBar label="Builders" item={builderCount} color="bg-emerald-500" /> */}
+              <TokenBar label="Builders" item={builderCount} />
               <button
                 onClick={() => {
                   setIsProjectPopupOpen(false)
