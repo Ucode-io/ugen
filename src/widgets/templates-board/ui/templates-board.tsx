@@ -6,10 +6,14 @@ import { useRouter } from "@/shared/lib/i18n/navigation";
 
 import {
   fetchTemplates,
+  getTemplateDislikeCount,
   getTemplateImage,
+  getTemplateLikeCount,
+  getTemplateMyReaction,
   getTemplateTitle,
   type Template,
 } from "../model/templates";
+import { TemplateReactions } from "./template-reactions";
 
 export const TemplatesBoard = () => {
   const router = useRouter();
@@ -105,10 +109,18 @@ const TemplateCard = ({
           />
         )}
       </div>
-      <div>
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-text-main truncate text-[15px] font-semibold">
           {title}
         </h3>
+        <div onClick={(e) => e.stopPropagation()}>
+          <TemplateReactions
+            templateId={template.id}
+            initialReaction={getTemplateMyReaction(template)}
+            initialLikeCount={getTemplateLikeCount(template)}
+            initialDislikeCount={getTemplateDislikeCount(template)}
+          />
+        </div>
       </div>
     </div>
   );
