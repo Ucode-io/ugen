@@ -329,11 +329,12 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
 
 const AnalyticsTab = () => {
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
+  const apiKey = useAuthStore((state) => state.apiKey);
 
-  const { data: pricingData } = useQuery({
-    queryKey: ["pricing-all"],
+  const { data: companyStats } = useQuery({
+    queryKey: ["pricing-company-stats", apiKey],
     queryFn: async () => {
-      const { data } = await api.get("/v1/pricing/all");
+      const { data } = await api.get("/v1/pricing/company-stats");
       return data;
     },
     staleTime: 0,
@@ -363,7 +364,7 @@ const AnalyticsTab = () => {
   return (
     <div className="animate-in fade-in space-y-8 duration-300">
       <UsageLimitsTab
-        pricingData={pricingData}
+        companyStats={companyStats}
         fareData={fareData}
         currentFareData={currentFareData}
       />

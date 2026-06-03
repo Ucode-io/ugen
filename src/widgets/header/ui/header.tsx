@@ -29,6 +29,7 @@ export const Header = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
   const [resourcesOpen, setResourcesOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const { isAuthenticated, setActiveView } = useAuthStore()
   const setPendingDraft = useChatStore(state => state.setPendingDraft)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -65,6 +66,12 @@ export const Header = () => {
   }, [])
 
   useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setResourcesOpen(false)
@@ -80,8 +87,27 @@ export const Header = () => {
   }, [])
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border-subtle bg-bg-card/85 backdrop-blur-md">
-      <div className="max-w-[1100px] mx-auto px-6 flex h-16 items-center justify-between">
+    <header
+      className="sticky top-0 z-50 w-full"
+      style={{
+        paddingTop: scrolled ? '12px' : '0px',
+        paddingLeft: scrolled ? '5%' : '0px',
+        paddingRight: scrolled ? '5%' : '0px',
+        transition: 'padding 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
+    <div
+      className={`flex items-center justify-between backdrop-blur-lg ${scrolled ? 'bg-bg-card/95' : 'bg-bg-card/85'}`}
+      style={{
+        height: scrolled ? '3rem' : '4rem',
+        borderRadius: scrolled ? '999px' : '0px',
+        paddingInline: scrolled ? '0.5rem' : '1.5rem',
+        boxShadow: scrolled ? '0 1px 6px 0 rgb(0 0 0 / 0.08)' : 'none',
+        borderBottom: scrolled ? 'none' : '1px solid var(--color-border-subtle)',
+        outline: scrolled ? '1px solid var(--color-border-subtle)' : '1px solid transparent',
+        transition: 'height 500ms cubic-bezier(0.4, 0, 0.2, 1), border-radius 500ms cubic-bezier(0.4, 0, 0.2, 1), padding 500ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 500ms cubic-bezier(0.4, 0, 0.2, 1), outline-color 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
       <div className="flex items-center gap-7">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <Image
@@ -192,7 +218,7 @@ export const Header = () => {
           {isAuthenticated ? (
             <button
               onClick={() => setActiveView('dashboard')}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 cursor-pointer"
+              className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 cursor-pointer"
             >
               Open u&#8209;gen
             </button>
@@ -200,13 +226,13 @@ export const Header = () => {
             <>
               <button
                 onClick={() => openAuth('login')}
-                className="text-sm font-medium text-text-muted hover:text-text-main transition-colors cursor-pointer border border-border-subtle px-4 py-1.5 rounded-lg hover:border-border-subtle/60 bg-transparent"
+                className="text-sm font-medium text-text-muted hover:text-text-main transition-colors cursor-pointer border border-border-subtle px-4 py-1.5 rounded-full hover:border-border-subtle/60 bg-transparent"
               >
                 {tNav('login')}
               </button>
               <button
                 onClick={() => openAuth('register')}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 cursor-pointer"
+                className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 cursor-pointer"
               >
                 {tNav('get_started')}
               </button>
@@ -214,7 +240,7 @@ export const Header = () => {
           )}
         </div>
       </div>
-      </div>
+    </div>
 
       <AuthModal
         isOpen={isAuthOpen}
