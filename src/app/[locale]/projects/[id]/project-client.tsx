@@ -177,7 +177,9 @@ export const ProjectWorkspaceClient = ({
   const setPendingPrompt = useChatStore((state) => state.setPendingPrompt);
 
   const handleRetryStream = useCallback(() => {
-    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+    const lastUserMessage = [...messages]
+      .reverse()
+      .find((m) => m.role === "user");
     if (!lastUserMessage?.content) {
       setStreamError(null);
       return;

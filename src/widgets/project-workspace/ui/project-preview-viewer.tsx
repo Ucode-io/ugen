@@ -391,6 +391,9 @@ const DEVICES: { id: DeviceType; label: string; icon: React.ReactNode }[] = [
   { id: "mobile", label: "Mobile", icon: <Smartphone size={14} /> },
 ];
 
+/** App type stored on the MCP project (`project_type`). */
+export type ProjectType = "admin_panel" | "web" | "landing" | "webapp";
+
 interface ProjectPreviewViewerProps {
   device?: DeviceType;
   isMaximized?: boolean;
@@ -472,6 +475,22 @@ export const ProjectPreviewViewer = ({
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
 
   const isFunction = activeCodeSelection?.kind === "function";
+
+  // MCP project record — drives both the web-app preview mode (`project_type`)
+  // and the screenshot backfill check (`project_image`). `/v1/mcp_project/*` is
+  // a bearer-only endpoint, so the shared request interceptor attaches auth and
+  // no headers are needed here.
+  const { data: mcpProject } = useQuery({
+    queryKey: ["mcp-project", projectId],
+    queryFn: async () => {
+      const { data } = await api.get(`/v1/mcp_project/${projectId}`);
+      return (data?.data ?? null) as {
+        project_type?: ProjectType;
+        project_image?: string | null;
+      } | null;
+    },
+    enabled: !!projectId,
+  });
 
   const { data: microfrontendsList = [] } = useQuery({
     queryKey: ["preview-microfrontends", projectId],
@@ -831,7 +850,9 @@ export const ProjectPreviewViewer = ({
       const win = iframeRef.current?.contentWindow;
       if (!doc || !win || !doc.body) return;
       const isOpaque = (c: string) =>
-        !!c && c !== "transparent" && !c.replace(/\s/g, "").startsWith("rgba(0,0,0,0)");
+        !!c &&
+        c !== "transparent" &&
+        !c.replace(/\s/g, "").startsWith("rgba(0,0,0,0)");
       const w = doc.documentElement.clientWidth || 320;
       let el: Element | null = doc.elementFromPoint(Math.floor(w / 2), 2);
       let color = "";
@@ -845,7 +866,9 @@ export const ProjectPreviewViewer = ({
       }
       if (!color) {
         const bodyBg = win.getComputedStyle(doc.body).backgroundColor;
-        const htmlBg = win.getComputedStyle(doc.documentElement).backgroundColor;
+        const htmlBg = win.getComputedStyle(
+          doc.documentElement,
+        ).backgroundColor;
         color = isOpaque(bodyBg) ? bodyBg : isOpaque(htmlBg) ? htmlBg : "";
       }
       if (color) setAppTopBg(color);
@@ -853,7 +876,14 @@ export const ProjectPreviewViewer = ({
       // --- top content clearance: y of the highest text/media element, so we
       // only reserve the safe area the app is missing (avoids a double gap). ---
       const media = new Set([
-        "SVG", "IMG", "INPUT", "BUTTON", "CANVAS", "VIDEO", "SELECT", "TEXTAREA",
+        "SVG",
+        "IMG",
+        "INPUT",
+        "BUTTON",
+        "CANVAS",
+        "VIDEO",
+        "SELECT",
+        "TEXTAREA",
       ]);
       const nodes = doc.body.querySelectorAll<HTMLElement>("*");
       let minTop = Infinity;
@@ -875,7 +905,12 @@ export const ProjectPreviewViewer = ({
         if (r.top >= 0 && r.top < minTop) minTop = r.top;
       }
       const clearance = minTop === Infinity ? PHONE_SAFE_AREA_TOP : minTop;
-      setTopInset(Math.max(0, Math.min(PHONE_SAFE_AREA_TOP, PHONE_SAFE_AREA_TOP - clearance)));
+      setTopInset(
+        Math.max(
+          0,
+          Math.min(PHONE_SAFE_AREA_TOP, PHONE_SAFE_AREA_TOP - clearance),
+        ),
+      );
     } catch {
       // same-origin read failed or DOM not ready — keep the default strip color.
     }
@@ -1124,28 +1159,23 @@ export const ProjectPreviewViewer = ({
     if (!projectId) return;
     // Don't backfill while browsing version history — those files aren't the
     // project's current state.
-    if (isVersionHistory || (versionPreviewFiles && versionPreviewFiles.length > 0))
+    if (
+      isVersionHistory ||
+      (versionPreviewFiles && versionPreviewFiles.length > 0)
+    )
       return;
     if (screenshotCheckedRef.current) return;
+    // Wait for the shared mcp_project query before deciding — reusing it avoids
+    // a second GET to the same endpoint.
+    if (!mcpProject) return;
     screenshotCheckedRef.current = true;
-    api
-      .get(`/v1/mcp_project/${projectId}`)
-      .then((res) => {
-        const existing = res.data?.data?.project_image;
-        if (!existing) {
-          needsScreenshotRef.current = true;
-          console.log(
-            "[preview screenshot] no existing project_image — will capture on next successful build",
-          );
-        }
-      })
-      .catch((err) => {
-        console.error(
-          "[preview screenshot] failed to check existing project_image:",
-          err,
-        );
-      });
-  }, [projectId, isVersionHistory, versionPreviewFiles]);
+    if (!mcpProject.project_image) {
+      needsScreenshotRef.current = true;
+      console.log(
+        "[preview screenshot] no existing project_image — will capture on next successful build",
+      );
+    }
+  }, [projectId, isVersionHistory, versionPreviewFiles, mcpProject]);
 
   useEffect(() => {
     // Skip while microfrontend codebase is still loading or chat is streaming —
@@ -1391,9 +1421,10 @@ export const ProjectPreviewViewer = ({
   const iframeWidth = DEVICE_WIDTHS[device];
   const selectedDevice = DEVICES.find((d) => d.id === device) ?? DEVICES[0];
 
-  // TEMP (testing): treat every project as a web app statically. Once the
-  // backend exposes a real app type, replace this with that signal.
-  const isWebApp = true;
+  // Only a mobile-first web app (`project_type === "webapp"`) renders inside the
+  // phone frame; every other type — admin_panel / web / landing — and an
+  // unknown/missing value fall back to the full-width desktop preview.
+  const isWebApp = mcpProject?.project_type === "webapp";
 
   // Web-app preview mode: render the live preview inside a phone frame next to
   // the "preview on your phone" QR panel — always for a previewable web app,
