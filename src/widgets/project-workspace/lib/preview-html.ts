@@ -411,7 +411,13 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
       </script>
 
       <style>
-        html, body, #root { height: 100%; margin: 0; padding: 0; }
+        html, body { height: 100%; margin: 0; padding: 0; }
+        /* #root uses min-height (not a fixed 100%) so apps laid out in natural
+           document flow — content taller than the viewport with no inner
+           overflow:auto scroller — can grow past the frame height and the page
+           scrolls to reach them. A fixed height:100% here pins #root to exactly
+           the viewport and clips anything below the fold (no scroll). */
+        #root { min-height: 100%; margin: 0; padding: 0; }
 
         /* Hide the page scrollbar (content stays scrollable) — keeps the
            device-frame preview clean. Inner component scrollbars are untouched. */
