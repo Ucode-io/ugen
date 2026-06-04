@@ -8,7 +8,8 @@ import { useTranslations } from 'next-intl'
 import { z } from 'zod'
 import { useAuthStore } from '@/entities/session'
 import { useChatStore } from '@/entities/chat'
-import { fetchUserProjects } from '@/entities/project'
+import { fetchUserProjects, matchUserProject } from '@/entities/project'
+import { logIsUgen } from '@/shared/lib/is-ugen-log'
 import { loginSchema, type LoginFormValues } from '../model/validation'
 import { authApi, api } from '@/shared/api'
 import { useRouter } from '@/shared/lib/i18n/navigation'
@@ -125,6 +126,15 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
       role
     }
 
+    logIsUgen('login:raw', {
+      responseData_is_ugen: responseData?.is_ugen,
+      project_data_is_ugen: project_data?.is_ugen,
+      project_data_project_id: project_data?.project_id,
+      project_data_environment_id: project_data?.environment_id,
+      project_data_company_id: project_data?.company_id,
+      resolved: responseData?.is_ugen ?? project_data?.is_ugen ?? false,
+    })
+
     setAuth(
       userData,
       { ...project_data, is_ugen: responseData?.is_ugen ?? project_data?.is_ugen ?? false },
@@ -135,31 +145,51 @@ export const LoginForm = ({ onSuccess, defaultValues }: LoginFormProps) => {
       token?.refresh_token
     )
 
-    // The login response's is_ugen flag is unreliable for freshly registered
-    // accounts (it can come back false), which makes the dashboard render the
-    // non-ugen layout. /v1/ugen/user-projects is the source of truth used by
-    // the project dropdown, so reconcile is_ugen from there before navigating.
+    // The login response's is_ugen flag is unreliable (it can come back false
+    // even for ugen accounts), which makes the dashboard render the non-ugen
+    // layout. /v1/ugen/user-projects is the source of truth the project
+    // dropdown reads, so reconcile is_ugen from there — exactly like switching
+    // a workspace does — before navigating. Matched by project_id with an
+    // environment_id fallback so a differing id-space can't silently skip it.
     try {
       const companies = await fetchUserProjects()
-      const matchedCompany = companies.find((c) =>
-        c.projects.some((p) => p.id === project_data?.project_id)
-      )
-      const matched = matchedCompany?.projects.find(
-        (p) => p.id === project_data?.project_id
-      )
+      const matched = matchUserProject(companies, {
+        projectId: project_data?.project_id,
+        environmentId: project_data?.environment_id,
+      })
+      logIsUgen('login:reconcile', {
+        matched: !!matched,
+        matchedBy: matched?.matchedBy ?? 'none',
+        matched_is_ugen: matched?.project?.is_ugen,
+        matched_project_id: matched?.project?.id,
+        matched_company_id: matched?.companyId,
+        lookup: {
+          projectId: project_data?.project_id,
+          environmentId: project_data?.environment_id,
+        },
+        userProjects: companies.flatMap((c) =>
+          c.projects.map((p) => ({ company: c.id, id: p.id, env: p.environment_id, is_ugen: p.is_ugen }))
+        ),
+      })
       if (matched) {
         useAuthStore.setState((state) => ({
           project: state.project
-            ? { ...state.project, is_ugen: matched.is_ugen }
+            ? { ...state.project, is_ugen: matched.project.is_ugen }
             : state.project,
           // user-projects is the source of truth for company ids used by the
           // project dropdown, so align activeCompanyId with it instead of the
           // (possibly different id-space) project_data.company_id.
-          activeCompanyId: matchedCompany?.id ?? state.activeCompanyId,
+          activeCompanyId: matched.companyId ?? state.activeCompanyId,
         }))
+      } else {
+        console.warn('[is_ugen] login:reconcile no match — flag stays at raw login value', {
+          projectId: project_data?.project_id,
+          environmentId: project_data?.environment_id,
+        })
       }
+      logIsUgen('login:final', { is_ugen: useAuthStore.getState().project?.is_ugen })
     } catch (err) {
-      console.error('Failed to reconcile is_ugen from user-projects', err)
+      console.error('[is_ugen] login:reconcile failed', err)
     }
 
     try {
