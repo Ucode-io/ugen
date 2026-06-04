@@ -12,6 +12,7 @@ import {
   Check,
   FolderPlus,
   Folder,
+  ChevronDown,
 } from "lucide-react";
 import {
   useState,
@@ -29,13 +30,20 @@ import {
 } from "@/shared/ui";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
 import { useVisualEditorStore } from "@/entities/visual-editor";
-import { DEFAULT_MODEL_ID } from "@/entities/ai-model";
+import {
+  DEFAULT_MODEL_ID,
+  CHAT_PROVIDERS,
+  type ChatProvider,
+  normalizeChatProvider,
+} from "@/entities/ai-model";
 import { cn } from "@/shared/lib/utils/cn";
 import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { api } from "@/shared/api";
 import type { CodeEditorTarget } from "@/entities/session";
 import { useAuthStore } from "@/entities/session";
+import { useChatStore } from "@/entities/chat";
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
 import { useGuardedAction } from "@/widgets/project-workspace/lib/save-flow";
 
@@ -108,6 +116,10 @@ export const ChatInput = ({
     useFileUpload();
 
   const apiKey = useAuthStore((s) => s.apiKey);
+  const project = useAuthStore((s) => s.project);
+  const chatId = useChatStore((s) => s.chatId);
+  const chatModel = useChatStore((s) => s.chatModel);
+  const setChatModel = useChatStore((s) => s.setChatModel);
   const activeCodeSelection = useCodeSelectionStore(
     (s) => s.activeCodeSelection,
   );
@@ -125,6 +137,44 @@ export const ChatInput = ({
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
   const [recentlySelected, setRecentlySelected] = useState(false);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // AI provider selector (Claude / OpenAI / Gemini). The active value is mirrored
+  // in the chat store; selecting one persists it on the chat via PUT.
+  const [modelOpen, setModelOpen] = useState(false);
+  const [savingModel, setSavingModel] = useState(false);
+  const currentProvider = normalizeChatProvider(chatModel);
+  const currentProviderName =
+    CHAT_PROVIDERS.find((p) => p.id === currentProvider)?.name ?? "Claude";
+
+  const handleSelectModel = async (next: ChatProvider) => {
+    setModelOpen(false);
+    if (next === currentProvider) return;
+    const prev = chatModel;
+    setChatModel(next); // optimistic
+    // No chat yet — keep the local choice; it'll be persisted once a chat exists.
+    if (!chatId) return;
+    setSavingModel(true);
+    try {
+      await api.put(
+        `/v1/ai-chat/${chatId}`,
+        { model: next },
+        {
+          headers: {
+            project_id: projectId ?? project?.project_id ?? "",
+            environment_id: project?.environment_id ?? "",
+          },
+        },
+      );
+      const label = CHAT_PROVIDERS.find((p) => p.id === next)?.name ?? next;
+      toast.success(`Provider changed to ${label}`);
+    } catch (err) {
+      setChatModel(prev); // revert on failure
+      toast.error("Failed to change provider");
+      console.error("Failed to update chat model", err);
+    } finally {
+      setSavingModel(false);
+    }
+  };
 
   // Highlight the folder icon green for 15s. Called only from the manual
   // selection handlers — the auto/bootstrap selection must not trigger it,
@@ -662,6 +712,45 @@ export const ChatInput = ({
                   )}
                 </>
               )}
+            </PopoverContent>
+          </Popover>
+
+          <Popover open={modelOpen} onOpenChange={setModelOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                disabled={savingModel}
+                className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 items-center gap-1 rounded-full px-2 text-xs font-medium transition-colors disabled:opacity-60"
+                title={t("input.model", { fallback: "AI provider" })}
+              >
+                {savingModel ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Sparkles size={13} className="text-primary shrink-0" />
+                )}
+                <span>{currentProviderName}</span>
+                <ChevronDown size={12} className="opacity-60" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              align="start"
+              sideOffset={6}
+              className="w-40 p-0.5"
+            >
+              {CHAT_PROVIDERS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleSelectModel(p.id)}
+                  className="text-text-main hover:bg-hover-bg flex w-full items-center justify-between gap-1.5 rounded px-2 py-1 text-left text-xs"
+                >
+                  <span className="truncate">{p.name}</span>
+                  {currentProvider === p.id && (
+                    <Check size={10} className="text-primary shrink-0" />
+                  )}
+                </button>
+              ))}
             </PopoverContent>
           </Popover>
         </div>

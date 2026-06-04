@@ -773,7 +773,8 @@
         "visualEdits": "Визуальное редактирование",
         "plan": "План",
         "send": "Отправить (Enter)",
-        "element": "Элемент"
+        "element": "Элемент",
+        "model": "AI-провайдер"
       },
       "bpmn": {
         "confirmPrompt": "Принять или отклонить BPMN",
