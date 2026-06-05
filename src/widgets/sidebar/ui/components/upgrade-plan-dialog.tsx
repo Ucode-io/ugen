@@ -695,11 +695,18 @@ export const UpgradePlanDialog = ({
                     {/* When the current paid plan ends -- renewal date, or the
                      * switch-over date when a downgrade is scheduled. */}
                     {isCurrent && !isFree && planEndDate && (
-                      <p className="text-text-muted mt-1.5 flex items-center gap-1 text-[0.7rem]">
-                        <CalendarClock size={11} className="shrink-0" />
+                      <div
+                        className={cn(
+                          "mt-2.5 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.72rem] font-semibold",
+                          isPendingDowngrade
+                            ? "bg-amber-500/10 text-amber-600"
+                            : "bg-primary/10 text-primary",
+                        )}
+                      >
+                        <CalendarClock size={12} className="shrink-0" />
                         {isPendingDowngrade ? "Ends" : "Renews"}{" "}
                         {formatSubscriptionDate(planEndDate)}
-                      </p>
+                      </div>
                     )}
                   </div>
 
