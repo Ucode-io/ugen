@@ -5,6 +5,7 @@ import { Link, useRouter } from "@/shared/lib/i18n/navigation";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/entities/session";
+import { useSyncCurrentPlan } from "@/entities/billing";
 import Image from 'next/image'
 import { SearchModal } from "@/features/search";
 
@@ -31,6 +32,11 @@ export const Sidebar = ({ className, hideLogo, isHidden, onProfilePopupChange, o
   const t = useTranslations('Navigation');
   const { user, project, logout } = useAuthStore();
   const isUgen = project?.is_ugen ?? false;
+
+  // Keep the store's fare_id in step with /v1/subscription/current so an expired
+  // plan that the backend auto-downgraded to free is reflected everywhere the
+  // current plan is shown (dropdown, billing tab, profile, pricing).
+  useSyncCurrentPlan();
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);

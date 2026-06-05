@@ -278,6 +278,9 @@ export const UpgradePlanDialog = ({
       queryClient.invalidateQueries({ queryKey: ["fares", "ugen"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "fare"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "company-project"] });
+      queryClient.invalidateQueries({
+        queryKey: ["billing", "subscription", "current"],
+      });
       queryClient.invalidateQueries({ queryKey: ["pricing-company-stats"] });
       if (isCancelDowngrade) {
         toast.success("Downgrade canceled");

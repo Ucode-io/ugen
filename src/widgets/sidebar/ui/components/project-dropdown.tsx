@@ -137,6 +137,10 @@ export const ProjectDropdown = ({
   const planEndDate =
     currentSubscription?.end_date ?? currentSubscription?.renewal_date
   const isPendingDowngrade = currentSubscription?.status === 'pending_downgrade'
+  // The free plan has no billing period, so it never shows a renew/ends date.
+  const isFreePlan =
+    currentSubscription?.type === 'free' ||
+    (currentFare ? Number(currentFare.price) <= 0 : false)
 
   const toTokenUsage = (t?: { input_tokens?: number; output_tokens?: number; limit?: number }) =>
     t ? { current: (t.input_tokens ?? 0) + (t.output_tokens ?? 0), limit: t.limit ?? 0 } : undefined
@@ -304,7 +308,7 @@ export const ProjectDropdown = ({
                     {currentFare?.name || project?.subscription_type}
                     {/* || t("freePlan") */}
                   </span>
-                  {planEndDate && (
+                  {!isFreePlan && planEndDate && (
                     <span
                       className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${
                         isPendingDowngrade

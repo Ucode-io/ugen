@@ -68,6 +68,11 @@ export const BillingTab = () => {
     currentSubscription?.renewal_date ??
     fare?.subscription?.end_date;
 
+  // Free plan has no billing period, so it never surfaces an expire date.
+  const isFreePlan =
+    currentSubscription?.type === "free" ||
+    (fare ? Number(fare.price) <= 0 : false);
+
   const currentProject = useMemo(
     () =>
       companyProjects.find((p) => p.project_id === projectId) ??
@@ -88,7 +93,7 @@ export const BillingTab = () => {
         balanceUsd={balanceUsd}
         planName={fare?.name}
         totalAmount={fare?.price}
-        expireDate={planEndDate}
+        expireDate={isFreePlan ? undefined : planEndDate}
         currency={currency}
         isLoading={fareLoading || subscriptionLoading}
         onTopUp={() => setTopUpOpen(true)}
@@ -144,12 +149,17 @@ const InvoiceSummaryCard = ({
       value: `${formatAmount(totalAmount)} ${currency}`,
       tone: "bg-amber-500/10 text-amber-600",
     },
-    {
-      icon: CalendarClock,
-      label: "Expires",
-      value: formatPlanDate(expireDate),
-      tone: "bg-emerald-500/10 text-emerald-600",
-    },
+    // Omitted for the free plan (no billing period -> no expire date passed in).
+    ...(expireDate
+      ? [
+          {
+            icon: CalendarClock,
+            label: "Expires",
+            value: formatPlanDate(expireDate),
+            tone: "bg-emerald-500/10 text-emerald-600",
+          },
+        ]
+      : []),
   ];
 
   return (
