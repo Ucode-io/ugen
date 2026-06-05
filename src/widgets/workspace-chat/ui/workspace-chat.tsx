@@ -4,6 +4,7 @@ import { History, Loader2, PanelLeft, PanelRight } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
 import { useChatStore, Message } from "@/entities/chat";
+import { normalizeChatProvider } from "@/entities/ai-model";
 import { Checkbox } from "@/shared/ui";
 import { api } from "@/shared/api";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
@@ -174,6 +175,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
   const updateMessage = useChatStore((state) => state.updateMessage);
   const chatId = useChatStore((state) => state.chatId);
   const setChatId = useChatStore((state) => state.setChatId);
+  const setChatModel = useChatStore((state) => state.setChatModel);
   const setStoreProjectId = useChatStore((state) => state.setProjectId);
   const clearChat = useChatStore((state) => state.clearChat);
   const pendingPrompt = useChatStore((state) => state.pendingPrompt);
@@ -262,6 +264,13 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
 
       if (historyMessages.length > 0) {
         setChatId(historyMessages[0].chat_id || historyMessages?.[1]?.chat_id);
+        // Sync the chat-level provider when the payload carries it. Only set on
+        // a truthy value so the post-send refresh (which may omit `model`) can't
+        // reset a provider the user just picked.
+        const rawModel =
+          (!Array.isArray(resData) ? (resData as any)?.model : undefined) ??
+          (historyMessages[0] as any)?.model;
+        if (rawModel) setChatModel(normalizeChatProvider(rawModel));
         const formatted = historyMessages.map((m: Message) => ({
           id: m.id || Date.now().toString(),
           role: m.role || "ai",

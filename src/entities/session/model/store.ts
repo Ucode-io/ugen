@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { queryClient } from '@/shared/api/query-client'
+import { logIsUgen } from '@/shared/lib/is-ugen-log'
 
 export interface CodeEditorTarget {
   kind: 'frontend' | 'microfrontend' | 'function' | 'new_project'
@@ -124,7 +125,13 @@ export const useAuthStore = create<AuthState>()(
       setActiveProjectTab: (tab) => set({ activeProjectTab: tab }),
       setCodeEditorTarget: (target) => set({ codeEditorTarget: target }),
       setLanguages: (languages: Language[]) => set({ languages }),
-      setAuth: (user, project, permissions, appPermissions, globalPermission, accessToken, refreshToken) =>
+      setAuth: (user, project, permissions, appPermissions, globalPermission, accessToken, refreshToken) => {
+        logIsUgen('store:setAuth', {
+          is_ugen: project?.is_ugen,
+          project_id: project?.project_id,
+          environment_id: project?.environment_id,
+          company_id: project?.company_id,
+        })
         set({
           user,
           project,
@@ -139,8 +146,15 @@ export const useAuthStore = create<AuthState>()(
           // previous session can't leak into a new one. Seed it from the fresh
           // project_data when available.
           activeCompanyId: project?.company_id ?? null,
-        }),
-      switchProjectAuth: (projectPatch, accessToken, refreshToken) =>
+        })
+      },
+      switchProjectAuth: (projectPatch, accessToken, refreshToken) => {
+        logIsUgen('store:switchProjectAuth', {
+          is_ugen: projectPatch.is_ugen,
+          project_id: projectPatch.project_id,
+          title: projectPatch.title,
+          company_id: projectPatch.company_id,
+        })
         set((state) => ({
           accessToken,
           refreshToken,
@@ -154,8 +168,10 @@ export const useAuthStore = create<AuthState>()(
                 is_ugen: projectPatch.is_ugen,
               }
             : state.project,
-        })),
+        }))
+      },
       logout: () => {
+        logIsUgen('store:logout', {})
         queryClient.clear()
         set({
           user: null,

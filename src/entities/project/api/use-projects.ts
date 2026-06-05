@@ -23,6 +23,38 @@ export const fetchUserProjects = async (): Promise<UserCompany[]> => {
   return data?.data?.companies ?? []
 }
 
+export interface MatchedUserProject {
+  project: UserProject
+  companyId: string
+  matchedBy: 'project_id' | 'environment_id'
+}
+
+/**
+ * Correlate a project from a login/refresh response with the user-projects
+ * source of truth (the same data the project dropdown reads is_ugen from).
+ *
+ * The auth responses' project id doesn't always line up with the
+ * user-projects `.id` (different id-space), which is why matching purely by
+ * `project_id` silently fails and leaves the unreliable login is_ugen in
+ * place. environment_id is stable across endpoints, so fall back to it.
+ * Returns null when nothing matches so callers can log instead of trusting a
+ * stale flag.
+ */
+export const matchUserProject = (
+  companies: UserCompany[],
+  { projectId, environmentId }: { projectId?: string | null; environmentId?: string | null }
+): MatchedUserProject | null => {
+  const flat = companies.flatMap((c) =>
+    c.projects.map((project) => ({ project, companyId: c.id }))
+  )
+  const byId = projectId ? flat.find((e) => e.project.id === projectId) : undefined
+  if (byId) return { ...byId, matchedBy: 'project_id' }
+  const byEnv = environmentId
+    ? flat.find((e) => e.project.environment_id === environmentId)
+    : undefined
+  return byEnv ? { ...byEnv, matchedBy: 'environment_id' } : null
+}
+
 export const useUserProjects = () => {
   return useQuery({
     queryKey: ['user-projects'],

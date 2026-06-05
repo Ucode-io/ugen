@@ -28,6 +28,10 @@ export interface SseEvent<T = any> {
 interface ChatState {
   chatId: string | null
   projectId: string | null
+  // Chat-level AI provider ("claude" | "gemini" | "openai"). Persisted on the
+  // backend via PUT /v1/ai-chat/:chat-id; mirrored here so the chat-input
+  // selector reflects the active provider. Defaults to "claude".
+  chatModel: string
   messages: Message[]
   chatWidth: number
   chatPosition: ChatPosition
@@ -66,6 +70,7 @@ interface ChatState {
   setChatPosition: (position: ChatPosition) => void
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void
+  setChatModel: (model: string) => void
   setIsStreaming: (isStreaming: boolean) => void
   setStreamError: (error: string | null) => void
   setPendingScreenshot: (pendingScreenshot: boolean) => void
@@ -84,6 +89,7 @@ export const useChatStore = create<ChatState>()(
     (set) => ({
       chatId: null,
       projectId: null,
+      chatModel: 'claude',
       messages: [],
       chatWidth: 360,
       pendingPrompt: null,
@@ -97,6 +103,7 @@ export const useChatStore = create<ChatState>()(
       clearSseEvents: () => set({ sseEvents: [] }),
       setChatId: (id) => set({ chatId: id }),
       setProjectId: (id) => set({ projectId: id }),
+      setChatModel: (chatModel) => set({ chatModel }),
       setChatPosition: (position) => set({ chatPosition: position }),
       setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
       setPendingDraft: (draft) => set({ pendingDraft: draft }),
@@ -114,7 +121,7 @@ export const useChatStore = create<ChatState>()(
         messages: state.messages.map(m => m.id === id ? { ...m, ...updated } : m)
       })),
       setChatWidth: (width) => set({ chatWidth: width }),
-      clearChat: () => set({ chatId: null, projectId: null, messages: [], pendingPrompt: null }),
+      clearChat: () => set({ chatId: null, projectId: null, chatModel: 'claude', messages: [], pendingPrompt: null }),
     }),
     {
       name: 'chat-storage',

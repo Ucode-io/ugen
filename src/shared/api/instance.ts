@@ -1,6 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/entities/session'
 import { handlePaymentRequired } from '@/entities/billing/model/billing-limit-store'
+import { logIsUgen } from '@/shared/lib/is-ugen-log'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.admin.u-code.io'
 const AUTH_BASE_URL = process.env.NEXT_PUBLIC_AUTH_BASE_URL || 'https://api.auth.u-code.io'
@@ -124,15 +125,32 @@ const processQueue = (error: unknown, token: string | null = null) => {
 // interceptor skips the project-scoped API-KEY path even on a project page.
 const reconcileIsUgenFromUserProjects = async (token: string) => {
   try {
-    const projectId = useAuthStore.getState().project?.project_id
-    if (!projectId) return
+    const project = useAuthStore.getState().project
+    const projectId = project?.project_id
+    const environmentId = project?.environment_id
+    if (!projectId && !environmentId) return
     const { data } = await api.get('/v1/ugen/user-projects', {
       headers: { Authorization: `Bearer ${token}` },
     })
     const companies = data?.data?.companies ?? []
-    const matched = companies
-      .flatMap((c: any) => c.projects ?? [])
-      .find((p: any) => p.id === projectId)
+    const allProjects = companies.flatMap((c: any) => c.projects ?? [])
+    // Match by project id first; fall back to environment_id since the stored
+    // project_id can be in a different id-space than user-projects' .id.
+    const byId = allProjects.find((p: any) => p.id === projectId)
+    const matched =
+      byId ??
+      (environmentId
+        ? allProjects.find((p: any) => p.environment_id === environmentId)
+        : undefined)
+    logIsUgen('refresh:reconcile', {
+      store_project_id: projectId,
+      store_environment_id: environmentId,
+      prev_is_ugen: project?.is_ugen,
+      matched: !!matched,
+      matchedBy: byId ? 'project_id' : matched ? 'environment_id' : 'none',
+      matched_is_ugen: matched?.is_ugen,
+      userProjects: allProjects.map((p: any) => ({ id: p.id, env: p.environment_id, is_ugen: p.is_ugen })),
+    })
     if (matched) {
       useAuthStore.setState((state) => ({
         project: state.project

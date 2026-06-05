@@ -6,6 +6,7 @@ import axios from "axios";
 import { api } from "@/shared/api";
 import { useAuthStore } from "@/entities/session";
 import { useRouter } from "@/shared/lib/i18n/navigation";
+import { logIsUgen } from "@/shared/lib/is-ugen-log";
 
 const ugenAuthApi = axios.create({
   baseURL: "https://auth-api.ucode.run",
@@ -63,6 +64,13 @@ export const WorkspaceInviteClient = () => {
       const { project_data } = responseData;
       const response = responseData?.response || responseData;
       const { user: u, permissions, role, app_permissions, global_permission, environment_id, token } = response;
+
+      logIsUgen("invite:raw", {
+        project_data_is_ugen: project_data?.is_ugen,
+        project_data_project_id: project_data?.project_id,
+        project_data_environment_id: project_data?.environment_id,
+        note: "invite path has no reconcile — is_ugen = raw project_data only",
+      });
 
       setAuth(
         { id: u?.id, login: u?.login, email: u?.email, company_id: u?.company_id, environment_id, role },
