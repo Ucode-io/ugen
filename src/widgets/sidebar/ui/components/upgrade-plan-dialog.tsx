@@ -66,13 +66,6 @@ const PERIOD_MONTHS: Record<Period, number> = {
   month: 1,
 };
 
-/** Backend billing-period codes sent in the AttachFare body. */
-const PERIOD_CODE: Record<Period, "monthly" | "six_months" | "annual"> = {
-  month: "monthly",
-  "6month": "six_months",
-  year: "annual",
-};
-
 type PlanMeta = {
   key: string;
   fareName: string | null;
@@ -230,13 +223,36 @@ export const UpgradePlanDialog = ({
   );
   const balance = projectBalanceInfo?.balance ?? 0;
 
+  // AttachFare returns an empty (null) project, so after a successful change we
+  // re-fetch the project to reflect the real fare_id in the store and refresh
+  // the subscription detail (status / pending downgrade).
+  const refreshProject = async () => {
+    const id = useAuthStore.getState().project?.project_id;
+    if (!id) return;
+    const { data } = await api.get("/v1/company-project", {
+      params: { "project-id": id },
+      headers: {
+        Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
+      },
+    });
+    const info = data?.data;
+    const project = Array.isArray(info) ? info[0] : info;
+    const nextFareId = project?.fare_id;
+    const currentProject = useAuthStore.getState().project;
+    if (nextFareId && currentProject) {
+      useAuthStore.setState({
+        project: { ...currentProject, fare_id: nextFareId },
+      });
+    }
+  };
+
   const { mutate: attachFare, isPending: isAttaching } = useMutation({
     mutationFn: async (targetFareId: string) => {
       const { data } = await api.patch(
         "/v1/company/project/attach-fare",
         {
           fare_id: targetFareId,
-          billing_period_code: PERIOD_CODE[period],
+          discount_id: "ce1809e3-85db-4f94-b7fd-a8623530297b",
         },
         {
           headers: {
@@ -247,36 +263,13 @@ export const UpgradePlanDialog = ({
       );
       return data;
     },
-    onSuccess: (_data, targetFareId) => {
+    onSuccess: async (_data, targetFareId) => {
       // Calling AttachFare with the fare the project is already on cancels a
       // scheduled downgrade (see "Cancel downgrade") rather than switching plan.
       const isCancelDowngrade = targetFareId === fareId;
-      // A downgrade is scheduled for period end, so the project stays on its
-      // current fare until then; an upgrade takes effect immediately.
-      const targetFare = fares.find((f: any) => f.id === targetFareId);
-      const targetPrice = targetFare ? Number(targetFare.price) || 0 : 0;
-      const isDowngrade =
-        !isCancelDowngrade &&
-        currentPrice != null &&
-        targetPrice < currentPrice;
-
-      // For an immediate upgrade the project is now on the target fare. We set
-      // it in the store directly because AttachFare returns an empty project and
-      // re-fetching company-project can return a stale fare_id -- the fare we
-      // just successfully attached is authoritative. Downgrade/cancel keep the
-      // current fare_id (the change is scheduled, not applied now).
-      if (!isCancelDowngrade && !isDowngrade) {
-        const currentProject = useAuthStore.getState().project;
-        if (currentProject) {
-          useAuthStore.setState({
-            project: { ...currentProject, fare_id: targetFareId },
-          });
-        }
-      }
-
+      await refreshProject();
       queryClient.invalidateQueries({ queryKey: ["fares", "ugen"] });
       queryClient.invalidateQueries({ queryKey: ["billing", "fare"] });
-      queryClient.invalidateQueries({ queryKey: ["billing", "company-project"] });
       queryClient.invalidateQueries({ queryKey: ["pricing-company-stats"] });
       if (isCancelDowngrade) {
         toast.success("Downgrade canceled");
@@ -304,10 +297,6 @@ export const UpgradePlanDialog = ({
   // in the fare-by-id response; only fetched while the dialog is open.
   const { data: currentFareDetail } = useFare(open ? fareId : null, projectId);
   const subscription = currentFareDetail?.subscription;
-  // TEMP: inspect what the fare-by-id API returns for the current plan.
-  console.log("[upgrade-plan] fareId", fareId);
-  console.log("[upgrade-plan] currentFareDetail", currentFareDetail);
-  console.log("[upgrade-plan] subscription", subscription);
   const isPendingDowngrade = subscription?.status === "pending_downgrade";
   const pendingDowngradeFareId = subscription?.pending_fare_id ?? null;
   const subscriptionEndDate = subscription?.end_date;
@@ -686,16 +675,6 @@ export const UpgradePlanDialog = ({
                       )}
                     </div>
                     <p className="text-text-muted text-[0.7rem]">{displayPer}</p>
-
-                    {/* When the current paid plan ends -- renewal date, or the
-                     * switch-over date when a downgrade is scheduled. */}
-                    {isCurrent && !isFree && subscriptionEndDate && (
-                      <p className="text-text-muted mt-1.5 flex items-center gap-1 text-[0.7rem]">
-                        <CalendarClock size={11} className="shrink-0" />
-                        {isPendingDowngrade ? "Ends" : "Renews"}{" "}
-                        {formatSubscriptionDate(subscriptionEndDate)}
-                      </p>
-                    )}
                   </div>
 
                   {/* ── Features ── */}
