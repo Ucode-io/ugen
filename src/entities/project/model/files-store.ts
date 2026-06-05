@@ -8,11 +8,17 @@ export interface IFile {
 
 interface FilesState {
   files: IFile[]
+  // Project the files in this store belong to. Stamped whenever files are
+  // loaded for a project so consumers can tell whether the global store still
+  // holds the *previous* project's files during a navigation gap (the store is
+  // shared and is cleared in an effect cleanup that runs after the next
+  // project's viewer has already mounted). null = unknown / not yet stamped.
+  filesProjectId: string | null
   activeFile: string
   openedFiles: string[]
   expandedFolders: string[]
   updatedFiles: IFile[]
-  setFiles: (files: IFile[]) => void
+  setFiles: (files: IFile[], projectId?: string) => void
   setUpdatedFiles: (files: IFile[]) => void
   updateFile: (path: string, content: string) => void
   setActiveFile: (path: string) => void
@@ -23,12 +29,16 @@ interface FilesState {
 
 export const useFilesStore = create<FilesState>((set) => ({
   files: [],
+  filesProjectId: null,
   activeFile: '',
   openedFiles: [],
   expandedFolders: ['app', 'app/[locale]', 'styles', 'utils'],
   updatedFiles: [],
-  setFiles: (files) => set((state) => ({
+  setFiles: (files, projectId) => set((state) => ({
     files,
+    // Keep the existing stamp when the caller doesn't pass one (e.g. legacy
+    // writes); never silently overwrite a known project with `undefined`.
+    filesProjectId: projectId !== undefined ? projectId : state.filesProjectId,
     // Initialize activeFile if it's empty and we have files
     activeFile: state.activeFile || (files.length > 0 ? (
       files.find(f =>
@@ -49,6 +59,7 @@ export const useFilesStore = create<FilesState>((set) => ({
   setExpandedFolders: (expandedFolders) => set({ expandedFolders }),
   clearWorkspace: () => set({
     files: [],
+    filesProjectId: null,
     activeFile: '',
     openedFiles: [],
     expandedFolders: ['app', 'app/[locale]', 'styles', 'utils']

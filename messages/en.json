@@ -773,7 +773,8 @@
         "visualEdits": "Visual edits",
         "plan": "Plan",
         "send": "Send (Enter)",
-        "element": "Element"
+        "element": "Element",
+        "model": "AI provider"
       },
       "bpmn": {
         "confirmPrompt": "Accept or Reject BPMN",

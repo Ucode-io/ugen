@@ -773,7 +773,8 @@
         "visualEdits": "Vizual tahrirlash",
         "plan": "Reja",
         "send": "Yuborish (Enter)",
-        "element": "Element"
+        "element": "Element",
+        "model": "AI provayder"
       },
       "bpmn": {
         "confirmPrompt": "BPMN ni qabul qilish yoki rad etish",

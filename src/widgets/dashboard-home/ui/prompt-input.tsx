@@ -1,14 +1,14 @@
 // src/widgets/dashboard-home/ui/prompt-input.tsx
 'use client'
-import { Plus, ArrowUp, Loader2, X, FileIcon, Users, ShoppingCart, Package, ListTodo, UtensilsCrossed } from 'lucide-react'
+import { Plus, ArrowUp, Loader2, X, FileIcon, Users, ShoppingCart, Package, ListTodo, UtensilsCrossed, Sparkles, Check, ChevronDown } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { useRef, useEffect, useState, ClipboardEvent, DragEvent } from 'react'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { api } from '@/shared/api'
 import { useChatStore } from '@/entities/chat'
-import { AudioRecorder } from '@/shared/ui'
+import { AudioRecorder, Popover, PopoverContent, PopoverTrigger } from '@/shared/ui'
 import { useFileUpload } from '@/shared/hooks/useFileUpload'
-import { DEFAULT_MODEL_ID } from '@/entities/ai-model'
+import { DEFAULT_MODEL_ID, CHAT_PROVIDERS, DEFAULT_CHAT_PROVIDER, type ChatProvider } from '@/entities/ai-model'
 import { useTranslations } from 'next-intl'
 
 const PRESET_PROMPTS = [
@@ -27,12 +27,18 @@ export const PromptInput = () => {
 
   const [prompt, setPrompt] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  // Chat-level AI provider chosen before the first generation. Sent to the
+  // create API and mirrored into the store; defaults to Claude.
+  const [provider, setProvider] = useState<ChatProvider>(DEFAULT_CHAT_PROVIDER)
+  const [modelOpen, setModelOpen] = useState(false)
+  const currentProviderName = CHAT_PROVIDERS.find(p => p.id === provider)?.name ?? 'Claude'
 
   const { uploadFile, uploadedFiles, removeFile, isUploading } = useFileUpload()
 
   const router = useRouter()
   const setChatId = useChatStore(state => state.setChatId)
   const setProjectId = useChatStore(state => state.setProjectId)
+  const setChatModel = useChatStore(state => state.setChatModel)
   const setPendingPrompt = useChatStore(state => state.setPendingPrompt)
   const addMessage = useChatStore(state => state.addMessage)
   const clearChat = useChatStore(state => state.clearChat)
@@ -54,18 +60,24 @@ export const PromptInput = () => {
     }
   }, [prompt])
 
-  const createChatAndNavigate = async (content: string, images: string[], model: string) => {
+  const createChatAndNavigate = async (
+    content: string,
+    images: string[],
+    chatProvider: ChatProvider,
+    generationModel: string = DEFAULT_MODEL_ID,
+  ) => {
     setIsProcessing(true)
 
     try {
       clearChat()
 
-      // 1. Create chat
+      // 1. Create chat — `model` here is the chat-level AI provider
+      //    (claude | openai | gemini), persisted on the chat by the backend.
       const { data: createData } = await api.post('/v1/ai-chat', {
         title: content.slice(0, 30) || t("newProject"),
         project_name: content.slice(0, 20) || t("newProject"),
         description: "",
-        model
+        model: chatProvider
       })
 
       const chatId = createData.data.id
@@ -73,10 +85,14 @@ export const PromptInput = () => {
 
       setChatId(chatId)
       setProjectId(projectId)
+      // Mirror the provider so the workspace chat-input selector reflects it
+      // immediately on navigate (before fetchHistory syncs from the server).
+      setChatModel(chatProvider)
       setPendingPrompt({
         content,
         images,
-        model
+        // Per-message generation model — distinct from the chat provider above.
+        model: generationModel
       })
 
       // 2. Navigate
@@ -90,7 +106,7 @@ export const PromptInput = () => {
 
   const handleSubmit = async () => {
     if ((!prompt.trim() && uploadedFiles.length === 0) || isProcessing || isUploading) return
-    await createChatAndNavigate(prompt, uploadedFiles.map(f => f.url), DEFAULT_MODEL_ID)
+    await createChatAndNavigate(prompt, uploadedFiles.map(f => f.url), provider)
   }
 
   // Resume a draft typed on a public page before authentication (see
@@ -102,7 +118,9 @@ export const PromptInput = () => {
     setPendingDraft(null)
     if (!draft.content.trim() && (draft.images?.length ?? 0) === 0) return
     setPrompt(draft.content)
-    createChatAndNavigate(draft.content, draft.images ?? [], draft.model ?? DEFAULT_MODEL_ID)
+    // The landing draft only carries a generation model, not a provider, so
+    // create with the default provider (Claude) and the draft's generation model.
+    createChatAndNavigate(draft.content, draft.images ?? [], DEFAULT_CHAT_PROVIDER, draft.model ?? DEFAULT_MODEL_ID)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -230,6 +248,34 @@ export const PromptInput = () => {
             >
               {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={20} />}
             </button>
+
+            <Popover open={modelOpen} onOpenChange={setModelOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  className="flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors disabled:opacity-50"
+                  title="AI provider"
+                >
+                  <Sparkles size={14} className="text-primary shrink-0" />
+                  <span>{currentProviderName}</span>
+                  <ChevronDown size={13} className="opacity-60" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="start" sideOffset={6} className="w-40 p-0.5">
+                {CHAT_PROVIDERS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => { setProvider(p.id); setModelOpen(false) }}
+                    className="text-text-main hover:bg-hover-bg flex w-full items-center justify-between gap-1.5 rounded px-2 py-1.5 text-left text-xs"
+                  >
+                    <span className="truncate">{p.name}</span>
+                    {provider === p.id && <Check size={11} className="text-primary shrink-0" />}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex items-center gap-3">

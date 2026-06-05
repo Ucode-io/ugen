@@ -37,7 +37,6 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { BillingTab } from "./billing-tab";
 import { UsageLimitsTab } from "@/widgets/analytics/ui/usage-limits";
-import { ProjectStatisticsTab } from "@/widgets/analytics/ui/project-statistics";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -328,8 +327,8 @@ export const ProfileModal = ({ isOpen, onOpenChange }: ProfileModalProps) => {
 /* -------------------- Analytics Tab -------------------- */
 
 const AnalyticsTab = () => {
-  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
   const apiKey = useAuthStore((state) => state.apiKey);
+  const fareId = useAuthStore((state) => state.project?.fare_id);
 
   const { data: companyStats } = useQuery({
     queryKey: ["pricing-company-stats", apiKey],
@@ -350,25 +349,13 @@ const AnalyticsTab = () => {
     },
   });
 
-  const { data: currentFareData } = useQuery({
-    queryKey: ["fares", "ugen", "current", ucodeProjectId],
-    queryFn: async () => {
-      const { data } = await api.get("/v1/fare", {
-        params: { "project-id": ucodeProjectId },
-      });
-      return data;
-    },
-    enabled: !!ucodeProjectId,
-  });
-
   return (
     <div className="animate-in fade-in space-y-8 duration-300">
       <UsageLimitsTab
         companyStats={companyStats}
         fareData={fareData}
-        currentFareData={currentFareData}
+        fareId={fareId}
       />
-      <ProjectStatisticsTab />
     </div>
   );
 };

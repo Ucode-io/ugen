@@ -52,6 +52,20 @@ export const useRoles = ({
   });
 };
 
+/**
+ * Fetches roles using the user's Bearer token (not the project API-KEY) and
+ * returns the raw role records. Used by the "Add Builder" flow so the caller
+ * can pick the role by its joined `role_id_data.name` (e.g. "DEFAULT ADMIN").
+ */
+export const useBuilderRoles = (projectId: string) => {
+  return useQuery({
+    queryKey: ["builder-roles-workspace", projectId],
+    queryFn: () => roleApi.getRolesWithToken(projectId),
+    enabled: !!projectId,
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
 export const useUsers = ({
   clientTypeId,
   projectId,
@@ -93,12 +107,41 @@ export const useUsers = ({
   });
 };
 
+/**
+ * Lists "builder" users via the auth service using the user's Bearer token.
+ */
+export const useBuilders = ({
+  clientTypeId,
+  projectId,
+  limit,
+  offset,
+  enabled = true,
+}: {
+  clientTypeId: string;
+  projectId: string;
+  limit: number;
+  offset: number;
+  enabled?: boolean;
+}) => {
+  return useQuery({
+    queryKey: ["builders", clientTypeId, projectId, limit, offset],
+    queryFn: () =>
+      userApi.getBuilders({ clientTypeId, projectId, limit, offset }),
+    enabled: !!projectId && !!clientTypeId && enabled,
+    staleTime: 0,
+  });
+};
+
 export const useInviteUser = () => {
   return (data: any) => userApi.inviteUser(data?.data || data);
 };
 
 export const useCreateUser = () => {
   return (data: any) => userApi.inviteUser(data?.data || data);
+};
+
+export const useCreateBuilder = () => {
+  return (data: any) => userApi.inviteBuilder(data?.data || data);
 };
 
 export const useUpdateUser = () => {

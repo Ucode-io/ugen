@@ -1,16 +1,19 @@
 import * as esbuild from "esbuild-wasm"
 import { virtualFsPlugin } from "./esbuildPlugin"
+import { previewOptimizationsEnabled } from "./preview-flags"
 
 // Hosted locally in /public — esm.sh hangs/blocks in some prod environments
 // (CSP, corp proxies). The file is copied at install time; see the `postinstall`
 // script in package.json. The `?v=<version>` query busts the browser cache on
 // upgrade while letting us serve the file `immutable` (see next.config.ts headers).
-const WASM_URL = `/esbuild.wasm?v=${esbuild.version}`;
+export const WASM_URL = `/esbuild.wasm?v=${esbuild.version}`;
 
 // 13.5 MB WASM на холодную (cache miss + медленная сеть) может качаться дольше
 // прежних 15с. Даём больше времени, но НЕ ретраим повторным initialize() —
-// см. ниже.
-const INIT_TIMEOUT_MS = 60_000;
+// см. ниже. Держим в синхроне с cold-бюджетом гонки в runCode
+// (project-preview-viewer.tsx): если init проиграет гонку первым, превью
+// упадёт по ложному таймауту до того, как WASM реально докачается.
+const INIT_TIMEOUT_MS = 90_000;
 
 // esbuild.initialize() можно вызвать ровно ОДИН раз за жизнь страницы. Повторный
 // вызов всегда кидает 'Cannot call "initialize" more than once' — поэтому любые
@@ -220,7 +223,13 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
     plugins: [virtualFsPlugin(fs)],
     external: allExternals,
     jsx: "automatic",
-    jsxDev: true,
+    // Production JSX runtime (react/jsx-runtime), not jsx-dev-runtime. The dev
+    // runtime pulls react.development from esm.sh as a SECOND React graph
+    // alongside react-dom's production react.mjs — an extra large request plus a
+    // dual-React hazard ("Invalid hook call"). The preview surfaces errors via
+    // window.onerror, not React's dev warnings, so we lose nothing here.
+    // Gated so the build-timer can A/B against the old dev runtime (see preview-flags).
+    jsxDev: !previewOptimizationsEnabled(),
     logLevel: "silent",
     define: {
       "process.env.NODE_ENV": '"development"',

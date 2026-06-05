@@ -7,7 +7,8 @@ import { useAuthStore } from '@/entities/session'
 import { useChatStore } from '@/entities/chat'
 import { registerSchema, type RegisterFormValues } from '../model/validation'
 import { api, authApi } from '@/shared/api'
-import { fetchUserProjects } from '@/entities/project'
+import { fetchUserProjects, matchUserProject } from '@/entities/project'
+import { logIsUgen } from '@/shared/lib/is-ugen-log'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { GoogleAuthButton } from './google-auth-button'
 
@@ -45,6 +46,15 @@ export const RegisterForm = ({ onAuthenticated }: RegisterFormProps) => {
       role,
     }
 
+    logIsUgen('register:raw', {
+      responseData_is_ugen: responseData?.is_ugen,
+      project_data_is_ugen: project_data?.is_ugen,
+      project_data_project_id: project_data?.project_id,
+      project_data_environment_id: project_data?.environment_id,
+      project_data_company_id: project_data?.company_id,
+      resolved: responseData?.is_ugen ?? project_data?.is_ugen ?? false,
+    })
+
     setAuth(
       userData,
       { ...project_data, is_ugen: responseData?.is_ugen ?? project_data?.is_ugen ?? false },
@@ -56,21 +66,45 @@ export const RegisterForm = ({ onAuthenticated }: RegisterFormProps) => {
     )
 
     // Reconcile is_ugen from /v1/ugen/user-projects (source of truth); the
-    // auth response can return it false for freshly created accounts.
+    // auth response can return it false for freshly created accounts. Matched
+    // by project_id with an environment_id fallback so a differing id-space
+    // can't silently skip the reconcile.
     try {
       const companies = await fetchUserProjects()
-      const matched = companies
-        .flatMap((c) => c.projects)
-        .find((p) => p.id === project_data?.project_id)
+      const matched = matchUserProject(companies, {
+        projectId: project_data?.project_id,
+        environmentId: project_data?.environment_id,
+      })
+      logIsUgen('register:reconcile', {
+        matched: !!matched,
+        matchedBy: matched?.matchedBy ?? 'none',
+        matched_is_ugen: matched?.project?.is_ugen,
+        matched_project_id: matched?.project?.id,
+        matched_company_id: matched?.companyId,
+        lookup: {
+          projectId: project_data?.project_id,
+          environmentId: project_data?.environment_id,
+        },
+        userProjects: companies.flatMap((c) =>
+          c.projects.map((p) => ({ company: c.id, id: p.id, env: p.environment_id, is_ugen: p.is_ugen }))
+        ),
+      })
       if (matched) {
         useAuthStore.setState((state) => ({
           project: state.project
-            ? { ...state.project, is_ugen: matched.is_ugen }
+            ? { ...state.project, is_ugen: matched.project.is_ugen }
             : state.project,
+          activeCompanyId: matched.companyId ?? state.activeCompanyId,
         }))
+      } else {
+        console.warn('[is_ugen] register:reconcile no match — flag stays at raw value', {
+          projectId: project_data?.project_id,
+          environmentId: project_data?.environment_id,
+        })
       }
+      logIsUgen('register:final', { is_ugen: useAuthStore.getState().project?.is_ugen })
     } catch (err) {
-      console.error('Failed to reconcile is_ugen from user-projects', err)
+      console.error('[is_ugen] register:reconcile failed', err)
     }
 
     try {

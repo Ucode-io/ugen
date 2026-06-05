@@ -26,8 +26,8 @@ const row = (label: string, value?: string) => {
 
 export async function POST(req: Request) {
   try {
-    const token = process.env.HIRE_EXPERT_TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.HIRE_EXPERT_TELEGRAM_CHAT_ID;
+    const token = process.env.NEXT_PUBLIC_HIRE_EXPERT_TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.NEXT_PUBLIC_HIRE_EXPERT_TELEGRAM_CHAT_ID;
 
     if (!token || !chatId) {
       return NextResponse.json(

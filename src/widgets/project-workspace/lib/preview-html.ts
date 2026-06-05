@@ -1,3 +1,5 @@
+import { previewOptimizationsEnabled } from "./preview-flags";
+
 export const PREVIEW_Refresher_SCRIPT = `
   window.addEventListener("error", (e) => {
     console.error("Preview Error:", e);
@@ -272,23 +274,27 @@ export const INSPECTOR_SCRIPT = `
       }, "*");
     }
   });
-`
+`;
 
-export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record<string, string> = {}, files: Array<{ path: string; content: string }> = []) {
+export function generatePreviewHtml(
+  bundledCode: string,
+  dependenciesMap: Record<string, string> = {},
+  files: Array<{ path: string; content: string }> = [],
+) {
   const REACT_VERSION = "18.3.1";
 
-  const tailwindConfigFile = files.find(f => f.path === "tailwind.config.js");
+  const tailwindConfigFile = files.find((f) => f.path === "tailwind.config.js");
 
   let tailwindConfigJson = "{}";
   if (tailwindConfigFile) {
     try {
       // Убираем export default и require() — выполняем как выражение
       const configStr = tailwindConfigFile.content
-        .replace(/\/\*[\s\S]*?\*\//g, "")           // убираем JSDoc комментарии
-        .replace(/export\s+default\s+/, "")          // убираем export default
-        .replace(/require\([^)]+\)/g, "{}")          // убираем require()
+        .replace(/\/\*[\s\S]*?\*\//g, "") // убираем JSDoc комментарии
+        .replace(/export\s+default\s+/, "") // убираем export default
+        .replace(/require\([^)]+\)/g, "{}") // убираем require()
         .trim()
-        .replace(/;$/, "");                          // убираем точку с запятой в конце
+        .replace(/;$/, ""); // убираем точку с запятой в конце
 
       // Выполняем как выражение и получаем объект
       const configObj = new Function(`return ${configStr}`)();
@@ -303,11 +309,15 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     }
   }
 
+  // IMPORTANT: keep `?deps=react@…,react-dom@…` on every esm.sh URL. It pins all
+  // packages to a single /react@18.3.1/…/react.mjs instance — dropping it (or
+  // switching to ?bundle/?standalone) reintroduces a second React graph and
+  // "Invalid hook call". Exact versions also avoid 302 redirects from esm.sh.
   const depsParam = `?deps=react@${REACT_VERSION},react-dom@${REACT_VERSION}`;
 
   // Static imports: only React core (version must be pinned and consistent)
   const imports: Record<string, string> = {
-    "react": `https://esm.sh/react@${REACT_VERSION}`,
+    react: `https://esm.sh/react@${REACT_VERSION}`,
     "react/jsx-runtime": `https://esm.sh/react@${REACT_VERSION}/jsx-runtime`,
     "react/jsx-dev-runtime": `https://esm.sh/react@${REACT_VERSION}/jsx-dev-runtime`,
     "react-dom": `https://esm.sh/react-dom@${REACT_VERSION}`,
@@ -323,7 +333,13 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     if (name === "react" || name === "react-dom") return;
 
     // Skip dev-only dependencies that shouldn't run in the browser bundle
-    if (name === "tailwindcss-animate" || name === "tailwindcss" || name === "autoprefixer" || name === "postcss") return;
+    if (
+      name === "tailwindcss-animate" ||
+      name === "tailwindcss" ||
+      name === "autoprefixer" ||
+      name === "postcss"
+    )
+      return;
 
     const version = versionSpec.replace(/[\^~]/, "") || "latest";
 
@@ -342,7 +358,12 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     const specifier = match[1];
     if (!specifier || imports[specifier]) continue;
     // Skip relative, absolute, and URL imports
-    if (specifier.startsWith(".") || specifier.startsWith("/") || specifier.startsWith("http")) continue;
+    if (
+      specifier.startsWith(".") ||
+      specifier.startsWith("/") ||
+      specifier.startsWith("http")
+    )
+      continue;
 
     // Extract the package name (handles @scope/package/subpath)
     const pkgName = specifier.startsWith("@")
@@ -354,12 +375,37 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
       const cleanVersion = versionSpec.replace(/[\^~]/, "") || "latest";
       // Build the sub-path URL: e.g. zustand@5.0.0/middleware?deps=...
       const subPath = specifier.slice(pkgName.length); // e.g. "/middleware"
-      imports[specifier] = `https://esm.sh/${pkgName}@${cleanVersion}${subPath}${depsParam}`;
+      imports[specifier] =
+        `https://esm.sh/${pkgName}@${cleanVersion}${subPath}${depsParam}`;
     } else {
       // Unknown package (not in package.json) — try latest from esm.sh
       imports[specifier] = `https://esm.sh/${specifier}${depsParam}`;
     }
   }
+
+  // ── Warm up the runtime network early ──
+  // The bundle externalizes react/radix/lucide/etc and resolves them from esm.sh
+  // at iframe runtime. Left alone the browser discovers those URLs only while
+  // parsing the module graph → a serial waterfall. preconnect opens the esm.sh
+  // (and Tailwind CDN) connections up front, and modulepreload kicks off the
+  // fetch of every top-level importmap URL in parallel before the module script
+  // runs. `crossorigin` is required so the preload matches the CORS-mode fetch
+  // the module graph issues (otherwise it would double-fetch). Zero correctness
+  // risk — these are the exact URLs the bundle imports.
+  // jsx-dev-runtime is excluded: optimized builds use jsxDev:false so it's never
+  // imported (preloading it would warn "preloaded but not used").
+  // Gated by the kill-switch so the build-timer can A/B with this off.
+  const warmupHead = previewOptimizationsEnabled()
+    ? [
+        `<link rel="preconnect" href="https://esm.sh" crossorigin>`,
+        `<link rel="preconnect" href="https://cdn.tailwindcss.com">`,
+        ...Object.entries(imports)
+          .filter(([spec]) => spec !== "react/jsx-dev-runtime")
+          .map(
+            ([, url]) => `<link rel="modulepreload" href="${url}" crossorigin>`,
+          ),
+      ].join("\n      ")
+    : "";
 
   return `
     <!DOCTYPE html>
@@ -476,6 +522,9 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
             revealed = true;
             var cloak = document.getElementById('preview-cloak');
             if (cloak) cloak.remove();
+            // Tell the parent the preview is on screen so it can measure the
+            // srcDoc -> visible runtime half of build time (see build-timer.ts).
+            try { window.parent.postMessage({ type: 'PREVIEW_READY' }, '*'); } catch (_) {}
           }
 
           function refreshAndReveal() {

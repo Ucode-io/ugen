@@ -1,15 +1,20 @@
 "use client"
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api";
-import { UsageLimitsTab } from "./usage-limits";
+import { ReusableTabs } from "@/shared/ui";
+import { DashboardUsageLimitsTab } from "./dashboard-usage-limits";
 import { ProjectStatisticsTab } from "./project-statistics";
-import { BarChart2 } from "lucide-react";
+import { BarChart2, Gauge, BarChart } from "lucide-react";
 import { useAuthStore } from "@/entities/session";
 
 export const AnalyticsDashboard = () => {
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
+  const [activeTab, setActiveTab] = useState("usage-limits");
 
+  // Dashboard analytics use the full project-level data from `/v1/pricing/all`.
+  // (The profile-modal analytics use `/v1/pricing/company-stats` instead.)
   const { data: pricingData } = useQuery({
     queryKey: ['pricing-all'],
     queryFn: async () => {
@@ -38,8 +43,17 @@ export const AnalyticsDashboard = () => {
     enabled: !!ucodeProjectId,
   });
 
+  const tabs = [
+    { id: "usage-limits", label: "Usage Limits", icon: <Gauge size={14} /> },
+    { id: "project-statistics", label: "Project Statistics", icon: <BarChart size={14} /> },
+    // { id: "overview", label: "Overview", icon: <BarChart size={14} /> },
+    // { id: "health", label: "Health", icon: <BarChart size={14} /> },
+    // { id: "query-performance", label: "Query Performance", icon: <BarChart size={14} /> },
+    // { id: "visitors", label: "Visitors", icon: <BarChart size={14} /> },
+  ];
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-0 animate-in fade-in duration-500">
       <div className="mb-4">
         <h1 className="text-[22px] font-bold text-text-main mb-1 flex items-center gap-2">
           <BarChart2 size={20} className="text-primary" />
@@ -48,8 +62,16 @@ export const AnalyticsDashboard = () => {
         <p className="text-text-muted text-[13px]">Monitor project performance, API health, and user activity.</p>
       </div>
 
-      <UsageLimitsTab pricingData={pricingData} fareData={fareData} currentFareData={currentFareData} />
-      <ProjectStatisticsTab />
+      <ReusableTabs options={tabs} activeId={activeTab} onTabChange={setActiveTab} />
+
+      <div className="animate-in fade-in duration-300">
+        {/* {activeTab === "overview" && <OverviewTab />}
+        {activeTab === "health" && <HealthTab />}
+        {activeTab === "query-performance" && <QueryPerformanceTab />}
+        {activeTab === "visitors" && <VisitorsTab />} */}
+        {activeTab === "usage-limits" && <DashboardUsageLimitsTab pricingData={pricingData} fareData={fareData} currentFareData={currentFareData} />}
+        {activeTab === "project-statistics" && <ProjectStatisticsTab />}
+      </div>
     </div>
   );
 };
