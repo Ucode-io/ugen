@@ -1,9 +1,10 @@
 'use client'
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Settings, ChevronsUpDown, Loader2, Lock, User, ChevronRight, Sparkles, Plus, Palette, Sun, Moon, BriefcaseBusiness } from "lucide-react"
+import { Settings, ChevronsUpDown, Loader2, Lock, User, ChevronRight, Sparkles, Plus, Palette, Sun, Moon, BriefcaseBusiness, CalendarClock } from "lucide-react"
 import { useUserProjects, UserCompany, useSwitchProject, useCreateCompany } from "@/entities/project"
 import { useAuthStore } from "@/entities/session"
+import { useCurrentSubscription } from "@/entities/billing"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
@@ -37,6 +38,13 @@ function formatShort(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}k`
   return n.toString()
+}
+
+function formatPlanDate(value?: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function TokenBar({ label, item }: { label: string; item: any }) {
@@ -118,6 +126,17 @@ export const ProjectDropdown = ({
 
   const fares: any[] = fareData?.data?.fares || []
   const currentFare = fares.find((f) => f.id === fareId)
+
+  // Current subscription -- for the billing-period end date shown under the plan
+  // name. Only fetched while the popup is open.
+  const projectId = useAuthStore((state) => state.project?.project_id)
+  const { data: currentSubscription } = useCurrentSubscription(
+    projectId,
+    isProjectPopupOpen,
+  )
+  const planEndDate =
+    currentSubscription?.end_date ?? currentSubscription?.renewal_date
+  const isPendingDowngrade = currentSubscription?.status === 'pending_downgrade'
 
   const toTokenUsage = (t?: { input_tokens?: number; output_tokens?: number; limit?: number }) =>
     t ? { current: (t.input_tokens ?? 0) + (t.output_tokens ?? 0), limit: t.limit ?? 0 } : undefined
@@ -279,9 +298,18 @@ export const ProjectDropdown = ({
                 <div className="text-text-main truncate text-sm font-semibold leading-tight">
                   {displayName}
                 </div>
-                <div className="text-text-muted truncate text-[11px] capitalize leading-tight">
-                  {currentFare?.name || project?.subscription_type}
-                  {/* || t("freePlan") */}
+                <div className="flex items-center gap-1.5 text-[11px] leading-tight">
+                  <span className="text-text-muted truncate capitalize">
+                    {currentFare?.name || project?.subscription_type}
+                    {/* || t("freePlan") */}
+                  </span>
+                  {planEndDate && (
+                    <span className="text-text-muted flex shrink-0 items-center gap-1">
+                      <CalendarClock size={10} className="shrink-0" />
+                      {isPendingDowngrade ? 'Ends' : 'Renews'}{' '}
+                      {formatPlanDate(planEndDate)}
+                    </span>
+                  )}
                 </div>
               </div>
               <button
