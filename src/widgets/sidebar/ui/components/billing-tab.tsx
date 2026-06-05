@@ -259,6 +259,7 @@ const TransactionsTable = ({
   isLoading: boolean;
 }) => {
   const list = transactions ?? [];
+  const { data: usdRate } = useUsdRate();
 
   return (
     <section className="border-border-subtle bg-bg-card overflow-hidden rounded-xl border shadow-sm">
@@ -310,14 +311,27 @@ const TransactionsTable = ({
           list.map((t) => {
             const status = (t.payment_status ?? "").toLowerCase();
             const type = t.transaction_type ?? "Top up";
+            const code = (t.currency?.code || "UZS").toLowerCase();
+            const amountUsd =
+              code === "uzs" ? uzsToUsd(t.amount, usdRate) : null;
             return (
               <div
                 key={t.id}
                 className="border-border-subtle hover:bg-hover-bg/50 text-text-main grid min-w-[680px] grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-3 border-b px-5 py-3 text-[12px] transition-colors last:border-b-0"
               >
                 <span>
-                  {formatAmount(t.amount)}{" "}
-                  {(t.currency?.code || "UZS").toLowerCase()}
+                  {amountUsd != null ? (
+                    <>
+                      {formatUsd(amountUsd)}{" "}
+                      <span className="text-text-muted text-[11px]">
+                        ≈ {formatAmount(t.amount)} {code}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      {formatAmount(t.amount)} {code}
+                    </>
+                  )}
                 </span>
                 <span>{type}</span>
                 <span>{formatTransactionDate(t.created_at)}</span>

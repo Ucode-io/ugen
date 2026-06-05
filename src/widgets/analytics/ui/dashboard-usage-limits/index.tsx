@@ -4,6 +4,11 @@ import { Button } from '@/shared/ui'
 import { UpgradePlanDialog } from '@/widgets/sidebar/ui/components/upgrade-plan-dialog'
 import { cn } from '@/shared/lib/utils/cn'
 import {
+  formatBytesAsGB,
+  formatMBAsGB,
+  formatMBSmart,
+} from "@/shared/lib/utils/format-bytes";
+import {
   WorkspaceTableWrapper,
   WorkspaceTable,
   WorkspaceTableHeader,
@@ -12,10 +17,18 @@ import {
   WorkspaceTableHead,
   WorkspaceTableCell,
 } from '@/widgets/project-workspace/ui/workspace-table'
-export const UsageLimitsTab = ({ companyStats, fareData, fareId }: any) => {
-  const stats = companyStats?.data || {};
+
+/**
+ * Dashboard variant of the usage-limits view.
+ * Data source: `/v1/pricing/all` (passed in as `pricingData`).
+ * The profile-modal variant lives in `../usage-limits` and uses `/v1/pricing/company-stats`.
+ * Keep these two split — they consume different API shapes.
+ */
+export const DashboardUsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) => {
+  const d = pricingData?.data || {};
   const fares: any[] = fareData?.data?.fares || [];
-  const currentFare = fares.find((f) => f.id === fareId);
+  const currentFare = currentFareData?.data?.fares?.[0];
+  const fareId = currentFare?.id;
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // Collect all unique fare items across all fares (preserving order)
@@ -66,61 +79,20 @@ export const UsageLimitsTab = ({ companyStats, fareData, fareId }: any) => {
     if (value === "0") return "—";
     const num = Number(value);
     if (!isNaN(num)) {
-      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
     }
     return value;
+  };
+
+  const formatUnit = (value: number, unit: string) => {
+    if (unit !== "bytes") return value.toLocaleString();
+    return formatBytesAsGB(value);
   };
 
   const getPercentage = (current: number, limit: number) => {
     if (!limit) return 0;
     return Math.min((current / limit) * 100, 100);
   };
-
-  const sumTokens = (t?: { input_tokens?: number; output_tokens?: number }) =>
-    (t?.input_tokens ?? 0) + (t?.output_tokens ?? 0);
-
-  const usageMetrics = [
-    {
-      key: "projects",
-      label: "Projects",
-      current: stats.project_count?.current ?? 0,
-      limit: stats.project_count?.limit ?? 0,
-      color: "bg-primary",
-      textColor: "text-primary",
-    },
-    {
-      key: "monthly_tokens",
-      label: "Monthly Tokens",
-      current: sumTokens(stats.tokens?.monthly),
-      limit: stats.tokens?.monthly?.limit ?? 0,
-      color: "bg-orange-500",
-      textColor: "text-orange-500",
-    },
-    {
-      key: "today_tokens",
-      label: "Daily Tokens",
-      current: sumTokens(stats.tokens?.daily),
-      limit: stats.tokens?.daily?.limit ?? 0,
-      color: "bg-pink-500",
-      textColor: "text-pink-500",
-    },
-    {
-      key: "builder",
-      label: "Builder user",
-      current: stats.builders?.current ?? 0,
-      limit: stats.builders?.limit ?? 0,
-      color: "bg-emerald-500",
-      textColor: "text-emerald-500",
-    },
-    {
-      key: "users",
-      label: "Users",
-      current: stats.user_count?.current ?? 0,
-      limit: stats.user_count?.limit ?? 0,
-      color: "bg-blue-500",
-      textColor: "text-blue-500",
-    },
-  ];
 
   return (
     <div className="animate-in fade-in space-y-6 pt-4 duration-300">
@@ -147,13 +119,81 @@ export const UsageLimitsTab = ({ companyStats, fareData, fareId }: any) => {
       </div>{" "}
       {/* Usage meters */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
-        {usageMetrics.map((metric) => {
-          const current = metric.current;
-          const limit = metric.limit;
+        {[
+          {
+            key: "projects",
+            label: "Projects",
+            color: "bg-primary",
+            textColor: "text-primary",
+          },
+          {
+            key: "monthly_api_calls",
+            label: "API call per month",
+            color: "bg-cyan-500",
+            textColor: "text-cyan-500",
+          },
+          {
+            key: "database_size",
+            label: "Database size",
+            color: "bg-blue-500",
+            textColor: "text-blue-500",
+          },
+          {
+            key: "asset_size",
+            label: "File size",
+            color: "bg-purple-500",
+            textColor: "text-purple-500",
+          },
+          {
+            key: "monthly_tokens",
+            label: "Monthly Tokens",
+            color: "bg-orange-500",
+            textColor: "text-orange-500",
+          },
+          {
+            key: "today_tokens",
+            label: "Daily Tokens",
+            color: "bg-pink-500",
+            textColor: "text-pink-500",
+          },
+          {
+            key: "functions",
+            label: "Functions",
+            color: "bg-primary",
+            textColor: "text-primary",
+          },
+          {
+            key: "microfrontend",
+            label: "Microfrontends",
+            color: "bg-violet-500",
+            textColor: "text-violet-500",
+          },
+          {
+            key: "users",
+            label: "Users",
+            color: "bg-emerald-500",
+            textColor: "text-emerald-500",
+          },
+        ].map((metric) => {
+          const item = d[metric.key];
+          const current = item?.current || 0;
+          const limit = item?.limit || 0;
+          const unit = item?.unit || "count";
           const percentage = getPercentage(current, limit);
 
-          const formatCurrent = (val: number) => val.toLocaleString();
-          const formatLimit = (val: number) => val.toLocaleString();
+          const formatCurrent = (val: number) => {
+            if (unit === "count") return val.toLocaleString();
+            if (unit === "tokens") return val.toLocaleString();
+            if (unit === "MB") return formatMBSmart(val);
+            return formatUnit(val, unit);
+          };
+
+          const formatLimit = (val: number) => {
+            if (unit === "count") return val.toLocaleString();
+            if (unit === "tokens") return val.toLocaleString();
+            if (unit === "MB") return formatMBAsGB(val);
+            return formatUnit(val, unit);
+          };
 
           return (
             <div

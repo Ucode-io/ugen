@@ -4,19 +4,21 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api";
 import { ReusableTabs } from "@/shared/ui";
-import { UsageLimitsTab } from "./usage-limits";
+import { DashboardUsageLimitsTab } from "./dashboard-usage-limits";
 import { ProjectStatisticsTab } from "./project-statistics";
 import { BarChart2, Gauge, BarChart } from "lucide-react";
 import { useAuthStore } from "@/entities/session";
 
 export const AnalyticsDashboard = () => {
-  const fareId = useAuthStore((state) => state.project?.fare_id);
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
   const [activeTab, setActiveTab] = useState("usage-limits");
 
-  const { data: companyStats } = useQuery({
-    queryKey: ['pricing-company-stats'],
+  // Dashboard analytics use the full project-level data from `/v1/pricing/all`.
+  // (The profile-modal analytics use `/v1/pricing/company-stats` instead.)
+  const { data: pricingData } = useQuery({
+    queryKey: ['pricing-all'],
     queryFn: async () => {
-      const { data } = await api.get('/v1/pricing/company-stats');
+      const { data } = await api.get('/v1/pricing/all');
       return data;
     },
     staleTime: 0,
@@ -28,6 +30,17 @@ export const AnalyticsDashboard = () => {
       const { data } = await api.get('/v1/fare', { params: { product_type: 'ugen' } });
       return data;
     },
+  });
+
+  const { data: currentFareData } = useQuery({
+    queryKey: ['fares', 'ugen', 'current', ucodeProjectId],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/fare', {
+        params: { "project-id": ucodeProjectId },
+      });
+      return data;
+    },
+    enabled: !!ucodeProjectId,
   });
 
   const tabs = [
@@ -56,7 +69,7 @@ export const AnalyticsDashboard = () => {
         {activeTab === "health" && <HealthTab />}
         {activeTab === "query-performance" && <QueryPerformanceTab />}
         {activeTab === "visitors" && <VisitorsTab />} */}
-        {activeTab === "usage-limits" && <UsageLimitsTab companyStats={companyStats} fareData={fareData} fareId={fareId} />}
+        {activeTab === "usage-limits" && <DashboardUsageLimitsTab pricingData={pricingData} fareData={fareData} currentFareData={currentFareData} />}
         {activeTab === "project-statistics" && <ProjectStatisticsTab />}
       </div>
     </div>

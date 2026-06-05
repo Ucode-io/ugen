@@ -37,7 +37,6 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { BillingTab } from "./billing-tab";
 import { UsageLimitsTab } from "@/widgets/analytics/ui/usage-limits";
-import { ProjectStatisticsTab } from "@/widgets/analytics/ui/project-statistics";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -357,7 +356,6 @@ const AnalyticsTab = () => {
         fareData={fareData}
         fareId={fareId}
       />
-      <ProjectStatisticsTab />
     </div>
   );
 };
