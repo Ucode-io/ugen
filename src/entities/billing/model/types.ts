@@ -27,26 +27,6 @@ export interface Fare {
   };
 }
 
-/** Response of GET /v1/subscription/current -- the project's active plan with
- * its billing-period boundaries. */
-export interface CurrentSubscription {
-  id?: string;
-  project_id?: string;
-  fare_id?: string;
-  status?: SubscriptionStatus;
-  /** First day of the current billing period (YYYY-MM-DD). */
-  start_date?: string;
-  /** Last day of the current billing period (YYYY-MM-DD). */
-  end_date?: string;
-  /** When the plan renews -- same as end_date for an active subscription. */
-  renewal_date?: string;
-  /** "paid" | "free". */
-  type?: string;
-  pending_fare_id?: string;
-  billing_period_code?: string;
-  billing_period_months?: number;
-}
-
 export interface TransactionCurrency {
   code?: string;
 }

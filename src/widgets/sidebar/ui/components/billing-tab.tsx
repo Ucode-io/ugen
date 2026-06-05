@@ -17,7 +17,6 @@ import { useAuthStore } from "@/entities/session";
 import {
   useCompanyProjectsList,
   useFare,
-  useCurrentSubscription,
   useTransactions,
   useUsdRate,
   uzsToUsd,
@@ -32,13 +31,6 @@ const formatTransactionDate = (value?: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return format(date, "dd.MM.yyyy, HH:mm");
-};
-
-const formatPlanDate = (value?: string) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return format(date, "dd MMM yyyy");
 };
 
 export const BillingTab = () => {
@@ -56,17 +48,8 @@ export const BillingTab = () => {
     projectId,
   );
   const { data: fare, isLoading: fareLoading } = useFare(fareId, projectId);
-  const { data: currentSubscription, isLoading: subscriptionLoading } =
-    useCurrentSubscription(projectId);
   const { data: transactions = [], isLoading: transactionsLoading } =
     useTransactions(projectId);
-
-  // Billing-period end -- /v1/subscription/current is authoritative; fall back to
-  // the date embedded in the fare-by-id response.
-  const planEndDate =
-    currentSubscription?.end_date ??
-    currentSubscription?.renewal_date ??
-    fare?.subscription?.end_date;
 
   const currentProject = useMemo(
     () =>
@@ -88,9 +71,9 @@ export const BillingTab = () => {
         balanceUsd={balanceUsd}
         planName={fare?.name}
         totalAmount={fare?.price}
-        expireDate={planEndDate}
+        expireDate={fare?.subscription?.end_date}
         currency={currency}
-        isLoading={fareLoading || subscriptionLoading}
+        isLoading={fareLoading}
         onTopUp={() => setTopUpOpen(true)}
         onUpgrade={() => setUpgradeOpen(true)}
       />
@@ -147,7 +130,7 @@ const InvoiceSummaryCard = ({
     {
       icon: CalendarClock,
       label: "Expires",
-      value: formatPlanDate(expireDate),
+      value: expireDate ?? "—",
       tone: "bg-emerald-500/10 text-emerald-600",
     },
   ];

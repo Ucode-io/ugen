@@ -3,7 +3,6 @@ import { api } from "@/shared/api"
 import { useAuthStore } from "@/entities/session"
 import type {
   BillingTransaction,
-  CurrentSubscription,
   Fare,
   ProjectCard,
   ProjectWithBalance,
@@ -44,25 +43,6 @@ export const useFare = (fareId?: string | null, projectId?: string | null) => {
       return (data?.data ?? data) as Fare
     },
     enabled: Boolean(fareId),
-  })
-}
-
-export const useCurrentSubscription = (
-  projectId?: string | null,
-  enabled = true,
-) => {
-  return useQuery({
-    queryKey: ["billing", "subscription", "current", projectId],
-    queryFn: async () => {
-      const { data } = await api.get(
-        "/v1/subscription/current",
-        buildBearerConfig(projectId),
-      )
-      return (data?.data ?? data) as CurrentSubscription
-    },
-    // The endpoint is scoped to the current project via the JWT, so it works
-    // without a projectId param -- gate only on the caller's `enabled` flag.
-    enabled,
   })
 }
 
