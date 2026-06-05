@@ -27,6 +27,7 @@ import { useAuthStore } from "@/entities/session";
 import {
   useCompanyProjectsList,
   useFare,
+  useCurrentSubscription,
   useUsdRate,
   uzsToUsd,
   formatUsd,
@@ -304,13 +305,17 @@ export const UpgradePlanDialog = ({
   // in the fare-by-id response; only fetched while the dialog is open.
   const { data: currentFareDetail } = useFare(open ? fareId : null, projectId);
   const subscription = currentFareDetail?.subscription;
-  // TEMP: inspect what the fare-by-id API returns for the current plan.
-  console.log("[upgrade-plan] fareId", fareId);
-  console.log("[upgrade-plan] currentFareDetail", currentFareDetail);
-  console.log("[upgrade-plan] subscription", subscription);
   const isPendingDowngrade = subscription?.status === "pending_downgrade";
+
+  // Current subscription with billing-period boundaries. /v1/subscription/current
+  // returns start_date/end_date/renewal_date directly; prefer it over the dates
+  // embedded in the fare-by-id response.
+  const { data: currentSubscription } = useCurrentSubscription(projectId, open);
+  const planEndDate =
+    currentSubscription?.end_date ??
+    currentSubscription?.renewal_date ??
+    subscription?.end_date;
   const pendingDowngradeFareId = subscription?.pending_fare_id ?? null;
-  const subscriptionEndDate = subscription?.end_date;
   const currency = (currentFareDetail?.currency || "uzs").toUpperCase();
 
   // USD → UZS rate from the Central Bank of Uzbekistan, used to convert the plan
@@ -506,8 +511,8 @@ export const UpgradePlanDialog = ({
                     ? ` to ${pendingDowngradeFare.name}`
                     : ""}{" "}
                   scheduled
-                  {subscriptionEndDate
-                    ? ` for ${formatSubscriptionDate(subscriptionEndDate)}`
+                  {planEndDate
+                    ? ` for ${formatSubscriptionDate(planEndDate)}`
                     : ""}
                 </p>
                 <p className="text-amber-700/80">
@@ -563,8 +568,8 @@ export const UpgradePlanDialog = ({
               const isCancelDowngrade = isCurrent && isPendingDowngrade;
 
               const currentBadgeLabel =
-                isCurrent && isPendingDowngrade && subscriptionEndDate
-                  ? `Current · until ${formatSubscriptionDate(subscriptionEndDate)}`
+                isCurrent && isPendingDowngrade && planEndDate
+                  ? `Current · until ${formatSubscriptionDate(planEndDate)}`
                   : "Current";
 
               let ctaLabel: string;
@@ -689,11 +694,11 @@ export const UpgradePlanDialog = ({
 
                     {/* When the current paid plan ends -- renewal date, or the
                      * switch-over date when a downgrade is scheduled. */}
-                    {isCurrent && !isFree && subscriptionEndDate && (
+                    {isCurrent && !isFree && planEndDate && (
                       <p className="text-text-muted mt-1.5 flex items-center gap-1 text-[0.7rem]">
                         <CalendarClock size={11} className="shrink-0" />
                         {isPendingDowngrade ? "Ends" : "Renews"}{" "}
-                        {formatSubscriptionDate(subscriptionEndDate)}
+                        {formatSubscriptionDate(planEndDate)}
                       </p>
                     )}
                   </div>
