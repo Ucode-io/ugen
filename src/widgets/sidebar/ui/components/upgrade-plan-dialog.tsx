@@ -317,6 +317,10 @@ export const UpgradePlanDialog = ({
       });
       return data;
     },
+    // Only fetch while the dialog is open, and treat the data as always stale so
+    // each open triggers a fresh fetch instead of serving the 5-min cached snapshot.
+    enabled: open,
+    staleTime: 0,
   });
 
   const fares: any[] = fareData?.data?.fares || [];
@@ -551,11 +555,6 @@ export const UpgradePlanDialog = ({
               // Re-attaching the current fare cancels a scheduled downgrade.
               const isCancelDowngrade = isCurrent && isPendingDowngrade;
 
-              const currentBadgeLabel =
-                isCurrent && isPendingDowngrade && subscriptionEndDate
-                  ? `Current · until ${formatSubscriptionDate(subscriptionEndDate)}`
-                  : "Current";
-
               let ctaLabel: string;
               if (isCancelDowngrade) {
                 ctaLabel = "Cancel downgrade";
@@ -619,7 +618,7 @@ export const UpgradePlanDialog = ({
                             exit={{ opacity: 0, scale: 0.8 }}
                             initial={{ opacity: 0, scale: 0.8 }}
                           >
-                            {currentBadgeLabel}
+                            Current
                           </motion.div>
                         ) : isScheduled ? (
                           <motion.div
