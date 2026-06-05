@@ -282,7 +282,7 @@ export const ProjectDropdown = ({
         <>
           <div
             ref={portalRef}
-            className="bg-bg-card border-border-subtle fixed z-[200] w-64 overflow-hidden rounded-xl border shadow-lg"
+            className="bg-bg-card border-border-subtle fixed z-[200] w-72 overflow-hidden rounded-xl border shadow-lg"
             style={{ top: dropdownPos.top, left: dropdownPos.left }}
           >
             {/* Header */}
@@ -298,13 +298,20 @@ export const ProjectDropdown = ({
                 <div className="text-text-main truncate text-sm font-semibold leading-tight">
                   {displayName}
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] leading-tight">
-                  <span className="text-text-muted truncate capitalize">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 leading-tight">
+                  <span className="bg-primary/10 text-primary inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize">
+                    <Sparkles size={9} className="shrink-0" />
                     {currentFare?.name || project?.subscription_type}
                     {/* || t("freePlan") */}
                   </span>
                   {planEndDate && (
-                    <span className="text-text-muted flex shrink-0 items-center gap-1">
+                    <span
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${
+                        isPendingDowngrade
+                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-500'
+                          : 'border-text-muted/40 text-text-muted'
+                      }`}
+                    >
                       <CalendarClock size={10} className="shrink-0" />
                       {isPendingDowngrade ? 'Ends' : 'Renews'}{' '}
                       {formatPlanDate(planEndDate)}
