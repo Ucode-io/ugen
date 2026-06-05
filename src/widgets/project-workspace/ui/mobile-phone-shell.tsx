@@ -213,7 +213,26 @@ export function PhoneShell({
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+
+    // The frame is laid out at full FRAME_H and only *visually* shrunk via
+    // `transform: scale`, so its layout box overflows this container — which
+    // leaves the container programmatically scrollable. When the previewed app
+    // focuses an input (e.g. a chat message field), the browser's scrollIntoView
+    // scrolls the frame up, clipping the notch/top with no scrollbar to undo it.
+    // `overflow: clip` (below) prevents that scroll; reset defensively in case a
+    // browser still scrolls the container some other way.
+    const resetScroll = () => {
+      if (el.scrollTop !== 0 || el.scrollLeft !== 0) {
+        el.scrollTop = 0;
+        el.scrollLeft = 0;
+      }
+    };
+    el.addEventListener("scroll", resetScroll, { passive: true });
+
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", resetScroll);
+    };
   }, []);
 
   return (
@@ -226,7 +245,10 @@ export function PhoneShell({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        overflow: "hidden",
+        // `clip` (not `hidden`) so the over-tall, scale-shrunk frame box can't be
+        // programmatically scrolled into view when the previewed app focuses an
+        // input — which otherwise yanks the frame's top out of view.
+        overflow: "clip",
       }}
     >
       <div

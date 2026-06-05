@@ -1139,7 +1139,8 @@ export const ProjectPreviewViewer = ({
       // already initialized) only re-bundle. Give cold a much larger budget so a
       // slow network doesn't trip a false timeout. Keep INIT_TIMEOUT_MS in
       // bundler.ts >= the cold budget here.
-      const warm = (window as { __ESBUILD_READY__?: boolean }).__ESBUILD_READY__ === true;
+      const warm =
+        (window as { __ESBUILD_READY__?: boolean }).__ESBUILD_READY__ === true;
       const timeoutMs = warm ? 30_000 : 90_000;
       try {
         // Safety timeout — in production esbuild WASM can hang silently if

@@ -274,23 +274,27 @@ export const INSPECTOR_SCRIPT = `
       }, "*");
     }
   });
-`
+`;
 
-export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record<string, string> = {}, files: Array<{ path: string; content: string }> = []) {
+export function generatePreviewHtml(
+  bundledCode: string,
+  dependenciesMap: Record<string, string> = {},
+  files: Array<{ path: string; content: string }> = [],
+) {
   const REACT_VERSION = "18.3.1";
 
-  const tailwindConfigFile = files.find(f => f.path === "tailwind.config.js");
+  const tailwindConfigFile = files.find((f) => f.path === "tailwind.config.js");
 
   let tailwindConfigJson = "{}";
   if (tailwindConfigFile) {
     try {
       // Убираем export default и require() — выполняем как выражение
       const configStr = tailwindConfigFile.content
-        .replace(/\/\*[\s\S]*?\*\//g, "")           // убираем JSDoc комментарии
-        .replace(/export\s+default\s+/, "")          // убираем export default
-        .replace(/require\([^)]+\)/g, "{}")          // убираем require()
+        .replace(/\/\*[\s\S]*?\*\//g, "") // убираем JSDoc комментарии
+        .replace(/export\s+default\s+/, "") // убираем export default
+        .replace(/require\([^)]+\)/g, "{}") // убираем require()
         .trim()
-        .replace(/;$/, "");                          // убираем точку с запятой в конце
+        .replace(/;$/, ""); // убираем точку с запятой в конце
 
       // Выполняем как выражение и получаем объект
       const configObj = new Function(`return ${configStr}`)();
@@ -313,7 +317,7 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
 
   // Static imports: only React core (version must be pinned and consistent)
   const imports: Record<string, string> = {
-    "react": `https://esm.sh/react@${REACT_VERSION}`,
+    react: `https://esm.sh/react@${REACT_VERSION}`,
     "react/jsx-runtime": `https://esm.sh/react@${REACT_VERSION}/jsx-runtime`,
     "react/jsx-dev-runtime": `https://esm.sh/react@${REACT_VERSION}/jsx-dev-runtime`,
     "react-dom": `https://esm.sh/react-dom@${REACT_VERSION}`,
@@ -329,7 +333,13 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     if (name === "react" || name === "react-dom") return;
 
     // Skip dev-only dependencies that shouldn't run in the browser bundle
-    if (name === "tailwindcss-animate" || name === "tailwindcss" || name === "autoprefixer" || name === "postcss") return;
+    if (
+      name === "tailwindcss-animate" ||
+      name === "tailwindcss" ||
+      name === "autoprefixer" ||
+      name === "postcss"
+    )
+      return;
 
     const version = versionSpec.replace(/[\^~]/, "") || "latest";
 
@@ -348,7 +358,12 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     const specifier = match[1];
     if (!specifier || imports[specifier]) continue;
     // Skip relative, absolute, and URL imports
-    if (specifier.startsWith(".") || specifier.startsWith("/") || specifier.startsWith("http")) continue;
+    if (
+      specifier.startsWith(".") ||
+      specifier.startsWith("/") ||
+      specifier.startsWith("http")
+    )
+      continue;
 
     // Extract the package name (handles @scope/package/subpath)
     const pkgName = specifier.startsWith("@")
@@ -360,7 +375,8 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
       const cleanVersion = versionSpec.replace(/[\^~]/, "") || "latest";
       // Build the sub-path URL: e.g. zustand@5.0.0/middleware?deps=...
       const subPath = specifier.slice(pkgName.length); // e.g. "/middleware"
-      imports[specifier] = `https://esm.sh/${pkgName}@${cleanVersion}${subPath}${depsParam}`;
+      imports[specifier] =
+        `https://esm.sh/${pkgName}@${cleanVersion}${subPath}${depsParam}`;
     } else {
       // Unknown package (not in package.json) — try latest from esm.sh
       imports[specifier] = `https://esm.sh/${specifier}${depsParam}`;
@@ -385,7 +401,9 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
         `<link rel="preconnect" href="https://cdn.tailwindcss.com">`,
         ...Object.entries(imports)
           .filter(([spec]) => spec !== "react/jsx-dev-runtime")
-          .map(([, url]) => `<link rel="modulepreload" href="${url}" crossorigin>`),
+          .map(
+            ([, url]) => `<link rel="modulepreload" href="${url}" crossorigin>`,
+          ),
       ].join("\n      ")
     : "";
 
@@ -394,7 +412,7 @@ export function generatePreviewHtml(bundledCode: string, dependenciesMap: Record
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
       ${warmupHead}
       <!-- Конфиг ПОСЛЕ загрузки CDN через tailwind.config -->
       <script src="https://cdn.tailwindcss.com"></script>
