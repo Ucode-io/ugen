@@ -4,10 +4,14 @@ import { Fragment, useState } from "react";
 import NumberFlow from "@number-flow/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AlertTriangle,
   CalendarClock,
+  CalendarX2,
   CheckCircle2,
   ChevronDown,
+  Crown,
   Loader2,
+  RotateCcw,
   Sparkles,
   Star,
   Wallet,
@@ -398,6 +402,33 @@ export const UpgradePlanDialog = ({
   const pendingDowngradeFare = pendingDowngradeFareId
     ? fares.find((f: any) => f.id === pendingDowngradeFareId)
     : null;
+
+  // "Fare fallback" state: the project couldn't pay for its plan renewal so the
+  // backend temporarily dropped it to the free tier. pending_fare_id holds the
+  // original paid plan the project will be restored to once balance is topped up.
+  //
+  // Use currentSubscription.fare_id (authoritative from /subscription/current)
+  // rather than the auth store's fareId: the store can lag behind a backend
+  // auto-downgrade until useSyncCurrentPlan's next fetch, which would leave
+  // currentPrice > 0 and hide the banner.
+  const subscriptionFare = currentSubscription?.fare_id
+    ? (fares.find((f: any) => f.id === currentSubscription.fare_id) ?? currentFare)
+    : currentFare;
+  const subscriptionPrice = subscriptionFare
+    ? Number(subscriptionFare.price) || 0
+    : null;
+
+  const pendingFallbackFareId = currentSubscription?.pending_fare_id ?? null;
+  const pendingFallbackFare = pendingFallbackFareId
+    ? (fares.find((f: any) => f.id === pendingFallbackFareId) ?? null)
+    : null;
+  const isFareFallback =
+    !isPendingDowngrade &&
+    subscriptionPrice === 0 &&
+    pendingFallbackFareId !== null &&
+    // pending fare must be a paid plan (not another free tier)
+    (pendingFallbackFare == null || Number(pendingFallbackFare.price) > 0);
+
   const currentPeriod = PERIODS.find((p) => p.key === period) ?? PERIODS[0];
 
   const formatPeriodPrice = (monthly: number) =>
@@ -530,6 +561,41 @@ export const UpgradePlanDialog = ({
             </div>
           )}
 
+          {/* Fare fallback banner — shown when a failed payment dropped the
+              project to the free tier; pending_fare_id is the plan to restore */}
+          {isFareFallback && (
+            <div className="mx-6 mt-6 flex items-center gap-3 rounded-xl border border-yellow-500/60 bg-yellow-400/15 px-4 py-2">
+              <AlertTriangle size={15} className="shrink-0 text-yellow-600" strokeWidth={2.5} />
+              <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] font-semibold text-yellow-700 dark:text-yellow-400">
+                <span className="flex items-center gap-1">
+                  <Crown size={11} className="shrink-0" />
+                  {pendingFallbackFare?.name
+                    ? pendingFallbackFare.name.charAt(0).toUpperCase() + pendingFallbackFare.name.slice(1)
+                    : "Paid"}{" "}plan
+                </span>
+                {planEndDate && (
+                  <span className="flex items-center gap-1 font-medium opacity-90">
+                    <CalendarX2 size={11} className="shrink-0" />
+                    Expired: {formatSubscriptionDate(planEndDate)}
+                  </span>
+                )}
+                <span className="opacity-80">→ now on Free</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingFallbackFare) {
+                    setTopUpAmountUsd(computeTopUpAmountUsd(pendingFallbackFare));
+                  }
+                  setTopUpOpen(true);
+                }}
+                className="shrink-0 rounded-lg bg-yellow-600 px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-85"
+              >
+                Top up to restore
+              </button>
+            </div>
+          )}
+
           {/* Pricing cards */}
           <div className="grid grid-cols-1 gap-5 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
             {PLAN_META.map((plan) => {
@@ -573,15 +639,20 @@ export const UpgradePlanDialog = ({
                 fare.id === pendingDowngradeFareId;
               // Re-attaching the current fare cancels a scheduled downgrade.
               const isCancelDowngrade = isCurrent && isPendingDowngrade;
+              // Fare fallback: this card is the plan to restore after topping up.
+              const isRestorePlan =
+                isFareFallback && fare != null && fare.id === pendingFallbackFareId;
+              // Current free plan shown as temporary during fare fallback.
+              const isFallbackCurrent = isCurrent && isFareFallback;
 
-              const currentBadgeLabel =
-                isCurrent && isPendingDowngrade && planEndDate
-                  ? `Current · until ${formatSubscriptionDate(planEndDate)}`
-                  : "Current";
 
               let ctaLabel: string;
               if (isCancelDowngrade) {
                 ctaLabel = "Cancel downgrade";
+              } else if (isFallbackCurrent) {
+                ctaLabel = "Current plan (temporary)";
+              } else if (isRestorePlan) {
+                ctaLabel = `Restore ${displayName}`;
               } else if (isCurrent) {
                 ctaLabel = "Current plan";
               } else if (isScheduled) {
@@ -593,11 +664,13 @@ export const UpgradePlanDialog = ({
               }
 
               // The current plan's button is normally disabled, but stays
-              // actionable when it cancels a pending downgrade.
+              // actionable when it cancels a pending downgrade or restores a plan.
               const buttonDisabled =
                 isCancelDowngrade || isScheduled
                   ? isScheduled || isAttaching
-                  : isCurrent || plan.key === "free" || !fare || isAttaching;
+                  : isRestorePlan
+                    ? isAttaching
+                    : isCurrent || plan.key === "free" || !fare || isAttaching;
               // Cancel-downgrade re-attaches the current fare; everything else
               // attaches the card's own fare.
               const targetFareId = isCancelDowngrade ? fareId : fare?.id;
@@ -619,7 +692,7 @@ export const UpgradePlanDialog = ({
                   className={cn(
                     "relative flex flex-col overflow-hidden rounded-xl border shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]",
                     plan.featured && "z-10 scale-[1.03]",
-                    isCurrent
+                    (isCurrent && !isFareFallback) || isRestorePlan
                       ? "border-primary shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]"
                       : "border-border-subtle",
                   )}
@@ -628,13 +701,35 @@ export const UpgradePlanDialog = ({
                   <div
                     className={cn(
                       "relative border-b border-border-subtle/50 p-5",
-                      isCurrent && "bg-primary/8",
+                      (isCurrent && !isFareFallback) && "bg-primary/8",
+                      isRestorePlan && "bg-primary/5",
                     )}
                   >
                     {/* Badges -- top-right corner */}
                     <AnimatePresence mode="popLayout">
                       <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1">
-                        {isCurrent ? (
+                        {isFallbackCurrent ? (
+                          <motion.div
+                            key="temporary-badge"
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="rounded-md bg-amber-500 px-2 py-0.5 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase"
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                          >
+                            Temporary
+                          </motion.div>
+                        ) : isRestorePlan ? (
+                          <motion.div
+                            key="restore-badge"
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-primary flex items-center gap-1 rounded-md px-2 py-0.5 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase"
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                          >
+                            <RotateCcw size={9} />
+                            Restore
+                          </motion.div>
+                        ) : isCurrent ? (
                           <motion.div
                             key="current-badge"
                             animate={{ opacity: 1, scale: 1 }}

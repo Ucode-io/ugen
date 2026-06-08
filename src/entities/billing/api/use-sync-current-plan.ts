@@ -23,6 +23,9 @@ export const useSyncCurrentPlan = () => {
   const { data: currentSubscription } = useCurrentSubscription(
     projectId,
     Boolean(projectId),
+    // Poll every 60 s so an expired plan is reflected promptly without waiting
+    // for a window-focus event.
+    60_000,
   )
   const apiFareId = currentSubscription?.fare_id
 

@@ -50,6 +50,7 @@ export const useFare = (fareId?: string | null, projectId?: string | null) => {
 export const useCurrentSubscription = (
   projectId?: string | null,
   enabled = true,
+  refetchInterval?: number,
 ) => {
   return useQuery({
     queryKey: ["billing", "subscription", "current", projectId],
@@ -63,6 +64,7 @@ export const useCurrentSubscription = (
     // The endpoint is scoped to the current project via the JWT, so it works
     // without a projectId param -- gate only on the caller's `enabled` flag.
     enabled,
+    refetchInterval,
   })
 }
 
