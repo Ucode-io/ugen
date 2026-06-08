@@ -28,8 +28,11 @@ export const TemplatesBoard = () => {
     refetchOnWindowFocus: false,
     // Reactions can change while the user is on a detail page, so always pull
     // fresh counts/state when the board re-mounts instead of serving the
-    // 5-minute-stale global cache.
+    // 5-minute-stale global cache. gcTime: 0 drops the cache the moment the
+    // board unmounts (no observers), so returning to the page shows a clean
+    // load rather than flashing the previous stale state.
     staleTime: 0,
+    gcTime: 0,
     refetchOnMount: "always",
   });
 
