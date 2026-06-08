@@ -52,6 +52,12 @@ const TAB_ORDER: Record<string, number> = {
   code: 2,
 };
 
+const normalizePublicUrl = (value: unknown): string => {
+  if (typeof value !== "string" || !value.trim()) return "";
+  const url = value.trim();
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+};
+
 const getLanguageByPath = (path: string) => {
   const ext = path.split(".").pop()?.toLowerCase();
   switch (ext) {
@@ -187,6 +193,8 @@ export const ProjectWorkspaceClient = ({
     (state) => state.activeCodeSelection,
   );
   const apiKey = useAuthStore((state) => state.apiKey);
+  const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
+  const projectEnvId = useAuthStore((state) => state.projectEnvId);
   const { project } = useAuthStore();
   const isUgen = project?.is_ugen ?? false;
   const chatPosition = useChatStore((state) => state.chatPosition);
@@ -286,6 +294,35 @@ export const ProjectWorkspaceClient = ({
       return Array.isArray(info) ? info[0] : info;
     },
     enabled: !!projectId,
+  });
+
+  // The published app's public link is the short URL (e.g. "app.ucode.co/p/xxxx"),
+  // keyed by the microfrontend's function_id — the same one shown in the Publish
+  // popover. We fetch it here so the Preview QR can encode the real live link.
+  const shortLinkFnId =
+    activeCodeSelection?.kind === "microfrontend"
+      ? activeCodeSelection.id
+      : undefined;
+  const { data: shortLinkUrl = "" } = useQuery({
+    queryKey: [
+      "mf-short-link",
+      shortLinkFnId,
+      ucodeProjectId || projectId,
+      projectEnvId,
+    ],
+    queryFn: async () => {
+      const { data } = await api.get(
+        `/v1/mcp_project/short-link/${shortLinkFnId}`,
+        {
+          params: { "project-id": ucodeProjectId || projectId },
+          headers: {
+            "Environment-Id": projectEnvId ?? "",
+          },
+        },
+      );
+      return normalizePublicUrl(data?.data?.short_url);
+    },
+    enabled: isUgen && !!shortLinkFnId && !!projectId,
   });
 
   // A microfrontend codebase is still loading when either: a microfrontend is
@@ -569,12 +606,16 @@ export const ProjectWorkspaceClient = ({
     }
 
     if (tab === "preview") {
-      const webAppUrl = projectInfo?.url || projectInfo?.project_url || "";
-      const shareUrl = webAppUrl
-        ? webAppUrl.startsWith("http")
-          ? webAppUrl
-          : `https://${webAppUrl}`
-        : "";
+      const activeMicrofrontendUrl =
+        activeCodeSelection?.kind === "microfrontend"
+          ? activeCodeSelection.url
+          : "";
+      const shareUrl = normalizePublicUrl(
+        shortLinkUrl ||
+          activeMicrofrontendUrl ||
+          projectInfo?.url ||
+          projectInfo?.project_url,
+      );
 
       return (
         <ProjectPreviewViewer
