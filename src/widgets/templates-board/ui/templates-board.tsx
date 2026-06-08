@@ -26,6 +26,11 @@ export const TemplatesBoard = () => {
     queryKey: ["ugen-templates"],
     queryFn: fetchTemplates,
     refetchOnWindowFocus: false,
+    // Reactions can change while the user is on a detail page, so always pull
+    // fresh counts/state when the board re-mounts instead of serving the
+    // 5-minute-stale global cache.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const handleSelectTemplate = (template: Template) => {
