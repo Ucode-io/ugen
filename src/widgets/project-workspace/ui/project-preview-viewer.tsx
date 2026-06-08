@@ -2034,7 +2034,7 @@ export const ProjectPreviewViewer = ({
             </div>
             <MobilePreviewPanel
               shareUrl={shareUrl}
-              className="max-h-full self-stretch"
+              className="max-h-full self-start"
             />
           </div>
         </div>

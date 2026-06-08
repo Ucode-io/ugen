@@ -15,9 +15,13 @@ interface MobilePreviewPanelProps {
 }
 
 const QR_SIZE = 200;
+// Render at 3× for retina-crisp edges (displayed at QR_SIZE). Brand-blue modules
+// on white with a small quiet zone look on-brand and still scan reliably.
+const QR_RENDER = QR_SIZE * 3;
+const QR_COLOR = "1d4ed8"; // blue-700 — strong contrast on white
 
 const buildQrUrl = (value: string) =>
-  `https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=0&data=${encodeURIComponent(
+  `https://api.qrserver.com/v1/create-qr-code/?size=${QR_RENDER}x${QR_RENDER}&margin=0&qzone=1&ecc=M&color=${QR_COLOR}&bgcolor=ffffff&format=png&data=${encodeURIComponent(
     value,
   )}`;
 
@@ -67,18 +71,27 @@ export const MobilePreviewPanel = ({
       {/* QR code (encodes the project URL) */}
       <div className="mb-6 flex justify-center">
         {qrUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={qrUrl}
-            alt="Preview QR code"
-            width={QR_SIZE}
-            height={QR_SIZE}
-            className="rounded-lg"
-          />
+          <a
+            href={shareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open published app"
+            title={shareUrl}
+            className="group rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition-transform duration-200 hover:scale-[1.02] hover:shadow-md"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={qrUrl}
+              alt="QR code for the published app"
+              width={QR_SIZE}
+              height={QR_SIZE}
+              className="block rounded-lg"
+            />
+          </a>
         ) : (
           <div
-            className="bg-bg-sidebar text-text-muted flex flex-col items-center justify-center gap-2 rounded-lg text-center text-xs"
-            style={{ width: QR_SIZE, height: QR_SIZE }}
+            className="border-border-subtle bg-bg-sidebar/60 text-text-muted flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-center text-xs"
+            style={{ width: QR_SIZE + 24, height: QR_SIZE + 24 }}
           >
             <Link2Off className="h-5 w-5 opacity-50" />
             Not published yet
@@ -87,17 +100,11 @@ export const MobilePreviewPanel = ({
       </div>
 
       {/* Publish footer */}
-      <div className="bg-primary/5 border-primary/15 mt-auto rounded-xl border p-4">
-        <p className="text-text-main text-sm font-medium">
-          Ready to publish to App Store?
-        </p>
-        <p className="text-text-muted mt-1 text-sm leading-relaxed">
-          Go live with your app and landing page, then submit to App Store.
-        </p>
+      <div className="bg-primary/5 border-primary/15 rounded-xl border p-4">
         <button
           type="button"
           onClick={onPublish}
-          className="bg-primary hover:bg-primary/90 mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+          className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
         >
           <Rocket size={14} />
           Publish
