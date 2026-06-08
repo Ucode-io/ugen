@@ -312,12 +312,12 @@ export const ProjectDropdown = ({
                     <span
                       className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${
                         isPendingDowngrade
-                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-500'
+                          ? 'border-amber-500/40 bg-amber-500/20 text-amber-500'
                           : 'border-text-muted/40 text-text-muted'
                       }`}
                     >
                       <CalendarClock size={10} className="shrink-0" />
-                      {isPendingDowngrade ? 'Ends' : 'Renews'}{' '}
+                      {isPendingDowngrade ? 'Expired: ' : 'Renews'}{' '}
                       {formatPlanDate(planEndDate)}
                     </span>
                   )}
