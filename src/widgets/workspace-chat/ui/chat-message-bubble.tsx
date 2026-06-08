@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import CodeBlock from "./code-block"
 import remarkBreaks from "remark-breaks";
 import { useTypewriter } from "@/shared/hooks/useTypewriter";
 import { formatAIContent } from "@/shared/lib/utils/formatAiContent";
+import { Check, Copy } from "lucide-react";
 
 interface ChatMessageProps {
   role: 'user' | 'ai' | 'assistant'
@@ -19,6 +20,14 @@ interface ChatMessageProps {
 export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromResponse, onAutoScroll }: ChatMessageProps) => {
   const isAI = role === 'ai' || role === 'assistant';
   const replacedContent = content.replace(/\\n/g, '\n');
+  const [copied, setCopied] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   const hasMarkdownCodeBlock = replacedContent.includes('```');
 
   // Disable realtime typing effect if there are code blocks to prevent layout jumping
@@ -34,17 +43,29 @@ export const ChatMessageBubble = ({ role, content, type, audioUrl, isFromRespons
   if (role === 'user') {
     return (
       <div className="flex w-full justify-end px-4 pt-3 pb-1">
-        <div className="max-w-[80%] rounded-[26px] bg-muted px-5 py-2.5 text-[16px] text-text-main flex flex-col gap-3">
-          {type === 'audio' && audioUrl ? (
-            <div className="rounded-xl bg-bg-card/60 p-2">
-              <audio src={audioUrl} controls className="h-9 w-[220px]" />
-            </div>
-          ) : null}
-          {content && (
-            <span className="leading-[1.75] whitespace-pre-wrap break-words">
-              {content}
-            </span>
-          )}
+        <div
+          className="flex flex-col items-end gap-1 grow-1"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div className="w-fit max-w-[80%] rounded-[26px] bg-muted px-4 py-2 text-[16px] text-text-main flex flex-col gap-3">
+            {type === 'audio' && audioUrl ? (
+              <div className="rounded-xl bg-bg-card/60 p-2">
+                <audio src={audioUrl} controls className="h-9 w-55" />
+              </div>
+            ) : null}
+            {content && (
+              <span className="leading-[1.75] whitespace-pre-wrap wrap-break-word">
+                {content}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleCopy}
+            className={`transition-opacity p-1.5 rounded-md text-text-muted hover:text-text-main ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </button>
         </div>
       </div>
     )

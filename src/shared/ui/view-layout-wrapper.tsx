@@ -4,6 +4,7 @@ import { useAuthStore } from '@/entities/session'
 import { Sidebar } from "@/widgets/sidebar"
 import { Header } from "@/widgets/header"
 import { PendingJoinModal } from '@/features/pending-join/ui/pending-join-modal'
+import { FareFallbackBanner } from "@/widgets/sidebar/ui/components/fare-fallback-banner"
 import { useTheme } from 'next-themes'
 import { usePathname } from 'next/navigation'
 
@@ -35,11 +36,14 @@ export const ViewLayoutWrapper = ({ children }: { children: ReactNode }) => {
     return (
       <div className="flex h-screen bg-bg-main overflow-hidden">
         <Sidebar />
-        <main className={`flex-1 overflow-y-auto rounded-2xl m-3 border ${theme === 'dark' ? 'border-border-subtle' : 'border-border-subtle'}`}>
-          <div className="h-full relative">
-            {children}
-          </div>
-        </main>
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <FareFallbackBanner />
+          <main className={`flex-1 overflow-y-auto rounded-2xl m-3 border ${theme === 'dark' ? 'border-border-subtle' : 'border-border-subtle'}`}>
+            <div className="h-full relative">
+              {children}
+            </div>
+          </main>
+        </div>
         <PendingJoinModal />
       </div>
     )
