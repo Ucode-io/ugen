@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import { Smartphone, Rocket, X, Link2Off } from "lucide-react";
+import { useEffect, useRef } from "react";
+import type QRCodeStyling from "qr-code-styling";
+import { Smartphone, Rocket, X, Link2Off, Download } from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
 
 interface MobilePreviewPanelProps {
@@ -15,15 +16,65 @@ interface MobilePreviewPanelProps {
 }
 
 const QR_SIZE = 200;
-// Render at 3× for retina-crisp edges (displayed at QR_SIZE). Brand-blue modules
-// on white with a small quiet zone look on-brand and still scan reliably.
-const QR_RENDER = QR_SIZE * 3;
-const QR_COLOR = "1d4ed8"; // blue-700 — strong contrast on white
+const QR_DARK = "#0a0a0a"; // near-black modules for crisp, high-contrast scanning
 
-const buildQrUrl = (value: string) =>
-  `https://api.qrserver.com/v1/create-qr-code/?size=${QR_RENDER}x${QR_RENDER}&margin=0&qzone=1&ecc=M&color=${QR_COLOR}&bgcolor=ffffff&format=png&data=${encodeURIComponent(
-    value,
-  )}`;
+/**
+ * Styled QR built with `qr-code-styling`: black, rounded modules + rounded finder
+ * corners, rendered as a crisp SVG. The library draws into a div on the client;
+ * it's loaded lazily (it touches the DOM) so it never runs during SSR.
+ */
+function StyledQr({
+  value,
+  size,
+  instanceRef,
+}: {
+  value: string;
+  size: number;
+  /** Receives the live QR instance so the parent can trigger a download. */
+  instanceRef?: { current: QRCodeStyling | null };
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const qrRef = useRef<QRCodeStyling | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { default: QRCodeStylingCtor } = await import("qr-code-styling");
+      if (cancelled || !containerRef.current) return;
+      if (!qrRef.current) {
+        qrRef.current = new QRCodeStylingCtor({
+          width: size,
+          height: size,
+          type: "svg",
+          margin: 0, // no built-in quiet zone — the card's padding is the quiet zone
+          data: value,
+          qrOptions: { errorCorrectionLevel: "M" },
+          dotsOptions: { color: QR_DARK, type: "rounded" },
+          cornersSquareOptions: { color: QR_DARK, type: "extra-rounded" },
+          cornersDotOptions: { color: QR_DARK, type: "dot" },
+          backgroundOptions: { color: "transparent" },
+        });
+      } else {
+        qrRef.current.update({ data: value });
+      }
+      if (containerRef.current.childElementCount === 0) {
+        qrRef.current.append(containerRef.current);
+      }
+      if (instanceRef) instanceRef.current = qrRef.current;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [value, size, instanceRef]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: size, height: size }}
+      className="[&>svg]:block [&>svg]:h-full [&>svg]:w-full"
+    />
+  );
+}
 
 /**
  * The "Preview on your phone" side panel shown next to the mobile preview frame.
@@ -37,10 +88,15 @@ export const MobilePreviewPanel = ({
   onClose,
   className,
 }: MobilePreviewPanelProps) => {
-  const qrUrl = useMemo(
-    () => (shareUrl ? buildQrUrl(shareUrl) : null),
-    [shareUrl],
-  );
+  // Holds the live QR instance so the Download button can export it as a PNG.
+  const qrInstanceRef = useRef<QRCodeStyling | null>(null);
+
+  const handleDownload = () => {
+    void qrInstanceRef.current?.download({
+      name: "app-qr",
+      extension: "png",
+    });
+  };
 
   return (
     <div
@@ -61,50 +117,65 @@ export const MobilePreviewPanel = ({
       )}
 
       {/* Header */}
-      <div className="mb-6 flex items-center gap-2.5">
+      <div className="mb-2 flex items-center gap-2.5">
         <Smartphone className="text-text-main h-5 w-5" />
         <h2 className="text-text-main text-lg font-semibold">
           Preview on your phone
         </h2>
       </div>
+      <p className="text-text-muted mb-6 text-sm leading-relaxed">
+        Publish your app, then scan the QR code with your phone&apos;s camera to
+        open the live web app on your device — no install needed.
+      </p>
 
       {/* QR code (encodes the project URL) */}
-      <div className="mb-6 flex justify-center">
-        {qrUrl ? (
+      <div className="mb-6 flex flex-col items-center gap-3">
+        {shareUrl ? (
           <a
             href={shareUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Open published app"
             title={shareUrl}
-            className="group rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition-transform duration-200 hover:scale-[1.02] hover:shadow-md"
+            className="group hover:ring-primary/30 rounded-xl bg-white p-1 shadow-md ring-1 ring-black/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qrUrl}
-              alt="QR code for the published app"
-              width={QR_SIZE}
-              height={QR_SIZE}
-              className="block rounded-lg"
+            <StyledQr
+              value={shareUrl}
+              size={QR_SIZE}
+              instanceRef={qrInstanceRef}
             />
           </a>
         ) : (
           <div
-            className="border-border-subtle bg-bg-sidebar/60 text-text-muted flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-center text-xs"
-            style={{ width: QR_SIZE + 24, height: QR_SIZE + 24 }}
+            className="border-border-subtle bg-bg-sidebar/60 text-text-muted flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed text-center text-xs"
+            style={{ width: QR_SIZE + 8, height: QR_SIZE + 8 }}
           >
             <Link2Off className="h-5 w-5 opacity-50" />
             Not published yet
           </div>
         )}
+        <p className="text-text-muted max-w-60 text-center text-xs leading-relaxed">
+          {shareUrl
+            ? "Point your phone's camera at the code — it opens the published app in your browser."
+            : "Publish your app to activate this QR code for scanning."}
+        </p>
       </div>
 
-      {/* Publish footer */}
-      <div className="bg-primary/5 border-primary/15 rounded-xl border p-4">
+      {/* Publish + Download actions */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={!shareUrl}
+          className="border-primary/40 text-text-main hover:bg-primary/5 hover:border-primary/60 flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Download size={14} />
+          Download
+        </button>
         <button
           type="button"
           onClick={onPublish}
-          className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+          className="bg-primary hover:bg-primary/90 flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-transparent px-4 py-2 text-sm font-medium text-white transition-colors"
         >
           <Rocket size={14} />
           Publish

@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 import { Home, Search, LayoutGrid, MessagesSquare, LayoutTemplate } from "lucide-react"
 import { usePathname } from "@/shared/lib/i18n/navigation"
 import { useAuthStore } from "@/entities/session"
+import { SUPER_ADMIN_PROJECT_ID, SUPER_ADMIN_USER_ID } from "@/shared/config"
 
 interface CoreNavProps {
   onSearchClick: () => void;
@@ -13,7 +14,9 @@ interface CoreNavProps {
 export const CoreNav = ({ onSearchClick, isUgen = true }: CoreNavProps) => {
   const t = useTranslations('Navigation')
   const pathname = usePathname()
-  const { activeCompanyId } = useAuthStore()
+  const { activeCompanyId, project, user } = useAuthStore()
+  const isSuperAdmin =
+    project?.project_id === SUPER_ADMIN_PROJECT_ID && user?.id === SUPER_ADMIN_USER_ID
 
   const projectsHref = activeCompanyId ? `/projects?company_id=${activeCompanyId}` : "/projects"
 
@@ -23,9 +26,13 @@ export const CoreNav = ({ onSearchClick, isUgen = true }: CoreNavProps) => {
     { key: "projects", href: projectsHref, icon: LayoutGrid, action: "link" as const },
     { key: "chats", href: "/chats", icon: MessagesSquare, action: "link" as const, requiresUgen: true },
     { key: "templates", href: "/dashboard/templates", icon: LayoutTemplate, action: "link" as const },
+    { key: "all_projects", href: "/dashboard/all-projects", icon: LayoutGrid, action: "link" as const, requiresSuperAdmin: true },
   ]
 
-  const items = allItems.filter(item => !item.requiresUgen || isUgen)
+  const items = allItems.filter(item => {
+    if (item.requiresSuperAdmin) return isSuperAdmin
+    return !item.requiresUgen || isUgen
+  })
 
   return (
     <nav className="space-y-0.5">

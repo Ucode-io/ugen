@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Read(//Users/nurmuhammad/Downloads/**)"
-    ]
+    ],
+    "defaultMode": "dontAsk"
   }
 }
