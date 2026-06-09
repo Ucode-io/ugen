@@ -376,6 +376,13 @@ import type { CodeSelectionFile } from "@/entities/project/model/code-selection-
 import { api } from "@/shared/api";
 import { useQuery } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
+import {
+  fetchNavPermissionMap,
+  postPermissionsToIframe,
+  type NavPermissionMap,
+} from "../lib/ucode-permissions";
+import { roleApi } from "@/entities/role/api/role-api";
+import { clientTypeApi } from "@/entities/client-type";
 import { cn } from "@/shared/lib/utils/cn";
 import { WorkspaceLoader } from "./workspace-loader";
 
@@ -774,6 +781,55 @@ export const ProjectPreviewViewer = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isBuilding = useRef(false);
+
+  // --- Preview as role: see the generated sidebar as a chosen role would (gating test) ---
+  const previewPermMapRef = useRef<NavPermissionMap>({});
+  const [previewRoleId, setPreviewRoleId] = useState<string>("");
+  const [previewRoleOpen, setPreviewRoleOpen] = useState(false);
+
+  const { data: previewRoles = [] } = useQuery<
+    { label: string; roleId: string; clientTypeId: string }[]
+  >({
+    queryKey: ["preview-roles", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const cts: any[] = (await clientTypeApi.getClientTypes(projectId!)) ?? [];
+      const out: { label: string; roleId: string; clientTypeId: string }[] = [];
+      for (const ct of cts) {
+        const ctId = ct.guid ?? ct.id ?? ct.value;
+        if (!ctId) continue;
+        const roles: any[] = (await roleApi.getRoles(projectId!, ctId)) ?? [];
+        for (const r of roles) {
+          if (!r?.guid) continue;
+          out.push({
+            label: `${r.name ?? "Role"}${ct.name ? ` · ${ct.name}` : ""}`,
+            roleId: r.guid,
+            clientTypeId: ctId,
+          });
+        }
+      }
+      return out;
+    },
+  });
+
+  const applyPreviewRole = async (roleId: string) => {
+    setPreviewRoleId(roleId);
+    setPreviewRoleOpen(false);
+    if (!roleId) {
+      previewPermMapRef.current = {};
+      postPermissionsToIframe(iframeRef.current, {});
+      return;
+    }
+    const role = previewRoles.find((r) => r.roleId === roleId);
+    if (!role) return;
+    const map = await fetchNavPermissionMap({
+      roleId: role.roleId,
+      clientTypeId: role.clientTypeId,
+      projectId,
+    });
+    previewPermMapRef.current = map;
+    postPermissionsToIframe(iframeRef.current, map);
+  };
   // Timer for the in-flight build; finalized when the iframe reports PREVIEW_READY.
   const buildTimerRef = useRef<BuildTimer | null>(null);
 
@@ -1405,6 +1461,8 @@ export const ProjectPreviewViewer = ({
       if (e.data?.type === "PREVIEW_READY") {
         // Preview revealed → finalize the build timer with the runtime half.
         buildTimerRef.current?.reportVisible();
+        // App is mounted and listening — (re)apply the chosen preview role's nav permissions.
+        postPermissionsToIframe(iframeRef.current, previewPermMapRef.current);
         return;
       }
 
@@ -1679,6 +1737,60 @@ export const ProjectPreviewViewer = ({
             <RotateCcw size={13} className={cn(isLoading && "animate-spin")} />
           </button>
         )}
+        {!isVersionHistory && previewRoles.length > 0 && (
+          <Popover open={previewRoleOpen} onOpenChange={setPreviewRoleOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 max-w-[150px] items-center gap-1 rounded-lg px-2 transition-colors"
+                title="Preview the generated sidebar as a chosen role would see it"
+              >
+                <span className="truncate text-[11px]">
+                  {previewRoleId
+                    ? previewRoles.find((r) => r.roleId === previewRoleId)?.label ?? "Role"
+                    : "As: Owner"}
+                </span>
+                <ChevronDown
+                  size={12}
+                  className={cn(
+                    "transition-transform duration-200",
+                    previewRoleOpen && "rotate-180",
+                  )}
+                />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={6} className="max-h-72 w-56 overflow-auto p-1">
+              <button
+                type="button"
+                onClick={() => applyPreviewRole("")}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] transition-colors",
+                  !previewRoleId
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-text-muted hover:bg-hover-bg hover:text-text-main",
+                )}
+              >
+                Owner (see all)
+              </button>
+              {previewRoles.map((r) => (
+                <button
+                  key={r.roleId}
+                  type="button"
+                  onClick={() => applyPreviewRole(r.roleId)}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors",
+                    r.roleId === previewRoleId
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-text-muted hover:bg-hover-bg hover:text-text-main",
+                  )}
+                >
+                  <span className="truncate">{r.label}</span>
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+        )}
+
         <Popover open={deviceOpen} onOpenChange={setDeviceOpen}>
           <PopoverTrigger asChild>
             <button
@@ -1778,6 +1890,9 @@ export const ProjectPreviewViewer = ({
         title="Project Preview"
         sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
         onLoad={() => {
+          // Re-apply the chosen preview role's nav permissions to the fresh document
+          // (PREVIEW_READY also does this once the app's message listener is up).
+          postPermissionsToIframe(iframeRef.current, previewPermMapRef.current);
           // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
           themeSavePendingRef.current = false;
           clearThemeOverride();

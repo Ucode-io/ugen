@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Plus, ChevronRight, Trash2, Loader2 } from 'lucide-react'
+import { Plus, ChevronRight, Trash2, Loader2, Link2 } from 'lucide-react'
 import {
   WorkspaceTableRow,
   WorkspaceTableCell
@@ -134,6 +134,15 @@ export const CustomPermissionRow = ({
             <span className="font-medium text-[13px] text-text-main tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
               {item.title}
             </span>
+            {item.attributes?.nav_path && (
+              <span
+                title="Controls this sidebar item's visibility in the generated app (read = show)"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-medium whitespace-nowrap"
+              >
+                <Link2 size={10} />
+                {item.attributes.nav_path}
+              </span>
+            )}
             {isLoadingChildren && <Loader2 size={14} className="animate-spin text-text-muted ml-2" />}
 
             <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
