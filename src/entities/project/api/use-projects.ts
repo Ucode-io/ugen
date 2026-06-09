@@ -189,6 +189,49 @@ export const useDeleteProject = () => {
   })
 }
 
+export interface AllProject {
+  project_id: string
+  company_id: string
+  title: string
+  k8s_namespace: string
+  fare_id: string
+  balance?: number
+  status: string
+  created_at: string
+  updated_at: string
+  environment_id: string
+  company_projects_count: number
+}
+
+export interface FetchAllProjectsParams {
+  page?: number
+  limit?: number
+  title?: string
+}
+
+export const fetchAllProjects = async (
+  params?: FetchAllProjectsParams
+): Promise<{ count: number; projects: AllProject[] }> => {
+  const { page = 1, limit = 10, title } = params ?? {}
+  const { data } = await api.get('/v1/ugen/projects/all', {
+    params: {
+      limit,
+      offset: (page - 1) * limit,
+      ...(title ? { title } : {}),
+    },
+  })
+  return data?.data ?? { count: 0, projects: [] }
+}
+
+export const useAllProjects = (params?: FetchAllProjectsParams) => {
+  return useQuery({
+    queryKey: ['all-projects', params?.page, params?.limit, params?.title],
+    queryFn: () => fetchAllProjects(params),
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+}
+
 export const useCreateCompany = () => {
   const queryClient = useQueryClient()
   return useMutation({

@@ -53,6 +53,16 @@ export interface ProjectData {
   environment_id: string;
 }
 
+// Snapshot of the super-admin's own session, captured the moment they switch
+// into another project from the all-projects view. Restoring it returns them to
+// their original profile without re-authenticating.
+export interface SuperAdminOrigin {
+  project: ProjectData;
+  accessToken: string;
+  refreshToken: string;
+  activeCompanyId: string | null;
+}
+
 export interface AuthState {
   user: UserData | null;
   project: ProjectData | null;
@@ -72,6 +82,7 @@ export interface AuthState {
   activeCompanyId: string | null;
   codeEditorTarget: CodeEditorTarget | null;
   languages: Language[];
+  superAdminOrigin: SuperAdminOrigin | null;
   setApiKey: (key: string | null, projectId?: string | null) => void;
   setUcodeProjectId: (key: string | null) => void;
   setProjectEnvId: (key: string | null) => void;
@@ -93,6 +104,11 @@ export interface AuthState {
     accessToken: string,
     refreshToken: string,
   ) => void;
+  // Capture the current session as the super-admin origin (no-op if one already
+  // exists, so re-switching can't clobber the real home session).
+  beginSuperAdminImpersonation: () => void;
+  // Restore the captured super-admin session and clear the snapshot.
+  endSuperAdminImpersonation: () => void;
   logout: () => void;
   setActiveView: (view: "home" | "dashboard") => void;
 }
@@ -118,6 +134,7 @@ export const useAuthStore = create<AuthState>()(
       activeCompanyId: null,
       codeEditorTarget: null,
       languages: [],
+      superAdminOrigin: null,
       setApiKey: (key, projectId = null) => set({ apiKey: key, apiKeyProjectId: key ? projectId : null }),
       setUcodeProjectId: (key) => set({ ucodeProjectId: key }),
       setProjectEnvId: (key) => set({ projectEnvId: key }),
@@ -170,6 +187,33 @@ export const useAuthStore = create<AuthState>()(
             : state.project,
         }))
       },
+      beginSuperAdminImpersonation: () => {
+        set((state) => {
+          if (state.superAdminOrigin) return state
+          if (!state.project || !state.accessToken || !state.refreshToken) return state
+          return {
+            superAdminOrigin: {
+              project: state.project,
+              accessToken: state.accessToken,
+              refreshToken: state.refreshToken,
+              activeCompanyId: state.activeCompanyId,
+            },
+          }
+        })
+      },
+      endSuperAdminImpersonation: () => {
+        set((state) => {
+          const origin = state.superAdminOrigin
+          if (!origin) return state
+          return {
+            project: origin.project,
+            accessToken: origin.accessToken,
+            refreshToken: origin.refreshToken,
+            activeCompanyId: origin.activeCompanyId,
+            superAdminOrigin: null,
+          }
+        })
+      },
       logout: () => {
         logIsUgen('store:logout', {})
         queryClient.clear()
@@ -189,6 +233,7 @@ export const useAuthStore = create<AuthState>()(
           activeCompanyId: null,
           codeEditorTarget: null,
           languages: [],
+          superAdminOrigin: null,
         })
       },
       setActiveView: (view) => set({ activeView: view }),

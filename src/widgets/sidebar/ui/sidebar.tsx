@@ -14,6 +14,7 @@ import { CoreNav } from "./components/core-nav";
 import { RecentsNav } from "./components/recents-nav";
 import { ProjectDropdown } from "./components/project-dropdown";
 import { ProfileFooter } from "./components/profile-footer";
+import { SuperAdminReturnButton } from "./components/super-admin-return-button";
 import { ProfileModal } from "./components/profile-modal";
 import { UpgradePlanDialog } from "./components/upgrade-plan-dialog";
 import { UpgradePlanCard } from "./components/upgrade-plan-card";
@@ -122,6 +123,8 @@ export const Sidebar = ({ className, hideLogo, isHidden, onProfilePopupChange, o
 
       {/* Scrollable Nav Area */}
       <div className="scrollbar-hide flex-1 space-y-4 overflow-y-auto px-3 pb-4">
+        <SuperAdminReturnButton />
+
         <CoreNav
           onSearchClick={() => setIsSearchOpen(true)}
           isUgen={isUgen}
