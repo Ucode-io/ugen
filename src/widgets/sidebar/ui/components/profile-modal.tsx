@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@/shared/lib/i18n/navigation";
 import { api, authApi } from "@/shared/api";
-import { useAuthStore } from "@/entities/session";
+import { useAuthStore, useIsSuperAdmin } from "@/entities/session";
 import {
   Input,
   Dialog,
@@ -330,12 +330,15 @@ const AnalyticsTab = () => {
   const apiKey = useAuthStore((state) => state.apiKey);
   const fareId = useAuthStore((state) => state.project?.fare_id);
 
+  const isSuperAdmin = useIsSuperAdmin();
+
   const { data: companyStats } = useQuery({
     queryKey: ["pricing-company-stats", apiKey],
     queryFn: async () => {
       const { data } = await api.get("/v1/pricing/company-stats");
       return data;
     },
+    enabled: !isSuperAdmin,
     staleTime: 0,
   });
 

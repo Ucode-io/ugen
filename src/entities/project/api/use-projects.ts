@@ -70,17 +70,29 @@ export interface SwitchProjectParams {
   project_id: string
 }
 
-export const switchProject = async (params: SwitchProjectParams) => {
+const refreshIntoProject = async (endpoint: string, params: SwitchProjectParams) => {
   const { authApi } = await import('@/shared/api')
-  const { data } = await authApi.put('/v2/refresh', params)
+  const { data } = await authApi.put(endpoint, params)
   // normalize: response may be nested under .response or flat
   const inner = data?.data
   return inner?.response ?? inner
 }
 
+export const switchProject = (params: SwitchProjectParams) => refreshIntoProject('/v2/refresh', params)
+
+// Super admin impersonation switch uses a dedicated endpoint.
+export const switchProjectSuperAdmin = (params: SwitchProjectParams) =>
+  refreshIntoProject('/v2/refresh-superadmin', params)
+
 export const useSwitchProject = () => {
   return useMutation({
     mutationFn: switchProject,
+  })
+}
+
+export const useSwitchProjectSuperAdmin = () => {
+  return useMutation({
+    mutationFn: switchProjectSuperAdmin,
   })
 }
 

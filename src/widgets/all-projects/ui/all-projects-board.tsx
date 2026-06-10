@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useAllProjects, useSwitchProject, type AllProject } from '@/entities/project'
+import { useAllProjects, useSwitchProjectSuperAdmin, type AllProject } from '@/entities/project'
 import { useAuthStore } from '@/entities/session'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { useDebounce } from '@/shared/hooks/useDebounce'
@@ -150,7 +150,7 @@ export const AllProjectsBoard = () => {
   const totalCount = data?.count ?? 0
 
   const { user, refreshToken, switchProjectAuth, beginSuperAdminImpersonation } = useAuthStore()
-  const { mutateAsync: switchProject } = useSwitchProject()
+  const { mutateAsync: switchProject } = useSwitchProjectSuperAdmin()
   const queryClient = useQueryClient()
   const router = useRouter()
   const [switchingId, setSwitchingId] = useState<string | null>(null)

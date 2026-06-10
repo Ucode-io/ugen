@@ -8,7 +8,7 @@ import { ReusableTabs, UsageIndicator, Input } from "@/shared/ui";
 import { WorkspaceDataTable } from "./workspace-data-table";
 import { Button } from "@/shared/ui";
 import { Search } from "lucide-react";
-import { useAuthStore } from "@/entities/session";
+import { useAuthStore, useIsSuperAdmin } from "@/entities/session";
 import { InviteUserModal } from "./invite-user-modal";
 import { UpgradePlanDialog } from "@/widgets/sidebar/ui/components/upgrade-plan-dialog";
 import {
@@ -85,6 +85,8 @@ export const UsersManagement = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
+  const isSuperAdmin = useIsSuperAdmin();
+
   // company-stats is a Bearer-only endpoint (see instance.ts), so it
   // authenticates with the user token instead of the project API-KEY.
   const { data: companyStats } = useQuery({
@@ -93,6 +95,7 @@ export const UsersManagement = ({
       const { data } = await api.get("/v1/pricing/company-stats");
       return data;
     },
+    enabled: !isSuperAdmin,
     staleTime: 0,
   });
 
