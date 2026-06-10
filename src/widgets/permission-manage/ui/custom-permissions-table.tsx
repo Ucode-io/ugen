@@ -53,7 +53,6 @@ export const CustomPermissionsTable = ({
   const t = useTranslations('widgets.permissionManage.tablePermissions')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedRow, setSelectedRow] = useState<any>(null)
-  const [navPath, setNavPath] = useState<string>('')
   const [isScrolled, setIsScrolled] = useState(false)
   const queryClient = useQueryClient()
 
@@ -126,10 +125,6 @@ export const CustomPermissionsTable = ({
         client_type_id: clientTypeId,
         attributes: {
           description: data.description,
-          // nav_path links this custom permission to a sidebar item in the AI-generated
-          // admin panel (the item's route path, e.g. "/users"). ugen pushes the role's
-          // read flag into the generated app, which hides that nav item when read=No.
-          ...(navPath.trim() ? { nav_path: navPath.trim() } : {}),
         },
         ...(selectedRow ? { parent_id: selectedRow.custom_permission_id } : {}),
       }
@@ -139,7 +134,6 @@ export const CustomPermissionsTable = ({
       toast.success("Successfully added")
       setIsAddModalOpen(false)
       resetModal()
-      setNavPath('')
 
       if (selectedRow) {
         // Fetch fresh children for the parent row
@@ -226,7 +220,6 @@ export const CustomPermissionsTable = ({
                   onDeleteSuccess={onDeleteSuccess}
                   onAddClick={(item, name) => {
                     setSelectedRow({ ...item, _formPath: name })
-                    setNavPath('')
                     setIsAddModalOpen(true)
                   }}
                   onUpdate={handleUpdate}
@@ -246,7 +239,6 @@ export const CustomPermissionsTable = ({
           type="button"
           onClick={() => {
             setSelectedRow(null)
-            setNavPath('')
             setIsAddModalOpen(true)
           }}
           className="w-full flex items-center gap-2 px-6 py-2.5 border-t border-border-subtle/50 bg-bg-card hover:bg-primary/5 text-text-muted hover:text-primary transition-colors group/add"
@@ -284,20 +276,6 @@ export const CustomPermissionsTable = ({
                 {...register('title', { required: true })}
                 className={cn("bg-bg-sidebar border-border-subtle", errors.title && "border-destructive")}
               />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-widest pl-1">Sidebar path (optional)</label>
-              <Input
-                placeholder="e.g. /users"
-                value={navPath}
-                onChange={(e) => setNavPath(e.target.value)}
-                className="bg-bg-sidebar border-border-subtle"
-              />
-              <p className="text-[10px] text-text-muted/70 pl-1">
-                The route path of a sidebar item in the AI-generated admin panel. Toggling READ
-                hides/shows that item for this role.
-              </p>
             </div>
 
             <div className="space-y-1.5">

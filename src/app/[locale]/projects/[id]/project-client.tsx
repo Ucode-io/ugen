@@ -42,11 +42,6 @@ import {
 import { usePathname, useSearchParams } from "next/navigation";
 import { useChatStore } from "@/entities/chat";
 import { cn } from "@/shared/lib/utils/cn";
-import {
-  fetchNavPermissionMap,
-  postPermissionsToIframe,
-  type NavPermissionMap,
-} from "@/widgets/project-workspace/lib/ucode-permissions";
 
 // Tab order as shown in the header (Settings → Preview → Code). Each tab panel
 // is positioned at an x-offset equal to its distance from the active tab, so
@@ -564,29 +559,6 @@ export const ProjectWorkspaceClient = ({
       .finally(() => setIsMicrofrontendLoading(false));
   }, [projectId, isUgen]);
 
-  // For a shared/invited user (is_ugen === false) viewing the generated admin panel,
-  // fetch the role's custom-permission nav map and push it into the app iframe so its
-  // sidebar can hide items the role can't read.
-  const appIframeRef = useRef<HTMLIFrameElement | null>(null);
-  const [navPermissions, setNavPermissions] = useState<NavPermissionMap>({});
-
-  useEffect(() => {
-    if (isUgen || !projectId) return;
-    const role = useAuthStore.getState().user?.role;
-    if (!role?.id || !role?.client_type_id) return;
-    fetchNavPermissionMap({
-      roleId: role.id,
-      clientTypeId: role.client_type_id,
-      projectId,
-    }).then(setNavPermissions);
-  }, [projectId, isUgen]);
-
-  // (Re)send whenever the map or the selected microfrontend changes (covers late map arrival).
-  useEffect(() => {
-    if (isUgen) return;
-    postPermissionsToIframe(appIframeRef.current, navPermissions);
-  }, [navPermissions, selectedMicrofrontend, isUgen]);
-
   const renderTabContent = (tab: "dashboard" | "code" | "preview") => {
     if (tab === "dashboard") {
       return (
@@ -721,11 +693,7 @@ export const ProjectWorkspaceClient = ({
               {selectedMicrofrontend?.url ? (
                 <iframe
                   key={selectedMicrofrontend.id}
-                  ref={appIframeRef}
                   src={selectedMicrofrontend.url}
-                  onLoad={() =>
-                    postPermissionsToIframe(appIframeRef.current, navPermissions)
-                  }
                   className="w-full flex-1 border-none"
                   title={selectedMicrofrontend.name}
                 />
