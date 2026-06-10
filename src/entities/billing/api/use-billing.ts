@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/shared/api"
-import { useAuthStore } from "@/entities/session"
+import { useAuthStore, useIsSuperAdmin } from "@/entities/session"
 import type {
   BillingTransaction,
   CurrentSubscription,
@@ -37,13 +37,16 @@ export const useCompanyProjectsList = (companyId?: string | null, projectId?: st
 }
 
 export const useFare = (fareId?: string | null, projectId?: string | null) => {
+  // Skip while the super-admin is on their own project -- the fare-by-id call is
+  // meaningless there (see useIsSuperAdmin).
+  const isSuperAdmin = useIsSuperAdmin()
   return useQuery({
     queryKey: ["billing", "fare", fareId, projectId],
     queryFn: async () => {
       const { data } = await api.get(`/v1/fare/${fareId}`, buildBearerConfig(projectId))
       return (data?.data ?? data) as Fare
     },
-    enabled: Boolean(fareId),
+    enabled: Boolean(fareId) && !isSuperAdmin,
   })
 }
 
@@ -52,6 +55,8 @@ export const useCurrentSubscription = (
   enabled = true,
   refetchInterval?: number,
 ) => {
+  // Skip while the super-admin is on their own project (see useIsSuperAdmin).
+  const isSuperAdmin = useIsSuperAdmin()
   return useQuery({
     queryKey: ["billing", "subscription", "current", projectId],
     queryFn: async () => {
@@ -63,7 +68,7 @@ export const useCurrentSubscription = (
     },
     // The endpoint is scoped to the current project via the JWT, so it works
     // without a projectId param -- gate only on the caller's `enabled` flag.
-    enabled,
+    enabled: enabled && !isSuperAdmin,
     refetchInterval,
   })
 }

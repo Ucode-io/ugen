@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { Settings, ChevronsUpDown, Loader2, Lock, User, ChevronRight, Sparkles, Plus, Palette, Sun, Moon, BriefcaseBusiness, CalendarClock } from "lucide-react"
 import { useUserProjects, UserCompany, useSwitchProject, useCreateCompany } from "@/entities/project"
-import { useAuthStore } from "@/entities/session"
+import { useAuthStore, useIsSuperAdmin } from "@/entities/session"
 import { useCurrentSubscription } from "@/entities/billing"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
@@ -100,6 +100,8 @@ export const ProjectDropdown = ({
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null)
   const [isWorkspacesOpen, setIsWorkspacesOpen] = useState(false)
 
+  const isSuperAdmin = useIsSuperAdmin()
+
   const { data: pricingData } = useQuery({
     queryKey: ['pricing-company-stats', apiKey],
     queryFn: async () => {
@@ -107,7 +109,7 @@ export const ProjectDropdown = ({
       const { data } = await api.get('/v1/pricing/company-stats')
       return data
     },
-    enabled: isProjectPopupOpen,
+    enabled: isProjectPopupOpen && !isSuperAdmin,
     staleTime: 30_000,
   })
 

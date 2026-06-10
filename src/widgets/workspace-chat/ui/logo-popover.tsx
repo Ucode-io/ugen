@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui'
-import { useAuthStore } from '@/entities/session'
+import { useAuthStore, useIsSuperAdmin } from '@/entities/session'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { api } from '@/shared/api'
 import { ChevronLeft } from 'lucide-react'
@@ -50,6 +50,8 @@ export const LogoPopover = ({
   const apiKey = useAuthStore((state) => state.apiKey)
   const guardedAction = useGuardedAction()
 
+  const isSuperAdmin = useIsSuperAdmin()
+
   const { data: pricingData } = useQuery({
     queryKey: ['pricing-company-stats', apiKey],
     queryFn: async () => {
@@ -57,6 +59,7 @@ export const LogoPopover = ({
       const { data } = await api.get('/v1/pricing/company-stats', { headers })
       return data
     },
+    enabled: !isSuperAdmin,
     staleTime: 0,
   })
 
