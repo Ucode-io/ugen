@@ -3,12 +3,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { History, Loader2, PanelLeft, PanelRight } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
-import { useChatStore, Message } from "@/entities/chat";
+import { useChatStore, Message, type MessageReaction } from "@/entities/chat";
 import { normalizeChatProvider } from "@/entities/ai-model";
 import { Checkbox } from "@/shared/ui";
 import { api } from "@/shared/api";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
+import { useMobileProjectStore } from "@/entities/project/model/mobile-project-store";
 import { useAuthStore } from "@/entities/session";
 import { handlePaymentRequired } from "@/entities/billing";
 import { queryClient } from "@/shared/api/query-client";
@@ -21,6 +22,12 @@ import { ThinkingBlock, type SseEvent } from "./thinking-block";
 import { ProjectSummaryMessage } from "./project-summary-message";
 import { isProjectSummary } from "../lib/parse-project-summary";
 import { useGuardedAction } from "@/widgets/project-workspace/lib/save-flow";
+import {
+  createChatMessageReaction,
+  deleteChatMessageReaction,
+  type ChatMessageReaction,
+} from "@/entities/api/use-chat";
+import { toast } from "sonner";
 
 const getLanguageByPath = (path: string) => {
   const ext = path.split('.').pop()?.toLowerCase();
@@ -40,6 +47,25 @@ const getLanguageByPath = (path: string) => {
     default:
       return 'javascript';
   }
+};
+
+const normalizeMessageReaction = (message: any): MessageReaction | null => {
+  const raw =
+    message?.current_user_reaction ??
+    message?.my_reaction ??
+    message?.user_reaction ??
+    message?.reaction ??
+    message?.reaction_type;
+  const value =
+    raw && typeof raw === "object"
+      ? raw.reaction_type ?? raw.type ?? raw.value
+      : raw;
+  return value === "like" || value === "dislike" ? value : null;
+};
+
+const normalizeMessageCount = (value: unknown): number => {
+  const count = Number(value);
+  return Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
 };
 
 import type { CodeEditorTarget } from "@/entities/session";
@@ -159,6 +185,9 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [reactingMessageIds, setReactingMessageIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [isThinking, setIsThinking] = useState(false);
   const thinkingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const sseEvents = useChatStore((state) => state.sseEvents);
@@ -275,6 +304,10 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
           id: m.id || Date.now().toString(),
           role: m.role || "ai",
           content: m.content || "",
+          images: m.images ?? (m as any).image_urls ?? [],
+          reaction: normalizeMessageReaction(m),
+          likeCount: normalizeMessageCount((m as any).like_count),
+          dislikeCount: normalizeMessageCount((m as any).dislike_count),
           pending_action: m.pending_action,
           bpmnXml: m?.plan?.bpmn_xml,
         }));
@@ -433,6 +466,68 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
     guardedAction(() => sendMessageInner(text, files, model, pendingActionPayload, context));
   };
 
+  const handleResendMessage = (message: Message) => {
+    if (message.role !== "user" || isSending || isDisabled) return;
+    handleSendMessage(
+      message.content,
+      message.images?.map((url) => ({ url })),
+    );
+  };
+
+  const handleMessageReaction = async (
+    message: Message,
+    reaction: ChatMessageReaction | null,
+  ) => {
+    if (
+      message.role === "user" ||
+      reactingMessageIds.has(message.id)
+    ) {
+      return;
+    }
+
+    const previousReaction = message.reaction ?? null;
+    const previousLikeCount = message.likeCount ?? 0;
+    const previousDislikeCount = message.dislikeCount ?? 0;
+    let likeCount = previousLikeCount;
+    let dislikeCount = previousDislikeCount;
+
+    if (previousReaction === "like") likeCount = Math.max(0, likeCount - 1);
+    if (previousReaction === "dislike") dislikeCount = Math.max(0, dislikeCount - 1);
+    if (reaction === "like") likeCount += 1;
+    if (reaction === "dislike") dislikeCount += 1;
+
+    updateMessage(message.id, { reaction, likeCount, dislikeCount });
+    setReactingMessageIds((current) => new Set(current).add(message.id));
+
+    try {
+      const result = reaction
+        ? await createChatMessageReaction(message.id, reaction)
+        : await deleteChatMessageReaction(message.id);
+      const responseMessage = result?.data ?? result?.message ?? result;
+
+      if (responseMessage && typeof responseMessage === "object") {
+        updateMessage(message.id, {
+          likeCount: normalizeMessageCount(responseMessage.like_count ?? likeCount),
+          dislikeCount: normalizeMessageCount(responseMessage.dislike_count ?? dislikeCount),
+        });
+      }
+    } catch (error) {
+      updateMessage(message.id, {
+        reaction: previousReaction,
+        likeCount: previousLikeCount,
+        dislikeCount: previousDislikeCount,
+      });
+      toast.error("Could not update your reaction. Please try again.");
+      console.error("Failed to react to assistant message", error);
+    } finally {
+      setReactingMessageIds((current) => {
+        const next = new Set(current);
+        next.delete(message.id);
+        return next;
+      });
+    }
+  };
+
   const sendMessageInner = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
     clearSseEvents();
     setStreamError(null);
@@ -491,7 +586,37 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         ...(pendingActionPayload ? { pending_action: pendingActionPayload } : {}),
       };
 
+      const applyMobileProject = (payload: any) => {
+        const mobileProject =
+          payload?.mobile_project ?? payload?.data?.mobile_project ?? payload;
+        if (!mobileProject) return;
+        useMobileProjectStore
+          .getState()
+          .setMobileProject(mobileProject, projectId);
+
+        // Mobile generation may emit its complete Capacitor/web source only in
+        // `mobile_project`, without chunk_done files. Populate the normal files
+        // store too so the parent mounts Code/Preview and the web layer can run
+        // live immediately.
+        if (mobileProject.files?.length) {
+          setFiles(
+            mobileProject.files.map((f: any) => ({
+              path: f.path,
+              content: f.content,
+              language: getLanguageByPath(f.path),
+            })),
+            projectId,
+          );
+        }
+      };
+
       const processDoneData = (data: any) => {
+        // Final response also carries `mobile_project` (alongside microfrontend_id).
+        // Capture it here as well as from the SSE `mobile_project` event — the
+        // @99% SSE event can be dropped on a flaky stream, this is the reliable copy.
+        if (data?.mobile_project) {
+          applyMobileProject(data.mobile_project);
+        }
         const newMicrofrontendId = data?.microfrontend_id;
         const newMicrofrontendRepoId = data?.microfrontend_repo_id;
         const newMicrofrontendProjectId = data?.project_id ?? data?.microfrontend_project_id;
@@ -606,6 +731,11 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
             pending_action: pendingAction || null,
             isFromResponse: true,
             bpmnXml,
+            // Seed reaction state so the bubble renders in controlled mode and
+            // routes clicks through the reaction API (not the local fallback).
+            reaction: normalizeMessageReaction(responseMsg),
+            likeCount: normalizeMessageCount((responseMsg as any)?.like_count),
+            dislikeCount: normalizeMessageCount((responseMsg as any)?.dislike_count),
           });
           handleAutoScroll();
         }
@@ -666,6 +796,11 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                   setFiles(accumulatedFilesRef.current.map((f: any) => ({
                     path: f.path, content: f.content, language: getLanguageByPath(f.path),
                   })), projectId);
+                } else if (event.type === 'mobile_project') {
+                  // Capacitor mobile generation — stash the runtime metadata +
+                  // files so the preview can switch to the mobile flow and the
+                  // actions panel (Download source, future native build) has them.
+                  applyMobileProject(event.data ?? null);
                 } else if (event.type === 'error') {
                   // Billing limit hit mid-stream → open the global upgrade
                   // popup instead of showing a generic stream error.
@@ -804,9 +939,18 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                     ))}
                   </div>
                 )}
-                {msg.content && (
+                {(msg.content || msg.role === "user") && (
                   msg.role !== 'user' && isProjectSummary(msg.content) ? (
-                    <ProjectSummaryMessage key={msg.id} content={msg.content} onAutoScroll={handleAutoScroll} />
+                    <ProjectSummaryMessage
+                      key={msg.id}
+                      content={msg.content}
+                      onAutoScroll={handleAutoScroll}
+                      reaction={msg.reaction}
+                      onReaction={(reaction) => handleMessageReaction(msg, reaction)}
+                      reactionDisabled={reactingMessageIds.has(msg.id)}
+                      likeCount={msg.likeCount}
+                      dislikeCount={msg.dislikeCount}
+                    />
                   ) : (
                     <ChatMessageBubble
                       key={msg.id}
@@ -814,6 +958,21 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                       content={msg.content}
                       isFromResponse={msg.isFromResponse}
                       onAutoScroll={handleAutoScroll}
+                      onResend={
+                        msg.role === "user"
+                          ? () => handleResendMessage(msg)
+                          : undefined
+                      }
+                      resendDisabled={isSending || isDisabled}
+                      reaction={msg.role === "user" ? undefined : msg.reaction}
+                      onReaction={
+                        msg.role === "user"
+                          ? undefined
+                          : (reaction) => handleMessageReaction(msg, reaction)
+                      }
+                      reactionDisabled={reactingMessageIds.has(msg.id)}
+                      likeCount={msg.likeCount}
+                      dislikeCount={msg.dislikeCount}
                     />
                   )
                 )}

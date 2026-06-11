@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { ChatMessageBubble } from './chat-message-bubble'
 import { formatProjectSummary, parseProjectSummary } from '../lib/parse-project-summary'
+import type { MessageReaction } from '@/entities/chat'
 
 // Renders the backend's project-summary message as structured markdown using
 // the chat's normal markdown bubble — same chatbot typography as every other
@@ -10,12 +11,33 @@ import { formatProjectSummary, parseProjectSummary } from '../lib/parse-project-
 export const ProjectSummaryMessage = ({
   content,
   onAutoScroll,
+  reaction,
+  onReaction,
+  reactionDisabled,
+  likeCount,
+  dislikeCount,
 }: {
   content: string
   onAutoScroll: () => void
+  reaction?: MessageReaction | null
+  onReaction?: (reaction: MessageReaction | null) => void
+  reactionDisabled?: boolean
+  likeCount?: number
+  dislikeCount?: number
 }) => {
   const t = useTranslations('widgets.workspaceChat.projectSummary')
   const markdown = formatProjectSummary(parseProjectSummary(content), t)
 
-  return <ChatMessageBubble role="ai" content={markdown} onAutoScroll={onAutoScroll} />
+  return (
+    <ChatMessageBubble
+      role="ai"
+      content={markdown}
+      onAutoScroll={onAutoScroll}
+      reaction={reaction}
+      onReaction={onReaction}
+      reactionDisabled={reactionDisabled}
+      likeCount={likeCount}
+      dislikeCount={dislikeCount}
+    />
+  )
 }

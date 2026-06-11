@@ -8,6 +8,8 @@
     "build": "node -e \"require('fs').copyFileSync('node_modules/esbuild-wasm/esbuild.wasm', 'public/esbuild.wasm')\" && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "test:mobile-capabilities": "node --test src/entities/project/model/mobile-capabilities.test.mjs",
+    "test:preview-runtime": "node --test src/widgets/project-workspace/lib/preview-html.test.mjs",
     "postinstall": "node -e \"try{require('fs').copyFileSync('node_modules/esbuild-wasm/esbuild.wasm', 'public/esbuild.wasm')}catch(e){console.warn('esbuild.wasm copy skipped:', e.message)}\""
   },
   "dependencies": {
