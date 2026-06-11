@@ -1,11 +1,14 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useReducer } from "react";
 import { useVisualEditorStore } from "@/entities/visual-editor";
 import { MoveablePrompt } from "./moveable-prompt";
 import { ElementStyleToolbar } from "./element-style-toolbar";
 import { useFilesStore } from "@/entities/project/model/files-store";
 import { useChatStore } from "@/entities/chat";
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler";
-import { generatePreviewHtml } from "../lib/preview-html";
+import {
+  generatePreviewHtml,
+  PREVIEW_RUNTIME_VERSION,
+} from "../lib/preview-html";
 import { createBuildTimer, type BuildTimer } from "../lib/build-timer";
 import {
   getCachedBuild,
@@ -30,6 +33,7 @@ import {
   Check,
   Save,
   RotateCcw,
+  X,
 } from "lucide-react";
 import {
   useDirtyFilesStore,
@@ -45,7 +49,14 @@ import {
   type ColorGroup,
 } from "./theme-popover";
 import { MobilePreviewPanel } from "./mobile-web-preview";
+import { MobileActionsPanel } from "./mobile-actions-panel";
+import { MobileCapabilitySimulation } from "./mobile-capability-simulation";
 import { PhoneShell, PHONE_SAFE_AREA_TOP } from "./mobile-phone-shell";
+import { useMobileProjectStore } from "@/entities/project/model/mobile-project-store";
+import {
+  INITIAL_MOBILE_SIMULATION_STATE,
+  mobileSimulationReducer,
+} from "@/entities/project/model/mobile-capabilities";
 
 // Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
@@ -400,7 +411,12 @@ const DEVICES: { id: DeviceType; label: string; icon: React.ReactNode }[] = [
 ];
 
 /** App type stored on the MCP project (`project_type`). */
-export type ProjectType = "admin_panel" | "web" | "landing" | "webapp";
+export type ProjectType =
+  | "admin_panel"
+  | "web"
+  | "landing"
+  | "webapp"
+  | "mobile";
 
 interface ProjectPreviewViewerProps {
   device?: DeviceType;
@@ -487,6 +503,18 @@ export const ProjectPreviewViewer = ({
     (s) => s.setActiveCodeSelection,
   );
   const apiKey = useAuthStore((s) => s.apiKey);
+  const mobileProject = useMobileProjectStore((s) => s.mobileProject);
+  const mobileProjectId = useMobileProjectStore((s) => s.mobileProjectId);
+  const scopedMobileProject =
+    mobileProjectId === projectId ? mobileProject : null;
+  const [mobileSimulation, dispatchMobileSimulation] = useReducer(
+    mobileSimulationReducer,
+    INITIAL_MOBILE_SIMULATION_STATE,
+  );
+
+  useEffect(() => {
+    dispatchMobileSimulation({ type: "reset" });
+  }, [projectId]);
 
   const dirtyKey = getDirtyKey(activeCodeSelection ?? null);
   const dirtyMap = useDirtyFilesStore((s) =>
@@ -512,10 +540,20 @@ export const ProjectPreviewViewer = ({
       return (data?.data ?? null) as {
         project_type?: ProjectType;
         project_image?: string | null;
+        microfrontend_url?: string | null;
       } | null;
     },
     enabled: !!projectId,
   });
+
+  // Whether this is a Capacitor mobile app. Declared early because the build
+  // effect reads it (mobile skips the in-browser build until a valid local entry
+  // exists). mcp_project.project_type is authoritative after reload; the SSE
+  // `mobile_project` (scoped to this project) is the immediate signal during
+  // generation.
+  const isMobile =
+    mcpProject?.project_type === "mobile" ||
+    scopedMobileProject?.project_type === "mobile";
 
   const { data: microfrontendsList = [] } = useQuery({
     queryKey: ["preview-microfrontends", projectId],
@@ -634,6 +672,23 @@ export const ProjectPreviewViewer = ({
     } else {
       base = storeFiles;
     }
+    // Mobile (Capacitor): the microfrontend codebase can arrive without a
+    // buildable entry (e.g. before it finishes loading), which fails the bundler
+    // with "File not found: /src/App". The `mobile_project` SSE/response bundle
+    // always carries the real source (src/App.tsx + Capacitor scaffold), so fall
+    // back to it when the current base has no preview entry.
+    if (
+      !(versionPreviewFiles && versionPreviewFiles.length > 0) &&
+      mobileProjectId === projectId &&
+      mobileProject?.files?.length &&
+      !hasPreviewEntryFile(base)
+    ) {
+      base = mobileProject.files.map((f) => ({
+        path: f.path,
+        content: f.content,
+        language: getLanguageByPath(f.path),
+      }));
+    }
     // Don't apply dirty overlay while viewing a historical version
     if (versionPreviewFiles && versionPreviewFiles.length > 0) return base;
     if (!dirtyMap || Object.keys(dirtyMap).length === 0) return base;
@@ -658,6 +713,9 @@ export const ProjectPreviewViewer = ({
     activeCodeFiles,
     storeFiles,
     dirtyMap,
+    mobileProject,
+    mobileProjectId,
+    projectId,
   ]);
 
   const handlePickMicrofrontend = (mf: {
@@ -1054,6 +1112,18 @@ export const ProjectPreviewViewer = ({
   } | null>(null);
 
   const runCode = async (opts?: { force?: boolean }) => {
+    // Mobile preview can render the published app without a local source entry.
+    // Never send that incomplete source bundle to esbuild: its generated entry
+    // imports `/src/App`, so doing so can only produce a misleading build error.
+    if (isMobile && !hasPreviewEntryFile(files)) {
+      setIsLoading(false);
+      setRuntimeError((current) =>
+        current?.isBuildError && current.message.includes("/src/App")
+          ? null
+          : current,
+      );
+      return;
+    }
     if (isBuilding.current) return;
     // Hard guard: never build while a chat stream is open. Reads from the store
     // directly (not the closured `isStreaming` prop) so a stale closure from a
@@ -1075,7 +1145,7 @@ export const ProjectPreviewViewer = ({
       projectId,
       selectionKind,
       selectionId,
-      contentHash: hashFiles(files),
+      contentHash: `${PREVIEW_RUNTIME_VERSION}:${hashFiles(files)}`,
     });
 
     // Mutable so the cache fast-path can flip cacheHit before the timer logs
@@ -1206,6 +1276,7 @@ export const ProjectPreviewViewer = ({
 
   const handleRefresh = () => {
     isBuilding.current = false;
+    setRuntimeError(null);
     setCurrentUrl("/");
     setUrlInput("/");
     // Force iframe remount — the build is deterministic, so without this the
@@ -1276,8 +1347,24 @@ export const ProjectPreviewViewer = ({
     // Skip while microfrontend codebase is still loading or chat is streaming —
     // those states have their own loaders. Don't leave "Building preview" hanging
     // when no build is actually scheduled.
-    if (isMicrofrontendLoading || isStreaming) {
+    //
+    // A mobile project can also use its published URL without a local src/App
+    // entry. In that state, do not schedule the no-entry safety-valve build:
+    // it would fail by design and replace the valid mobile fallback with an
+    // irrelevant `/src/App` error.
+    if (
+      isMicrofrontendLoading ||
+      isStreaming ||
+      (isMobile && !hasPreviewEntry)
+    ) {
       setIsLoading(false);
+      if (isMobile && !hasPreviewEntry) {
+        setRuntimeError((current) =>
+          current?.isBuildError && current.message.includes("/src/App")
+            ? null
+            : current,
+        );
+      }
       return;
     }
     setIsLoading(true);
@@ -1298,7 +1385,13 @@ export const ProjectPreviewViewer = ({
       runCode();
     }, delay);
     return () => clearTimeout(timeout);
-  }, [filesHash, hasPreviewEntry, isMicrofrontendLoading, isStreaming]);
+  }, [
+    filesHash,
+    hasPreviewEntry,
+    isMicrofrontendLoading,
+    isStreaming,
+    isMobile,
+  ]);
 
   const captureAndUploadScreenshot = async (html: string) => {
     console.log("[preview screenshot] capture started");
@@ -1333,11 +1426,8 @@ export const ProjectPreviewViewer = ({
           resolve();
         };
       });
-      // Let the bundled app mount, finish initial-load spinners, and settle
-      // entrance animations (hero text, framer-motion, etc.) before capturing.
       await new Promise((r) => setTimeout(r, 5000));
       const target = hidden.contentDocument?.body;
-      console.log("[preview screenshot] hidden body:", target);
       if (!target) {
         console.warn("[preview screenshot] no hidden body — aborting");
         return;
@@ -1347,7 +1437,7 @@ export const ProjectPreviewViewer = ({
         pixelRatio: 1,
         skipFonts: true,
       });
-      console.log("[preview screenshot] dataUrl length:", dataUrl.length);
+
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], `preview-${Date.now()}.png`, {
         type: "image/png",
@@ -1420,12 +1510,23 @@ export const ProjectPreviewViewer = ({
       }
 
       if (e.data?.type === "PREVIEW_RUNTIME_ERROR") {
-        setRuntimeError({
+        const nextError = {
           message: e.data.message,
           stack: e.data.stack,
           filename: e.data.filename,
           lineno: e.data.lineno,
           colno: e.data.colno,
+        };
+        setRuntimeError((current) => {
+          if (
+            current?.message === nextError.message &&
+            current?.filename === nextError.filename &&
+            current?.lineno === nextError.lineno &&
+            current?.colno === nextError.colno
+          ) {
+            return current;
+          }
+          return nextError;
         });
         return;
       }
@@ -1541,6 +1642,25 @@ export const ProjectPreviewViewer = ({
     hasPreviewEntry &&
     !isMaximized &&
     !isVersionHistory;
+
+  // Capacitor mobile app (`project_type === "mobile"`). It's the web build wrapped
+  // in a native shell, so it reuses the exact same live preview inside the phone
+  // frame — but with a mobile actions panel (Preview / Download source / native
+  // builds) instead of the "preview on your phone" QR panel. `mobileProject` from
+  // the SSE event is an immediate signal before the mcp_project record refetches.
+  // No hasPreviewEntry gate — mobile renders the published app in an iframe, not
+  // the in-browser build, so a local bundler entry isn't required. (`isMobile` is
+  // declared earlier, alongside the mcp_project query.)
+  const mobileMode =
+    isMobile && !isFunction && !isMaximized && !isVersionHistory;
+
+  // Published web preview URL for the mobile "test on phone" QR. The backend
+  // stores it scheme-less, so normalize to an absolute https URL before encoding.
+  const mobilePreviewUrl = (() => {
+    const raw = mcpProject?.microfrontend_url || shareUrl || "";
+    if (!raw) return "";
+    return raw.startsWith("http") ? raw : `https://${raw}`;
+  })();
 
   // Status-bar (clock/icons) color: dark on light app backgrounds, light on
   // dark ones, so it stays readable whatever theme the generated app uses.
@@ -1803,8 +1923,9 @@ export const ProjectPreviewViewer = ({
         isInspectMode && "cursor-crosshair",
       )}
     >
-      {/* Error overlay */}
-      {runtimeError && (
+      {/* Desktop/web errors stay blocking. Mobile errors use a compact banner
+          below so the phone frame and actions never become inaccessible. */}
+      {runtimeError && !mobileMode && (
         <div className="bg-bg-main/95 animate-in fade-in absolute inset-0 z-40 flex items-center justify-center p-6 backdrop-blur-sm duration-200">
           <div className="bg-bg-card border-border-subtle w-full max-w-lg overflow-hidden rounded-2xl border shadow-xl">
             <div className="border-border-subtle flex items-start gap-3 border-b p-5">
@@ -2008,6 +2129,119 @@ export const ProjectPreviewViewer = ({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      ) : mobileMode ? (
+        /* Mobile (Capacitor) preview. Capacitor wraps the exact same web build as
+           the webapp type, so the phone frame uses the SAME in-browser live build
+           (works unpublished, instant) as its primary path. The published app
+           (microfrontend_url) is only a fallback — used when there's no buildable
+           source or the in-browser build fails. The mobile actions panel sits
+           beside it. */
+        <div
+          className={cn(
+            "flex h-full flex-1 flex-col overflow-hidden transition-all duration-300",
+            chatPosition === "left"
+              ? isChatCollapsed
+                ? "px-4"
+                : "pr-4 pl-0"
+              : isChatCollapsed
+                ? "px-4"
+                : "pr-0 pl-4",
+          )}
+        >
+          {browserHeader}
+          {runtimeError && (
+            <div className="border-border-subtle bg-bg-card mx-4 mt-2 flex shrink-0 items-center gap-3 rounded-xl border px-3 py-2 shadow-sm">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
+              <div className="min-w-0 flex-1">
+                <p className="text-text-main text-xs font-medium">
+                  Mobile preview reported an error
+                </p>
+                <p
+                  className="text-text-muted truncate text-[11px]"
+                  title={runtimeError.message}
+                >
+                  {runtimeError.message}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                title="Refresh preview"
+                className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
+              >
+                <RotateCcw size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={handleFixInChat}
+                className="bg-primary hover:bg-primary/90 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors"
+              >
+                Fix in chat
+              </button>
+              <button
+                type="button"
+                onClick={() => setRuntimeError(null)}
+                title="Dismiss error"
+                className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
+          <div className="flex min-h-0 flex-1 items-stretch justify-center gap-6 overflow-hidden py-2">
+            {/* Phone frame (Claude Design PhoneShell). Primary: the in-browser
+                live build (same as webapp, no publish needed). Fallback: the
+                published app URL in an iframe when there's no buildable source or
+                the build errored. */}
+            <div className="flex min-h-0 flex-1 items-stretch justify-center">
+              <PhoneShell
+                screenBg={appTopBg}
+                safeTop={topInset}
+                statusColor={statusBarColor}
+              >
+                <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+                  {hasPreviewEntry ? (
+                    previewSurface
+                  ) : mobilePreviewUrl ? (
+                    <iframe
+                      src={mobilePreviewUrl}
+                      title="Mobile preview"
+                      className="h-full w-full flex-1 border-none bg-white"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+                    />
+                  ) : (
+                    <WorkspaceLoader
+                      message="Preparing mobile preview…"
+                      subMessage="Building your app"
+                    />
+                  )}
+                  <MobileCapabilitySimulation
+                    state={mobileSimulation}
+                    dispatch={dispatchMobileSimulation}
+                    projectName={scopedMobileProject?.project_name}
+                  />
+                </div>
+              </PhoneShell>
+            </div>
+            <MobileActionsPanel
+              mobileProject={scopedMobileProject}
+              files={files}
+              webPreviewUrl={mobilePreviewUrl}
+              onSimulateCapability={(capability) =>
+                dispatchMobileSimulation({ type: "open", capability })
+              }
+              onPreview={() => {
+                if (mobilePreviewUrl)
+                  window.open(
+                    mobilePreviewUrl,
+                    "_blank",
+                    "noopener,noreferrer",
+                  );
+              }}
+              className="max-h-full self-start"
+            />
           </div>
         </div>
       ) : webAppMode ? (

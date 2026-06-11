@@ -1,5 +1,11 @@
 import { previewOptimizationsEnabled } from "./preview-flags";
 
+// Include this in preview build cache keys. Bump it whenever the generated
+// iframe runtime changes so long-lived tabs cannot reuse stale srcDoc HTML.
+export const PREVIEW_RUNTIME_VERSION = "5";
+
+const TAILWIND_PLAY_RUNTIME_URL = "/tailwind-play-3.4.17.js";
+
 export const PREVIEW_Refresher_SCRIPT = `
   window.addEventListener("error", (e) => {
     console.error("Preview Error:", e);
@@ -282,6 +288,16 @@ export function generatePreviewHtml(
   files: Array<{ path: string; content: string }> = [],
 ) {
   const REACT_VERSION = "18.3.1";
+  // A srcDoc iframe's location is `about:srcdoc`, whose origin is the string
+  // "null" and cannot be used as the base passed to `new URL(relative, base)`.
+  // Give generated apps a stable, valid base while keeping preview resources on
+  // the same origin as the workspace.
+  const previewBaseUrl =
+    typeof window !== "undefined" &&
+    window.location.origin &&
+    window.location.origin !== "null"
+      ? `${window.location.origin}/`
+      : "https://preview.local/";
 
   const tailwindConfigFile = files.find((f) => f.path === "tailwind.config.js");
 
@@ -398,7 +414,6 @@ export function generatePreviewHtml(
   const warmupHead = previewOptimizationsEnabled()
     ? [
         `<link rel="preconnect" href="https://esm.sh" crossorigin>`,
-        `<link rel="preconnect" href="https://cdn.tailwindcss.com">`,
         ...Object.entries(imports)
           .filter(([spec]) => spec !== "react/jsx-dev-runtime")
           .map(
@@ -413,15 +428,104 @@ export function generatePreviewHtml(
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+      <base href="${previewBaseUrl}">
       ${warmupHead}
-      <!-- Конфиг ПОСЛЕ загрузки CDN через tailwind.config -->
-      <script src="https://cdn.tailwindcss.com"></script>
+      <!-- Tailwind Play is pinned and served locally. A remote CDN failure used
+           to reveal completely unstyled preview HTML after the cloak timeout. -->
+      <script
+        src="${TAILWIND_PLAY_RUNTIME_URL}"
+        onerror="window.__TAILWIND_PREVIEW_FAILED__ = true"
+      ></script>
       <script>
-        tailwind.config = ${tailwindConfigJson};
+        window.tailwind = window.tailwind || {};
+        window.tailwind.config = ${tailwindConfigJson};
       </script>
       
       <script>
         window.process = { env: { NODE_ENV: 'production' } };
+      </script>
+
+      <script>
+        // Generated apps commonly construct URLs that browsers reject inside a
+        // srcDoc iframe:
+        //   new URL('/path', window.location.origin) // origin is "null"
+        //   new URL('/path')                         // relative input, no base
+        //   new URL('example.com/path')              // missing protocol
+        // Repair those preview-safe cases and enrich any remaining error with
+        // the actual input/base values instead of React DOM's rethrow location.
+        (function() {
+          var NativeURL = window.URL;
+
+          function describe(value) {
+            if (value === undefined) return "undefined";
+            if (value === null) return "null";
+            try { return JSON.stringify(String(value)); } catch (_) { return "<unprintable>"; }
+          }
+
+          function isUnusableBase(value) {
+            var base = value == null ? "" : String(value).trim();
+            return (
+              !base ||
+              base === "null" ||
+              base === "undefined" ||
+              base.startsWith("about:srcdoc") ||
+              base.startsWith("about:blank")
+            );
+          }
+
+          function isRelativeInput(value) {
+            return (
+              !/^[a-z][a-z0-9+.-]*:/i.test(value) &&
+              !/\\s/.test(value)
+            );
+          }
+
+          function isSchemeLessHost(value) {
+            var match = value.match(
+              /^([a-z0-9.-]+\\.([a-z]{2,}))(?::\\d+)?(?:[/?#].*)?$/i
+            );
+            if (!match) return false;
+            // A bare asset filename such as logo.svg is a relative path, not a
+            // host. Keep common web-file extensions on the relative path branch.
+            return !/^(?:avif|css|gif|htm|html|ico|jpe?g|js|json|map|mjs|png|svg|ts|tsx|txt|webp|woff2?|xml)$/i.test(
+              match[2]
+            );
+          }
+
+          window.URL = new Proxy(NativeURL, {
+            construct: function(Target, args, NewTarget) {
+              var originalInput = args[0];
+              var originalBase = args.length > 1 ? args[1] : undefined;
+              var input = typeof originalInput === "string"
+                ? originalInput.trim()
+                : "";
+
+              if (args.length > 1 && isUnusableBase(originalBase)) {
+                args[1] = document.baseURI;
+              }
+
+              try {
+                return Reflect.construct(Target, args, NewTarget);
+              } catch (error) {
+                if (args.length === 1 && input && isSchemeLessHost(input)) {
+                  return Reflect.construct(Target, ["https://" + input], NewTarget);
+                }
+                if (args.length === 1 && input && isRelativeInput(input)) {
+                  return Reflect.construct(Target, [input, document.baseURI], NewTarget);
+                }
+
+                var detail =
+                  "input=" + describe(originalInput) +
+                  ", base=" + describe(originalBase);
+                var enriched = new TypeError(
+                  "Failed to construct 'URL': Invalid URL (" + detail + ")"
+                );
+                enriched.cause = error;
+                throw enriched;
+              }
+            }
+          });
+        })();
       </script>
 
       <script type="importmap">
@@ -474,7 +578,19 @@ export function generatePreviewHtml(
 
       <script>
         (function() {
+          var reportedErrors = new Set();
+
           function reportError(payload) {
+            var signature = [
+              payload.message || "",
+              payload.filename || "",
+              payload.lineno || "",
+              payload.colno || ""
+            ].join("|");
+            if (reportedErrors.has(signature)) return;
+            if (reportedErrors.size >= 50) reportedErrors.clear();
+            reportedErrors.add(signature);
+
             try {
               window.parent.postMessage({ type: 'PREVIEW_RUNTIME_ERROR', ...payload }, '*');
             } catch (_) {}
@@ -533,12 +649,56 @@ export function generatePreviewHtml(
           }
 
           function refreshAndReveal() {
+            if (window.__TAILWIND_PREVIEW_FAILED__) {
+              try {
+                window.parent.postMessage({
+                  type: 'PREVIEW_RUNTIME_ERROR',
+                  message: 'Preview styles failed to load from ${TAILWIND_PLAY_RUNTIME_URL}',
+                  stack: null,
+                  filename: '${TAILWIND_PLAY_RUNTIME_URL}',
+                  lineno: null,
+                  colno: null,
+                }, '*');
+              } catch (_) {}
+            }
             if (window.tailwind && typeof window.tailwind.refresh === 'function') {
               window.tailwind.refresh();
             }
-            requestAnimationFrame(function() {
-              requestAnimationFrame(reveal);
-            });
+
+            // Tailwind Play observes React's DOM mutations asynchronously. Wait
+            // for its generated stylesheet before revealing, otherwise a large
+            // app can briefly (or, if Tailwind failed, permanently) look like
+            // raw serif HTML.
+            var startedAt = Date.now();
+            function hasGeneratedTailwindStyles() {
+              return Array.from(document.querySelectorAll('style')).some(function(style) {
+                return (style.textContent || '').includes('tailwindcss v3.4.17');
+              });
+            }
+            function waitForStyles() {
+              if (hasGeneratedTailwindStyles()) {
+                requestAnimationFrame(function() {
+                  requestAnimationFrame(reveal);
+                });
+                return;
+              }
+              if (Date.now() - startedAt < 2500) {
+                setTimeout(waitForStyles, 40);
+                return;
+              }
+              try {
+                window.parent.postMessage({
+                  type: 'PREVIEW_RUNTIME_ERROR',
+                  message: 'Preview Tailwind runtime loaded but generated no styles',
+                  stack: null,
+                  filename: '${TAILWIND_PLAY_RUNTIME_URL}',
+                  lineno: null,
+                  colno: null,
+                }, '*');
+              } catch (_) {}
+              reveal();
+            }
+            waitForStyles();
           }
 
           if (root && root.children.length > 0) {

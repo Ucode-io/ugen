@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
+  // Keep `next dev` and `next build` from writing into the same directory.
+  // Running a production build while the workspace is open otherwise replaces
+  // `.next/static/development` underneath the dev server and crashes it with
+  // ENOENT errors for temporary manifest files.
+  distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   experimental: {},
   async headers() {
     return [

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export type ChatPosition = 'left' | 'right'
+export type MessageReaction = 'like' | 'dislike'
 
 export type Message = {
   id: string
@@ -14,6 +15,9 @@ export type Message = {
   pending_action?: any
   bpmnXml?: string
   plan?: any
+  reaction?: MessageReaction | null
+  likeCount?: number
+  dislikeCount?: number
 }
 
 export interface SseEvent<T = any> {

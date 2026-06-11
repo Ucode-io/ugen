@@ -18,7 +18,7 @@ function findClosingBrace(css: string, braceStart: number): number {
 
 /**
  * Minimal CSS cleaning for browser injection.
- * We use <style type="text/tailwindcss"> so the Tailwind CDN Play script
+ * We use <style type="text/tailwindcss"> so the locally served Tailwind Play script
  * processes @apply, @layer, etc. natively — we only need to remove things
  * the CDN itself can't handle:
  *  - @tailwind directives  → CDN adds its own; duplicates cause warnings
@@ -27,7 +27,7 @@ function findClosingBrace(css: string, braceStart: number): number {
 function cleanCssForBrowser(raw: string): string {
   let css = raw;
 
-  // Remove @tailwind directives (CDN already injects base/components/utilities)
+  // Remove @tailwind directives (Tailwind Play already injects base/components/utilities)
   css = css.replace(/@tailwind\s+\S+;/g, "");
 
   // Remove @import for local/relative paths (leave CDN/https @imports untouched)
@@ -157,14 +157,14 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
                   (function() {
                     const id = 'virtual-css-${fullPath.replace(/[^a-z0-9]/g, '_')}';
                     if (!document.getElementById(id)) {
-                      // Use type="text/tailwindcss" so the Tailwind CDN Play script
+                      // Use type="text/tailwindcss" so the local Tailwind Play script
                       // processes @apply, @layer, and other Tailwind directives natively.
                       const style = document.createElement('style');
                       style.id = id;
                       style.setAttribute('type', 'text/tailwindcss');
                       style.textContent = ${JSON.stringify(cleanedCss)};
                       document.head.appendChild(style);
-                      // Ask Tailwind CDN to re-scan after injecting new styles
+                      // Ask Tailwind Play to re-scan after injecting new styles
                       if (typeof window.tailwind !== 'undefined' && typeof window.tailwind.refresh === 'function') {
                         window.tailwind.refresh();
                       }
@@ -201,4 +201,3 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
     },
   }
 }
-
