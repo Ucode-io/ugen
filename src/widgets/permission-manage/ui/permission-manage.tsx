@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { GlobalPermissions } from './global-permissions'
 import { MenuPermissions } from './menu-permissions'
@@ -85,15 +85,17 @@ export const PermissionManage = ({ projectId }: Props) => {
     queryFn: () => clientTypeApi.getClientTypes(projectId)
   })
 
-  const clientTypesData = rawClientTypes?.map((item: any) => ({
+  const clientTypesData = useMemo(() => rawClientTypes?.map((item: any) => ({
     label: item.name || item.label || 'Unknown',
     value: item.guid || item.value || item.id,
     raw: item
-  }))
+  })) || [], [rawClientTypes])
+
+  const selectedClientType = clientTypesData.find((ct: any) => ct.value === selectedClientTypeId)
 
   // Auto-select first client type
   useEffect(() => {
-    if (clientTypesData && clientTypesData.length > 0 && !selectedClientTypeId) {
+    if (clientTypesData.length > 0 && !selectedClientTypeId) {
       setSelectedClientTypeId(clientTypesData[0].value)
     }
   }, [clientTypesData, selectedClientTypeId])
@@ -105,13 +107,15 @@ export const PermissionManage = ({ projectId }: Props) => {
     enabled: !!selectedClientTypeId && !!projectId
   })
 
+  const selectedRole = rolesData?.find((role: any) => role.guid === selectedRoleId)
+
   // Reset role selection and auto-select first role on client type change
   useEffect(() => {
-    if (rolesData && rolesData.length > 0) {
-      setSelectedRoleId(rolesData[0].guid)
-    } else {
-      setSelectedRoleId('')
-    }
+    setSelectedRoleId((currentRoleId) => {
+      if (!rolesData || rolesData.length === 0) return ''
+      const currentRoleStillExists = rolesData.some((role: any) => role.guid === currentRoleId)
+      return currentRoleStillExists ? currentRoleId : rolesData[0].guid
+    })
   }, [rolesData])
 
   // Fetch detailed permissions (tables + global)
@@ -307,8 +311,11 @@ export const PermissionManage = ({ projectId }: Props) => {
         <p className="text-text-muted text-[13px]">Configure user type permissions by menu pages and tables</p>
       </div>
 
-      <div className="flex items-center gap-2 mb-5">
-        <div className="w-[150px]">
+      <div className="flex flex-wrap items-end gap-3 mb-5">
+        <div className="w-[190px] space-y-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            User type
+          </label>
           <Select value={selectedClientTypeId} onValueChange={setSelectedClientTypeId}>
             <SelectTrigger className="bg-bg-sidebar border-border-subtle h-8 text-[12px]">
               <SelectValue placeholder="Select user type" />
@@ -354,7 +361,10 @@ export const PermissionManage = ({ projectId }: Props) => {
           </Select>
         </div>
 
-        <div className="w-[150px]">
+        <div className="w-[190px] space-y-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+            Role
+          </label>
           <Select value={selectedRoleId} onValueChange={setSelectedRoleId} disabled={!selectedClientTypeId}>
             <SelectTrigger className="bg-bg-sidebar border-border-subtle h-8 text-[12px]">
               <SelectValue placeholder="Select role" />
@@ -406,6 +416,14 @@ export const PermissionManage = ({ projectId }: Props) => {
           </Select>
         </div>
 
+        {(selectedClientType || selectedRole) && (
+          <div className="min-h-8 rounded-lg border border-border-subtle/60 bg-bg-sidebar/40 px-3 py-1.5 text-[11px] text-text-muted">
+            Permissions apply to{' '}
+            <span className="font-semibold text-text-main">{selectedClientType?.label || 'selected type'}</span>
+            {' / '}
+            <span className="font-semibold text-text-main">{selectedRole?.name || 'selected role'}</span>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">

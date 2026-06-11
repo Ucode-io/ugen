@@ -505,6 +505,10 @@ export function generatePreviewHtml(
         })();
       </script>
 
+      <script>
+        window.__UCODE_PREVIEW_CONTEXT = { trusted: true, source: 'ugen-preview' };
+      </script>
+
       <script type="module">
         ${bundledCode}
       </script>

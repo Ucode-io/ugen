@@ -61,12 +61,31 @@ export const CustomPermissionsTable = ({
   const { register, handleSubmit: handleModalSubmit, reset: resetModal, formState: { errors } } = useForm({
     defaultValues: {
       title: '',
-      description: ''
+      description: '',
+      nav_path: ''
     }
   })
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setIsScrolled(e.currentTarget.scrollLeft > 0)
+  }
+
+  const ensureProjectLoginMode = async () => {
+    if (!projectId) return
+
+    const { data } = await api.get(`/v1/mcp_project/${projectId}`)
+    const projectEnv = data?.data?.project_env && typeof data.data.project_env === 'object'
+      ? data.data.project_env
+      : {}
+
+    if (projectEnv.auth_mode === 'login') return
+
+    await api.put(`/v1/mcp_project/${projectId}`, {
+      project_env: {
+        ...projectEnv,
+        auth_mode: 'login',
+      },
+    })
   }
 
   const handleUpdate = async (checked: boolean, field: string, item: any = {}) => {
@@ -119,16 +138,29 @@ export const CustomPermissionsTable = ({
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
+      const navPath = data.nav_path?.trim()
       const payload = {
         title: data.title,
         role_id: roleId,
         client_type_id: clientTypeId,
         attributes: {
           description: data.description,
+          nav_path: navPath || undefined,
         },
         ...(selectedRow ? { parent_id: selectedRow.custom_permission_id } : {}),
       }
-      return api.post('/v1/custom-permission', payload)
+      const response = await api.post('/v1/custom-permission', payload)
+
+      if (navPath) {
+        try {
+          await ensureProjectLoginMode()
+        } catch (error) {
+          console.warn('Failed to enable login mode for nav permission', error)
+          toast.warning('Permission added, but failed to enable login mode automatically')
+        }
+      }
+
+      return response
     },
     onSuccess: async () => {
       toast.success("Successfully added")
@@ -284,6 +316,15 @@ export const CustomPermissionsTable = ({
                 placeholder="Briefly describe what this permission controls"
                 {...register('description')}
                 className="bg-bg-sidebar border-border-subtle"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-widest pl-1">Sidebar Path</label>
+              <Input
+                placeholder="e.g. /users"
+                {...register('nav_path')}
+                className="bg-bg-sidebar border-border-subtle font-mono text-[13px]"
               />
             </div>
 
