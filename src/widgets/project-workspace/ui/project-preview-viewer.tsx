@@ -1388,6 +1388,10 @@ export const ProjectPreviewViewer = ({
   useEffect(() => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
+        { type: "UCODE_PREVIEW_CONTEXT", trusted: true, source: "ugen-preview" },
+        "*",
+      );
+      iframeRef.current.contentWindow.postMessage(
         { type: isInspectMode ? "INSPECT_ON" : "INSPECT_OFF" },
         "*",
       );
