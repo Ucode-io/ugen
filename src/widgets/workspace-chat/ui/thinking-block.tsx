@@ -33,6 +33,15 @@ import {
   FileDiff,
   MousePointerClick,
   AlertCircle,
+  Link,
+  FileText,
+  Image,
+  Plug,
+  Bot,
+  Users,
+  LayoutDashboard,
+  Check,
+  Ban,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
@@ -63,12 +72,22 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "file-code": FileCode,
   "file-edit": FileEdit,
   "file-plus": FilePlus,
+  "file-text": FileText,
   component: Component,
   paintbrush: Paintbrush,
   "scan-search": ScanSearch,
   "file-diff": FileDiff,
   "mouse-pointer-click": MousePointerClick,
   "alert-circle": AlertCircle,
+  "alert-triangle": AlertTriangle,
+  link: Link,
+  image: Image,
+  plug: Plug,
+  bot: Bot,
+  users: Users,
+  "layout-dashboard": LayoutDashboard,
+  check: Check,
+  ban: Ban,
 };
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -95,6 +114,11 @@ interface Thought {
   value?: string;
 }
 
+interface ProviderInfo {
+  provider: string;
+  coderModel: string;
+}
+
 // ─── Event → thought transformation ───────────────────────────────────────────
 
 function eventsToThoughts(events: SseEvent[]): {
@@ -102,16 +126,28 @@ function eventsToThoughts(events: SseEvent[]): {
   isDone: boolean;
   error: string | null;
   doneDuration: number | null;
+  providerInfo: ProviderInfo | null;
 } {
   const thoughts: Thought[] = [];
   let isDone = false;
   let error: string | null = null;
   let doneDuration: number | null = null;
+  let providerInfo: ProviderInfo | null = null;
 
   events.forEach((ev, idx) => {
     const id = `${idx}-${ev.type}`;
 
     switch (ev.type) {
+      case "provider": {
+        if (ev.data?.provider) {
+          providerInfo = {
+            provider: ev.data.provider,
+            coderModel: ev.data.coder_model ?? "",
+          };
+        }
+        break;
+      }
+
       case "progress":
         if (ev.message) {
           thoughts.push({ id, text: ev.message, kind: "info", type: ev.type, percent: ev.percent, icon: ev.icon, value: ev.value });
@@ -275,7 +311,7 @@ function eventsToThoughts(events: SseEvent[]): {
     }
   });
 
-  return { thoughts, isDone, error, doneDuration };
+  return { thoughts, isDone, error, doneDuration, providerInfo };
 }
 
 // ─── Live duration counter (during streaming) ─────────────────────────────────
@@ -468,7 +504,7 @@ export function ThinkingBlock({
   isStreaming = true,
   className,
 }: ThinkingBlockProps) {
-  const { thoughts, isDone, error, doneDuration } = useMemo(
+  const { thoughts, isDone, error, doneDuration, providerInfo } = useMemo(
     () => eventsToThoughts(events),
     [events]
   );
@@ -510,7 +546,16 @@ export function ThinkingBlock({
     headerIcon = <AlertTriangle size={13} className="text-destructive shrink-0" />;
   } else if (isDone) {
     const dur = doneDuration ?? elapsed;
-    headerLabel = <span className="text-text-main">Размышлял {formatDuration(dur)}</span>;
+    headerLabel = (
+      <span className="text-text-main flex items-center gap-1.5">
+        Размышлял {formatDuration(dur)}
+        {providerInfo && (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-bg-sidebar text-text-muted border border-border-subtle/60 uppercase tracking-wide">
+            {providerInfo.coderModel || providerInfo.provider}
+          </span>
+        )}
+      </span>
+    );
     headerIcon = <CheckCircle2 size={13} className="text-green-500 shrink-0" />;
   } else {
     headerLabel = (
