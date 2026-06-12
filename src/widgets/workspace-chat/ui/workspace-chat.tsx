@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { History, Loader2, PanelLeft, PanelRight } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
-import { useChatStore, Message, type MessageReaction } from "@/entities/chat";
+import { useChatStore, Message, type MessageReaction, type VisualContextItem } from "@/entities/chat";
 import { normalizeChatProvider } from "@/entities/ai-model";
 import { Checkbox } from "@/shared/ui";
 import { api } from "@/shared/api";
@@ -214,6 +214,8 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
   const setIsStreaming = useChatStore((state) => state.setIsStreaming);
   const setStreamError = useChatStore((state) => state.setStreamError);
   const setPendingScreenshot = useChatStore((state) => state.setPendingScreenshot);
+  const ucodeProjectId = useChatStore((state) => state.ucodeProjectId);
+  const setUcodeProjectId = useChatStore((state) => state.setUcodeProjectId);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -462,7 +464,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
 
   const guardedAction = useGuardedAction();
 
-  const handleSendMessage = (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
+  const handleSendMessage = (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: VisualContextItem[]) => {
     guardedAction(() => sendMessageInner(text, files, model, pendingActionPayload, context));
   };
 
@@ -528,7 +530,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
     }
   };
 
-  const sendMessageInner = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>) => {
+  const sendMessageInner = async (text: string, files?: any[], model?: string, pendingActionPayload?: any, context?: VisualContextItem[]) => {
     clearSseEvents();
     setStreamError(null);
     accumulatedFilesRef.current = [];
@@ -572,14 +574,16 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         model,
         resource_env_id: activeCodeSelection?.projectId,
         new_project: !isMicrofrontendSelected && !isNewProjectSelected,
+        ...(ucodeProjectId ? { ucode_project_id: ucodeProjectId } : {}),
         ...(isMicrofrontendSelected ? {
           microfrontend_id: activeCodeSelection.id,
           microfrontend_repo_id: activeCodeSelection.repoId,
           resource_env_id: activeCodeSelection.projectId,
         } : {}),
         ...(context?.length ? {
-          context: context.map(({ element, ...rest }) => ({
+          context: context.map(({ element, element_name, ...rest }) => ({
             ...rest,
+            ...(element_name ? { element_name } : {}),
             ...(element ? { outer_html: element } : {}),
           }))
         } : {}),
@@ -616,6 +620,9 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         // @99% SSE event can be dropped on a flaky stream, this is the reliable copy.
         if (data?.mobile_project) {
           applyMobileProject(data.mobile_project);
+        }
+        if (data?.ucode_project_id) {
+          setUcodeProjectId(data.ucode_project_id);
         }
         const newMicrofrontendId = data?.microfrontend_id;
         const newMicrofrontendRepoId = data?.microfrontend_repo_id;

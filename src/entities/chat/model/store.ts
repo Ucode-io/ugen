@@ -29,9 +29,19 @@ export interface SseEvent<T = any> {
   data?: T
 }
 
+export type VisualContextItem = {
+  path?: string | null
+  line?: number | string | null
+  element?: string | null
+  element_name?: string | null
+}
+
 interface ChatState {
   chatId: string | null
   projectId: string | null
+  // ucode_project_id received from the last done event — sent back with every
+  // subsequent message so the backend knows the linked ucode project.
+  ucodeProjectId: string | null
   // Chat-level AI provider ("claude" | "gemini" | "openai"). Persisted on the
   // backend via PUT /v1/ai-chat/:chat-id; mirrored here so the chat-input
   // selector reflects the active provider. Defaults to "claude".
@@ -50,13 +60,13 @@ interface ChatState {
     content: string
     images?: string[]
     model?: string
-    context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>
+    context?: VisualContextItem[]
   } | null
   setPendingPrompt: (prompt: {
     content: string
     images?: string[]
     model?: string
-    context?: Array<{ path?: string | null; line?: number | string | null; element?: string | null }>
+    context?: VisualContextItem[]
   } | null) => void
   // Draft typed on a public page (e.g. landing) before the user authenticated.
   // Survives the landing → dashboard unmount so the submit flow can resume
@@ -74,6 +84,7 @@ interface ChatState {
   setChatPosition: (position: ChatPosition) => void
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void
+  setUcodeProjectId: (id: string | null) => void
   setChatModel: (model: string) => void
   setIsStreaming: (isStreaming: boolean) => void
   setStreamError: (error: string | null) => void
@@ -93,6 +104,7 @@ export const useChatStore = create<ChatState>()(
     (set) => ({
       chatId: null,
       projectId: null,
+      ucodeProjectId: null,
       chatModel: 'auto',
       messages: [],
       chatWidth: 360,
@@ -107,6 +119,7 @@ export const useChatStore = create<ChatState>()(
       clearSseEvents: () => set({ sseEvents: [] }),
       setChatId: (id) => set({ chatId: id }),
       setProjectId: (id) => set({ projectId: id }),
+      setUcodeProjectId: (id) => set({ ucodeProjectId: id }),
       setChatModel: (chatModel) => set({ chatModel }),
       setChatPosition: (position) => set({ chatPosition: position }),
       setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
@@ -125,7 +138,7 @@ export const useChatStore = create<ChatState>()(
         messages: state.messages.map(m => m.id === id ? { ...m, ...updated } : m)
       })),
       setChatWidth: (width) => set({ chatWidth: width }),
-      clearChat: () => set({ chatId: null, projectId: null, chatModel: 'auto', messages: [], pendingPrompt: null }),
+      clearChat: () => set({ chatId: null, projectId: null, ucodeProjectId: null, chatModel: 'auto', messages: [], pendingPrompt: null }),
     }),
     {
       name: 'chat-storage',
