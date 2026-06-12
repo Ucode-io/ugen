@@ -20,10 +20,10 @@ export const MediaViewerModal = ({ files, initialIndex, isOpen, onClose }: Media
   if (!isOpen) return null
 
   const slides = files.map((file) => {
+    const mediaName = `${file.link} ${file.file_name_disk} ${file.file_name_download}`
     const isVideo =
-      file.link.endsWith('.mp4') ||
-      file.link.endsWith('.webm') ||
-      file.link.endsWith('.ogg')
+      file.mimetype?.startsWith('video/') ||
+      /\.(mp4|ogg|webm)(?:$|[\s?#])/i.test(mediaName)
 
     if (isVideo) {
       return {
