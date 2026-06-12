@@ -17,7 +17,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { authApi } from '@/shared/api'
+import { api } from '@/shared/api'
 import {
   Button,
   Input,
@@ -191,7 +191,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
   const { data: agentsData, isLoading } = useQuery({
     queryKey: ['agents', projectId],
     queryFn: async () => {
-      const { data } = await authApi.get('/v1/agents', { params: { project_id: projectId, limit: 100 } })
+      const { data } = await api.get('/v1/agents', { params: { project_id: projectId, limit: 100 } })
       return (data?.data?.agents ?? []) as Agent[]
     },
     enabled: !!projectId,
@@ -200,7 +200,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
   const { data: runsData, isLoading: isRunsLoading } = useQuery({
     queryKey: ['agent-runs', selectedAgent?.id],
     queryFn: async () => {
-      const { data } = await authApi.get(`/v1/agents/${selectedAgent!.id}/runs`, {
+      const { data } = await api.get(`/v1/agents/${selectedAgent!.id}/runs`, {
         params: { limit: 50, order_direction: 'desc' },
       })
       return (data?.data?.agent_runs ?? []) as AgentRun[]
@@ -209,7 +209,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
   })
 
   const createMutation = useMutation({
-    mutationFn: (body: typeof defaultForm) => authApi.post('/v1/agents', { ...body, project_id: projectId }),
+    mutationFn: (body: typeof defaultForm) => api.post('/v1/agents', { ...body, project_id: projectId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
       setFormOpen(false)
@@ -221,7 +221,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: typeof defaultForm }) =>
-      authApi.put(`/v1/agents/${id}`, { ...body, project_id: projectId }),
+      api.put(`/v1/agents/${id}`, { ...body, project_id: projectId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
       setFormOpen(false)
@@ -232,7 +232,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => authApi.delete(`/v1/agents/${id}`),
+    mutationFn: (id: string) => api.delete(`/v1/agents/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
       setDeleteOpen(false)
