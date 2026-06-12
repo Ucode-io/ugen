@@ -58,6 +58,15 @@ interface MediaGalleryProps {
   parentMenuId?: string;
 }
 
+const resolveFileLink = (file: FileItem, cdnUrl?: string) => {
+  if (file.storage_type?.toLowerCase() === "google_drive") {
+    return file.link;
+  }
+
+  if (!cdnUrl || !file.link) return file.link;
+  return `${cdnUrl.replace(/\/$/, "")}/${file.link.replace(/^\//, "")}`;
+};
+
 export const MediaGallery = ({
   initialFiles,
   isLoading: propIsLoading = false,
@@ -209,14 +218,14 @@ export const MediaGallery = ({
     if (!files || files.length === 0) return [];
     const validFiles = files.filter(Boolean);
     if (!searchQuery)
-      return validFiles.map((f) => ({ ...f, link: `${cdnUrl}/${f?.link}` }));
+      return validFiles.map((f) => ({ ...f, link: resolveFileLink(f, cdnUrl) }));
     return validFiles
       .filter(
         (f) =>
           f.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           f.file_name_disk?.toLowerCase().includes(searchQuery.toLowerCase()),
       )
-      .map((f) => ({ ...f, link: `${cdnUrl}/${f?.link}` }));
+      .map((f) => ({ ...f, link: resolveFileLink(f, cdnUrl) }));
   }, [files, searchQuery, cdnUrl]);
 
   const handleDelete = () => {
