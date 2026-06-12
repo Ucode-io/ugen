@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import React, { useState, useMemo, useCallback } from 'react'
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import React, { useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import {
   PlusCircle,
   CloudUpload,
@@ -22,48 +22,54 @@ import {
   X,
   XCircle,
   CheckCircle2,
-} from 'lucide-react'
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from 'next/navigation'
-import { FileItem, useFilesInfinite, useDeleteFiles } from '@/entities/media-file'
-import { useMenusInfinite } from '@/entities/menu'
-import { useMediaGallery } from '../lib/use-media-gallery'
-import { MediaCard } from './media-card'
-import { FileUploadModal } from '@/features/file-upload'
-import { MediaViewerModal } from './media-viewer-modal'
-import { CreateFolderModal } from './create-folder-modal'
+import { useParams } from "next/navigation";
+import {
+  FileItem,
+  useFilesInfinite,
+  useDeleteFiles,
+} from "@/entities/media-file";
+import { useMenusInfinite } from "@/entities/menu";
+import { useMediaGallery } from "../lib/use-media-gallery";
+import { MediaCard } from "./media-card";
+import { FileUploadModal } from "@/features/file-upload";
+import { MediaViewerModal } from "./media-viewer-modal";
+import { CreateFolderModal } from "./create-folder-modal";
 import { Button, UsageIndicator } from "@/shared/ui";
 import { UpgradePlanDialog } from "@/widgets/sidebar/ui/components/upgrade-plan-dialog";
 import { api } from "@/shared/api";
-import { cn } from '@/shared/lib/utils/cn'
-import { formatMBSmart, formatMBAsGB } from '@/shared/lib/utils/format-bytes'
-import { MediaSkeleton } from './media-skeleton'
-import { useTranslations } from 'next-intl'
-import { useEffect, useRef } from 'react'
+import { cn } from "@/shared/lib/utils/cn";
+import { formatMBSmart, formatMBAsGB } from "@/shared/lib/utils/format-bytes";
+import { MediaSkeleton } from "./media-skeleton";
+import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
 
 interface BreadcrumbItem {
-  id: string
-  label: string
+  id: string;
+  label: string;
 }
 
 interface MediaGalleryProps {
-  initialFiles?: FileItem[]
-  isLoading?: boolean
-  activeMenuId?: string
-  folderPath?: string
-  parentMenuId?: string
+  initialFiles?: FileItem[];
+  isLoading?: boolean;
+  activeMenuId?: string;
+  folderPath?: string;
+  parentMenuId?: string;
 }
 
 export const MediaGallery = ({
   initialFiles,
   isLoading: propIsLoading = false,
-  activeMenuId = 'media',
-  folderPath = 'media',
+  activeMenuId = "media",
+  folderPath = "media",
   parentMenuId,
 }: MediaGalleryProps) => {
-  const t = useTranslations('widgets.mediaGallery')
-  const params = useParams()
-  const projectId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string | undefined)
+  const t = useTranslations("widgets.mediaGallery");
+  const params = useParams();
+  const projectId = Array.isArray(params?.id)
+    ? params.id[0]
+    : (params?.id as string | undefined);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
@@ -83,31 +89,32 @@ export const MediaGallery = ({
     hasNextPage: hasNextMenus,
     isFetchingNextPage: isFetchingNextMenus,
   } = useMenusInfinite({
-    parentId: parentMenuId ?? '',
+    parentId: parentMenuId ?? "",
     projectId,
     limit: 20,
     enabled: !!parentMenuId,
-  })
+  });
 
   const computedFolders = useMemo(() => {
-    if (!menusData?.pages) return []
-    const seen = new Set<string>()
-    const all: { id: string; label: string; type: string }[] = []
+    if (!menusData?.pages) return [];
+    const seen = new Set<string>();
+    const all: { id: string; label: string; type: string }[] = [];
     for (const page of menusData.pages) {
       for (const m of page.menus ?? []) {
-        if (m?.type !== 'MINIO_FOLDER') continue
-        if (seen.has(m.id)) continue
-        seen.add(m.id)
-        all.push({ id: m.id, label: m.label, type: 'FOLDER' })
+        if (m?.type !== "MINIO_FOLDER" && m?.type !== "GOOGLE_DRIVE_FOLDER")
+          continue;
+        if (seen.has(m.id)) continue;
+        seen.add(m.id);
+        all.push({ id: m.id, label: m.label, type: "FOLDER" });
       }
     }
-    return all
-  }, [menusData])
+    return all;
+  }, [menusData]);
 
   const activeFolderLabel = useMemo(() => {
-    if (!activeFolderId) return null
-    return computedFolders.find((f) => f.id === activeFolderId)?.label ?? null
-  }, [activeFolderId, computedFolders])
+    if (!activeFolderId) return null;
+    return computedFolders.find((f) => f.id === activeFolderId)?.label ?? null;
+  }, [activeFolderId, computedFolders]);
 
   const {
     data,
@@ -117,13 +124,13 @@ export const MediaGallery = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    refetch
+    refetch,
   } = useFilesInfinite({
     limit: 20,
     folderName: activeFolderLabel ?? undefined,
     projectId,
     enabled: !!activeFolderLabel,
-  })
+  });
 
   const { data: pricingData, refetch: refetchPricing } = useQuery({
     queryKey: ["pricing-all"],
@@ -142,7 +149,9 @@ export const MediaGallery = ({
 
   const isInsideFolder = !!activeFolderLabel;
   const activeHasNext = isInsideFolder ? hasNextPage : hasNextMenus;
-  const activeIsFetchingNext = isInsideFolder ? isFetchingNextPage : isFetchingNextMenus;
+  const activeIsFetchingNext = isInsideFolder
+    ? isFetchingNextPage
+    : isFetchingNextMenus;
   const fetchNextActive = useCallback(() => {
     if (isInsideFolder) fetchNextPage();
     else fetchNextMenus();
@@ -188,36 +197,49 @@ export const MediaGallery = ({
 
   // Storage usage from backend (values are in MB, display as GB like analytics-dashboard)
   const assetSize = pricingData?.data?.asset_size;
-  const storageUsed = assetSize ? formatMBSmart(assetSize.current || 0) : '0 MB'
-  const storageTotal = assetSize ? formatMBAsGB(assetSize.limit || 0) : '0 GB'
+  const storageUsed = assetSize
+    ? formatMBSmart(assetSize.current || 0)
+    : "0 MB";
+  const storageTotal = assetSize ? formatMBAsGB(assetSize.limit || 0) : "0 GB";
   const storagePercentage = assetSize?.limit
     ? Math.min(((assetSize.current || 0) / assetSize.limit) * 100, 100)
     : 0;
 
   const filteredFiles = useMemo(() => {
-    if (!files || files.length === 0) return []
-    const validFiles = files.filter(Boolean)
-    if (!searchQuery) return validFiles.map(f => ({ ...f, link: `${cdnUrl}/${f?.link}` }))
-    return validFiles.filter(f =>
-      f.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.file_name_disk?.toLowerCase().includes(searchQuery.toLowerCase())
-    ).map(f => ({ ...f, link: `${cdnUrl}/${f?.link}` }))
-  }, [files, searchQuery, cdnUrl])
+    if (!files || files.length === 0) return [];
+    const validFiles = files.filter(Boolean);
+    if (!searchQuery)
+      return validFiles.map((f) => ({ ...f, link: `${cdnUrl}/${f?.link}` }));
+    return validFiles
+      .filter(
+        (f) =>
+          f.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          f.file_name_disk?.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+      .map((f) => ({ ...f, link: `${cdnUrl}/${f?.link}` }));
+  }, [files, searchQuery, cdnUrl]);
 
   const handleDelete = () => {
-    if (selectedIds.size === 0) return
+    if (selectedIds.size === 0) return;
     const filesToDelete = files
-      .filter(f => selectedIds.has(f.id))
-      .map(f => ({ object_id: f.id, object_name: f.file_name_disk }))
+      .filter((f) => selectedIds.has(f.id))
+      .map((f) => ({ object_id: f.id, object_name: f.file_name_disk }));
     deleteFiles(filesToDelete, {
-      onSuccess: () => { clearSelection(); refetch(); refetchPricing() },
-    })
-  }
+      onSuccess: () => {
+        clearSelection();
+        refetch();
+        refetchPricing();
+      },
+    });
+  };
 
-  const handlePreview = useCallback((item: FileItem) => {
-    const index = filteredFiles.findIndex((f) => f.id === item.id)
-    if (index !== -1) setPreviewIndex(index)
-  }, [filteredFiles])
+  const handlePreview = useCallback(
+    (item: FileItem) => {
+      const index = filteredFiles.findIndex((f) => f.id === item.id);
+      if (index !== -1) setPreviewIndex(index);
+    },
+    [filteredFiles],
+  );
 
   const displayFiles = useMemo(() => {
     if (!activeFolderLabel) return [];
@@ -232,29 +254,32 @@ export const MediaGallery = ({
   );
 
   const handleFolderClick = (folder: any) => {
-    setActiveFolderId(folder.id)
-    setBreadcrumb(prev => {
-      if (prev.some(b => b.id === folder.id)) return prev
-      return [...prev, { id: folder.id, label: folder.label }]
-    })
-  }
+    setActiveFolderId(folder.id);
+    setBreadcrumb((prev) => {
+      if (prev.some((b) => b.id === folder.id)) return prev;
+      return [...prev, { id: folder.id, label: folder.label }];
+    });
+  };
 
   const handleBreadcrumbClick = (index: number) => {
-    setBreadcrumb(prev => prev.slice(0, index + 1))
+    setBreadcrumb((prev) => prev.slice(0, index + 1));
     if (index === 0) {
-      setActiveFolderId(null)
+      setActiveFolderId(null);
     } else {
-      setActiveFolderId(breadcrumb[index].id)
+      setActiveFolderId(breadcrumb[index].id);
     }
-  }
+  };
 
   const gridClass = cn(
     "grid gap-4 transition-[grid-template-columns] duration-500 ease-in-out",
-    gridColumns === 7 && "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7",
-    gridColumns === 5 && "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
-    gridColumns === 4 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
+    gridColumns === 7 &&
+      "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7",
+    gridColumns === 5 &&
+      "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+    gridColumns === 4 &&
+      "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
     gridColumns === 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-  )
+  );
 
   return (
     <div className="bg-bg-main flex h-full w-full flex-col overflow-y-auto pr-6 pl-2">
@@ -441,7 +466,10 @@ export const MediaGallery = ({
                 </p>
               </div>
               <Button
-                onClick={() => { refetch(); refetchPricing() }}
+                onClick={() => {
+                  refetch();
+                  refetchPricing();
+                }}
                 variant="outline"
                 className="h-10 rounded-lg px-6"
               >
@@ -652,7 +680,9 @@ export const MediaGallery = ({
                   </div>
                 )}
                 {!activeHasNext &&
-                  (isInsideFolder ? files.length > 19 : computedFolders.length > 19) && (
+                  (isInsideFolder
+                    ? files.length > 19
+                    : computedFolders.length > 19) && (
                     <div className="text-text-muted text-sm font-medium">
                       {t("reachedEnd")}
                     </div>
@@ -667,8 +697,11 @@ export const MediaGallery = ({
       <FileUploadModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        folderName={activeFolderLabel || folderPath || 'media'}
-        onSuccess={() => { refetch(); refetchPricing() }}
+        folderName={activeFolderLabel || folderPath || "media"}
+        onSuccess={() => {
+          refetch();
+          refetchPricing();
+        }}
       />
 
       <MediaViewerModal
@@ -689,4 +722,4 @@ export const MediaGallery = ({
       <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
-}
+};
