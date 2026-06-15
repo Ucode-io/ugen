@@ -315,8 +315,6 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
-  const apiKey = useAuthStore((state) => state.apiKey)
-  const apiKeyProjectId = useAuthStore((state) => state.apiKeyProjectId)
 
   // GitHub integration is user-level — share cache with GithubPopover by using
   // the same project-less query keys.
@@ -360,11 +358,23 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
   const { mutate: connectGoogleDrive, isPending: isConnectingGoogleDrive } = useMutation({
     mutationFn: async (popup: Window | null) => {
-      if (!apiKey || apiKeyProjectId !== projectId) {
-        popup?.close()
-        throw new Error('Project API key is not available')
-      }
       try {
+        // Resolve the project API key for the API-KEY auth header. Prefer the
+        // session store, but it may not be populated yet when Connect is clicked
+        // right after opening the page — fall back to fetching the project (the
+        // same /v1/mcp_project source project-client uses) to read its api_key.
+        const session = useAuthStore.getState()
+        let apiKey =
+          session.apiKey && session.apiKeyProjectId === projectId ? session.apiKey : null
+        if (!apiKey) {
+          const { data } = await api.get(`/v1/mcp_project/${projectId}`)
+          apiKey = data?.data?.api_key ?? null
+          if (apiKey) session.setApiKey(apiKey, projectId)
+        }
+        if (!apiKey) {
+          popup?.close()
+          throw new Error('Project API key is not available')
+        }
         const url = await googleDriveIntegrationApi.getConnectUrl(apiKey, projectId)
         if (popup && !popup.closed) popup.location.href = url
         else window.open(url, '_blank')
