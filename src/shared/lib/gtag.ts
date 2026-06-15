@@ -3,7 +3,10 @@
 // 👉 Set your real Measurement ID below (looks like "G-XXXXXXXXXX",
 //    found in GA Admin → Data Streams). While it equals PLACEHOLDER_ID,
 //    GA stays disabled (no script injected, no events sent).
-export const GA_MEASUREMENT_ID = "G-2SXS8PZR4R";
+// Typed as `string` (not the inferred literal) so the IS_GA_CONFIGURED
+// comparison against PLACEHOLDER_ID below isn't flagged as a no-overlap
+// comparison by the strict production build.
+export const GA_MEASUREMENT_ID: string = "G-2SXS8PZR4R";
 
 // Sentinel meaning "not configured yet" — leave this value untouched.
 const PLACEHOLDER_ID = "G-XXXXXXXXXX";
