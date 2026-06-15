@@ -11,6 +11,21 @@ import { api } from '@/shared/api'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
 
+const getNavPath = (attributes: any) => {
+  if (!attributes) return ''
+
+  if (typeof attributes === 'string') {
+    try {
+      const parsed = JSON.parse(attributes)
+      return typeof parsed?.nav_path === 'string' ? parsed.nav_path : ''
+    } catch {
+      return ''
+    }
+  }
+
+  return typeof attributes.nav_path === 'string' ? attributes.nav_path : ''
+}
+
 const CustomPermissionBadge = ({
   label,
   checked,
@@ -69,6 +84,7 @@ export const CustomPermissionRow = ({
   const [isLoadingChildren, setIsLoadingChildren] = useState(false)
 
   const children = watch(`${name}.children`)
+  const navPath = getNavPath(item.attributes)
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -134,6 +150,14 @@ export const CustomPermissionRow = ({
             <span className="font-medium text-[13px] text-text-main tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
               {item.title}
             </span>
+            {navPath && (
+              <span
+                title={navPath}
+                className="max-w-[120px] truncate rounded-md border border-border-subtle bg-bg-sidebar px-1.5 py-0.5 font-mono text-[10px] text-text-muted"
+              >
+                {navPath}
+              </span>
+            )}
             {isLoadingChildren && <Loader2 size={14} className="animate-spin text-text-muted ml-2" />}
 
             <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

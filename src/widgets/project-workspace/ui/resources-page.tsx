@@ -8,6 +8,8 @@ import { githubIntegrationApi } from '@/features/github-integration'
 import type { GithubIntegration } from '@/features/github-integration'
 import { gitlabIntegrationApi } from '@/features/gitlab-integration'
 import { bitbucketIntegrationApi } from '@/features/bitbucket-integration'
+import { googleDriveIntegrationApi } from '@/features/google-drive-integration'
+import { useAuthStore } from '@/entities/session'
 import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
 import { Switch } from '@/shared/ui'
@@ -29,6 +31,9 @@ import {
 import { DataLoadingState } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import { centeredPopupFeatures } from '@/shared/lib/utils/centered-popup'
+import { toast } from 'sonner'
+
+const GOOGLE_DRIVE_TYPE_VALUE = 1001
 
 // Resource type options — these are static, no API needed
 const resourceTypes = [
@@ -71,10 +76,25 @@ const normalizeApiResource = (item: any) => {
     typeof item.resource_type === 'number'
       ? item.resource_type
       : RESOURCE_TYPE_STRING_TO_VALUE[String(item.type ?? '').toUpperCase()] ?? null
-  const typeLabel = resourceTypes.find(t => t.value === numericType)?.label
+  // Google Drive has no entry in resourceTypes (it connects via OAuth, not the
+  // create form), so the server type doesn't resolve to a numeric value and the
+  // icon fell back to MongoDB. Detect it explicitly and pin it to its UI value.
+  const canonType = String(item.type ?? item.resource_type ?? '')
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+  const isGoogleDrive =
+    numericType === GOOGLE_DRIVE_TYPE_VALUE ||
+    canonType === 'GOOGLEDRIVE' ||
+    canonType === 'GDRIVE' ||
+    String(item.provider ?? '').toLowerCase() === 'google-drive' ||
+    String(item.name ?? '').trim().toLowerCase() === 'google drive'
+  const finalType = isGoogleDrive ? GOOGLE_DRIVE_TYPE_VALUE : numericType
+  const typeLabel =
+    resourceTypes.find(t => t.value === finalType)?.label ??
+    (isGoogleDrive ? 'Google Drive' : undefined)
   return {
     ...item,
-    resource_type: numericType,
+    resource_type: finalType,
     name: item.name || typeLabel || item.type || 'Resource',
     is_configured: item.is_configured ?? true,
   }
@@ -109,6 +129,13 @@ const resourceCategories = [
     ]
   },
   {
+    id: 'productivity',
+    label: 'Productivity',
+    items: [
+      { label: 'Google Drive', typeValue: GOOGLE_DRIVE_TYPE_VALUE, icon: 'google-drive' },
+    ]
+  },
+  {
     id: 'bi',
     label: 'BI tool',
     items: [
@@ -127,6 +154,16 @@ const resourceCategories = [
 
 const ResourceIcon = ({ type }: { type: string }) => {
   const icons: Record<string, React.ReactNode> = {
+    'google-drive': (
+      <svg width="22" height="20" viewBox="0 0 87.3 78" aria-hidden="true">
+        <path fill="#0066DA" d="M6.6 66.85 10.45 73.5c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5Z" />
+        <path fill="#00AC47" d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5L43.65 25Z" />
+        <path fill="#EA4335" d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H58.55l5.85 11.5L73.55 76.8Z" />
+        <path fill="#00832D" d="M43.65 25 57.4 1.2c-1.35-.8-2.9-1.2-4.5-1.2H34.4c-1.6 0-3.15.45-4.5 1.2L43.65 25Z" />
+        <path fill="#2684FC" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2L59.8 53Z" />
+        <path fill="#FFBA00" d="M73.4 26.5 60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5L73.4 26.5Z" />
+      </svg>
+    ),
     github: (
       <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">
         <path d="M10.5 1.25C5.66562 1.25 1.75 5.16562 1.75 10C1.75 13.8719 4.25469 17.1422 7.73281 18.3016C8.17031 18.3781 8.33437 18.1156 8.33437 17.8859C8.33437 17.6781 8.32344 16.9891 8.32344 16.2563C6.125 16.6609 5.55625 15.7203 5.38125 15.2281C5.28281 14.9766 4.85625 14.2 4.48438 13.9922C4.17812 13.8281 3.74063 13.4234 4.47344 13.4125C5.1625 13.4016 5.65469 14.0469 5.81875 14.3094C6.60625 15.6328 7.86406 15.2609 8.36719 15.0312C8.44375 14.4625 8.67344 14.0797 8.925 13.8609C6.97813 13.6422 4.94375 12.8875 4.94375 9.54062C4.94375 8.58906 5.28281 7.80156 5.84062 7.18906C5.75313 6.97031 5.44687 6.07344 5.92812 4.87031C5.92812 4.87031 6.66094 4.64063 8.33437 5.76719C9.03438 5.57031 9.77813 5.47187 10.5219 5.47187C11.2656 5.47187 12.0094 5.57031 12.7094 5.76719C14.3828 4.62969 15.1156 4.87031 15.1156 4.87031C15.5969 6.07344 15.2906 6.97031 15.2031 7.18906C15.7609 7.80156 16.1 8.57812 16.1 9.54062C16.1 12.8984 14.0547 13.6422 12.1078 13.8609C12.425 14.1344 12.6984 14.6594 12.6984 15.4797C12.6984 16.65 12.6875 17.5906 12.6875 17.8859C12.6875 18.1156 12.8516 18.3891 13.2891 18.3016C15.0261 17.7152 16.5355 16.5988 17.6048 15.1096C18.6741 13.6204 19.2495 11.8333 19.25 10C19.25 5.16562 15.3344 1.25 10.5 1.25Z" fill="currentColor" />
@@ -274,9 +311,12 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const [extraFields, setExtraFields] = useState<Record<string, any>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All Categories')
+  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
+  const apiKey = useAuthStore((state) => state.apiKey)
+  const apiKeyProjectId = useAuthStore((state) => state.apiKeyProjectId)
 
   // GitHub integration is user-level — share cache with GithubPopover by using
   // the same project-less query keys.
@@ -315,6 +355,26 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
       queryClient.invalidateQueries({ queryKey: ['github-integration'] })
+    },
+  })
+
+  const { mutate: connectGoogleDrive, isPending: isConnectingGoogleDrive } = useMutation({
+    mutationFn: async (popup: Window | null) => {
+      if (!apiKey || apiKeyProjectId !== projectId) {
+        popup?.close()
+        throw new Error('Project API key is not available')
+      }
+      try {
+        const url = await googleDriveIntegrationApi.getConnectUrl(apiKey, projectId)
+        if (popup && !popup.closed) popup.location.href = url
+        else window.open(url, '_blank')
+      } catch (err) {
+        popup?.close()
+        throw err
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.data || err?.message || 'Failed to connect Google Drive')
     },
   })
 
@@ -431,7 +491,17 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return
       const d = e.data
-      if (d?.source !== 'ucode-oauth' || d.status !== 'success') return
+      if (d?.source !== 'ucode-oauth') return
+      if (d.provider === 'google-drive') {
+        if (d.status === 'success') {
+          setIsGoogleDriveConnected(true)
+          toast.success('Google Drive connected')
+        } else {
+          toast.error('Google Drive connection failed')
+        }
+        return
+      }
+      if (d.status !== 'success') return
       if (d.provider === 'github') {
         queryClient.invalidateQueries({ queryKey: ['github-integration-status'] })
         queryClient.invalidateQueries({ queryKey: ['github-integration'] })
@@ -673,6 +743,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   const handleSelectResource = (item: ResourceItem) => {
+    if (item.typeValue === GOOGLE_DRIVE_TYPE_VALUE) {
+      connectGoogleDrive(openOAuthPopup())
+      return
+    }
+
     // GitHub — connect via backend OAuth flow (opens in a popup window)
     if (item.typeValue === 5) {
       connectGithub(openOAuthPopup())
@@ -1016,6 +1091,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   if (isGithubConnected || isGithubExpired) connectedTypeValues.add(5)
   if (isGitlabConnected || isGitlabExpired) connectedTypeValues.add(8)
   if (isBitbucketConnected || isBitbucketExpired) connectedTypeValues.add(9)
+  if (isGoogleDriveConnected) connectedTypeValues.add(GOOGLE_DRIVE_TYPE_VALUE)
 
   const availableResources = resourceCategories.flatMap(c => c.items.map(i => ({...i, categoryId: c.id, categoryLabel: c.label})))
   const filteredAvailableResources = availableResources.filter(item => {
@@ -1025,13 +1101,15 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     return matchesSearch && matchesCategory
   })
 
-  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired || isGitlabConnected || isGitlabExpired || isBitbucketConnected || isBitbucketExpired
+  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired || isGitlabConnected || isGitlabExpired || isBitbucketConnected || isBitbucketExpired || isGoogleDriveConnected
   const githubMatchesSearch = 'github'.includes(searchQuery.toLowerCase()) || searchQuery === ''
   const githubMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
   const gitlabMatchesSearch = 'gitlab'.includes(searchQuery.toLowerCase()) || searchQuery === ''
   const gitlabMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
   const bitbucketMatchesSearch = 'bitbucket'.includes(searchQuery.toLowerCase()) || searchQuery === ''
   const bitbucketMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
+  const googleDriveMatchesSearch = 'google drive'.includes(searchQuery.toLowerCase()) || searchQuery === ''
+  const googleDriveMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'productivity'
 
   return (
     <div className="@container space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
@@ -1072,6 +1150,38 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               Connected
             </div>
             <div className="grid grid-cols-1 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4 gap-4">
+
+              {/* Google Drive card */}
+              {isGoogleDriveConnected && googleDriveMatchesSearch && googleDriveMatchesCategory && (
+                <div
+                  className="bg-bg-card border-border-subtle flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
+                  style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <ResourceIcon type="google-drive" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-text-main truncate text-sm font-bold">Google Drive</div>
+                      <div className="text-text-muted truncate text-[11px]">Cloud file storage</div>
+                    </div>
+                    <span className="ml-auto shrink-0 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-green-500 uppercase">
+                      Connected
+                    </span>
+                  </div>
+                  <div className="text-text-muted text-xs leading-relaxed">
+                    Google Drive authorization completed successfully.
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border-subtle bg-bg-main text-text-muted hover:bg-primary/5 hover:text-primary mt-auto w-full justify-center gap-2 rounded-lg font-semibold"
+                    onClick={() => connectGoogleDrive(openOAuthPopup())}
+                    disabled={isConnectingGoogleDrive}
+                  >
+                    {isConnectingGoogleDrive ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    {isConnectingGoogleDrive ? 'Connecting…' : 'Reconnect'}
+                  </Button>
+                </div>
+              )}
 
               {/* GitHub card (new API) */}
               {(isGithubConnected || isGithubExpired) && githubMatchesSearch && githubMatchesCategory && (
@@ -1283,14 +1393,14 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       <ResourceIcon type={categoryItem?.icon ?? 'mongodb'} />
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-sm text-text-main truncate group-hover:text-primary transition-colors">{resource.name}</div>
-                        <div className="text-[11px] text-text-muted font-medium">{typeInfo?.label}</div>
+                        <div className="text-[11px] text-text-muted font-medium">{typeInfo?.label ?? categoryItem?.label}</div>
                       </div>
                       <span className="bg-green-500/10 text-green-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border border-green-500/20 ml-auto">
                         {resource.is_configured ? 'Connected' : 'Pending'}
                       </span>
                     </div>
                     <div className="text-xs text-text-muted leading-relaxed">
-                      Integration for {typeInfo?.label} — {resource.name}
+                      Integration for {typeInfo?.label ?? categoryItem?.label} — {resource.name}
                     </div>
                   </div>
                 )
@@ -1325,7 +1435,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     const isConnecting =
                       (item.typeValue === 5 && isConnectingGithub) ||
                       (item.typeValue === 8 && isConnectingGitlab) ||
-                      (item.typeValue === 9 && isConnectingBitbucket)
+                      (item.typeValue === 9 && isConnectingBitbucket) ||
+                      (item.typeValue === GOOGLE_DRIVE_TYPE_VALUE && isConnectingGoogleDrive)
                     return (
                       <Button
                         variant="outline"

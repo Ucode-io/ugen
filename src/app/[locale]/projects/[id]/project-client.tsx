@@ -18,6 +18,7 @@ import type { CodeEditorTarget } from "@/entities/session";
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import { useDirtyFilesStore } from "@/entities/project/model/dirty-files-store";
+import { useMobileProjectStore } from "@/entities/project/model/mobile-project-store";
 import { CommitModal } from "@/widgets/project-workspace/ui/commit-modal";
 import { UnsavedChangesModal } from "@/widgets/project-workspace/ui/unsaved-changes-modal";
 import { toast } from "sonner";
@@ -192,6 +193,13 @@ export const ProjectWorkspaceClient = ({
   const activeCodeSelection = useCodeSelectionStore(
     (state) => state.activeCodeSelection,
   );
+  const mobileProject = useMobileProjectStore((state) => state.mobileProject);
+  const mobileProjectId = useMobileProjectStore(
+    (state) => state.mobileProjectId,
+  );
+  const setMobileProject = useMobileProjectStore(
+    (state) => state.setMobileProject,
+  );
   const apiKey = useAuthStore((state) => state.apiKey);
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
   const projectEnvId = useAuthStore((state) => state.projectEnvId);
@@ -243,9 +251,12 @@ export const ProjectWorkspaceClient = ({
   // WorkspaceLoader hangs forever (the in-viewer fetch effect can't run when
   // it's unmounted). The inner viewers already handle their own loading and
   // empty states for microfrontend/function selections.
+  const hasCurrentMobileFiles =
+    mobileProjectId === projectId && !!mobileProject?.files?.length;
   const hasNoFiles =
     files.length === 0 &&
     !activeCodeFiles?.length &&
+    !hasCurrentMobileFiles &&
     activeCodeSelection?.kind !== "microfrontend" &&
     activeCodeSelection?.kind !== "function";
   const isAiBuilding = sseEvents.length >= 3;
@@ -488,6 +499,13 @@ export const ProjectWorkspaceClient = ({
             setProjectTitle(projectData.title);
           }
 
+          // Some backend versions persist the complete Capacitor bundle on the
+          // project record. Hydrate it so reloads can use the same live-preview
+          // path as the original mobile_project SSE event.
+          if (projectData.mobile_project) {
+            setMobileProject(projectData.mobile_project, projectId);
+          }
+
           if (
             projectData.project_files &&
             projectData.project_files.length > 0
@@ -527,6 +545,7 @@ export const ProjectWorkspaceClient = ({
     setApiKey,
     setActiveProjectTab,
     clearCodeSelection,
+    setMobileProject,
   ]);
 
   useEffect(() => {

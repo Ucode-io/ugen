@@ -18,7 +18,8 @@ import {
   Database,
   BarChart2,
   Box,
-  Braces
+  Braces,
+  Bot,
 } from "lucide-react"
 import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
@@ -38,6 +39,7 @@ import { SecretsPage } from './secrets-page'
 import { ApiIntegrationsPage } from './api-integrations-page'
 import { AnalyticsDashboard } from "@/widgets/analytics"
 import { CustomEndpointsPage } from './custom-endpoints-page'
+import { AgentsPage } from './agents-page'
 import { cn } from '@/shared/lib/utils/cn'
 
 type DashboardSection = string
@@ -105,6 +107,7 @@ export const ProjectDashboard = ({
     { id: 'secrets', icon: Lock, label: 'Secrets', category: 'General' },
     { id: 'resources', icon: Layers2, label: 'Integrations', category: 'General' },
     // { id: 'api_integrations', icon: Layers2, label: 'Integrations', category: 'General' },
+    { id: 'ai_agents', icon: Bot, label: 'AI Agents', category: 'General' },
     { id: 'api_custom_endpoints', icon: KeyRound, label: 'API', category: 'Development' },
     { id: 'functions', icon: Braces, label: 'Code', category: 'Development' },
     // { id: 'microfrontend', icon: Code, label: 'Microfrontend', category: 'Development' },
@@ -190,6 +193,10 @@ export const ProjectDashboard = ({
 
     if (activeSection === 'api_custom_endpoints') {
       return <CustomEndpointsPage projectId={projectId ?? ''} />
+    }
+
+    if (activeSection === 'ai_agents') {
+      return <AgentsPage projectId={projectId ?? ''} />
     }
 
     if (activeSection === "functions") {

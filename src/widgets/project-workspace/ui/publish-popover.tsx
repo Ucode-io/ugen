@@ -43,6 +43,7 @@ interface PublishPopoverProps {
 }
 
 type Visibility = "public" | "public-login" | "workspace" | "private";
+type AuthMode = "none" | "login";
 type PublishStatus =
   | "idle"
   | "pending"
@@ -66,6 +67,9 @@ export const PublishPopover = ({
   const companyName = project?.title || "";
 
   const [visibility, setVisibility] = useState<Visibility>("public");
+  const [authMode, setAuthMode] = useState<AuthMode>("none");
+  const [projectEnv, setProjectEnv] = useState<Record<string, any>>({});
+  const [projectType, setProjectType] = useState<string>("");
   const [role, setRole] = useState<{
     value: string;
     label: string;
@@ -85,6 +89,7 @@ export const PublishPopover = ({
   const [publishDone, setPublishDone] = useState(false);
   const [isLoadingVisibility, setIsLoadingVisibility] = useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
+  const [isUpdatingAuthMode, setIsUpdatingAuthMode] = useState(false);
 
   const [publishStatusOpen, setPublishStatusOpen] = useState(false);
   const [publishStatus, setPublishStatus] = useState<PublishStatus>("idle");
@@ -97,6 +102,7 @@ export const PublishPopover = ({
   const [hasChanges, setHasChanges] = useState<boolean | null>(null);
   const [isCheckingChanges, setIsCheckingChanges] = useState(false);
   const [everPromoted, setEverPromoted] = useState<boolean | null>(null);
+  const isAdminPanel = projectType === 'admin_panel'
 
   const loadChanges = async () => {
     const repoId = activeCodeSelection?.repoId
@@ -128,11 +134,45 @@ export const PublishPopover = ({
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
       const appVisibility = data?.data?.app_visibility || 'public'
+      const nextProjectEnv = data?.data?.project_env && typeof data.data.project_env === 'object'
+        ? data.data.project_env
+        : {}
+      const nextProjectType = data?.data?.project_type || ''
+      const nextAuthMode = data?.data?.auth_mode || nextProjectEnv.auth_mode
       setVisibility(appVisibility === 'private' ? 'private' : 'public')
+      setProjectEnv(nextProjectEnv)
+      setProjectType(nextProjectType)
+      setAuthMode(nextProjectType === 'admin_panel' || nextAuthMode === 'login' ? 'login' : 'none')
     } catch (err) {
       console.error('Failed to load visibility', err)
     } finally {
       setIsLoadingVisibility(false)
+    }
+  }
+
+  const handleAuthModeChange = async (newAuthMode: AuthMode) => {
+    if (!projectId) return
+    if (isAdminPanel && newAuthMode !== 'login') return
+    setAuthMode(newAuthMode)
+    setIsUpdatingAuthMode(true)
+    const nextProjectEnv = {
+      ...projectEnv,
+      auth_mode: newAuthMode,
+    }
+
+    try {
+      const token = useAuthStore.getState().accessToken
+      await api.put(`/v1/mcp_project/${projectId}`, {
+        project_env: nextProjectEnv,
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      })
+      setProjectEnv(nextProjectEnv)
+    } catch (err) {
+      console.error('Failed to update auth mode', err)
+      await loadVisibility()
+    } finally {
+      setIsUpdatingAuthMode(false)
     }
   }
 
@@ -713,6 +753,55 @@ export const PublishPopover = ({
             )}
           </div>
         </div>
+
+        <div className="border-border-subtle border-t" />
+
+        {/* Auth Mode */}
+        {/* <div className="flex items-center justify-between gap-3 px-5 py-2">
+          <div className="text-text-main flex items-center gap-2 text-sm">
+            <Lock size={16} className="text-text-muted" />
+            Auth mode
+          </div>
+
+          {isLoadingVisibility ? (
+            <div className="bg-bg-main border-border-subtle text-text-muted flex h-9 w-52 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-medium">
+              <Loader2 size={14} className="animate-spin" />
+              <span className="truncate">Loading</span>
+            </div>
+          ) : isAdminPanel ? (
+            <div className="bg-primary text-white flex h-9 w-52 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-medium">
+              <Lock size={14} />
+              <span className="truncate">Login required</span>
+            </div>
+          ) : (
+            <div className="bg-bg-main border-border-subtle flex h-9 w-52 rounded-lg border p-1">
+              {([
+                { value: 'none', label: 'No login', icon: <Globe size={14} /> },
+                { value: 'login', label: 'Login', icon: <Lock size={14} /> },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={isLoadingVisibility || isUpdatingAuthMode || authMode === opt.value}
+                  onClick={() => handleAuthModeChange(opt.value)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:cursor-default",
+                    authMode === opt.value
+                      ? "bg-primary text-white"
+                      : "text-text-muted hover:bg-hover-bg hover:text-text-main"
+                  )}
+                >
+                  {isUpdatingAuthMode && authMode === opt.value ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    opt.icon
+                  )}
+                  <span className="truncate">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div> */}
 
         {/* Private: role select only (invite link shown above) */}
         {visibility === "private" && roleOptions.length > 0 && (
