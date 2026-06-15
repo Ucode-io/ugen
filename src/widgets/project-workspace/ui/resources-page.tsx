@@ -223,6 +223,16 @@ const ResourceIcon = ({ type }: { type: string }) => {
         <rect x="54" y="24" width="6" height="16" fill="#F9D34A" />
       </svg>
     ),
+    'google-drive': (
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 87.3 78" fill="none">
+        <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+        <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.5A9.06 9.06 0 0 0 0 53h27.5z" fill="#00ac47" />
+        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8L73.55 76.8z" fill="#ea4335" />
+        <path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d" />
+        <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc" />
+        <path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+      </svg>
+    ),
     mongodb: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path fillRule="evenodd" clipRule="evenodd" d="M13.756 6.6875C14.0068 7.41297 14.1874 8.15359 14.2468 8.92125C14.3205 9.87359 14.2868 10.8192 14.086 11.7559C14.0805 11.7817 14.069 11.8059 14.0604 11.8309C13.9974 11.8311 13.9332 11.8233 13.8716 11.8328C13.3515 11.9145 12.8318 11.9992 12.3121 12.0834C11.7749 12.1705 11.2369 12.2541 10.7007 12.347C10.5107 12.3798 10.2755 12.3406 10.1988 12.6034C10.1966 12.6106 10.1747 12.6119 10.1621 12.6159L10.188 11.0455L10.1616 7.25609L10.4119 7.21312C10.8213 7.14609 11.2307 7.07813 11.6404 7.01297C12.1293 6.93531 12.6187 6.85984 13.1079 6.78406C13.3237 6.75047 13.5397 6.71969 13.756 6.6875Z" fill="#439934" />
@@ -1272,6 +1282,12 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               {filteredConnectedResources.map((resource: any) => {
                 const typeInfo = resourceTypes.find(t => t.value === resource.resource_type)
                 const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === resource.resource_type)
+                const derivedIcon = (() => {
+                  if (categoryItem?.icon) return categoryItem.icon
+                  const name = (resource.name ?? '').toLowerCase()
+                  if (name.includes('google drive') || name.includes('google_drive')) return 'google-drive'
+                  return 'mongodb'
+                })()
                 return (
                   <div
                     key={resource.id}
@@ -1280,7 +1296,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
                   >
                     <div className="flex items-center gap-3 flex-wrap">
-                      <ResourceIcon type={categoryItem?.icon ?? 'mongodb'} />
+                      <ResourceIcon type={derivedIcon} />
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-sm text-text-main truncate group-hover:text-primary transition-colors">{resource.name}</div>
                         <div className="text-[11px] text-text-muted font-medium">{typeInfo?.label}</div>
