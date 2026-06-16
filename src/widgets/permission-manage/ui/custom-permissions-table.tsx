@@ -20,7 +20,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  Input
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/shared/ui'
 import { CustomPermissionRow } from './custom-permission-row'
 import { cn } from '@/shared/lib/utils/cn'
@@ -29,7 +34,7 @@ import { api } from '@/shared/api'
 import { DataLoadingState } from '@/shared/ui'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 
 interface CustomPermissionsTableProps {
   projectId: string
@@ -58,11 +63,24 @@ export const CustomPermissionsTable = ({
 
   const custom = watch('custom') || []
 
-  const { register, handleSubmit: handleModalSubmit, reset: resetModal, formState: { errors } } = useForm({
+  const { register, control, handleSubmit: handleModalSubmit, reset: resetModal, formState: { errors } } = useForm({
     defaultValues: {
       title: '',
       description: '',
       nav_path: ''
+    }
+  })
+
+  // Routes generated for this project's admin panel, persisted in the MCP project's
+  // project_env (nav_routes). Lets the admin pick a sidebar path instead of typing it.
+  const { data: navRoutes = [] } = useQuery<Array<{ path: string; label?: string }>>({
+    queryKey: ['mcp-nav-routes', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data } = await api.get(`/v1/mcp_project/${projectId}`)
+      const env = data?.data?.project_env
+      const routes = env && typeof env === 'object' ? (env as any).nav_routes : null
+      return Array.isArray(routes) ? routes : []
     }
   })
 
@@ -321,11 +339,32 @@ export const CustomPermissionsTable = ({
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-text-muted uppercase tracking-widest pl-1">Sidebar Path</label>
-              <Input
-                placeholder="e.g. /users"
-                {...register('nav_path')}
-                className="bg-bg-sidebar border-border-subtle font-mono text-[13px]"
-              />
+              {navRoutes.length > 0 ? (
+                <Controller
+                  name="nav_path"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger className="bg-bg-sidebar border-border-subtle font-mono text-[13px]">
+                        <SelectValue placeholder="Select a sidebar route (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {navRoutes.map((r) => (
+                          <SelectItem key={r.path} value={r.path} className="font-mono text-[13px]">
+                            {r.label ? `${r.label} (${r.path})` : r.path}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              ) : (
+                <Input
+                  placeholder="e.g. /users"
+                  {...register('nav_path')}
+                  className="bg-bg-sidebar border-border-subtle font-mono text-[13px]"
+                />
+              )}
             </div>
 
             <div className="mt-6 pt-4 border-t border-border-subtle flex justify-end items-center gap-3">
