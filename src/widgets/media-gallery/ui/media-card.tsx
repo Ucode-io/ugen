@@ -21,24 +21,21 @@ export const MediaCard = ({
   onPreview
 }: MediaCardProps) => {
   const [hasError, setHasError] = useState(false)
+  const mediaName = `${item.link} ${item.file_name_disk} ${item.file_name_download}`
 
   const isVideo = useMemo(() => {
     return (
-      item.link.endsWith('.mp4') ||
-      item.link.endsWith('.ogg') ||
-      item.link.endsWith('.webm')
+      item.mimetype?.startsWith('video/') ||
+      /\.(mp4|ogg|webm)(?:$|[\s?#])/i.test(mediaName)
     )
-  }, [item.link])
+  }, [item.mimetype, mediaName])
 
   const isImage = useMemo(() => {
     return (
-      item.link.endsWith('.png') ||
-      item.link.endsWith('.jpg') ||
-      item.link.endsWith('.jpeg') ||
-      item.link.endsWith('.webp') ||
-      item.link.endsWith('.gif')
+      item.mimetype?.startsWith('image/') ||
+      /\.(png|jpe?g|webp|gif)(?:$|[\s?#])/i.test(mediaName)
     )
-  }, [item.link])
+  }, [item.mimetype, mediaName])
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (isSelectionMode) {
