@@ -1478,7 +1478,11 @@ export const ProjectPreviewViewer = ({
   useEffect(() => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
-        { type: "UCODE_PREVIEW_CONTEXT", trusted: true, source: "ugen-preview" },
+        {
+          type: "UCODE_PREVIEW_CONTEXT",
+          trusted: true,
+          source: "ugen-preview",
+        },
         "*",
       );
       iframeRef.current.contentWindow.postMessage(
@@ -1900,7 +1904,7 @@ export const ProjectPreviewViewer = ({
         className="w-full flex-1 border-none bg-white"
         srcDoc={srcDoc}
         title="Project Preview"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
         onLoad={() => {
           // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
           themeSavePendingRef.current = false;
@@ -2209,7 +2213,7 @@ export const ProjectPreviewViewer = ({
                       src={mobilePreviewUrl}
                       title="Mobile preview"
                       className="h-full w-full flex-1 border-none bg-white"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
                     />
                   ) : (
                     <WorkspaceLoader
