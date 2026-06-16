@@ -63,7 +63,7 @@ export const CustomPermissionsTable = ({
 
   const custom = watch('custom') || []
 
-  const { register, control, handleSubmit: handleModalSubmit, reset: resetModal, formState: { errors } } = useForm({
+  const { register, control: modalControl, handleSubmit: handleModalSubmit, reset: resetModal, formState: { errors } } = useForm({
     defaultValues: {
       title: '',
       description: '',
@@ -342,7 +342,7 @@ export const CustomPermissionsTable = ({
               {navRoutes.length > 0 ? (
                 <Controller
                   name="nav_path"
-                  control={control}
+                  control={modalControl}
                   render={({ field }) => (
                     <Select value={field.value || undefined} onValueChange={field.onChange}>
                       <SelectTrigger className="bg-bg-sidebar border-border-subtle font-mono text-[13px]">
