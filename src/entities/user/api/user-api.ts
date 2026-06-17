@@ -27,6 +27,15 @@ export const userApi = {
     const endpoint = params.tableSlug
       ? `/v2/items/${params.tableSlug}`
       : "/v2/items/user";
+    // Row filters for the items list endpoint are read ONLY from the `data`
+    // param — the gateway's GetAllItems ignores the top-level `client-type-id`
+    // query param for filtering (it uses the token's client_type_id for
+    // permission scoping only). The object builder turns any *_id field that
+    // exists on the table into `AND <col> = $n`, so putting client_type_id here
+    // is what actually filters each client-type tab. Without it every tab shows
+    // all rows of the table.
+    const filter: Record<string, unknown> = { with_relations: true };
+    if (params.clientTypeId) filter.client_type_id = params.clientTypeId;
     const { data } = await api.get(endpoint, {
       params: {
         "client-type-id": params.clientTypeId,
@@ -34,7 +43,7 @@ export const userApi = {
         limit: params.limit,
         offset: params.offset,
         search: params.search,
-        data: JSON.stringify({ with_relations: true }),
+        data: JSON.stringify(filter),
       },
     });
     return data?.data || [];

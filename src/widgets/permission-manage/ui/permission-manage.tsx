@@ -1,18 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { GlobalPermissions } from './global-permissions'
-import { MenuPermissions } from './menu-permissions'
 import {
   ShieldAlert,
-  List,
   Plus,
-  Table,
   Loader2,
-  Save,
   Pencil
 } from 'lucide-react'
-import { TablePermissions } from './table-permissions'
-import { CustomPermissionsTable } from './custom-permissions-table'
+import { MenuPermissionsTable } from './menu-permissions-table'
 import { useAuthStore } from '@/entities/session'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { roleApi } from '@/entities/role/api/role-api'
@@ -30,21 +24,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  Input,
-  ReusableTabs
+  Input
 } from '@/shared/ui'
 import { ClientTypeModal } from '@/features/client-type-form/ui/client-type-modal'
-import { useForm } from 'react-hook-form'
-import { authApi, api } from '@/shared/api'
+import { api } from '@/shared/api'
 import { toast } from 'sonner'
-
-interface PermissionForm {
-  tables: any[]
-  menus: any[]
-  custom: any[]
-  global_permission: any
-  [key: string]: any
-}
 
 interface Props {
   projectId: string
@@ -52,7 +36,6 @@ interface Props {
 
 export const PermissionManage = ({ projectId }: Props) => {
   const t = useTranslations('widgets.permissionManage')
-  const [activeTab, setActiveTab] = useState('table')
   const [selectedClientTypeId, setSelectedClientTypeId] = useState('')
   const [selectedRoleId, setSelectedRoleId] = useState('')
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false)
@@ -62,22 +45,11 @@ export const PermissionManage = ({ projectId }: Props) => {
 
   const [isClientTypeModalOpen, setIsClientTypeModalOpen] = useState(false)
   const [newClientTypeName, setNewClientTypeName] = useState('')
-  const [changedMenus, setChangedMenus] = useState<any[]>([])
   const [editingClientType, setEditingClientType] = useState<any | null>(null)
   const [isEditClientTypeModalOpen, setIsEditClientTypeModalOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const ucodeProjectId = useAuthStore(state => state.ucodeProjectId)
-
-  const formMethods = useForm<PermissionForm>({
-    defaultValues: {
-      tables: [],
-      menus: [],
-      custom: [],
-      global_permission: {}
-    }
-  })
-  const { control, handleSubmit, reset, watch, setValue } = formMethods
 
   // Fetch client types
   const { data: rawClientTypes } = useQuery({
@@ -107,30 +79,27 @@ export const PermissionManage = ({ projectId }: Props) => {
     enabled: !!selectedClientTypeId && !!projectId
   })
 
-  const selectedRole = rolesData?.find((role: any) => role.guid === selectedRoleId)
+  // Roles that belong to the selected user type. A role belongs to a user type
+  // when its client_type_id matches the user type's guid (selectedClientTypeId).
+  const filteredRoles = useMemo(
+    () => (rolesData || []).filter(
+      (role: any) => !selectedClientTypeId || role.client_type_id === selectedClientTypeId
+    ),
+    [rolesData, selectedClientTypeId]
+  )
 
-  // Reset role selection and auto-select first role on client type change
+  const selectedRole = filteredRoles.find((role: any) => role.guid === selectedRoleId)
+
+  // Reset role selection and auto-select first role when the filtered set changes
   useEffect(() => {
     setSelectedRoleId((currentRoleId) => {
-      if (!rolesData || rolesData.length === 0) return ''
-      const currentRoleStillExists = rolesData.some((role: any) => role.guid === currentRoleId)
-      return currentRoleStillExists ? currentRoleId : rolesData[0].guid
+      if (filteredRoles.length === 0) return ''
+      const currentRoleStillExists = filteredRoles.some((role: any) => role.guid === currentRoleId)
+      return currentRoleStillExists ? currentRoleId : filteredRoles[0].guid
     })
-  }, [rolesData])
+  }, [filteredRoles])
 
-  // Fetch detailed permissions (tables + global)
-  const { data: permissionDetail, isLoading: isDetailLoading } = useQuery({
-    queryKey: ['permissions-detail', ucodeProjectId, selectedRoleId],
-    queryFn: async () => {
-      const { data } = await authApi.get(`/v2/role-permission/detailed/${ucodeProjectId}/${selectedRoleId}`, {
-        params: { 'project-id': ucodeProjectId }
-      })
-      return data.data.data
-    },
-    enabled: !!ucodeProjectId && !!selectedRoleId
-  })
-
-  // Fetch custom permissions
+  // Fetch custom (menu) permissions for the selected role
   const { data: customPermissions, isLoading: isCustomLoading } = useQuery({
     queryKey: ['custom-permissions', selectedRoleId, selectedClientTypeId],
     queryFn: async () => {
@@ -144,103 +113,6 @@ export const PermissionManage = ({ projectId }: Props) => {
       return data.data?.permissions || data.permissions || []
     },
     enabled: !!ucodeProjectId && !!selectedRoleId && !!selectedClientTypeId
-  })
-
-  // Fetch menus
-  const { data: rootMenus, isLoading: isMenusLoading } = useQuery({
-    queryKey: ['menus-root', ucodeProjectId, selectedRoleId],
-    queryFn: async () => {
-      const { data } = await api.get('/v3/menus', {
-        params: {
-          parent_id: "c57eedc3-a954-4262-a0af-376c65b5a284",
-          role_id: selectedRoleId,
-          'project-id': ucodeProjectId
-        }
-      })
-      return (data.data.menus || []).map((m: any) => ({
-        ...m,
-        permission: m.permission || m.data?.permission || {
-          read: false,
-          write: false,
-          update: false,
-          delete: false,
-          menu_settings: false
-        }
-      }))
-    },
-    enabled: !!ucodeProjectId && !!selectedRoleId,
-    staleTime: 0
-  })
-
-  useEffect(() => {
-      reset({
-        ...permissionDetail,
-        tables: permissionDetail?.tables?.map((t: any) => ({
-          ...(t || {}),
-          automatic_filters: {
-            read: t?.automatic_filters?.read || [],
-            write: t?.automatic_filters?.write || [],
-          },
-          record_permissions: {
-            ...t?.record_permissions,
-            read: t?.record_permissions?.read === 'Yes',
-            write: t?.record_permissions?.write === 'Yes',
-            update: t?.record_permissions?.update === 'Yes',
-            delete: t?.record_permissions?.delete === 'Yes',
-          }
-        })),
-        menus: rootMenus || [],
-        custom: customPermissions || []
-      })
-  }, [permissionDetail, rootMenus, customPermissions, reset])
-
-  const saveAllMutation = useMutation({
-    mutationFn: async (formData: PermissionForm) => {
-      // 1. Update Table/Global permissions
-      const detailedPayload = {
-        data: {
-          ...formData,
-          tables: formData.tables.map((t: any) => ({
-            ...t,
-            record_permissions: {
-              ...t.record_permissions,
-              read: t.record_permissions.read ? 'Yes' : 'No',
-              write: t.record_permissions.write ? 'Yes' : 'No',
-              update: t.record_permissions.update ? 'Yes' : 'No',
-              delete: t.record_permissions.delete ? 'Yes' : 'No',
-            }
-          }))
-        },
-        project_id: ucodeProjectId,
-        role_id: selectedRoleId
-      }
-
-      // 2. Update Menu permissions
-      const menuPayload = {
-        menus: changedMenus,
-        project_id: ucodeProjectId,
-        role_id: selectedRoleId
-      }
-
-      await Promise.all([
-        authApi.put('/v2/role-permission/detailed', detailedPayload, {
-          params: { 'project-id': ucodeProjectId }
-        }),
-        authApi.put('/v2/menu-permission/detailed', menuPayload, {
-          params: { 'project-id': ucodeProjectId }
-        })
-      ])
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions-detail'] })
-      queryClient.invalidateQueries({ queryKey: ['menus-root'] })
-      queryClient.invalidateQueries({ queryKey: ['custom-permissions'] })
-      toast.success("All permissions saved successfully")
-      setChangedMenus([])
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to save permissions")
-    }
   })
 
   const saveRoleMutation = useMutation({
@@ -308,7 +180,7 @@ export const PermissionManage = ({ projectId }: Props) => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="mb-6">
         <h1 className="text-[22px] font-bold text-text-main mb-1">Permissions</h1>
-        <p className="text-text-muted text-[13px]">Configure user type permissions by menu pages and tables</p>
+        <p className="text-text-muted text-[13px]">Configure menu page permissions per user type and role</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 mb-5">
@@ -329,7 +201,7 @@ export const PermissionManage = ({ projectId }: Props) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-40 group-hover:opacity-100 transition-opacity"
+                      className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                       onPointerDown={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
@@ -370,7 +242,7 @@ export const PermissionManage = ({ projectId }: Props) => {
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
-              {rolesData?.map((role: any) => (
+              {filteredRoles?.map((role: any) => (
                 <SelectItem
                   key={role.guid}
                   value={role.guid}
@@ -379,7 +251,7 @@ export const PermissionManage = ({ projectId }: Props) => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-40 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                         onPointerDown={(e) => {
                           e.stopPropagation()
                           e.preventDefault()
@@ -395,7 +267,7 @@ export const PermissionManage = ({ projectId }: Props) => {
                   <span className="truncate">{role.name}</span>
                 </SelectItem>
               ))}
-              {(!rolesData || rolesData.length === 0) && (
+              {filteredRoles.length === 0 && (
                 <div className="px-2 py-1.5 text-[12px] text-text-muted italic">No roles yet</div>
               )}
               <div className="border-t border-border-subtle/50 mt-1 pt-1 px-1">
@@ -426,76 +298,15 @@ export const PermissionManage = ({ projectId }: Props) => {
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <ReusableTabs
-          options={[
-            { id: 'table', label: 'Table Permissions', icon: <Table size={16} /> },
-            { id: 'custom', label: 'Custom Permissions', icon: <List size={16} /> },
-          ]}
-          activeId={activeTab}
-          onTabChange={setActiveTab}
-          className="w-fit"
-        />
-        {selectedRoleId && (
-          <Button
-            disabled={saveAllMutation.isPending || isDetailLoading || isMenusLoading || isCustomLoading}
-            onClick={handleSubmit((d) => saveAllMutation.mutate(d))}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg px-4 h-8 text-[13px]"
-          >
-            {saveAllMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <Save size={14} className="mr-1.5" />}
-            Save Changes
-          </Button>
-        )}
-      </div>
-
       <div className="min-h-125">
         {selectedRoleId ? (
-          <>
-            {activeTab === 'table' && (
-              <TablePermissions
-                projectId={projectId}
-                roleId={selectedRoleId}
-                clientTypeId={selectedClientTypeId}
-                control={control}
-                setValue={setValue}
-                watch={watch}
-                isLoading={isDetailLoading}
-              />
-            )}
-            {activeTab === 'custom' && (
-              <CustomPermissionsTable
-                projectId={projectId}
-                roleId={selectedRoleId}
-                clientTypeId={selectedClientTypeId}
-                control={control}
-                setValue={setValue}
-                watch={watch}
-                isLoading={isCustomLoading}
-              />
-            )}
-            {activeTab === 'menu' && (
-              <MenuPermissions
-                projectId={projectId}
-                roleId={selectedRoleId}
-                clientTypeId={selectedClientTypeId}
-                control={control}
-                setValue={setValue}
-                watch={watch}
-                isLoading={isMenusLoading}
-                changedMenus={changedMenus}
-                setChangedMenus={setChangedMenus}
-              />
-            )}
-            {activeTab === 'global' && (
-              <GlobalPermissions
-                projectId={projectId}
-                roleId={selectedRoleId}
-                clientTypeId={selectedClientTypeId}
-                control={control}
-                isLoading={isDetailLoading}
-              />
-            )}
-          </>
+          <MenuPermissionsTable
+            projectId={projectId}
+            roleId={selectedRoleId}
+            clientTypeId={selectedClientTypeId}
+            existingPermissions={customPermissions}
+            isLoading={isCustomLoading}
+          />
         ) : (
           <div className="flex flex-col items-center justify-center p-20 text-text-muted">
             <ShieldAlert className="w-12 h-12 mb-4 opacity-20" />
