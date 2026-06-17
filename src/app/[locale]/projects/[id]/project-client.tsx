@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useChatStore } from "@/entities/chat";
 import { cn } from "@/shared/lib/utils/cn";
 
@@ -86,7 +86,6 @@ export const ProjectWorkspaceClient = ({
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const pathname = usePathname();
 
   const [isDashboardSidebarCollapsed, setIsDashboardSidebarCollapsed] =
     useState(false);
@@ -156,12 +155,14 @@ export const ProjectWorkspaceClient = ({
     url: string;
   } | null>(null);
   const [isMicrofrontendLoading, setIsMicrofrontendLoading] = useState(false);
-  const {
-    files: rawFiles,
-    updatedFiles,
-    setFiles,
-    clearWorkspace,
-  } = useFilesStore();
+  // Field selectors instead of subscribing to the whole files-store: the bare
+  // useFilesStore() re-rendered this large component (and its whole tree) on ANY
+  // store change — including activeFile/openedFiles clicks and, worst, every
+  // keystroke (updatedFiles). updatedFiles is read on-demand in handleSaveChanges
+  // via getState(), so we don't subscribe to it here.
+  const rawFiles = useFilesStore((s) => s.files);
+  const setFiles = useFilesStore((s) => s.setFiles);
+  const clearWorkspace = useFilesStore((s) => s.clearWorkspace);
   const filesProjectId = useFilesStore((s) => s.filesProjectId);
   // Ignore files still stamped for the *previous* project: the store is global
   // and is only cleared in an effect cleanup that runs after this render, so on
@@ -203,7 +204,7 @@ export const ProjectWorkspaceClient = ({
   const apiKey = useAuthStore((state) => state.apiKey);
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
   const projectEnvId = useAuthStore((state) => state.projectEnvId);
-  const { project } = useAuthStore();
+  const project = useAuthStore((state) => state.project);
   const isUgen = project?.is_ugen ?? false;
   const chatPosition = useChatStore((state) => state.chatPosition);
   const sseEvents = useChatStore((state) => state.sseEvents);
@@ -352,8 +353,19 @@ export const ProjectWorkspaceClient = ({
     (!microfrontendsFetched || codeSelectionPending);
   const t = useTranslations("features.project");
 
-  const activeTab =
-    (searchParams.get("tab") as "dashboard" | "code" | "preview") || "preview";
+  // Active tab is local state (the source of truth), NOT the URL. Previously it
+  // was derived from ?tab= and setActiveTab did router.push, so every tab click
+  // went through next-intl middleware → RSC fetch → router re-render — even
+  // though page.tsx never reads ?tab=, making the RSC response identical. We
+  // seed from the URL once (shareable links) and keep the address bar in sync
+  // via history.replaceState (see setActiveTab).
+  const [activeTab, setActiveTabState] = useState<
+    "dashboard" | "code" | "preview"
+  >(
+    () =>
+      (searchParams.get("tab") as "dashboard" | "code" | "preview") ||
+      "preview",
+  );
 
   // Tab panels stay mounted once visited so switching away and back doesn't
   // remount them — without this, returning to Preview would rebuild the bundle
@@ -368,14 +380,40 @@ export const ProjectWorkspaceClient = ({
 
   const setActiveTab = useCallback(
     (tab: "dashboard" | "code" | "preview") => {
-      const params = new URLSearchParams(searchParams.toString());
+      setActiveTabState(tab);
+      // Keep the URL shareable without a server roundtrip: native
+      // history.replaceState integrates with the Next router (keeps
+      // useSearchParams in sync) but skips the middleware + RSC fetch that
+      // router.push triggered on every click.
+      const params = new URLSearchParams(window.location.search);
       params.set("tab", tab);
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}?${params.toString()}`,
+      );
     },
-    [searchParams, pathname, router],
+    [],
   );
 
+  // This component is reused (not remounted) when navigating between projects,
+  // so local tab state would otherwise leak across projects. Reset it to the
+  // new URL's tab on project switch — usually "preview", since cross-project
+  // navigation arrives without a ?tab= param (matches prior behavior).
+  const prevProjectIdRef = useRef(projectId);
+  useEffect(() => {
+    if (prevProjectIdRef.current === projectId) return;
+    prevProjectIdRef.current = projectId;
+    const urlTab = new URLSearchParams(window.location.search).get("tab") as
+      | "dashboard"
+      | "code"
+      | "preview"
+      | null;
+    setActiveTabState(urlTab || "preview");
+  }, [projectId]);
+
   const handleSaveChanges = () => {
+    const updatedFiles = useFilesStore.getState().updatedFiles;
     if (updatedFiles.length > 0) {
       api.put(`/v1/mcp_project/${projectId}`, {
         project_files: updatedFiles,

@@ -21,7 +21,7 @@ interface PendingInvite {
 }
 
 export const PendingJoinModal = () => {
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
   const [isOpen, setIsOpen] = useState(false);

@@ -13,6 +13,7 @@ import {
   ProjectFolder,
 } from "@/entities/project-folder";
 import { useAuthStore } from "@/entities/session";
+import { useShallow } from "zustand/react/shallow";
 import { ProjectsToolbar } from "./projects-toolbar";
 import { ProjectsGrid } from "./projects-grid";
 import { ProjectsList } from "./projects-list";
@@ -27,7 +28,15 @@ export const ProjectsBoard = () => {
   const tNav = useTranslations("Navigation");
   const tWidgets = useTranslations("widgets.projects");
   const tCommon = useTranslations("widgets.common");
-  const { project, refreshToken, user, switchProjectAuth, activeCompanyId } = useAuthStore();
+  const { project, refreshToken, user, switchProjectAuth, activeCompanyId } = useAuthStore(
+    useShallow((s) => ({
+      project: s.project,
+      refreshToken: s.refreshToken,
+      user: s.user,
+      switchProjectAuth: s.switchProjectAuth,
+      activeCompanyId: s.activeCompanyId,
+    })),
+  );
   const { mutateAsync: switchProject } = useSwitchProject();
   const isUgen = project?.is_ugen ?? false;
   const [switchingProjectId, setSwitchingProjectId] = useState<string | null>(

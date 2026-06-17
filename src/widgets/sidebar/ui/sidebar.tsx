@@ -5,6 +5,7 @@ import { Link, useRouter } from "@/shared/lib/i18n/navigation";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/entities/session";
+import { useShallow } from "zustand/react/shallow";
 import { useSyncCurrentPlan } from "@/entities/billing";
 import Image from 'next/image'
 import { SearchModal } from "@/features/search";
@@ -31,7 +32,9 @@ interface SidebarProps {
 export const Sidebar = ({ className, hideLogo, isHidden, onProfilePopupChange, onModalOpenChange }: SidebarProps) => {
   const router = useRouter();
   const t = useTranslations('Navigation');
-  const { user, project, logout } = useAuthStore();
+  const { user, project, logout } = useAuthStore(
+    useShallow((s) => ({ user: s.user, project: s.project, logout: s.logout })),
+  );
   const isUgen = project?.is_ugen ?? false;
 
   // Keep the store's fare_id in step with /v1/subscription/current so an expired

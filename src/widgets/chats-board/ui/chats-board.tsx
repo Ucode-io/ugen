@@ -32,7 +32,7 @@ export const ChatsBoard = () => {
   const t = useTranslations("widgets.chats");
   const tWidgets = useTranslations("widgets.projects");
   const router = useRouter();
-  const { project } = useAuthStore();
+  const project = useAuthStore((s) => s.project);
   const isUgen = project?.is_ugen ?? false;
 
   const [searchQuery, setSearchQuery] = useState("");

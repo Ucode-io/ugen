@@ -241,6 +241,33 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
+      // Persist only what must survive a reload. WITHOUT this, every `set()`
+      // synchronously JSON.stringify-ed the entire state — including the huge
+      // `languages` i18n blob — to localStorage on the main thread. Since
+      // setActiveProjectTab/setApiKey fire on every tab switch and project open,
+      // that turned each of those into a blocking large-blob write.
+      //
+      // Excluded on purpose:
+      //  - `languages`: large i18n blob, only used by AppSettingsPage which
+      //    re-fetches it when empty.
+      //  - apiKey/apiKeyProjectId/ucodeProjectId/projectEnvId/resourceEnvId/
+      //    codeEditorTarget/activeProjectTab: per-project runtime state, re-set
+      //    on project mount.
+      // Kept: superAdminOrigin must survive reload so the super-admin "return to
+      // my profile" button still works after refreshing mid-impersonation.
+      partialize: (state) => ({
+        user: state.user,
+        project: state.project,
+        permissions: state.permissions,
+        appPermissions: state.appPermissions,
+        globalPermission: state.globalPermission,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+        activeView: state.activeView,
+        activeCompanyId: state.activeCompanyId,
+        superAdminOrigin: state.superAdminOrigin,
+      }),
     }
   )
 )

@@ -9,7 +9,9 @@ import { useTheme } from 'next-themes'
 import { usePathname } from 'next/navigation'
 
 export const ViewLayoutWrapper = ({ children }: { children: ReactNode }) => {
-  const { activeView } = useAuthStore()
+  // Field selector: this wraps the whole app, so a bare useAuthStore() here
+  // re-rendered the entire tree on ANY auth change (tokens, apiKey, tab, etc.).
+  const activeView = useAuthStore((s) => s.activeView)
   const [mounted, setMounted] = useState(false)
 
   const { theme } = useTheme()

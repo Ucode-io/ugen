@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 import { LayoutGrid, ChevronRight, FileIcon, Loader2 } from "lucide-react"
 import { useCompanyProjects, useSwitchProject } from "@/entities/project"
 import { useAuthStore } from "@/entities/session"
+import { useShallow } from "zustand/react/shallow"
 import { Link, useRouter } from "@/shared/lib/i18n/navigation"
 
 interface ProjectsNavReadOnlyProps {
@@ -20,7 +21,14 @@ export const ProjectsNavReadOnly = ({
   const tNav = useTranslations('Navigation')
   const tWidgets = useTranslations('widgets.sidebar')
   const router = useRouter()
-  const { activeCompanyId, refreshToken, user, switchProjectAuth } = useAuthStore()
+  const { activeCompanyId, refreshToken, user, switchProjectAuth } = useAuthStore(
+    useShallow((s) => ({
+      activeCompanyId: s.activeCompanyId,
+      refreshToken: s.refreshToken,
+      user: s.user,
+      switchProjectAuth: s.switchProjectAuth,
+    })),
+  )
   const { mutateAsync: switchProject } = useSwitchProject()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
 

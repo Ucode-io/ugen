@@ -344,7 +344,7 @@ interface ProjectsNavProps {
 export const ProjectsNav = ({ isCollapsed, isAllProjectsOpen, setIsAllProjectsOpen }: ProjectsNavProps) => {
   const tNav = useTranslations('Navigation')
   const tWidgets = useTranslations('widgets.sidebar')
-  const { activeCompanyId } = useAuthStore()
+  const activeCompanyId = useAuthStore((s) => s.activeCompanyId)
   const { data: rootFolders } = useProjectFolders(undefined, undefined, !isCollapsed && isAllProjectsOpen)
   const { data: recentProjectsResponse } = useProjectsList(
     { order_by: 'updated_at', order_direction: 'desc', limit: 4 },

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom"
 import { Settings, ChevronsUpDown, Loader2, Lock, User, ChevronRight, Sparkles, Plus, Palette, Sun, Moon, BriefcaseBusiness, CalendarClock } from "lucide-react"
 import { useUserProjects, UserCompany, useSwitchProject, useCreateCompany } from "@/entities/project"
 import { useAuthStore, useIsSuperAdmin } from "@/entities/session"
+import { useShallow } from "zustand/react/shallow"
 import { useCurrentSubscription } from "@/entities/billing"
 import { useRouter } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
@@ -85,7 +86,15 @@ export const ProjectDropdown = ({
 }: ProjectPopupProps) => {
   const t = useTranslations('widgets.sidebar')
   const { data: companies = [], isLoading: isCompaniesLoading } = useUserProjects()
-  const { refreshToken, user, switchProjectAuth, activeCompanyId, apiKey } = useAuthStore()
+  const { refreshToken, user, switchProjectAuth, activeCompanyId, apiKey } = useAuthStore(
+    useShallow((s) => ({
+      refreshToken: s.refreshToken,
+      user: s.user,
+      switchProjectAuth: s.switchProjectAuth,
+      activeCompanyId: s.activeCompanyId,
+      apiKey: s.apiKey,
+    })),
+  )
   const { mutateAsync: switchProject } = useSwitchProject()
   const queryClient = useQueryClient()
   const router = useRouter()

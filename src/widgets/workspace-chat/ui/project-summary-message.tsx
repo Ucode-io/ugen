@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { ChatMessageBubble } from './chat-message-bubble'
 import { formatProjectSummary, parseProjectSummary } from '../lib/parse-project-summary'
@@ -26,7 +27,12 @@ export const ProjectSummaryMessage = ({
   dislikeCount?: number
 }) => {
   const t = useTranslations('widgets.workspaceChat.projectSummary')
-  const markdown = formatProjectSummary(parseProjectSummary(content), t)
+  // Reparse/reformat only when the content changes — not on every parent
+  // re-render (which happens on every SSE tick during streaming).
+  const markdown = useMemo(
+    () => formatProjectSummary(parseProjectSummary(content), t),
+    [content, t],
+  )
 
   return (
     <ChatMessageBubble

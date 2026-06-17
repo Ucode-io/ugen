@@ -30,6 +30,7 @@ import {
 } from "@/shared/ui";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
 import { useVisualEditorStore } from "@/entities/visual-editor";
+import { useShallow } from "zustand/react/shallow";
 import {
   DEFAULT_MODEL_ID,
   CHAT_PROVIDERS,
@@ -97,7 +98,15 @@ export const ChatInput = ({
     setInspectMode,
     removeSelectedElement,
     clearSelectedElements,
-  } = useVisualEditorStore();
+  } = useVisualEditorStore(
+    useShallow((s) => ({
+      isInspectMode: s.isInspectMode,
+      selectedElements: s.selectedElements,
+      setInspectMode: s.setInspectMode,
+      removeSelectedElement: s.removeSelectedElement,
+      clearSelectedElements: s.clearSelectedElements,
+    })),
+  );
   const [value, setValue] = useState("");
   const [isPlanOn, setIsPlanOn] = useState(false);
 

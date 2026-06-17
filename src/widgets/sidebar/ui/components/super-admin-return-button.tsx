@@ -2,12 +2,20 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { useAuthStore } from '@/entities/session'
+import { useShallow } from 'zustand/react/shallow'
 import { SUPER_ADMIN_USER_ID } from '@/shared/config'
 import { ArrowLeft } from 'lucide-react'
 import { cn } from '@/shared/lib/utils/cn'
 
 export const SuperAdminReturnButton = ({ className }: { className?: string }) => {
-  const { user, project, superAdminOrigin, endSuperAdminImpersonation } = useAuthStore()
+  const { user, project, superAdminOrigin, endSuperAdminImpersonation } = useAuthStore(
+    useShallow((s) => ({
+      user: s.user,
+      project: s.project,
+      superAdminOrigin: s.superAdminOrigin,
+      endSuperAdminImpersonation: s.endSuperAdminImpersonation,
+    })),
+  )
   const queryClient = useQueryClient()
   const router = useRouter()
 

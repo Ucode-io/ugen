@@ -1,6 +1,6 @@
 'use client'
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -80,19 +80,37 @@ export const ProjectDashboard = ({
   onEditCode,
   isChatCollapsed = false,
 }: ProjectDashboardProps) => {
-  const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const paramsSection = searchParams.get('section');
-
-  const activeSection = (paramsSection as DashboardSection) || 'overview'
+  // Active section is local state (source of truth), not the URL — same reason
+  // as the workspace tabs: router.push on every section click forced a
+  // next-intl middleware + RSC roundtrip the server never used. Seed from
+  // ?section= once and keep the URL in sync via history.replaceState.
+  const [activeSection, setActiveSectionState] = useState<DashboardSection>(
+    () => (searchParams.get('section') as DashboardSection) || 'overview'
+  )
 
   const setActiveSection = useCallback((section: DashboardSection) => {
-    const params = new URLSearchParams(searchParams.toString())
+    setActiveSectionState(section)
+    const params = new URLSearchParams(window.location.search)
     params.set('section', section)
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [searchParams, pathname, router])
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}?${params.toString()}`,
+    )
+  }, [])
+
+  // This widget is reused (not remounted) across /projects/[id] changes via the
+  // parent's mountedTabs, so reset the section on project switch to match the
+  // new URL — normally "overview", since project navigation drops ?section=.
+  const prevProjectIdRef = useRef(projectId)
+  useEffect(() => {
+    if (prevProjectIdRef.current === projectId) return
+    prevProjectIdRef.current = projectId
+    const urlSection = new URLSearchParams(window.location.search).get('section')
+    setActiveSectionState((urlSection as DashboardSection) || 'overview')
+  }, [projectId])
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
 

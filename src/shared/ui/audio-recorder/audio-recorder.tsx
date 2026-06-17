@@ -24,6 +24,9 @@ export const AudioRecorder = ({ onTranscription, size = 'md' }: AudioRecorderPro
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const pendingTranscription = useRef(false);
 
   useEffect(() => {
@@ -51,12 +54,30 @@ export const AudioRecorder = ({ onTranscription, size = 'md' }: AudioRecorderPro
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    // Tear down the Web Audio graph. Chrome hard-caps ~6 AudioContexts per
+    // document — without closing, recording/visualization silently breaks
+    // after a handful of recordings and the audio stream keeps leaking.
+    if (sourceRef.current) {
+      sourceRef.current.disconnect();
+      sourceRef.current = null;
+    }
+    if (analyserRef.current) {
+      analyserRef.current.disconnect();
+      analyserRef.current = null;
+    }
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
+    }
   };
 
   const visualize = (stream: MediaStream) => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioCtxRef.current = audioContext;
     const source = audioContext.createMediaStreamSource(stream);
+    sourceRef.current = source;
     const analyser = audioContext.createAnalyser();
+    analyserRef.current = analyser;
     analyser.fftSize = 64; // Smaller for fewer, thicker bars
     source.connect(analyser);
 

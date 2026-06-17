@@ -62,6 +62,9 @@ export const useFilesStore = create<FilesState>((set) => ({
     filesProjectId: null,
     activeFile: '',
     openedFiles: [],
+    // Must be reset too — otherwise unsaved-edit buffers (full file contents)
+    // survive project switches and accumulate across the whole session.
+    updatedFiles: [],
     expandedFolders: ['app', 'app/[locale]', 'styles', 'utils']
   })
 }))

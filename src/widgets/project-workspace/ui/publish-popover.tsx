@@ -61,7 +61,7 @@ export const PublishPopover = ({
   const t = useTranslations("features.project");
   const params = useParams();
   const projectId = Array.isArray(params.id) ? params.id[0] : params.id || "";
-  const { project } = useAuthStore();
+  const project = useAuthStore((s) => s.project);
   const ucodeProjectId = useAuthStore((s) => s.ucodeProjectId);
   const projectEnvId = useAuthStore((s) => s.projectEnvId);
   const companyName = project?.title || "";

@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 import { Home, Search, LayoutGrid, MessagesSquare, LayoutTemplate } from "lucide-react"
 import { usePathname } from "@/shared/lib/i18n/navigation"
 import { useAuthStore } from "@/entities/session"
+import { useShallow } from "zustand/react/shallow"
 import { SUPER_ADMIN_PROJECT_ID, SUPER_ADMIN_USER_ID } from "@/shared/config"
 
 interface CoreNavProps {
@@ -14,7 +15,13 @@ interface CoreNavProps {
 export const CoreNav = ({ onSearchClick, isUgen = true }: CoreNavProps) => {
   const t = useTranslations('Navigation')
   const pathname = usePathname()
-  const { activeCompanyId, project, user } = useAuthStore()
+  const { activeCompanyId, project, user } = useAuthStore(
+    useShallow((s) => ({
+      activeCompanyId: s.activeCompanyId,
+      project: s.project,
+      user: s.user,
+    })),
+  )
   const isSuperAdmin =
     project?.project_id === SUPER_ADMIN_PROJECT_ID && user?.id === SUPER_ADMIN_USER_ID
 

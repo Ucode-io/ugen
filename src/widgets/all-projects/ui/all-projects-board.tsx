@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAllProjects, useSwitchProjectSuperAdmin, type AllProject } from '@/entities/project'
 import { useAuthStore } from '@/entities/session'
+import { useShallow } from 'zustand/react/shallow'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import {
@@ -149,7 +150,14 @@ export const AllProjectsBoard = () => {
   const projects = data?.projects ?? []
   const totalCount = data?.count ?? 0
 
-  const { user, refreshToken, switchProjectAuth, beginSuperAdminImpersonation } = useAuthStore()
+  const { user, refreshToken, switchProjectAuth, beginSuperAdminImpersonation } = useAuthStore(
+    useShallow((s) => ({
+      user: s.user,
+      refreshToken: s.refreshToken,
+      switchProjectAuth: s.switchProjectAuth,
+      beginSuperAdminImpersonation: s.beginSuperAdminImpersonation,
+    })),
+  )
   const { mutateAsync: switchProject } = useSwitchProjectSuperAdmin()
   const queryClient = useQueryClient()
   const router = useRouter()

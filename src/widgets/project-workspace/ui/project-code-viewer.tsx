@@ -539,8 +539,11 @@ export const ProjectCodeViewer = ({
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       const currentActiveFile = activeFileRef.current;
+      // Dedup by path: Monaco onChange fires on every keystroke. Without the
+      // filter, each keystroke pushed a whole new {path, content} copy, so a
+      // few minutes of editing piled up thousands of full file copies in memory.
       setUpdatedFiles([
-        ...updatedFilesRef.current,
+        ...updatedFilesRef.current.filter((f) => f.path !== currentActiveFile),
         {
           path: currentActiveFile,
           content: value,

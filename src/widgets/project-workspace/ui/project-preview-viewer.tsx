@@ -3,6 +3,7 @@ import { useVisualEditorStore } from "@/entities/visual-editor";
 import { MoveablePrompt } from "./moveable-prompt";
 import { ElementStyleToolbar } from "./element-style-toolbar";
 import { useFilesStore } from "@/entities/project/model/files-store";
+import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "@/entities/chat";
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler";
 import {
@@ -476,8 +477,16 @@ export const ProjectPreviewViewer = ({
   isVersionHistory = false,
 }: ProjectPreviewViewerProps) => {
   const { isInspectMode, addSelectedElement, setInspectMode } =
-    useVisualEditorStore();
-  const { files: rawStoreFiles, updateFile } = useFilesStore();
+    useVisualEditorStore(
+      useShallow((s) => ({
+        isInspectMode: s.isInspectMode,
+        addSelectedElement: s.addSelectedElement,
+        setInspectMode: s.setInspectMode,
+      })),
+    );
+  const { files: rawStoreFiles, updateFile } = useFilesStore(
+    useShallow((s) => ({ files: s.files, updateFile: s.updateFile })),
+  );
   const filesProjectId = useFilesStore((s) => s.filesProjectId);
   // The files store is global and shared across projects. On a project switch
   // this viewer is re-keyed and mounts *before* the previous effect's cleanup

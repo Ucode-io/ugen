@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/shared/api";
 import { useRouter } from "@/shared/lib/i18n/navigation";
 import { useAuthStore } from "@/entities/session";
+import { useShallow } from "zustand/react/shallow";
 import {
   Dialog,
   DialogClose,
@@ -48,7 +49,13 @@ export const AddTemplateDialog = ({
   const router = useRouter();
   const queryClient = useQueryClient();
   const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
-  const { project, apiKey, resourceEnvId } = useAuthStore();
+  const { project, apiKey, resourceEnvId } = useAuthStore(
+    useShallow((s) => ({
+      project: s.project,
+      apiKey: s.apiKey,
+      resourceEnvId: s.resourceEnvId,
+    })),
+  );
 
   const [isOpen, setIsOpen] = useState(false);
   const [templateName, setTemplateName] = useState(projectTitle);
