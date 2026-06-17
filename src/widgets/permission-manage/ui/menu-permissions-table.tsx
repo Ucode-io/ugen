@@ -137,8 +137,10 @@ export const MenuPermissionsTable = ({
   const existing = existingPermissions ?? EMPTY_PERMS
 
   // Merge nav routes with the already-created custom permissions (matched by
-  // nav_path). Every route shows up as if it were already added, with all
-  // permissions off until an admin turns one on.
+  // nav_path). Every route shows up as if it were already added. A route with
+  // no saved permission defaults to READ on (it stays visible until an admin
+  // restricts it, mirroring the generated panel's default-allow); write/update/
+  // delete start off.
   useEffect(() => {
     const byPath = new Map<string, ExistingPermission>()
     const noPath: ExistingPermission[] = []
@@ -158,7 +160,7 @@ export const MenuPermissionsTable = ({
         label: r.label || r.path,
         title: p?.title || r.label || r.path,
         custom_permission_id: p?.custom_permission_id,
-        read: p?.read === 'Yes',
+        read: p ? p.read === 'Yes' : true,
         write: p?.write === 'Yes',
         update: p?.update === 'Yes',
         delete: p?.delete === 'Yes'

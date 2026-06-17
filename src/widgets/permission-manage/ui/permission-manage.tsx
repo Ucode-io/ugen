@@ -201,7 +201,7 @@ export const PermissionManage = ({ projectId }: Props) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-40 group-hover:opacity-100 transition-opacity"
+                      className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                       onPointerDown={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
@@ -251,7 +251,7 @@ export const PermissionManage = ({ projectId }: Props) => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-40 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 ml-auto mr-4 hover:bg-hover-bg rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                         onPointerDown={(e) => {
                           e.stopPropagation()
                           e.preventDefault()
