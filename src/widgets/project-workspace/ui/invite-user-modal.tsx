@@ -198,11 +198,17 @@ export const InviteUserModal = ({
     [builderRoles]
   )
 
-  // Auto-select first client type and role for create mode
+  // Auto-select first client type and role for create mode. Re-select when the
+  // current value isn't in the options (not just when empty) so a client type
+  // left over from a previously-opened project — the modal stays mounted across
+  // project switches — is replaced with one that actually belongs to this
+  // project instead of being submitted as a stale id.
   useEffect(() => {
     if (open && !initialData) {
-      if (clientTypeOptions.length > 0 && !currentClientType) {
-        setValue('clientType', clientTypeOptions[0].value, { shouldValidate: true })
+      if (clientTypeOptions.length > 0) {
+        if (!currentClientType || !clientTypeOptions.find((o) => o.value === currentClientType)) {
+          setValue('clientType', clientTypeOptions[0].value, { shouldValidate: true })
+        }
       }
     }
   }, [open, initialData, clientTypeOptions, currentClientType, setValue])

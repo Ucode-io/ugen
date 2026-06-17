@@ -459,11 +459,18 @@ export const ProjectWorkspaceClient = ({
   useEffect(() => {
     if (!projectId) return;
 
-    // ⚡ Immediately clear previous project's apiKey & tab BEFORE any async requests.
-    // Without this, requests fired during loading would still carry the stale apiKey
-    // from the previous project (race condition between cleanup and new effect start).
+    // ⚡ Immediately clear previous project's apiKey, tab & ucode_project_id BEFORE
+    // any async requests. Without this, requests fired during loading would still
+    // carry the stale apiKey from the previous project (race condition between
+    // cleanup and new effect start). ucodeProjectId is set only after the async
+    // /v1/mcp_project response below, so leaving the previous value in place lets
+    // workspace queries keyed on it (client types, roles → the Invite modal) read
+    // and submit a previous project's ids, which the backend rejects with a grpc
+    // error until a refresh. Null it here so those queries stay disabled until the
+    // correct id arrives.
     setApiKey(null);
     setActiveProjectTab(null);
+    setUcodeProjectId(null);
 
     setIsLoading(true);
     // Fetch project details and files
@@ -535,6 +542,7 @@ export const ProjectWorkspaceClient = ({
       clearWorkspace();
       setApiKey(null);
       setActiveProjectTab(null);
+      setUcodeProjectId(null);
       clearCodeSelection();
       useDirtyFilesStore.getState().clearAll();
     };
@@ -544,6 +552,7 @@ export const ProjectWorkspaceClient = ({
     clearWorkspace,
     setApiKey,
     setActiveProjectTab,
+    setUcodeProjectId,
     clearCodeSelection,
     setMobileProject,
   ]);
