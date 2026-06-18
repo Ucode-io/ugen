@@ -129,6 +129,9 @@ export const ChatInput = ({
   const chatId = useChatStore((s) => s.chatId);
   const chatModel = useChatStore((s) => s.chatModel);
   const setChatModel = useChatStore((s) => s.setChatModel);
+  const inputDraft = useChatStore((s) => s.inputDraft);
+  const inputDraftNonce = useChatStore((s) => s.inputDraftNonce);
+  const setInputDraft = useChatStore((s) => s.setInputDraft);
   const activeCodeSelection = useCodeSelectionStore(
     (s) => s.activeCodeSelection,
   );
@@ -208,6 +211,24 @@ export const ChatInput = ({
     if (!flashFolderAt) return;
     flashFolder();
   }, [flashFolderAt]);
+
+  // Prefill the input when something elsewhere seeds a draft (e.g. the "New
+  // Agent" button → "Create an agent "). Focus and place the caret at the end so
+  // the user can keep typing. Consume the draft so it doesn't reapply on
+  // re-render; `inputDraftNonce` lets the same text be pushed again.
+  useEffect(() => {
+    if (inputDraft == null) return;
+    setValue(inputDraft);
+    setInputDraft(null);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      const end = el.value.length;
+      el.setSelectionRange(end, end);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputDraftNonce]);
 
   const {
     data: functionsList,
