@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect, type TextareaHTMLAttributes } from 'react'
 import {
   Loader2,
   PlusCircle,
   Bot,
   Trash2,
   Edit,
-  Play,
   ChevronLeft,
   ChevronDown,
   ChevronUp,
@@ -28,11 +27,43 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-  Switch,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
 } from '@/shared/ui'
 import { WorkspaceDataTable } from './workspace-data-table'
 import { cn } from '@/shared/lib/utils/cn'
 import { toast } from 'sonner'
+import { useChatStore } from '@/entities/chat'
+
+// Textarea that grows to fit its content instead of scrolling.
+const AutoResizeTextarea = ({
+  value,
+  className,
+  minRows = 3,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { minRows?: number }) => {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      rows={minRows}
+      className={cn('resize-none overflow-hidden', className)}
+      {...props}
+    />
+  )
+}
 
 interface AgentPermission {
   id?: string
@@ -88,6 +119,22 @@ const TOOL_LABELS: Record<string, string> = {
   web_fetch: 'Fetch URL',
 }
 
+const AGENT_MODELS = [
+  'claude-opus-4-8',
+  'claude-opus-4-7',
+  'claude-sonnet-4-7',
+  'claude-sonnet-4-6',
+  'claude-haiku-4-6',
+  'claude-haiku-4-5',
+  'gpt-5.5-pro',
+  'gpt-5.5',
+  'gpt-5.4-pro',
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+  'gemini-2.5-flash',
+]
+
 const defaultForm = {
   name: '',
   description: '',
@@ -96,57 +143,6 @@ const defaultForm = {
   max_steps: 8,
   enabled: true,
   permissions: [] as AgentPermission[],
-}
-
-const PermissionRow = ({
-  perm,
-  onChange,
-  onRemove,
-}: {
-  perm: AgentPermission
-  onChange: (updated: AgentPermission) => void
-  onRemove: () => void
-}) => {
-  const toggle = (field: keyof AgentPermission) =>
-    onChange({ ...perm, [field]: !perm[field as keyof AgentPermission] })
-
-  const PermToggle = ({ field, label }: { field: keyof AgentPermission; label: string }) => (
-    <label className="flex items-center gap-1.5 cursor-pointer">
-      <input
-        type="checkbox"
-        checked={!!perm[field]}
-        onChange={() => toggle(field)}
-        className="w-3.5 h-3.5 accent-primary"
-      />
-      <span className="text-xs text-text-muted">{label}</span>
-    </label>
-  )
-
-  return (
-    <div className="flex items-start gap-3 p-3 rounded-xl border border-border-subtle bg-bg-sidebar">
-      <Input
-        placeholder="table_slug"
-        value={perm.table_slug}
-        onChange={(e) => onChange({ ...perm, table_slug: e.target.value })}
-        className="h-8 text-xs font-mono w-36 shrink-0"
-      />
-      <div className="flex flex-wrap gap-3 flex-1">
-        <PermToggle field="can_list" label="list" />
-        <PermToggle field="can_read" label="read" />
-        <PermToggle field="can_create" label="create" />
-        <PermToggle field="can_update" label="update" />
-        <PermToggle field="can_delete" label="delete" />
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onRemove}
-        className="h-7 w-7 shrink-0 text-text-muted hover:text-destructive"
-      >
-        <Trash2 size={13} />
-      </Button>
-    </div>
-  )
 }
 
 const RunStatusBadge = ({ status }: { status: AgentRun['status'] }) => {
@@ -187,6 +183,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
   const [expandedRun, setExpandedRun] = useState<string | null>(null)
 
   const queryClient = useQueryClient()
+  const setInputDraft = useChatStore((s) => s.setInputDraft)
 
   const { data: agentsData, isLoading } = useQuery({
     queryKey: ['agents', projectId],
@@ -231,6 +228,35 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
     onError: () => toast.error('Failed to save agent'),
   })
 
+  // Toggle enabled directly from the table status badge (no modal). Optimistic
+  // so the badge flips instantly; rolls back on error.
+  const toggleEnabledMutation = useMutation({
+    mutationFn: ({ agent, enabled }: { agent: Agent; enabled: boolean }) =>
+      api.put(`/v1/agents/${agent.id}`, {
+        name: agent.name,
+        description: agent.description,
+        instruction: agent.instruction,
+        model: agent.model,
+        max_steps: agent.max_steps,
+        permissions: agent.permissions,
+        enabled,
+        project_id: projectId,
+      }),
+    onMutate: async ({ agent, enabled }) => {
+      await queryClient.cancelQueries({ queryKey: ['agents', projectId] })
+      const prev = queryClient.getQueryData<Agent[]>(['agents', projectId])
+      queryClient.setQueryData<Agent[]>(['agents', projectId], (old) =>
+        (old ?? []).map((a) => (a.id === agent.id ? { ...a, enabled } : a)),
+      )
+      return { prev }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['agents', projectId], ctx.prev)
+      toast.error('Failed to update status')
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['agents', projectId] }),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/v1/agents/${id}`),
     onSuccess: () => {
@@ -241,10 +267,10 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
     },
   })
 
+  // "New Agent" no longer opens the modal — it seeds the chat input so the user
+  // describes the agent in the AI chat instead.
   const openCreate = () => {
-    setEditingAgent(null)
-    setForm(defaultForm)
-    setFormOpen(true)
+    setInputDraft('Create an agent ')
   }
 
   const openEdit = (agent: Agent) => {
@@ -268,28 +294,6 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
       createMutation.mutate(form)
     }
   }
-
-  const addPermission = () =>
-    setForm((prev) => ({
-      ...prev,
-      permissions: [
-        ...(prev.permissions ?? []),
-        { table_slug: '', can_create: false, can_read: true, can_update: false, can_delete: false, can_list: true },
-      ],
-    }))
-
-  const updatePermission = (index: number, updated: AgentPermission) =>
-    setForm((prev) => {
-      const perms = [...prev.permissions]
-      perms[index] = updated
-      return { ...prev, permissions: perms }
-    })
-
-  const removePermission = (index: number) =>
-    setForm((prev) => ({
-      ...prev,
-      permissions: prev.permissions.filter((_, i) => i !== index),
-    }))
 
   const isSaving = createMutation.isPending || updateMutation.isPending
 
@@ -329,35 +333,33 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
       {
         accessorKey: 'enabled',
         header: 'Status',
-        cell: ({ row }: any) =>
-          row.original.enabled ? (
-            <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 text-[10px] font-bold uppercase">
-              enabled
-            </span>
-          ) : (
-            <span className="px-2 py-0.5 rounded-full bg-text-muted/10 text-text-muted border border-border-subtle text-[10px] font-bold uppercase">
-              disabled
-            </span>
-          ),
+        cell: ({ row }: any) => (
+          <button
+            type="button"
+            title="Toggle status"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleEnabledMutation.mutate({
+                agent: row.original,
+                enabled: !row.original.enabled,
+              })
+            }}
+            className={cn(
+              'px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase transition-colors cursor-pointer',
+              row.original.enabled
+                ? 'bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20'
+                : 'bg-text-muted/10 text-text-muted border-border-subtle hover:bg-text-muted/20',
+            )}
+          >
+            {row.original.enabled ? 'enabled' : 'disabled'}
+          </button>
+        ),
       },
       {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }: any) => (
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
-              onClick={(e) => {
-                e.stopPropagation()
-                setSelectedAgent(row.original)
-                setView('runs')
-              }}
-              title="View runs"
-            >
-              <Play size={13} />
-            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -553,85 +555,46 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Model</label>
-                <Input
-                  placeholder="claude-sonnet-4-6"
+                <Select
                   value={form.model}
-                  className="rounded-xl border-border-subtle font-mono text-sm"
-                  onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))}
-                />
+                  onValueChange={(v) => setForm((p) => ({ ...p, model: v }))}
+                >
+                  <SelectTrigger className="rounded-xl border-border-subtle font-mono text-sm">
+                    <SelectValue placeholder="Select a model" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-48 overflow-y-auto">
+                    {AGENT_MODELS.map((m) => (
+                      <SelectItem key={m} value={m} className="font-mono text-xs">
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Description</label>
-              <Input
+              <AutoResizeTextarea
                 placeholder="One sentence for your reference"
                 value={form.description}
-                className="rounded-xl border-border-subtle"
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                minRows={3}
+                className="w-full rounded-xl border border-border-subtle bg-bg-sidebar px-3 py-2 text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium">System Prompt (instruction)</label>
-              <textarea
+              <AutoResizeTextarea
                 placeholder="You are a helpful assistant. When asked about..."
                 value={form.instruction}
                 onChange={(e) => setForm((p) => ({ ...p, instruction: e.target.value }))}
-                rows={5}
-                className="w-full rounded-xl border border-border-subtle bg-bg-sidebar px-3 py-2 text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                minRows={5}
+                className="w-full rounded-xl border border-border-subtle bg-bg-sidebar px-3 py-2 text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Max Steps</label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={form.max_steps}
-                  className="rounded-xl border-border-subtle"
-                  onChange={(e) => setForm((p) => ({ ...p, max_steps: Number(e.target.value) }))}
-                />
-              </div>
-              <div className="flex items-center gap-3 pt-6">
-                <Switch
-                  checked={form.enabled}
-                  onCheckedChange={(v) => setForm((p) => ({ ...p, enabled: v }))}
-                />
-                <span className="text-sm text-text-muted">Enabled</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Table Permissions</label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={addPermission}
-                  className="h-7 text-xs text-primary hover:bg-primary/10 rounded-lg px-2"
-                >
-                  <PlusCircle size={12} className="mr-1" /> Add Table
-                </Button>
-              </div>
-              {form.permissions?.length === 0 && (
-                <p className="text-[12px] text-text-muted py-2">
-                  No permissions yet — the agent can still use web_fetch.
-                </p>
-              )}
-              <div className="space-y-2">
-                {form.permissions?.map((perm, i) => (
-                  <PermissionRow
-                    key={i}
-                    perm={perm}
-                    onChange={(updated) => updatePermission(i, updated)}
-                    onRemove={() => removePermission(i)}
-                  />
-                ))}
-              </div>
-            </div>
           </div>
 
           <DialogFooter>

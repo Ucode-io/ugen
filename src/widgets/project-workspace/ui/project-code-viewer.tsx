@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import typescript from "typescript";
-import { setupTypeAcquisition } from "@typescript/ata";
 import Editor from "@monaco-editor/react";
 import {
   CodeSidebar,
@@ -11,10 +9,6 @@ import {
   CodeEmptyState,
   buildFileTree,
 } from "./code-viewer-ui";
-import prettier from "prettier/standalone";
-import babelPlugin from "prettier/plugins/babel";
-import estreePlugin from "prettier/plugins/estree";
-import JSZip from "jszip";
 import { toast } from "sonner";
 import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import { useUIStore } from "@/shared/model/theme/use-ui-store";
@@ -353,23 +347,34 @@ export const ProjectCodeViewer = ({
       "file:///node_modules/@types/react/index.d.ts",
     );
 
-    const ata = setupTypeAcquisition({
-      projectName: "ugen-workspace",
-      typescript: typescript,
-      logger: console,
-      delegate: {
-        receivedFile: (code, path) => {
-          monaco.languages.typescript.typescriptDefaults.addExtraLib(
-            code,
-            `file:///${path}`,
-          );
-        },
-      },
-    });
-
-    const triggerAta = (content: string) => {
-      ata(content);
-    };
+    // ATA (Automatic Type Acquisition) fetches @types/* for imported packages to
+    // enrich autocomplete. It needs the full TypeScript compiler (~7 MB), so we
+    // load it — and @typescript/ata — lazily after the editor mounts instead of
+    // bundling them into the code-viewer chunk. The editor is fully usable before
+    // types arrive; `triggerAta` stays a no-op until they land, then we seed it
+    // with the already-open models so types resolve without requiring an edit.
+    let triggerAta: (content: string) => void = () => {};
+    void Promise.all([import("typescript"), import("@typescript/ata")])
+      .then(([ts, ata]) => {
+        const acquire = ata.setupTypeAcquisition({
+          projectName: "ugen-workspace",
+          typescript: (ts as any).default ?? ts,
+          logger: console,
+          delegate: {
+            receivedFile: (code, path) => {
+              monaco.languages.typescript.typescriptDefaults.addExtraLib(
+                code,
+                `file:///${path}`,
+              );
+            },
+          },
+        });
+        triggerAta = (content: string) => acquire(content);
+        monaco.editor
+          .getModels()
+          .forEach((m: any) => triggerAta(m.getValue()));
+      })
+      .catch(() => {});
 
     monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
       noSemanticValidation: false,
@@ -410,6 +415,13 @@ export const ProjectCodeViewer = ({
       run: async () => {
         const val = editor.getValue();
         try {
+          // Prettier + its babel/estree plugins load only when the user actually
+          // formats, keeping them out of the code-viewer chunk.
+          const [prettier, babelPlugin, estreePlugin] = await Promise.all([
+            import("prettier/standalone").then((m) => m.default),
+            import("prettier/plugins/babel").then((m) => m.default),
+            import("prettier/plugins/estree").then((m) => m.default),
+          ]);
           const formatted = await prettier.format(val, {
             parser: "babel",
             plugins: [babelPlugin, estreePlugin],
@@ -622,6 +634,7 @@ export const ProjectCodeViewer = ({
 
     setIsImporting(true);
     try {
+      const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
       sourceFiles.forEach(({ path, content }) => {
         zip.file(path, content ?? "");

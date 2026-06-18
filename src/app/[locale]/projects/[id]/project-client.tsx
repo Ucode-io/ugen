@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { WorkspaceChat } from "@/widgets/workspace-chat";
 import { Loader2 } from "lucide-react";
-import { ProjectCodeViewer } from "@/widgets/project-workspace/ui/project-code-viewer";
 import { ProjectPreviewViewer } from "@/widgets/project-workspace/ui/project-preview-viewer";
 import {
   ensureEsbuild,
@@ -28,7 +28,6 @@ import {
   DeviceType,
 } from "@/widgets/project-workspace/ui/project-header";
 import { WorkspaceLoader } from "@/widgets/project-workspace/ui/workspace-loader";
-import { ProjectDashboard } from "@/widgets/project-workspace/ui/project-dashboard";
 import { EmptyProjectView } from "@/widgets/project-workspace/ui/empty-project-view";
 import { ProjectBuildingAnimation } from "@/widgets/project-workspace/ui/project-building-animation";
 import { StreamErrorView } from "@/widgets/project-workspace/ui/stream-error-view";
@@ -43,6 +42,32 @@ import {
 import { usePathname, useSearchParams } from "next/navigation";
 import { useChatStore } from "@/entities/chat";
 import { cn } from "@/shared/lib/utils/cn";
+
+// Heavy, non-default tabs are code-split so the project route's initial chunk
+// stays small. The Code viewer alone pulls in the TypeScript compiler, Monaco,
+// Prettier and JSZip (several MB). The default tab is Preview and tabs only
+// mount on first activation, so these load lazily when the user actually opens
+// them — each renders its own loading state meanwhile.
+const ProjectCodeViewer = dynamic(
+  () =>
+    import("@/widgets/project-workspace/ui/project-code-viewer").then(
+      (m) => m.ProjectCodeViewer,
+    ),
+  {
+    ssr: false,
+    loading: () => <WorkspaceLoader message="Loading code editor..." />,
+  },
+);
+const ProjectDashboard = dynamic(
+  () =>
+    import("@/widgets/project-workspace/ui/project-dashboard").then(
+      (m) => m.ProjectDashboard,
+    ),
+  {
+    ssr: false,
+    loading: () => <WorkspaceLoader message="Loading dashboard..." />,
+  },
+);
 
 // Tab order as shown in the header (Settings → Preview → Code). Each tab panel
 // is positioned at an x-offset equal to its distance from the active tab, so
@@ -212,6 +237,16 @@ export const ProjectWorkspaceClient = ({
   const setStreamError = useChatStore((state) => state.setStreamError);
   const messages = useChatStore((state) => state.messages);
   const setPendingPrompt = useChatStore((state) => state.setPendingPrompt);
+  const inputDraftNonce = useChatStore((state) => state.inputDraftNonce);
+
+  // When something seeds the chat input (e.g. "New Agent" → "Create an agent "),
+  // make sure the chat panel is open so the prefilled text is visible. Skip the
+  // initial mount so navigating in with a stale nonce doesn't force it open.
+  const inputDraftNonceMountRef = useRef(inputDraftNonce);
+  useEffect(() => {
+    if (inputDraftNonce === inputDraftNonceMountRef.current) return;
+    setIsChatCollapsed(false);
+  }, [inputDraftNonce]);
 
   const handleRetryStream = useCallback(() => {
     const lastUserMessage = [...messages]
@@ -459,11 +494,18 @@ export const ProjectWorkspaceClient = ({
   useEffect(() => {
     if (!projectId) return;
 
-    // ⚡ Immediately clear previous project's apiKey & tab BEFORE any async requests.
-    // Without this, requests fired during loading would still carry the stale apiKey
-    // from the previous project (race condition between cleanup and new effect start).
+    // ⚡ Immediately clear previous project's apiKey, tab & ucode_project_id BEFORE
+    // any async requests. Without this, requests fired during loading would still
+    // carry the stale apiKey from the previous project (race condition between
+    // cleanup and new effect start). ucodeProjectId is set only after the async
+    // /v1/mcp_project response below, so leaving the previous value in place lets
+    // workspace queries keyed on it (client types, roles → the Invite modal) read
+    // and submit a previous project's ids, which the backend rejects with a grpc
+    // error until a refresh. Null it here so those queries stay disabled until the
+    // correct id arrives.
     setApiKey(null);
     setActiveProjectTab(null);
+    setUcodeProjectId(null);
 
     setIsLoading(true);
     // Fetch project details and files
@@ -535,6 +577,7 @@ export const ProjectWorkspaceClient = ({
       clearWorkspace();
       setApiKey(null);
       setActiveProjectTab(null);
+      setUcodeProjectId(null);
       clearCodeSelection();
       useDirtyFilesStore.getState().clearAll();
     };
@@ -544,6 +587,7 @@ export const ProjectWorkspaceClient = ({
     clearWorkspace,
     setApiKey,
     setActiveProjectTab,
+    setUcodeProjectId,
     clearCodeSelection,
     setMobileProject,
   ]);
