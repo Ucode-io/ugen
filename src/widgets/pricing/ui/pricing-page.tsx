@@ -13,7 +13,6 @@ import { cn } from '@/shared/lib/utils/cn'
 /* ── Billing data ── */
 const PERIODS = [
   { key: 'month',   label: 'Monthly',  save: null,        multiplier: 1,    per: 'per user · billed monthly' },
-  { key: '6month',  label: '6 months', save: 'Save 13%', multiplier: 0.87, per: 'per user · billed every 6 months' },
   { key: 'year',    label: 'Annual',   save: 'Save 24%', multiplier: 0.76, per: 'per user · billed annually' },
 ] as const
 type Period = typeof PERIODS[number]['key']
@@ -76,7 +75,7 @@ const formatFareValue = (value: string | undefined) => {
 /* ── FAQ ── */
 const FAQ = [
   { q: 'Can I switch plans anytime?', a: 'Yes. Upgrade or downgrade at any time. Upgrades take effect immediately; downgrades apply at the end of your billing period.' },
-  { q: 'Can I change my billing period?', a: 'Yes — you can switch between monthly, 6-month, and annual billing at renewal. Switching to annual applies immediately and you\'re credited for any unused time.' },
+  { q: 'Can I change my billing period?', a: 'Yes — you can switch between monthly and annual billing at renewal. Switching to annual applies immediately and you\'re credited for any unused time.' },
   { q: 'Do you offer a free trial on paid plans?', a: 'Starter and Pro plans come with a 14-day free trial — no credit card required. Cancel anytime.' },
   { q: 'What happens when I exceed my limits?', a: 'API requests over limit are charged at $0.001 per request. API requests over the per-second limit are blocked. Extra server functions and microfrontends are $10 and $20 each. Storage overages are $10 per 10 GB.' },
   { q: 'What happens to my apps if I downgrade?', a: 'Your apps remain intact but may become read-only if you exceed the free plan limits. You have 30 days to export your data or upgrade again.' },
@@ -229,7 +228,7 @@ export const PricingPage = () => {
       {/* Pricing Cards */}
       <section className="px-6 pt-0 pb-20" style={{ marginTop: '-20px' }}>
         <div className="max-w-[1100px] mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
             {PLAN_META.map((plan) => {
               const fare = plan.fareName ? fareByName.get(plan.fareName) : null
               const isEnterprise = plan.fareName === null
@@ -258,7 +257,7 @@ export const PricingPage = () => {
                 <div
                   key={plan.key}
                   className={cn(
-                    'relative flex flex-col overflow-hidden rounded-xl border bg-bg-card transition-all',
+                    'relative flex h-full flex-col overflow-hidden rounded-xl border bg-bg-card transition-all',
                     plan.featured
                       ? 'z-10 scale-[1.03] border-primary shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]'
                       : 'border-border-subtle shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]',
@@ -350,14 +349,14 @@ export const PricingPage = () => {
               <table className="w-full table-fixed border-collapse text-[0.86rem]" style={{ minWidth: '820px' }}>
                 <thead>
                   <tr className="border-b-2 border-border-subtle">
-                    <th className="w-[16%] py-3 px-3.5 text-left font-semibold text-text-muted text-[0.86rem]">Feature</th>
+                    <th className="w-[12%] py-3 px-3.5 text-left font-semibold text-text-muted text-[0.86rem]">Feature</th>
                     {fares.map((fare) => {
                       const isCurrent = fare.id === fareId
                       const isRecommended = String(fare.name || '').toLowerCase() === 'pro'
                       return (
                         <th
                           key={fare.id}
-                          className={`w-[20%] py-3 px-3.5 font-bold relative ${
+                          className={`w-[22%] py-3 px-3.5 font-bold relative ${
                             isRecommended
                               ? 'bg-primary/5 text-primary border-x border-x-primary/30 border-t-2 border-t-primary'
                               : isCurrent
@@ -372,7 +371,7 @@ export const PricingPage = () => {
                         </th>
                       )
                     })}
-                    <th className="w-[20%] py-3 px-3.5 font-bold relative text-text-main">
+                    <th className="w-[22%] py-3 px-3.5 font-bold relative text-text-main">
                       <div>Enterprise</div>
                       <div className="mt-0.5 text-[11px] font-normal normal-case text-text-muted">Custom</div>
                     </th>

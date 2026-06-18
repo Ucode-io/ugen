@@ -283,6 +283,12 @@ export const ChatsBoard = () => {
                     <tr
                       key={chat.id}
                       onClick={() => handleRowClick(chat)}
+                      onMouseEnter={() => {
+                        // Warm the heavy /projects/[id] route chunk on hover so
+                        // the click navigates instantly instead of cold-loading.
+                        if (chat.project_id)
+                          router.prefetch(`/projects/${chat.project_id}` as any);
+                      }}
                       className="hover:bg-hover-bg group cursor-pointer transition-colors"
                     >
                       <td className="px-4 py-3">
