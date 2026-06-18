@@ -356,7 +356,7 @@ export const AllProjectsBoard = () => {
                         <div className="flex items-center gap-1">
                           <Calendar size={12} className="text-text-muted shrink-0" />
                           <span className="text-text-muted text-[12px]">
-                            {new Date(project.created_at).toLocaleDateString()}
+                            {new Date(project.created_at).toLocaleDateString('en-GB')}
                           </span>
                         </div>
                       </td>
@@ -365,7 +365,7 @@ export const AllProjectsBoard = () => {
                           <div className="flex items-center gap-1">
                             <Clock size={12} className="text-text-muted shrink-0" />
                             <span className="text-text-muted text-[12px]">
-                              {new Date(project.last_activity_date).toLocaleDateString()}
+                              {new Date(project.last_activity_date).toLocaleDateString('en-GB')}
                             </span>
                           </div>
                         ) : (
