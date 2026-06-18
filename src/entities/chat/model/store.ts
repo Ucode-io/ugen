@@ -81,6 +81,13 @@ interface ChatState {
     images?: string[]
     model?: string
   } | null) => void
+  // Text to prefill the chat input with (without sending), e.g. when "New Agent"
+  // seeds "Create an agent " so the user can describe it in the chat. ChatInput
+  // consumes and clears it; bumping `inputDraftNonce` lets the same string be
+  // pushed again (re-clicking the button after editing the field).
+  inputDraft: string | null
+  inputDraftNonce: number
+  setInputDraft: (draft: string | null) => void
   setChatPosition: (position: ChatPosition) => void
   setChatId: (id: string | null) => void
   setProjectId: (id: string | null) => void
@@ -110,6 +117,8 @@ export const useChatStore = create<ChatState>()(
       chatWidth: 360,
       pendingPrompt: null,
       pendingDraft: null,
+      inputDraft: null,
+      inputDraftNonce: 0,
       chatPosition: 'left',
       isStreaming: false,
       pendingScreenshot: false,
@@ -124,6 +133,7 @@ export const useChatStore = create<ChatState>()(
       setChatPosition: (position) => set({ chatPosition: position }),
       setPendingPrompt: (prompt) => set({ pendingPrompt: prompt }),
       setPendingDraft: (draft) => set({ pendingDraft: draft }),
+      setInputDraft: (draft) => set((state) => ({ inputDraft: draft, inputDraftNonce: state.inputDraftNonce + 1 })),
       setIsStreaming: (isStreaming) => set({ isStreaming }),
       setStreamError: (streamError) => set({ streamError }),
       setPendingScreenshot: (pendingScreenshot) => set({ pendingScreenshot }),
