@@ -153,10 +153,11 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
     setOpenMenuId(null)
     setPublishingSha(sha)
     try {
+      const token = useAuthStore.getState().accessToken
       await api.post(
         '/v2/functions/micro-frontend/promote',
         { repo_id: Number(repoId) },
-        { headers },
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
       )
     } catch (err) {
       console.error('Failed to publish', err)

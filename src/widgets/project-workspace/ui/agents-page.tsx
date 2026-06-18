@@ -282,7 +282,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
       model: agent.model,
       max_steps: agent.max_steps,
       enabled: agent.enabled,
-      permissions: agent.permissions.map((p) => ({ ...p })),
+      permissions: agent.permissions?.map((p) => ({ ...p })) ?? [],
     })
     setFormOpen(true)
   }
@@ -427,7 +427,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
           </div>
         ) : (
           <div className="space-y-2">
-            {runsData.map((run) => (
+            {runsData?.map((run) => (
               <div
                 key={run.id}
                 className="border border-border-subtle rounded-xl bg-bg-card overflow-hidden"
@@ -463,9 +463,9 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
                     )}
                     {run.steps?.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-text-muted mb-2">Steps ({run.steps.length})</p>
+                        <p className="text-[10px] font-bold uppercase text-text-muted mb-2">Steps ({run.steps?.length})</p>
                         <div className="space-y-1.5">
-                          {run.steps.map((step) => (
+                          {run.steps?.map((step) => (
                             <div
                               key={step.index}
                               className={cn(

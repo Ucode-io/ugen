@@ -1,7 +1,13 @@
 'use client'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useAllProjects, useSwitchProjectSuperAdmin, type AllProject } from '@/entities/project'
+import { toast } from 'sonner'
+import {
+  useAllProjects,
+  useExportAllProjects,
+  useSwitchProjectSuperAdmin,
+  type AllProject,
+} from '@/entities/project'
 import { useAuthStore } from '@/entities/session'
 import { useShallow } from 'zustand/react/shallow'
 import { useRouter } from '@/shared/lib/i18n/navigation'
@@ -20,7 +26,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui'
-import { Search, Building2, CreditCard, Calendar, FolderOpen, LogIn, Loader2 } from 'lucide-react'
+import {
+  Search,
+  Building2,
+  CreditCard,
+  Calendar,
+  Clock,
+  FolderOpen,
+  LogIn,
+  Loader2,
+  FileSpreadsheet,
+} from 'lucide-react'
 import { cn } from '@/shared/lib/utils/cn'
 
 const PaginationFooter = ({
@@ -159,9 +175,25 @@ export const AllProjectsBoard = () => {
     })),
   )
   const { mutateAsync: switchProject } = useSwitchProjectSuperAdmin()
+  const { mutateAsync: exportProjects, isPending: isExporting } = useExportAllProjects()
   const queryClient = useQueryClient()
   const router = useRouter()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+
+  const handleExport = async () => {
+    if (isExporting) return
+    try {
+      const fileUrl = await exportProjects()
+      if (!fileUrl) {
+        toast.error('Export failed: no file returned')
+        return
+      }
+      window.open(fileUrl, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      console.error('Export projects failed', err)
+      toast.error('Failed to export projects')
+    }
+  }
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
@@ -206,13 +238,25 @@ export const AllProjectsBoard = () => {
 
   return (
     <div className="bg-bg-card flex h-full w-full flex-col rounded-2xl p-6 shadow-sm">
-      <div className="mb-6 flex items-center gap-4">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-text-main text-2xl font-semibold">
           All projects
           {totalCount > 0 && (
             <span className="text-text-muted ml-2 text-base font-normal">({totalCount})</span>
           )}
         </h1>
+        <button
+          onClick={handleExport}
+          disabled={isExporting}
+          className="border-border-subtle text-text-main hover:bg-primary hover:border-primary inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors hover:text-white disabled:cursor-default disabled:opacity-50"
+        >
+          {isExporting ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <FileSpreadsheet size={14} />
+          )}
+          Export Excel
+        </button>
       </div>
 
       <div className="mb-4">
@@ -257,6 +301,9 @@ export const AllProjectsBoard = () => {
                     </th>
                     <th className="text-text-muted hidden px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider xl:table-cell">
                       Created
+                    </th>
+                    <th className="text-text-muted hidden px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider xl:table-cell">
+                      Last activity
                     </th>
                     <th className="w-px px-4 py-2.5" />
                   </tr>
@@ -320,6 +367,18 @@ export const AllProjectsBoard = () => {
                             {new Date(project.created_at).toLocaleDateString()}
                           </span>
                         </div>
+                      </td>
+                      <td className="hidden px-4 py-2.5 xl:table-cell">
+                        {project.last_activity_date ? (
+                          <div className="flex items-center gap-1">
+                            <Clock size={12} className="text-text-muted shrink-0" />
+                            <span className="text-text-muted text-[12px]">
+                              {new Date(project.last_activity_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-text-muted text-[12px]">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex justify-end">

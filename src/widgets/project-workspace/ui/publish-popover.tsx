@@ -82,7 +82,6 @@ export const PublishPopover = ({
   const [isUrlCopied, setIsUrlCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const apiKey = useAuthStore((s) => s.apiKey);
   const activeCodeSelection = useCodeSelectionStore((s) => s.activeCodeSelection);
 
   const [isPublishing, setIsPublishing] = useState(false);
@@ -109,7 +108,8 @@ export const PublishPopover = ({
     if (!repoId) return
     setIsCheckingChanges(true)
     try {
-      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const token = useAuthStore.getState().accessToken
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
       const { data } = await api.get(
         `/v2/functions/micro-frontend/promote/check-changes?repo_id=${repoId}`,
         { headers }
@@ -224,7 +224,8 @@ export const PublishPopover = ({
   const pollPipelineStatus = async (pipelineId: number, repoId: number) => {
     if (pollCancelledRef.current) return
     try {
-      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const token = useAuthStore.getState().accessToken
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
       const { data } = await api.get(
         `/v2/functions/micro-frontend/promote/pipeline-status/${pipelineId}?repo_id=${repoId}`,
         { headers }
@@ -266,7 +267,8 @@ export const PublishPopover = ({
     setPublishStatus('pending')
     setIsOpen(false)
     try {
-      const headers = apiKey ? { Authorization: 'API-KEY', 'x-api-key': apiKey } : {}
+      const token = useAuthStore.getState().accessToken
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
       const { data } = await api.post(
         '/v2/functions/micro-frontend/promote',
         { repo_id: Number(repoId), mcp_project_id: projectId },
@@ -757,7 +759,7 @@ export const PublishPopover = ({
         <div className="border-border-subtle border-t" />
 
         {/* Auth Mode */}
-        <div className="flex items-center justify-between gap-3 px-5 py-2">
+        {/* <div className="flex items-center justify-between gap-3 px-5 py-2">
           <div className="text-text-main flex items-center gap-2 text-sm">
             <Lock size={16} className="text-text-muted" />
             Auth mode
@@ -801,7 +803,7 @@ export const PublishPopover = ({
               ))}
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* Private: role select only (invite link shown above) */}
         {visibility === "private" && roleOptions.length > 0 && (
