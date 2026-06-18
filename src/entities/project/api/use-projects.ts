@@ -213,6 +213,7 @@ export interface AllProject {
   updated_at: string
   environment_id: string
   company_projects_count: number
+  last_activity_date?: string
 }
 
 export interface FetchAllProjectsParams {
@@ -241,6 +242,17 @@ export const useAllProjects = (params?: FetchAllProjectsParams) => {
     queryFn: () => fetchAllProjects(params),
     staleTime: 0,
     refetchOnMount: 'always',
+  })
+}
+
+export const exportAllProjects = async (): Promise<string> => {
+  const { data } = await api.get('/v1/ugen/projects/export')
+  return data?.data?.file_url ?? ''
+}
+
+export const useExportAllProjects = () => {
+  return useMutation({
+    mutationFn: exportAllProjects,
   })
 }
 
