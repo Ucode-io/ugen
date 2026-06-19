@@ -25,6 +25,7 @@ const BEARER_ONLY_ENDPOINTS = [
   /^\/v1\/upload(\/|$)/,
   /^\/v1\/ugen\//,
   /^\/v1\/ugen-template(?!\/public)(\/|$)/,
+  /^\/v1\/company-project(\/|$)/,
   /^\/v1\/pricing\/company-stats(\/|$)/,
 ]
 

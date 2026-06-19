@@ -1,4 +1,11 @@
-import { useState, useEffect, useRef, useMemo, useReducer } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useReducer,
+  useCallback,
+} from "react";
 import { useVisualEditorStore } from "@/entities/visual-editor";
 import { MoveablePrompt } from "./moveable-prompt";
 import { ElementStyleToolbar } from "./element-style-toolbar";
@@ -10,6 +17,8 @@ import {
   generatePreviewHtml,
   PREVIEW_RUNTIME_VERSION,
 } from "../lib/preview-html";
+import { parseAppRoutes } from "../lib/parse-app-routes";
+import { PreviewCanvas, type CanvasPage } from "./preview-canvas";
 import { createBuildTimer, type BuildTimer } from "../lib/build-timer";
 import {
   getCachedBuild,
@@ -26,6 +35,8 @@ import {
   Zap,
   MousePointerClick,
   Monitor,
+  LayoutGrid,
+  Square,
   Tablet,
   Smartphone,
   ChevronDown,
@@ -58,6 +69,11 @@ import {
   INITIAL_MOBILE_SIMULATION_STATE,
   mobileSimulationReducer,
 } from "@/entities/project/model/mobile-capabilities";
+
+const VISUAL_EDIT_CSS_PATH = "src/index.css";
+// Remembers the single/canvas choice across browser reloads (a plain reload
+// would otherwise reset viewMode to its "single" default).
+const PREVIEW_VIEW_MODE_KEY = "ugen:preview-view-mode";
 
 // Shadcn CSS stores HSL as "H S% L%" (space-separated, no hsl() wrapper).
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
@@ -399,6 +415,20 @@ interface PreviewRuntimeError {
   colno?: number | null;
 }
 
+type VisualStyleValue = string | number | null;
+
+interface VisualStyleCommitMeta {
+  tagName?: string;
+  domPath?: string;
+  outerHTML?: string | null;
+  flush?: boolean;
+}
+
+interface QueuedVisualEdit {
+  styles: Record<string, VisualStyleValue>;
+  tagLabels: Set<string>;
+}
+
 const DEVICE_WIDTHS: Record<DeviceType, string> = {
   desktop: "100%",
   tablet: "768px",
@@ -418,6 +448,17 @@ export type ProjectType =
   | "landing"
   | "webapp"
   | "mobile";
+
+// Shared esbuild env for preview bundles — used by both the single-page build
+// and the canvas (which bundles once and renders every route from it).
+const PREVIEW_BUILD_ENV = {
+  VITE_API_BASE_URL: "http://localhost:3000",
+  VITE_API_KEY: "",
+  VITE_X_API_KEY: "",
+  VITE_MAP_TILE_URL: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  VITE_APP_NAME: "App",
+  NODE_ENV: "development",
+};
 
 interface ProjectPreviewViewerProps {
   device?: DeviceType;
@@ -804,6 +845,52 @@ export const ProjectPreviewViewer = ({
     (PreviewRuntimeError & { isBuildError?: boolean }) | null
   >(null);
 
+  // Canvas (Figma/base44-style multi-page) view state. `canvasPages` are the
+  // per-route live frames; `focusedFrameRef` points the existing visual editor
+  // at whichever frame the user clicked into.
+  const [viewMode, setViewMode] = useState<"single" | "canvas">("single");
+  const [canvasPages, setCanvasPages] = useState<CanvasPage[]>([]);
+  const [canvasBuilding, setCanvasBuilding] = useState(false);
+  const [canvasError, setCanvasError] = useState<string | null>(null);
+  // Set when the per-route build threw and we fell back to the simple replace
+  // (frames then all show the home route). Holds the esbuild error for display.
+  const [canvasRouterFallback, setCanvasRouterFallback] = useState<
+    string | null
+  >(null);
+  const [focusedPageId, setFocusedPageId] = useState<string | null>(null);
+  const focusedFrameRef = useRef<HTMLIFrameElement | null>(null);
+
+  // Lets callbacks (e.g. the visual-edit flush) read the current view without
+  // being recreated when it changes.
+  const viewModeRef = useRef(viewMode);
+  // Set when a visual edit is committed while in canvas: the single preview's
+  // last build predates that edit (it was only applied live to the canvas frame),
+  // so switching back to single must force a fresh rebuild to pull the change.
+  const canvasEditedForPreviewRef = useRef(false);
+
+  // Persist the single/canvas choice so a browser refresh keeps the user where
+  // they were instead of dropping back to single view. Restored in an effect
+  // (not the useState initializer) so SSR hydration stays stable: the server
+  // always renders "single", then the client switches if a preference exists.
+  // The canvas render branch is gated behind isFunction/mobileMode, so a stored
+  // "canvas" is ignored in those contexts and only applies to normal previews.
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(PREVIEW_VIEW_MODE_KEY);
+      if (stored === "single" || stored === "canvas") setViewMode(stored);
+    } catch {
+      // localStorage may be unavailable (private mode); keep the default.
+    }
+  }, []);
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+    try {
+      window.localStorage.setItem(PREVIEW_VIEW_MODE_KEY, viewMode);
+    } catch {
+      // Ignore write failures (storage disabled/full).
+    }
+  }, [viewMode]);
+
   // URL bar state
   const [currentUrl, setCurrentUrl] = useState("/");
   const [urlInput, setUrlInput] = useState("/");
@@ -846,9 +933,26 @@ export const ProjectPreviewViewer = ({
 
   // Keep a ref to files so message handler always sees the latest value
   const filesRef = useRef(files);
+  const visualEditCssDraftRef = useRef<string | null>(null);
+  const visualEditPreviewSkipRef = useRef<{
+    cssContent: string;
+    nonCssHash: string;
+  } | null>(null);
+  const visualEditCanvasSkipRef = useRef<{
+    cssContent: string;
+    nonCssHash: string;
+  } | null>(null);
   useEffect(() => {
     filesRef.current = files;
+    visualEditCssDraftRef.current = null;
   }, [files]);
+
+  const activeCodeSelectionRef = useRef(activeCodeSelection ?? null);
+  const dirtyKeyRef = useRef(dirtyKey);
+  useEffect(() => {
+    activeCodeSelectionRef.current = activeCodeSelection ?? null;
+    dirtyKeyRef.current = dirtyKey;
+  }, [activeCodeSelection, dirtyKey]);
 
   // Sync theme state from src/index.css — skip while the popover is open so user edits are not overwritten
   useEffect(() => {
@@ -1022,7 +1126,6 @@ export const ProjectPreviewViewer = ({
     } else if (!themeSavePendingRef.current) {
       clearThemeOverride();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeSettings, fontFamily, themeOpen, srcDoc]);
 
   const handleThemeOpenChange = (open: boolean) => {
@@ -1120,6 +1223,195 @@ export const ProjectPreviewViewer = ({
     outerHTML: string | null;
   } | null>(null);
 
+  // The selected element's rect in its iframe's own coordinates (as posted by
+  // the inspector). Kept so the floating toolbar can be repositioned as the
+  // canvas pans/zooms — the iframe moves on screen, the local rect doesn't.
+  const selectedLocalRectRef = useRef<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const lastToolbarPosRef = useRef({ x: 0, y: 0 });
+  const lastPromptPosRef = useRef({ x: 0, y: 0 });
+
+  // Map an iframe-local element rect to the floating toolbar/prompt positions in
+  // container coordinates, then place them. On the canvas each frame is scaled
+  // and translated by react-flow, so we project the local rect through the
+  // focused frame's on-screen rect; the single preview maps 1:1 to the iframe.
+  const positionFloatingTools = useCallback(
+    (localRect: {
+      top: number;
+      left: number;
+      width: number;
+      height: number;
+    }) => {
+      const container = containerRef.current;
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+
+      let r = localRect;
+      // Canvas only: project the iframe-local rect through the focused frame's
+      // on-screen rect (which already includes react-flow's pan + zoom). The
+      // single preview keeps its existing 1:1 mapping untouched.
+      const frame = viewMode === "canvas" ? focusedFrameRef.current : null;
+      if (frame) {
+        const frameRect = frame.getBoundingClientRect();
+        const scaleX = frame.clientWidth
+          ? frameRect.width / frame.clientWidth
+          : 1;
+        const scaleY = frame.clientHeight
+          ? frameRect.height / frame.clientHeight
+          : 1;
+        r = {
+          left: frameRect.left - containerRect.left + localRect.left * scaleX,
+          top: frameRect.top - containerRect.top + localRect.top * scaleY,
+          width: localRect.width * scaleX,
+          height: localRect.height * scaleY,
+        };
+      }
+
+      const toolbarHeight = 48;
+      const aboveY = r.top - toolbarHeight - 12;
+      const belowY = r.top + r.height + 12;
+      const nextToolbar = {
+        x: Math.max(20, r.left + r.width / 2 - 200),
+        y: Math.max(20, aboveY > 20 ? aboveY : belowY),
+      };
+      const nextPrompt = {
+        x: Math.max(20, r.left + r.width / 2 - 300),
+        y: Math.max(20, r.top + r.height + 20),
+      };
+      // Skip no-op updates so the rAF follow loop doesn't re-render every frame
+      // when the canvas is idle.
+      const moved = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+        Math.abs(a.x - b.x) > 0.5 || Math.abs(a.y - b.y) > 0.5;
+      if (moved(lastToolbarPosRef.current, nextToolbar)) {
+        lastToolbarPosRef.current = nextToolbar;
+        setStyleToolbarPosition(nextToolbar);
+      }
+      if (moved(lastPromptPosRef.current, nextPrompt)) {
+        lastPromptPosRef.current = nextPrompt;
+        setPromptPosition(nextPrompt);
+      }
+    },
+    [viewMode],
+  );
+
+  const visualEditQueueRef = useRef<Map<string, QueuedVisualEdit>>(new Map());
+  const visualEditCommitInFlightRef = useRef(false);
+  const visualEditCommitAfterFlightRef = useRef(false);
+  const visualEditCommitMessageRef = useRef("change: visual element styles");
+
+  const runVisualEditAutoCommit = useCallback(async () => {
+    const selection = activeCodeSelectionRef.current ?? null;
+    if (!selection || !dirtyKeyRef.current) return;
+
+    if (visualEditCommitInFlightRef.current) {
+      visualEditCommitAfterFlightRef.current = true;
+      return;
+    }
+
+    visualEditCommitInFlightRef.current = true;
+    try {
+      await autoCommit(selection, visualEditCommitMessageRef.current, {
+        refreshCodebase: false,
+      });
+    } finally {
+      visualEditCommitInFlightRef.current = false;
+      if (visualEditCommitAfterFlightRef.current) {
+        visualEditCommitAfterFlightRef.current = false;
+        void runVisualEditAutoCommit();
+      }
+    }
+  }, []);
+
+  const flushVisualEditQueue = useCallback(() => {
+    const queued = Array.from(visualEditQueueRef.current.entries());
+    if (queued.length === 0) return;
+    visualEditQueueRef.current.clear();
+
+    const cssFile = filesRef.current.find((f) => f.path === "src/index.css");
+    let nextCss = visualEditCssDraftRef.current ?? cssFile?.content ?? "";
+    const tagLabels = new Set<string>();
+
+    queued.forEach(([selector, edit]) => {
+      nextCss = applyVisualEditToCss(nextCss, {
+        selector,
+        styles: edit.styles,
+      });
+      edit.tagLabels.forEach((label) => tagLabels.add(label));
+    });
+
+    visualEditCssDraftRef.current = nextCss;
+    const visualEditSkipMarker = {
+      cssContent: nextCss,
+      nonCssHash: hashFiles(
+        filesRef.current.filter((f) => f.path !== VISUAL_EDIT_CSS_PATH),
+      ),
+    };
+    // Only the *active* view's iframe received the live STYLE_APPLY, so only its
+    // rebuild can safely be skipped. The inactive view never saw the edit and must
+    // rebuild to pick it up — otherwise switching to it shows stale code.
+    if (viewModeRef.current === "canvas") {
+      // Canvas frame is live. Keep the preview skip marker so committing here does
+      // not trigger a wasted background bundle; instead force the single preview to
+      // rebuild when the user switches back to it (canvasEditedForPreviewRef).
+      visualEditCanvasSkipRef.current = visualEditSkipMarker;
+      visualEditPreviewSkipRef.current = visualEditSkipMarker;
+      canvasEditedForPreviewRef.current = true;
+    } else {
+      // Single iframe is live. Clear the canvas marker so the per-route canvas
+      // build runs fresh the next time canvas opens — its effect is inert until
+      // then, so this costs nothing now.
+      visualEditPreviewSkipRef.current = visualEditSkipMarker;
+      visualEditCanvasSkipRef.current = null;
+    }
+
+    const key = dirtyKeyRef.current;
+    const selection = activeCodeSelectionRef.current ?? null;
+    const tagLabelText = Array.from(tagLabels).slice(0, 3).join(", ");
+    visualEditCommitMessageRef.current = tagLabelText
+      ? `change: visual styles (${tagLabelText})`
+      : "change: visual element styles";
+
+    if (key && selection) {
+      setDirtyFile(key, "src/index.css", nextCss);
+      void runVisualEditAutoCommit();
+    } else {
+      updateFile("src/index.css", nextCss);
+    }
+  }, [runVisualEditAutoCommit, setDirtyFile, updateFile]);
+
+  const queueVisualStyleCommit = useCallback(
+    (
+      stylePatch: Record<string, VisualStyleValue>,
+      meta: VisualStyleCommitMeta,
+    ) => {
+      const selector = buildSelector(meta.domPath ?? null, meta.outerHTML);
+      if (!selector || Object.keys(stylePatch).length === 0) return;
+
+      const existing = visualEditQueueRef.current.get(selector) ?? {
+        styles: {},
+        tagLabels: new Set<string>(),
+      };
+      existing.styles = { ...existing.styles, ...stylePatch };
+      existing.tagLabels.add((meta.tagName || "element").toLowerCase());
+      visualEditQueueRef.current.set(selector, existing);
+
+      if (meta.flush) {
+        flushVisualEditQueue();
+      }
+    },
+    [flushVisualEditQueue],
+  );
+
+  useEffect(() => {
+    return () => {
+      flushVisualEditQueue();
+    };
+  }, [flushVisualEditQueue]);
+
   const runCode = async (opts?: { force?: boolean }) => {
     // Mobile preview can render the published app without a local source entry.
     // Never send that incomplete source bundle to esbuild: its generated entry
@@ -1193,15 +1485,7 @@ export const ProjectPreviewViewer = ({
     const build = async () => {
       await timer.measure("esbuild-init", () => ensureEsbuild());
       const { code, dependencies } = await timer.measure("bundle", () =>
-        buildProjectFromFiles(files, {
-          VITE_API_BASE_URL: "http://localhost:3000",
-          VITE_API_KEY: "",
-          VITE_X_API_KEY: "",
-          VITE_MAP_TILE_URL:
-            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          VITE_APP_NAME: "App",
-          NODE_ENV: "development",
-        }),
+        buildProjectFromFiles(files, PREVIEW_BUILD_ENV),
       );
       const html = await timer.measure("generate-html", () =>
         generatePreviewHtml(code, dependencies, files),
@@ -1284,16 +1568,40 @@ export const ProjectPreviewViewer = ({
   };
 
   const handleRefresh = () => {
-    isBuilding.current = false;
+    flushVisualEditQueue();
     setRuntimeError(null);
+    // Force iframe remount — the build is deterministic, so without this the
+    // srcDoc string stays identical and React skips the iframe re-render. In
+    // canvas mode this also re-runs the per-route build effect (refreshKey is in
+    // its deps) and remounts every frame at its own route.
+    setRefreshKey((k) => k + 1);
+    // Canvas rebuilds entirely off the refreshKey bump above. The single-preview
+    // build below isn't shown in canvas and could surface a spurious single-build
+    // error banner over a working canvas, so stop here.
+    if (viewMode === "canvas") return;
+    isBuilding.current = false;
     setCurrentUrl("/");
     setUrlInput("/");
-    // Force iframe remount — the build is deterministic, so without this the
-    // srcDoc string stays identical and React skips the iframe re-render.
-    setRefreshKey((k) => k + 1);
     // force: skip the result cache so Refresh always rebuilds from scratch.
     runCode({ force: true });
   };
+
+  // Switching back to the single preview after editing in canvas: the single
+  // build was intentionally skipped while editing (the change went live only to
+  // the canvas frame), so force a fresh build now to pull the saved changes.
+  // Runs only when there were canvas edits, so plain toggling doesn't re-flash.
+  useEffect(() => {
+    if (viewMode !== "single") return;
+    if (!canvasEditedForPreviewRef.current) return;
+    canvasEditedForPreviewRef.current = false;
+    flushVisualEditQueue();
+    setRuntimeError(null);
+    isBuilding.current = false;
+    runCode({ force: true });
+    // runCode/flushVisualEditQueue close over current build inputs; this effect
+    // intentionally fires on the view switch only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
 
   const handleUrlNavigate = () => {
     iframeRef.current?.contentWindow?.postMessage(
@@ -1303,9 +1611,36 @@ export const ProjectPreviewViewer = ({
     setCurrentUrl(urlInput);
   };
 
-  const filesHash = useMemo(() => {
-    return files.map((f) => f.path + ":" + f.content?.length).join("|");
-  }, [files]);
+  const filesHash = useMemo(() => hashFiles(files), [files]);
+  const nonVisualCssFilesHash = useMemo(
+    () => hashFiles(files.filter((f) => f.path !== VISUAL_EDIT_CSS_PATH)),
+    [files],
+  );
+  const visualEditCssContent = useMemo(
+    () => files.find((f) => f.path === VISUAL_EDIT_CSS_PATH)?.content ?? "",
+    [files],
+  );
+
+  const consumeVisualCssRebuildSkip = useCallback(
+    (target: "preview" | "canvas") => {
+      const marker =
+        target === "preview"
+          ? visualEditPreviewSkipRef.current
+          : visualEditCanvasSkipRef.current;
+      if (!marker) return false;
+
+      const matchesLiveVisualEdit =
+        marker.cssContent === visualEditCssContent &&
+        marker.nonCssHash === nonVisualCssFilesHash;
+
+      if (!matchesLiveVisualEdit) return false;
+
+      if (target === "preview") visualEditPreviewSkipRef.current = null;
+      else visualEditCanvasSkipRef.current = null;
+      return true;
+    },
+    [nonVisualCssFilesHash, visualEditCssContent],
+  );
 
   // `files` can land in more than one store update — e.g. a microfrontend
   // project first exposes only scaffolding from `project_files`, then the real
@@ -1376,6 +1711,10 @@ export const ProjectPreviewViewer = ({
       }
       return;
     }
+    if (consumeVisualCssRebuildSkip("preview")) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
 
     // Entry present → first build runs immediately for speed, later ones stay
@@ -1394,12 +1733,16 @@ export const ProjectPreviewViewer = ({
       runCode();
     }, delay);
     return () => clearTimeout(timeout);
+    // runCode intentionally closes over the current build inputs; this effect's
+    // dependency list is the rebuild schedule.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     filesHash,
     hasPreviewEntry,
     isMicrofrontendLoading,
     isStreaming,
     isMobile,
+    consumeVisualCssRebuildSkip,
   ]);
 
   const captureAndUploadScreenshot = async (html: string) => {
@@ -1507,7 +1850,11 @@ export const ProjectPreviewViewer = ({
       // screenshot iframe and any iframe left over from a project you just
       // navigated away from also post to `window.parent` — without this guard a
       // build/runtime error from the previous project surfaces in the new one.
-      if (e.source !== iframeRef.current?.contentWindow) return;
+      if (
+        e.source !== iframeRef.current?.contentWindow &&
+        e.source !== focusedFrameRef.current?.contentWindow
+      )
+        return;
 
       if (e.data?.type === "PREVIEW_READY") {
         // Preview revealed → finalize the build timer with the runtime half.
@@ -1557,6 +1904,22 @@ export const ProjectPreviewViewer = ({
           outerHTML,
         } = e.data;
 
+        const clickedEditableElement =
+          typeof tag === "string" &&
+          ["input", "textarea", "select"].includes(tag.toLowerCase());
+
+        if (
+          isStyleToolbarVisible &&
+          selectedDomPath &&
+          domPath &&
+          domPath !== selectedDomPath &&
+          !clickedEditableElement
+        ) {
+          setIsStyleToolbarVisible(false);
+          setIsPromptVisible(false);
+          return;
+        }
+
         // Find the component definition in source files by component name
         let sourceFile: string | null = null;
         let sourceLine: number | null = null;
@@ -1603,20 +1966,11 @@ export const ProjectPreviewViewer = ({
           outerHTML: outerHTML || null,
         });
         if (rect && containerRef.current) {
-          // Style toolbar — above the element (fall back to below if no room)
-          const toolbarHeight = 48;
-          const aboveY = rect.top - toolbarHeight - 12;
-          const belowY = rect.top + rect.height + 12;
+          // Store the iframe-local rect and project it to the floating toolbar /
+          // prompt positions (canvas-aware: accounts for frame scale + offset).
+          selectedLocalRectRef.current = rect;
           setIsStyleToolbarVisible(true);
-          setStyleToolbarPosition({
-            x: Math.max(20, rect.left + rect.width / 2 - 200),
-            y: Math.max(20, aboveY > 20 ? aboveY : belowY),
-          });
-          // AI prompt position pre-computed for when user opens it
-          setPromptPosition({
-            x: Math.max(20, rect.left + rect.width / 2 - 300),
-            y: Math.max(20, rect.top + rect.height + 20),
-          });
+          positionFloatingTools(rect);
           setIsPromptVisible(false);
         }
       }
@@ -1624,7 +1978,212 @@ export const ProjectPreviewViewer = ({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [addSelectedElement]);
+  }, [
+    addSelectedElement,
+    isStyleToolbarVisible,
+    selectedDomPath,
+    positionFloatingTools,
+  ]);
+
+  // Canvas: keep the floating toolbar/prompt glued to the selected element as
+  // the user pans/zooms the canvas (the frame moves on screen, so the projected
+  // position changes every frame). A rAF loop re-projects the stored local rect;
+  // it only runs while something is selected on the canvas.
+  useEffect(() => {
+    if (viewMode !== "canvas") return;
+    if (!isStyleToolbarVisible && !isPromptVisible) return;
+    let raf = 0;
+    const tick = () => {
+      if (selectedLocalRectRef.current) {
+        positionFloatingTools(selectedLocalRectRef.current);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [viewMode, isStyleToolbarVisible, isPromptVisible, positionFloatingTools]);
+
+  // Canvas: bundle the app ONCE, then render every route as its own frame by
+  // booting MemoryRouter at that route (via the window.__PREVIEW_INITIAL_PATH__
+  // global the bundler patch reads). esbuild runs a single time for all pages.
+  useEffect(() => {
+    if (viewMode !== "canvas") return;
+    if (consumeVisualCssRebuildSkip("canvas")) {
+      setCanvasBuilding(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setCanvasBuilding(true);
+      setCanvasError(null);
+      setCanvasRouterFallback(null);
+      try {
+        await ensureEsbuild();
+        const currentFiles = filesRef.current;
+        // Per-route frames need the surgical router patch. It's self-healing:
+        // if that build throws (a patch esbuild rejects), retry with the proven
+        // simple replace so the canvas falls back to home-route frames instead
+        // of going blank. Only an unrecoverable simple build surfaces an error.
+        let built: Awaited<ReturnType<typeof buildProjectFromFiles>>;
+        let fellBack = false;
+        try {
+          built = await buildProjectFromFiles(currentFiles, PREVIEW_BUILD_ENV, {
+            routerMode: "perRoute",
+          });
+        } catch (perRouteErr) {
+          if (cancelled) return;
+          fellBack = true;
+          console.warn(
+            "[canvas] per-route build failed, retrying with simple router",
+            perRouteErr,
+          );
+          setCanvasRouterFallback(
+            perRouteErr instanceof Error
+              ? perRouteErr.message
+              : String(perRouteErr ?? "Unknown error"),
+          );
+          built = await buildProjectFromFiles(currentFiles, PREVIEW_BUILD_ENV, {
+            routerMode: "simple",
+          });
+        }
+        if (cancelled) return;
+        const { code, dependencies } = built;
+        // perRoute built fine but no router was recognized → every frame shows
+        // the home route. Tell the user why (distinct from a build error).
+        if (!fellBack && built.routerPatched === false) {
+          setCanvasRouterFallback(
+            "Couldn't detect this app's router (createBrowserRouter / <BrowserRouter>), so every frame shows the home route.",
+          );
+        }
+        const pages = parseAppRoutes(currentFiles).map((route) => ({
+          ...route,
+          srcDoc: generatePreviewHtml(code, dependencies, currentFiles, {
+            initialPath: route.path,
+            expandHeight: true,
+          }),
+        }));
+        setCanvasPages(pages);
+        setFocusedPageId((prev) =>
+          prev && pages.some((p) => p.id === prev) ? prev : null,
+        );
+      } catch (err) {
+        if (!cancelled) {
+          console.error("[canvas] build failed", err);
+          setCanvasError(
+            err instanceof Error ? err.message : String(err ?? "Unknown error"),
+          );
+        }
+      } finally {
+        if (!cancelled) setCanvasBuilding(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // refreshKey: the toolbar Refresh button bumps it, forcing a fresh canvas
+    // rebuild (not just a frame remount).
+  }, [consumeVisualCssRebuildSkip, viewMode, filesHash, refreshKey]);
+
+  const enableCanvasFrameEditing = useCallback((el: HTMLIFrameElement | null) => {
+    const win = el?.contentWindow;
+    if (!win) return;
+    win.postMessage(
+      { type: "UCODE_PREVIEW_CONTEXT", trusted: true, source: "ugen-preview" },
+      "*",
+    );
+    // The canvas is an editing surface: the focused frame is always in inspect
+    // mode so clicks select elements (the app's own handlers never fire) — base44
+    // behaviour. The header "Edit" toggle is not required here.
+    win.postMessage({ type: "INSPECT_ON" }, "*");
+    win.postMessage({ type: "CANVAS_SHORTCUTS_ON" }, "*");
+  }, []);
+
+  // Enable the visual editor on whichever canvas frame is focused — mirrors the
+  // single-iframe INSPECT_ON/OFF handshake, but targets the focused frame.
+  useEffect(() => {
+    if (viewMode !== "canvas") return;
+    const frame = focusedFrameRef.current;
+    enableCanvasFrameEditing(frame);
+    return () => {
+      frame?.contentWindow?.postMessage({ type: "CANVAS_SHORTCUTS_OFF" }, "*");
+    };
+  }, [enableCanvasFrameEditing, viewMode, focusedPageId, canvasPages]);
+
+  const handleFocusPage = useCallback(
+    (id: string, el: HTMLIFrameElement | null) => {
+      if (focusedFrameRef.current && focusedFrameRef.current !== el) {
+        focusedFrameRef.current.contentWindow?.postMessage(
+          { type: "CANVAS_SHORTCUTS_OFF" },
+          "*",
+        );
+      }
+      setFocusedPageId(id);
+      focusedFrameRef.current = el;
+      enableCanvasFrameEditing(el);
+    },
+    [enableCanvasFrameEditing],
+  );
+
+  // Clicking the empty canvas (pane) unfocuses the active frame: take it out of
+  // inspect mode so its in-frame highlight clears, drop the editor toolbar, and
+  // return to the overview. Without this there was no way to deselect a page.
+  const handleClearFocus = useCallback(() => {
+    const win = focusedFrameRef.current?.contentWindow;
+    if (win) {
+      win.postMessage({ type: "CANVAS_SHORTCUTS_OFF" }, "*");
+      win.postMessage({ type: "INSPECT_OFF" }, "*");
+    }
+    focusedFrameRef.current = null;
+    setFocusedPageId(null);
+    setIsStyleToolbarVisible(false);
+    setIsPromptVisible(false);
+  }, []);
+
+  const postToActivePreviewFrame = useCallback(
+    (message: Record<string, unknown>) => {
+      const frame = viewMode === "canvas" ? focusedFrameRef.current : iframeRef.current;
+      frame?.contentWindow?.postMessage(message, "*");
+    },
+    [viewMode],
+  );
+
+  useEffect(() => {
+    if (!isStyleToolbarVisible || isPromptVisible) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      if (
+        target.closest(
+          ".ignore-inspect, [data-popover-content], input, textarea, select, label",
+        )
+      ) {
+        return;
+      }
+
+      // On the canvas, pressing on the pan/zoom surface (or a frame) is panning,
+      // not a deselect — keep the selection so the toolbar can follow the move.
+      // Selection still clears via the close button, Escape, or picking another
+      // element.
+      if (viewMode === "canvas" && target.closest(".react-flow")) {
+        return;
+      }
+
+      setIsStyleToolbarVisible(false);
+      setIsPromptVisible(false);
+      postToActivePreviewFrame({ type: "INSPECT_DESELECT" });
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown, {
+      capture: true,
+    });
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown, {
+        capture: true,
+      });
+    };
+  }, [isPromptVisible, isStyleToolbarVisible, postToActivePreviewFrame, viewMode]);
 
   const handleFixInChat = () => {
     if (!runtimeError) return;
@@ -1761,6 +2320,36 @@ export const ProjectPreviewViewer = ({
               })}
             </PopoverContent>
           </Popover>
+        )}
+        {!isVersionHistory && !mobileMode && !isFunction && (
+          <div className="border-border-subtle mr-0.5 flex items-center gap-0.5 rounded-md border p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("single")}
+              title="Single page"
+              className={cn(
+                "flex h-5 w-6 items-center justify-center rounded transition-colors",
+                viewMode === "single"
+                  ? "bg-text-main text-bg-main"
+                  : "text-text-muted hover:bg-hover-bg hover:text-text-main",
+              )}
+            >
+              <Square size={11} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("canvas")}
+              title="All pages (canvas)"
+              className={cn(
+                "flex h-5 w-6 items-center justify-center rounded transition-colors",
+                viewMode === "canvas"
+                  ? "bg-text-main text-bg-main"
+                  : "text-text-muted hover:bg-hover-bg hover:text-text-main",
+              )}
+            >
+              <LayoutGrid size={11} />
+            </button>
+          </div>
         )}
         {!isVersionHistory && (
           <button
@@ -1993,62 +2582,36 @@ export const ProjectPreviewViewer = ({
 
       {/* Element Style Toolbar — direct visual editing */}
       <ElementStyleToolbar
-        isVisible={isStyleToolbarVisible && isInspectMode && !isPromptVisible}
+        isVisible={
+          isStyleToolbarVisible &&
+          (isInspectMode || viewMode === "canvas") &&
+          !isPromptVisible
+        }
         position={styleToolbarPosition}
         containerRef={containerRef}
-        iframeRef={iframeRef}
+        iframeRef={viewMode === "canvas" ? focusedFrameRef : iframeRef}
         domPath={selectedDomPath}
         tagName={selectedTagName}
-        onCommitStyles={(stylePatch, meta) => {
-          if (!dirtyKey) return;
-          const selector = buildSelector(
-            selectedDomPath ?? null,
-            selectedContext?.outerHTML ?? null,
-          );
-          if (!selector) return;
-          const cssFile = filesRef.current.find(
-            (f) => f.path === "src/index.css",
-          );
-          const baseCss = cssFile?.content ?? "";
-          const nextCss = applyVisualEditToCss(baseCss, {
-            selector,
-            styles: stylePatch,
-          });
-          setDirtyFile(dirtyKey, "src/index.css", nextCss);
-          const tagLabel = (
-            meta.tagName ||
-            selectedTagName ||
-            "element"
-          ).toLowerCase();
-          autoCommit(
-            activeCodeSelection ?? null,
-            `change: '${tagLabel}' element style`,
-          );
-        }}
+        sourceOuterHTML={selectedContext?.outerHTML ?? null}
+        onCommitStyles={queueVisualStyleCommit}
         onClose={() => {
           setIsStyleToolbarVisible(false);
           setIsPromptVisible(false);
-          iframeRef.current?.contentWindow?.postMessage(
-            { type: "INSPECT_DESELECT" },
-            "*",
-          );
+          postToActivePreviewFrame({ type: "INSPECT_DESELECT" });
         }}
         onOpenAiPrompt={() => setIsPromptVisible(true)}
       />
 
       {/* Floating Prompt Bar — AI editing (replaces toolbar while open) */}
       <MoveablePrompt
-        isVisible={isPromptVisible && isInspectMode}
+        isVisible={isPromptVisible && (isInspectMode || viewMode === "canvas")}
         initialPosition={promptPosition}
         containerRef={containerRef}
         onBack={() => setIsPromptVisible(false)}
         onClose={() => {
           setIsPromptVisible(false);
           setIsStyleToolbarVisible(false);
-          iframeRef.current?.contentWindow?.postMessage(
-            { type: "INSPECT_DESELECT" },
-            "*",
-          );
+          postToActivePreviewFrame({ type: "INSPECT_DESELECT" });
         }}
         onSubmit={(text) => {
           const context = selectedContext
@@ -2063,10 +2626,7 @@ export const ProjectPreviewViewer = ({
           setPendingPrompt({ content: text, context });
           setIsPromptVisible(false);
           setIsStyleToolbarVisible(false);
-          iframeRef.current?.contentWindow?.postMessage(
-            { type: "INSPECT_DESELECT" },
-            "*",
-          );
+          postToActivePreviewFrame({ type: "INSPECT_DESELECT" });
         }}
       />
 
@@ -2255,6 +2815,80 @@ export const ProjectPreviewViewer = ({
               }}
               className="max-h-full self-start"
             />
+          </div>
+        </div>
+      ) : viewMode === "canvas" ? (
+        /* Canvas — every page rendered as its own live frame on a pan/zoom
+           surface. Frames boot the shared bundle at their own route. */
+        <div
+          className={cn(
+            "flex h-full flex-1 flex-col overflow-hidden transition-all duration-300",
+            !isMaximized &&
+              chatPosition === "left" &&
+              (isChatCollapsed ? "px-4" : "pr-4 pl-0"),
+            !isMaximized &&
+              chatPosition === "right" &&
+              (isChatCollapsed ? "px-4" : "pr-0 pl-4"),
+          )}
+        >
+          <div
+            className="border-border-subtle relative flex flex-1 flex-col overflow-hidden border shadow-md"
+            style={{ borderRadius: isMaximized ? "0px" : "12px" }}
+          >
+            {browserHeader}
+            {canvasRouterFallback && (
+              <div className="flex shrink-0 items-start gap-2 border-b border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-text-main text-xs font-medium">
+                    Per-route frames unavailable — showing the home route in
+                    every frame
+                  </p>
+                  <p className="text-text-muted mt-0.5 truncate font-mono text-[11px]">
+                    {canvasRouterFallback}
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="relative flex-1 overflow-hidden">
+              <PreviewCanvas
+                pages={canvasPages}
+                focusedPageId={focusedPageId}
+                refreshKey={refreshKey}
+                onFocusPage={handleFocusPage}
+                onClearFocus={handleClearFocus}
+              />
+              {canvasBuilding && canvasPages.length === 0 && (
+                <WorkspaceLoader
+                  message="Building pages…"
+                  subMessage="Rendering each route"
+                />
+              )}
+              {canvasError && !canvasBuilding && canvasPages.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center p-6">
+                  <div className="bg-bg-card border-border-subtle w-full max-w-lg overflow-hidden rounded-2xl border shadow-xl">
+                    <div className="border-border-subtle flex items-start gap-3 border-b p-5">
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-500/10">
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-text-main text-base font-semibold">
+                          Canvas build failed
+                        </h3>
+                        <p className="text-text-muted mt-0.5 text-xs">
+                          The shared preview bundle could not be built
+                        </p>
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <pre className="bg-bg-sidebar/60 border-border-subtle/60 max-h-40 overflow-auto rounded-lg border p-3 font-mono text-xs break-words whitespace-pre-wrap text-red-500">
+                        {canvasError}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : webAppMode ? (

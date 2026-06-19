@@ -7,13 +7,15 @@ const BLOCK_END = '/* === ugen:visual-edits:end === */'
 
 const camelToKebab = (s: string) => s.replace(/([A-Z])/g, '-$1').toLowerCase()
 
-const formatStyleObject = (styles: Record<string, string | number | null | undefined>): string => {
-  const lines: string[] = []
+const normalizeStylePatch = (
+  styles: Record<string, string | number | null | undefined>,
+): Record<string, string | null> => {
+  const declarations: Record<string, string | null> = {}
   for (const [key, raw] of Object.entries(styles)) {
-    if (raw == null || raw === '') continue
-    lines.push(`  ${camelToKebab(key)}: ${raw};`)
+    const property = camelToKebab(key)
+    declarations[property] = raw == null || raw === '' ? null : String(raw)
   }
-  return lines.join('\n')
+  return declarations
 }
 
 interface ParsedRule {
@@ -65,8 +67,8 @@ export interface VisualEditPatch {
  * Returns the new file content. If the block doesn't exist, it's appended.
  */
 export const applyVisualEditToCss = (cssContent: string, patch: VisualEditPatch): string => {
-  const newDecls = formatStyleObject(patch.styles)
-  if (!newDecls) return cssContent
+  const incomingDecls = normalizeStylePatch(patch.styles)
+  if (Object.keys(incomingDecls).length === 0) return cssContent
 
   const startIdx = cssContent.indexOf(BLOCK_START)
   const endIdx = cssContent.indexOf(BLOCK_END)
@@ -84,17 +86,24 @@ export const applyVisualEditToCss = (cssContent: string, patch: VisualEditPatch)
   }
 
   const existing = parseBlock(blockBody)
-  const incoming = parseBlock(`${patch.selector} {\n${newDecls}\n}`)
-  const incomingDecls = incoming[0]?.declarations ?? {}
-
   const idx = existing.findIndex((r) => r.selector === patch.selector)
   if (idx >= 0) {
+    const declarations = { ...existing[idx].declarations }
+    Object.entries(incomingDecls).forEach(([property, value]) => {
+      if (value == null) delete declarations[property]
+      else declarations[property] = value
+    })
     existing[idx] = {
       selector: patch.selector,
-      declarations: { ...existing[idx].declarations, ...incomingDecls },
+      declarations,
     }
   } else {
-    existing.push({ selector: patch.selector, declarations: incomingDecls })
+    const declarations = Object.fromEntries(
+      Object.entries(incomingDecls).filter(([, value]) => value != null),
+    ) as Record<string, string>
+    if (Object.keys(declarations).length > 0) {
+      existing.push({ selector: patch.selector, declarations })
+    }
   }
 
   // Drop declarations whose value is empty (e.g. when the toolbar resets to default)
