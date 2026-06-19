@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { History, Loader2, PanelLeft, PanelRight } from "lucide-react";
 import { ChatMessageBubble } from "./chat-message-bubble"
 import { ChatInput } from "./chat-input"
-import { useChatStore, Message, type MessageReaction, type VisualContextItem } from "@/entities/chat";
+import { useChatStore, Message, normalizeAiChatError, type MessageReaction, type VisualContextItem } from "@/entities/chat";
 import { normalizeChatProvider } from "@/entities/ai-model";
 import { Checkbox } from "@/shared/ui";
 import { api } from "@/shared/api";
@@ -11,7 +11,7 @@ import { useFilesStore, IFile } from "@/entities/project/model/files-store";
 import { useCodeSelectionStore } from "@/entities/project/model/code-selection-store";
 import { useMobileProjectStore } from "@/entities/project/model/mobile-project-store";
 import { useAuthStore } from "@/entities/session";
-import { handlePaymentRequired } from "@/entities/billing";
+import { handlePaymentRequired, useBillingLimitStore } from "@/entities/billing";
 import { queryClient } from "@/shared/api/query-client";
 import React from 'react';
 import { BpmnViewer } from "@/shared/ui";
@@ -20,6 +20,7 @@ import { useTranslations } from "next-intl";
 import { VersionHistoryPanel, VersionPreviewFile } from "@/widgets/project-workspace/ui/version-history-panel";
 import { ThinkingBlock, type SseEvent } from "./thinking-block";
 import { ProjectSummaryMessage } from "./project-summary-message";
+import { ErrorMessageCard } from "./error-message-card";
 import { isProjectSummary } from "../lib/parse-project-summary";
 import { useGuardedAction } from "@/widgets/project-workspace/lib/save-flow";
 import {
@@ -312,6 +313,9 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
           dislikeCount: normalizeMessageCount((m as any).dislike_count),
           pending_action: m.pending_action,
           bpmnXml: m?.plan?.bpmn_xml,
+          // `[ERROR]` assistant messages persist a structured AiChatError —
+          // render them as an error card instead of a normal bubble.
+          error: normalizeAiChatError((m as any).error),
         }));
 
         const previousScrollHeight = scrollRef.current?.scrollHeight || 0;
@@ -474,6 +478,33 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
       message.content,
       message.images?.map((url) => ({ url })),
     );
+  };
+
+  // Retry = re-send the most recent user message above the failed turn. Keeps
+  // the error card in place so the user retains context (see CHAT_ERROR_MESSAGES.md §4.2).
+  const handleRetryError = (errorMsg: Message) => {
+    if (isSending || isDisabled) return;
+    const idx = displayMessages.findIndex((m: Message) => m.id === errorMsg.id);
+    const start = idx === -1 ? displayMessages.length - 1 : idx - 1;
+    for (let i = start; i >= 0; i--) {
+      const candidate = displayMessages[i];
+      if (candidate.role === "user") {
+        handleSendMessage(
+          candidate.content,
+          candidate.images?.map((url) => ({ url })),
+        );
+        return;
+      }
+    }
+  };
+
+  // Token-limit error card CTA → reopen the global billing dialog. The live
+  // usage numbers aren't carried on the persisted error, so fall back to a
+  // token code; the dialog still renders its upgrade CTA.
+  const handleUpgrade = () => {
+    useBillingLimitStore
+      .getState()
+      .openLimit({ type: "payment_required", code: "token_month_limit" });
   };
 
   const handleMessageReaction = async (
@@ -809,10 +840,37 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                   // actions panel (Download source, future native build) has them.
                   applyMobileProject(event.data ?? null);
                 } else if (event.type === 'error') {
+                  const errData = (event as any).data;
+                  const aiError = normalizeAiChatError(errData?.error);
                   // Billing limit hit mid-stream → open the global upgrade
-                  // popup instead of showing a generic stream error.
-                  if (!handlePaymentRequired((event as any).data)) {
-                    setStreamError(event.message ?? 'AI processing failed');
+                  // popup instead of showing a generic stream error. The error
+                  // event wraps the limit payload as `data.token_limit`, so try
+                  // both the raw data and that nested shape.
+                  const openedPopup =
+                    handlePaymentRequired(errData) ||
+                    (aiError?.code === 'TOKEN_LIMIT_EXCEEDED' &&
+                      handlePaymentRequired({
+                        type: 'payment_required',
+                        code: errData?.token_limit?.period === 'day'
+                          ? 'token_day_limit'
+                          : 'token_month_limit',
+                        ...errData?.token_limit,
+                      }));
+                  // First-generation preview still relies on streamError to swap
+                  // the building animation for an actionable view.
+                  if (!openedPopup) {
+                    setStreamError(event.message ?? aiError?.message ?? 'AI processing failed');
+                  }
+                  // Surface the failure inline in the chat as an error card,
+                  // mirroring the persisted `[ERROR]` message seen after reload.
+                  if (aiError) {
+                    addMessage({
+                      id: (Date.now() + 2).toString(),
+                      role: 'ai',
+                      content: aiError.message,
+                      error: aiError,
+                    });
+                    handleAutoScroll();
                   }
                 } else if (event.type === 'done') {
                   finalDoneData = event.data?.data ?? event.data;
@@ -946,7 +1004,16 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                     ))}
                   </div>
                 )}
-                {(msg.content || msg.role === "user") && (
+                {msg.error ? (
+                  <ErrorMessageCard
+                    key={msg.id}
+                    error={msg.error}
+                    onRetry={() => handleRetryError(msg)}
+                    onUpgrade={handleUpgrade}
+                    retryDisabled={isSending || isDisabled}
+                    isRetrying={isSending}
+                  />
+                ) : (msg.content || msg.role === "user") ? (
                   msg.role !== 'user' && isProjectSummary(msg.content) ? (
                     <ProjectSummaryMessage
                       key={msg.id}
@@ -982,7 +1049,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
                       dislikeCount={msg.dislikeCount}
                     />
                   )
-                )}
+                ) : null}
                 {msg.bpmnXml && (
                   <>
                     <BpmnViewer bpmnXml={msg.bpmnXml} />

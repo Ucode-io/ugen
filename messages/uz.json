@@ -781,6 +781,13 @@
         "accept": "✓ Qabul qilish",
         "reject": "✕ Rad etish"
       },
+      "error": {
+        "retry": "Qayta urinish",
+        "retrying": "Qayta urinilyapti...",
+        "upgrade": "Tarifni yangilash",
+        "showDetails": "Texnik tafsilotlar",
+        "hideDetails": "Tafsilotlarni yashirish"
+      },
       "codeBlock": {
         "copy": "Nusxalash",
         "copied": "Nusxalandi!"

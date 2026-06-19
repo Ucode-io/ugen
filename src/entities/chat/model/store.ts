@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { AiChatError } from './ai-chat-error'
 
 export type ChatPosition = 'left' | 'right'
 export type MessageReaction = 'like' | 'dislike'
@@ -15,6 +16,9 @@ export type Message = {
   pending_action?: any
   bpmnXml?: string
   plan?: any
+  // Structured failure record from an `[ERROR]` assistant message (or live SSE
+  // `error` event). When set, render the message as an error card, not a bubble.
+  error?: AiChatError | null
   reaction?: MessageReaction | null
   likeCount?: number
   dislikeCount?: number
