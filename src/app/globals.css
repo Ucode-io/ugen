@@ -37,6 +37,13 @@
 
   --radius-ai: 14px;
 
+  --animate-aurora: aurora 60s linear infinite;
+
+  --animate-glow-drift-a: glow-drift-a 18s ease-in-out infinite;
+  --animate-glow-drift-b: glow-drift-b 22s ease-in-out infinite;
+  --animate-glow-drift-c: glow-drift-c 14s ease-in-out infinite;
+  --animate-glow-drift-d: glow-drift-d 20s ease-in-out infinite;
+
   @keyframes shimmer {
     from {
       background-position: 200% 0;
@@ -77,6 +84,37 @@
   0%, 100% { transform: perspective(180px) rotateY(0deg)   translateY(0px); }
   33%       { transform: perspective(180px) rotateY(18deg)  translateY(-5px); }
   66%       { transform: perspective(180px) rotateY(-14deg) translateY(-3px); }
+}
+
+@keyframes aurora {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+  to {
+    background-position: 350% 50%, 350% 50%;
+  }
+}
+
+@keyframes glow-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(8%, 12%) scale(1.15); }
+  66%      { transform: translate(-6%, 6%) scale(0.9); }
+}
+
+@keyframes glow-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-10%, 8%) scale(0.9); }
+  66%      { transform: translate(6%, -8%) scale(1.2); }
+}
+
+@keyframes glow-drift-c {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50%      { transform: translate(-50%, -50%) scale(1.25); }
+}
+
+@keyframes glow-drift-d {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(10%, -10%) scale(1.1); }
 }
 
 @keyframes scanner-line {
