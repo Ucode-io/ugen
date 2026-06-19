@@ -51,7 +51,7 @@ export const SpaceFlight = ({
     ).matches
 
     const isDark = theme === 'dark'
-    let palette = readPalette()
+    const palette = readPalette()
 
     let width = 0
     let height = 0
