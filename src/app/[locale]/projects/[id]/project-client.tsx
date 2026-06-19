@@ -201,6 +201,7 @@ export const ProjectWorkspaceClient = ({
     (state) => state.setMobileProject,
   );
   const apiKey = useAuthStore((state) => state.apiKey);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
   const projectEnvId = useAuthStore((state) => state.projectEnvId);
   const { project } = useAuthStore();
@@ -293,18 +294,15 @@ export const ProjectWorkspaceClient = ({
   const { data: projectInfo } = useQuery({
     queryKey: ["company-project", projectId],
     queryFn: async () => {
-      const headers = !isUgen
-        ? { Authorization: `Bearer ${useAuthStore.getState().accessToken}` }
-        : undefined;
       const { data } = await api.get("/v1/company-project", {
         params: { "project-id": projectId },
-        headers,
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const info = data?.data;
       if (!info) return null;
       return Array.isArray(info) ? info[0] : info;
     },
-    enabled: !!projectId,
+    enabled: Boolean(projectId && accessToken),
   });
 
   // The published app's public link is the short URL (e.g. "app.ucode.co/p/xxxx"),

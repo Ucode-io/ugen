@@ -2,6 +2,54 @@ import * as esbuild from "esbuild-wasm"
 import { virtualFsPlugin } from "./esbuildPlugin"
 import { previewOptimizationsEnabled } from "./preview-flags"
 
+// ── Canvas per-route router shim ──────────────────────────────────────────
+// In "perRoute" mode we redirect every `react-router`/`react-router-dom` import
+// in the app to this generated module. It re-exports the real package unchanged
+// but overrides the routers (BrowserRouter/HashRouter + createBrowserRouter/
+// createHashRouter) with memory variants that boot at the frame's route
+// (window.__PREVIEW_INITIAL_PATH__, set per frame by generatePreviewHtml).
+// Redirecting the import *source* is robust to every import style — named,
+// aliased, namespace (`import * as RR`), mixed default+named — unlike matching
+// individual import names, which is fragile across generated apps.
+const ROUTER_SHIM_IMPORT = "/src/__ugen_react_router_shim"
+const ROUTER_SHIM_PATH = `${ROUTER_SHIM_IMPORT}.tsx`
+const ROUTER_IMPORT_SOURCE_RE = /(\bfrom\s*["'])react-router(?:-dom)?(["'])/g
+const ROUTER_SHIM_SOURCE = `
+import React from "react";
+import * as ReactRouterDOM from "react-router-dom";
+export * from "react-router-dom";
+
+function __ugenInitialEntries() {
+  var p = typeof window !== "undefined" ? (window).__PREVIEW_INITIAL_PATH__ : null;
+  return [p || "/"];
+}
+
+export function createBrowserRouter(routes, opts) {
+  return ReactRouterDOM.createMemoryRouter(
+    routes,
+    Object.assign({}, opts, { initialEntries: __ugenInitialEntries() })
+  );
+}
+export function createHashRouter(routes, opts) {
+  return ReactRouterDOM.createMemoryRouter(
+    routes,
+    Object.assign({}, opts, { initialEntries: __ugenInitialEntries() })
+  );
+}
+export function BrowserRouter(props) {
+  return React.createElement(
+    ReactRouterDOM.MemoryRouter,
+    Object.assign({}, props, { initialEntries: __ugenInitialEntries() })
+  );
+}
+export function HashRouter(props) {
+  return React.createElement(
+    ReactRouterDOM.MemoryRouter,
+    Object.assign({}, props, { initialEntries: __ugenInitialEntries() })
+  );
+}
+`
+
 // Hosted locally in /public — esm.sh hangs/blocks in some prod environments
 // (CSP, corp proxies). The file is copied at install time; see the `postinstall`
 // script in package.json. The `?v=<version>` query busts the browser cache on
@@ -89,9 +137,23 @@ export function ensureEsbuild(): Promise<void> {
 }
 
 
-export async function buildProjectFromFiles(files: any[], env: any = {}) {
+// routerMode controls how react-router is rewritten for the srcDoc iframe:
+//  - "simple" (default, single preview): blunt BrowserRouter -> MemoryRouter
+//    string replace. Can't malform code, always boots at "/". Bulletproof.
+//  - "perRoute" (canvas): surgical patch so each frame can boot on its own
+//    route (component routers via initialEntries from window.__PREVIEW_INITIAL_PATH__;
+//    object routers fall back to createMemoryRouter at "/"). The caller should
+//    retry with "simple" if a perRoute build throws — see the canvas effect.
+export async function buildProjectFromFiles(
+  files: any[],
+  env: any = {},
+  opts: { routerMode?: "simple" | "perRoute" } = {},
+) {
   const fs: Record<string, string> = {};
   let externalDepsMap: Record<string, string> = {};
+  // perRoute only: did the surgical patch actually recognize a router? If not,
+  // canvas frames can't be set to their route — the caller surfaces this.
+  let routerPatched = false;
 
   const pkgFile = files.find((f: any) => f.path.includes("package.json"));
   if (pkgFile) {
@@ -164,12 +226,29 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
 
     let content = file.content;
 
-    if (content?.includes("react-router-dom") && content?.includes("BrowserRouter")) {
+    if (opts.routerMode === "perRoute" && content?.includes("react-router")) {
+      // Canvas: redirect react-router(-dom) imports to the shim so every frame
+      // boots its own route, regardless of how the app imports the router.
+      const redirected = content.replace(
+        ROUTER_IMPORT_SOURCE_RE,
+        `$1${ROUTER_SHIM_IMPORT}$2`,
+      );
+      if (redirected !== content) {
+        routerPatched = true;
+        content = redirected;
+      }
+    } else if (content?.includes("react-router-dom") && content?.includes("BrowserRouter")) {
       console.log(`[Bundler] Patching BrowserRouter to MemoryRouter in ${path}`);
       content = content.replace(/BrowserRouter/g, "MemoryRouter");
     }
 
     fs[path] = content;
+  }
+
+  // Add the router shim only when something actually imports react-router, so
+  // it never collides with an app that doesn't use it.
+  if (routerPatched) {
+    fs[ROUTER_SHIM_PATH] = ROUTER_SHIM_SOURCE;
   }
 
   // ── Auto-generate shim re-export files for common UI component aliases ──
@@ -250,5 +329,6 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
   return {
     code: result.outputFiles?.[0]?.text || "",
     dependencies: externalDepsMap,
+    routerPatched,
   };
 }

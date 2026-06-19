@@ -2,7 +2,7 @@ import { previewOptimizationsEnabled } from "./preview-flags";
 
 // Include this in preview build cache keys. Bump it whenever the generated
 // iframe runtime changes so long-lived tabs cannot reuse stale srcDoc HTML.
-export const PREVIEW_RUNTIME_VERSION = "5";
+export const PREVIEW_RUNTIME_VERSION = "13";
 
 const TAILWIND_PLAY_RUNTIME_URL = "/tailwind-play-3.4.17.js";
 
@@ -18,6 +18,14 @@ export const INSPECTOR_SCRIPT = `
   let selOverlay = null;
   let selTag = null;
   let enabled = false;
+  let canvasShortcutsEnabled = false;
+  let lastCanvasGestureScale = 1;
+  // Canvas pan state: a focused frame's iframe swallows wheel/drag events, so it
+  // forwards them to the parent canvas to pan. Space-held or middle-button drag
+  // pans; canvasPanSuppressClick stops a pan-drag from also selecting an element.
+  let spacePanHeld = false;
+  let canvasPanning = false;
+  let canvasPanSuppressClick = false;
   let lastSelected = null;
   const originalStyles = new WeakMap();
 
@@ -125,6 +133,7 @@ export const INSPECTOR_SCRIPT = `
 
   document.addEventListener("mouseover", (e) => {
     if (!enabled) return;
+    if (canvasPanning || spacePanHeld) return; // no hover highlight while panning
     highlight(e.target);
   }, true);
 
@@ -156,6 +165,11 @@ export const INSPECTOR_SCRIPT = `
     if (!enabled) return;
     e.preventDefault();
     e.stopPropagation();
+    // A space+drag pan ends in a click — don't also select an element.
+    if (canvasPanSuppressClick) {
+      canvasPanSuppressClick = false;
+      return;
+    }
 
     const target = e.target;
     const rect = target.getBoundingClientRect();
@@ -201,6 +215,147 @@ export const INSPECTOR_SCRIPT = `
     }, "*");
   }, true);
 
+  document.addEventListener("keydown", (e) => {
+    if (!canvasShortcutsEnabled) return;
+    if (!e.metaKey && !e.ctrlKey) return;
+
+    const target = e.target;
+    if (
+      target &&
+      (
+        target.isContentEditable ||
+        /^(input|textarea|select)$/i.test(target.tagName || "")
+      )
+    ) {
+      return;
+    }
+
+    const key = e.key;
+    if (key !== "+" && key !== "=" && key !== "-" && key !== "_" && key !== "0") {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    window.parent.postMessage({
+      type: "CANVAS_ZOOM_SHORTCUT",
+      action: key === "0" ? "fit" : (key === "-" || key === "_" ? "out" : "in"),
+    }, "*");
+  }, true);
+
+  function isEditableEventTarget(target) {
+    return !!(
+      target &&
+      (
+        target.isContentEditable ||
+        /^(input|textarea|select)$/i.test(target.tagName || "")
+      )
+    );
+  }
+
+  function postCanvasZoomGesture(e, extra) {
+    if (!canvasShortcutsEnabled) return;
+    if (isEditableEventTarget(e.target)) return;
+    window.parent.postMessage({
+      type: "CANVAS_ZOOM_GESTURE",
+      clientX: e.clientX || 0,
+      clientY: e.clientY || 0,
+      innerWidth: window.innerWidth || document.documentElement.clientWidth || 1,
+      innerHeight: window.innerHeight || document.documentElement.clientHeight || 1,
+      ...extra,
+    }, "*");
+  }
+
+  document.addEventListener("wheel", (e) => {
+    if (!canvasShortcutsEnabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // Normalize line/page deltas to pixels.
+    var unit = e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? (window.innerHeight || 800) : 1);
+    if (e.ctrlKey || e.metaKey) {
+      // Trackpad pinch lands here in Chromium as ctrl+wheel → zoom.
+      postCanvasZoomGesture(e, { deltaY: e.deltaY * unit });
+    } else {
+      // Plain two-finger / wheel scroll pans the canvas. Canvas frames show the
+      // whole page (expandHeight), so there's nothing to scroll inside — like
+      // Figma, scrolling over a frame moves the canvas.
+      window.parent.postMessage({
+        type: "CANVAS_PAN_GESTURE",
+        deltaX: e.deltaX * unit,
+        deltaY: e.deltaY * unit,
+      }, "*");
+    }
+  }, { capture: true, passive: false });
+
+  // Space-held or middle-button drag pans the canvas from inside a focused frame
+  // (left-drag stays element-select). Deltas are forwarded; the parent applies
+  // the zoom scale. preventDefault stops text selection / autoscroll.
+  document.addEventListener("keydown", (e) => {
+    if (!canvasShortcutsEnabled) return;
+    if (e.code !== "Space" && e.key !== " ") return;
+    if (isEditableEventTarget(e.target)) return;
+    spacePanHeld = true;
+    document.body.style.cursor = canvasPanning ? "grabbing" : "grab";
+    e.preventDefault();
+  }, true);
+  document.addEventListener("keyup", (e) => {
+    if (e.code !== "Space" && e.key !== " ") return;
+    spacePanHeld = false;
+    if (!canvasPanning) document.body.style.cursor = "";
+  }, true);
+  document.addEventListener("mousedown", (e) => {
+    if (!canvasShortcutsEnabled) return;
+    if (e.button === 1 || (spacePanHeld && e.button === 0)) {
+      canvasPanning = true;
+      canvasPanSuppressClick = false;
+      document.body.style.cursor = "grabbing";
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+  document.addEventListener("mousemove", (e) => {
+    if (!canvasPanning) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.movementX || e.movementY) canvasPanSuppressClick = true;
+    window.parent.postMessage({
+      type: "CANVAS_PAN_DRAG",
+      deltaX: e.movementX || 0,
+      deltaY: e.movementY || 0,
+    }, "*");
+  }, true);
+  document.addEventListener("mouseup", (e) => {
+    if (!canvasPanning) return;
+    canvasPanning = false;
+    document.body.style.cursor = spacePanHeld ? "grab" : "";
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+
+  document.addEventListener("gesturestart", (e) => {
+    if (!canvasShortcutsEnabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    lastCanvasGestureScale = e.scale || 1;
+  }, { capture: true, passive: false });
+
+  document.addEventListener("gesturechange", (e) => {
+    if (!canvasShortcutsEnabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var scale = e.scale || 1;
+    var prev = lastCanvasGestureScale || 1;
+    lastCanvasGestureScale = scale;
+    postCanvasZoomGesture(e, { scaleFactor: scale / prev });
+  }, { capture: true, passive: false });
+
+  document.addEventListener("gestureend", (e) => {
+    if (!canvasShortcutsEnabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    lastCanvasGestureScale = 1;
+  }, { capture: true, passive: false });
+
   function resolveTarget(domPath) {
     if (domPath) {
       try {
@@ -221,6 +376,14 @@ export const INSPECTOR_SCRIPT = `
     if (e.data?.type === "INSPECT_ON") {
       enabled = true;
       document.body.style.cursor = "default";
+    }
+
+    if (e.data?.type === "CANVAS_SHORTCUTS_ON") {
+      canvasShortcutsEnabled = true;
+    }
+
+    if (e.data?.type === "CANVAS_SHORTCUTS_OFF") {
+      canvasShortcutsEnabled = false;
     }
 
     if (e.data?.type === "INSPECT_OFF") {
@@ -276,6 +439,28 @@ export const INSPECTOR_SCRIPT = `
           fontFamily: cs.fontFamily,
           lineHeight: cs.lineHeight,
           letterSpacing: cs.letterSpacing,
+          textAlign: cs.textAlign,
+          textTransform: cs.textTransform,
+          fontStyle: cs.fontStyle,
+          textDecorationLine: cs.textDecorationLine,
+          opacity: cs.opacity,
+          marginTop: cs.marginTop,
+          marginRight: cs.marginRight,
+          marginBottom: cs.marginBottom,
+          marginLeft: cs.marginLeft,
+          paddingTop: cs.paddingTop,
+          paddingRight: cs.paddingRight,
+          paddingBottom: cs.paddingBottom,
+          paddingLeft: cs.paddingLeft,
+          display: cs.display,
+          flexDirection: cs.flexDirection,
+          justifyContent: cs.justifyContent,
+          alignItems: cs.alignItems,
+          justifyItems: cs.justifyItems,
+          flexWrap: cs.flexWrap,
+          columnGap: cs.columnGap,
+          rowGap: cs.rowGap,
+          gridTemplateColumns: cs.gridTemplateColumns,
         }
       }, "*");
     }
@@ -286,6 +471,7 @@ export function generatePreviewHtml(
   bundledCode: string,
   dependenciesMap: Record<string, string> = {},
   files: Array<{ path: string; content: string }> = [],
+  options: { initialPath?: string; expandHeight?: boolean } = {},
 ) {
   const REACT_VERSION = "18.3.1";
   // A srcDoc iframe's location is `about:srcdoc`, whose origin is the string
@@ -441,6 +627,21 @@ export function generatePreviewHtml(
         window.tailwind.config = ${tailwindConfigJson};
       </script>
       
+      ${
+        options.initialPath
+          ? `<script>window.__PREVIEW_INITIAL_PATH__ = ${JSON.stringify(options.initialPath)};</script>`
+          : ""
+      }
+      <script>
+        // Canvas frames set __PREVIEW_INITIAL_PATH__; move the iframe history
+        // there before the app module imports so the frame boots on its route.
+        // (The single preview omits it and boots at "/".)
+        if (window.__PREVIEW_INITIAL_PATH__) {
+          try {
+            history.replaceState(history.state || {}, "", window.__PREVIEW_INITIAL_PATH__);
+          } catch (_) {}
+        }
+      </script>
       <script>
         window.process = { env: { NODE_ENV: 'production' } };
       </script>
@@ -570,7 +771,35 @@ export function generatePreviewHtml(
       </style>
 
       <style id="preview-cloak">body { visibility: hidden; }</style>
-
+${
+  options.expandHeight
+    ? `      <style id="ugen-canvas-expand">
+        /* Canvas frames show the whole page, not one viewport. Neutralize the
+           viewport-locked layout (h-screen / 100vh + internal scroll) so content
+           flows to its natural height and the frame can grow to fit it. */
+        html, body, #root {
+          height: auto !important;
+          min-height: 0 !important;
+          overflow: visible !important;
+        }
+        /* One "screen" = the canvas frame's own base height (800px), NOT 100vh.
+           100vh resolves to the iframe's height, which the canvas resizes to fit
+           content — so 100vh here would grow as the frame grows, feed back into
+           the height measurement, and balloon the frame. A fixed reference (the
+           FRAME_HEIGHT used by preview-canvas) breaks that loop. */
+        [class~="h-screen"], [class~="min-h-screen"] {
+          height: auto !important;
+          min-height: 800px !important;
+          max-height: none !important;
+        }
+        [class~="overflow-hidden"], [class~="overflow-y-hidden"],
+        [class~="overflow-auto"], [class~="overflow-y-auto"],
+        [class~="overflow-y-scroll"], [class~="overflow-scroll"] {
+          overflow: visible !important;
+        }
+      </style>`
+    : ""
+}
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     </head>
     <body>

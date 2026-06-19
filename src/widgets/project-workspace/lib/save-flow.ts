@@ -153,9 +153,14 @@ export const requestSave = (
 }
 
 /** Auto-commit (no modal): used by theme + element-style-toolbar. On failure, dirty is preserved and a toast is shown. */
+interface AutoCommitOptions {
+  refreshCodebase?: boolean
+}
+
 export const autoCommit = async (
   selection: CodeEditorTarget | null,
   commitMessage: string,
+  options: AutoCommitOptions = {},
 ) => {
   const key = getDirtyKey(selection)
   const files = dirtyEntries(key)
@@ -164,7 +169,9 @@ export const autoCommit = async (
     await callManualSave({ selection, files, commitMessage })
     applyCommittedToBase(files)
     clearCommitted(key, files)
-    refreshCodebaseInBackground(selection)
+    if (options.refreshCodebase !== false) {
+      refreshCodebaseInBackground(selection)
+    }
     toast.success('Saved')
   } catch (err) {
     toast.error(extractErrorMessage(err))
