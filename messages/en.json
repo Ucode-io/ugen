@@ -781,6 +781,13 @@
         "accept": "✓ Accept",
         "reject": "✕ Reject"
       },
+      "error": {
+        "retry": "Try again",
+        "retrying": "Retrying...",
+        "upgrade": "Upgrade plan",
+        "showDetails": "Show technical details",
+        "hideDetails": "Hide technical details"
+      },
       "codeBlock": {
         "copy": "Copy",
         "copied": "Copied!"
