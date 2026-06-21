@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronLeft, Loader2, Trash2, RefreshCw, Box, Search, Plug } from 'lucide-react'
+import { ChevronLeft, Loader2, Trash2, RefreshCw, Box, Search, Plug, SlidersHorizontal } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi, api } from '@/shared/api'
 import { githubIntegrationApi } from '@/features/github-integration'
@@ -9,7 +9,7 @@ import type { GithubIntegration } from '@/features/github-integration'
 import { gitlabIntegrationApi } from '@/features/gitlab-integration'
 import { bitbucketIntegrationApi } from '@/features/bitbucket-integration'
 import { googleDriveIntegrationApi } from '@/features/google-drive-integration'
-import { googleCalendarIntegrationApi } from '@/features/google-calendar-integration'
+import { googleCalendarIntegrationApi, GoogleCalendarFieldMappingModal } from '@/features/google-calendar-integration'
 import { useAuthStore } from '@/entities/session'
 import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
@@ -344,6 +344,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const [categoryFilter, setCategoryFilter] = useState('All Categories')
   const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
   const [isGoogleCalendarConnected, setIsGoogleCalendarConnected] = useState(false)
+  // Field-mapping modal (bind a uCode table's fields to Google Calendar event
+  // properties). Kept here so it's reachable from every Google Calendar card.
+  const [calendarMappingOpen, setCalendarMappingOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
@@ -875,6 +878,12 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const handleEditResource = (resource: any) => {
     // resource_type может быть числом или type строкой ('GITHUB', 'CLICK_HOUSE' etc)
     const numericType = resource.resource_type ?? resource.type_value ?? null
+    // Google Calendar has no editable connection form — instead of the detail
+    // view it opens the field-mapping modal (records → calendar event fields).
+    if (numericType === GOOGLE_CALENDAR_TYPE_VALUE) {
+      setCalendarMappingOpen(true)
+      return
+    }
     const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === numericType)
 
     setSelectedResource(categoryItem ?? {
@@ -1305,16 +1314,27 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                   <div className="text-text-muted text-xs leading-relaxed">
                     Google Calendar authorization completed successfully.
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-border-subtle bg-bg-main text-text-muted hover:bg-primary/5 hover:text-primary mt-auto w-full justify-center gap-2 rounded-lg font-semibold"
-                    onClick={() => connectGoogleCalendar(openOAuthPopup())}
-                    disabled={isConnectingGoogleCalendar}
-                  >
-                    {isConnectingGoogleCalendar ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                    {isConnectingGoogleCalendar ? 'Connecting…' : 'Reconnect'}
-                  </Button>
+                  <div className="mt-auto flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border-subtle bg-bg-main text-primary hover:bg-primary/5 min-w-27.5 flex-1 justify-center gap-2 rounded-lg font-semibold"
+                      onClick={() => setCalendarMappingOpen(true)}
+                    >
+                      <SlidersHorizontal size={14} />
+                      Map fields
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border-subtle bg-bg-main text-text-muted hover:bg-primary/5 hover:text-primary min-w-27.5 flex-1 justify-center gap-2 rounded-lg font-semibold"
+                      onClick={() => connectGoogleCalendar(openOAuthPopup())}
+                      disabled={isConnectingGoogleCalendar}
+                    >
+                      {isConnectingGoogleCalendar ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                      {isConnectingGoogleCalendar ? 'Connecting…' : 'Reconnect'}
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -1598,6 +1618,13 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           </div>
         )}
       </div>
+
+      {calendarMappingOpen && (
+        <GoogleCalendarFieldMappingModal
+          open={calendarMappingOpen}
+          onOpenChange={setCalendarMappingOpen}
+        />
+      )}
     </div>
   )
 }
