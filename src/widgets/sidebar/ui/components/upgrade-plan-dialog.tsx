@@ -588,7 +588,9 @@ export const UpgradePlanDialog = ({
           )}
 
           {/* Pricing cards */}
-          <div className="grid grid-cols-1 gap-5 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 px-6 py-6 sm:grid-cols-2 lg:grid-cols-[16%_repeat(4,minmax(0,1fr))] lg:gap-0">
+            {/* Spacer to align the cards over the compare-table plan columns (the table's Feature column is 16% wide) */}
+            <div className="hidden lg:block" aria-hidden="true" />
             {PLAN_META.map((plan) => {
               const fare = plan.fareName ? fareByName.get(plan.fareName) : null;
               const isEnterprise = plan.fareName === null;
@@ -681,7 +683,7 @@ export const UpgradePlanDialog = ({
                 <div
                   key={plan.key}
                   className={cn(
-                    "relative flex flex-col overflow-hidden rounded-xl border shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]",
+                    "relative flex flex-col overflow-hidden rounded-xl border shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.1)] lg:mx-1.5",
                     plan.featured && "z-10",
                     (isCurrent && !isFareFallback) || isRestorePlan
                       ? "border-primary shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]"
@@ -907,7 +909,7 @@ export const UpgradePlanDialog = ({
                             <th
                               key={fare.id}
                               className={cn(
-                                "relative w-[20%] px-3 py-2.5 font-bold",
+                                "relative w-[21%] px-3 py-2.5 font-bold",
                                 isCurrent
                                   ? "bg-primary/5 text-primary border-x-primary/30 border-t-primary border-x border-t-2"
                                   : "text-text-main",
@@ -930,7 +932,7 @@ export const UpgradePlanDialog = ({
                             </th>
                           );
                         })}
-                        <th className="text-text-main relative w-[20%] px-3 py-2.5 font-bold">
+                        <th className="text-text-main relative w-[21%] px-3 py-2.5 font-bold">
                           <div>Enterprise</div>
                           <div className="text-text-muted mt-0.5 text-[11px] font-normal normal-case">
                             Custom
