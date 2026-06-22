@@ -13,7 +13,7 @@ import { cn } from '@/shared/lib/utils/cn'
 /* ── Billing data ── */
 const PERIODS = [
   { key: 'month',   label: 'Monthly',  save: null,        multiplier: 1,    per: 'per user · billed monthly' },
-  { key: 'year',    label: 'Annual',   save: 'Save 24%', multiplier: 0.76, per: 'per user · billed annually' },
+  { key: 'year',    label: 'Annual',   save: 'Save 13%', multiplier: 0.87, per: 'per user · billed annually' },
 ] as const
 type Period = typeof PERIODS[number]['key']
 
@@ -228,7 +228,9 @@ export const PricingPage = () => {
       {/* Pricing Cards */}
       <section className="px-6 pt-0 pb-20" style={{ marginTop: '-20px' }}>
         <div className="max-w-[1100px] mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[12%_repeat(4,minmax(0,1fr))] gap-5 lg:gap-0 items-stretch">
+            {/* Spacer to align the cards over the compare-table plan columns (the table's Feature column is 12% wide) */}
+            <div className="hidden lg:block" aria-hidden="true" />
             {PLAN_META.map((plan) => {
               const fare = plan.fareName ? fareByName.get(plan.fareName) : null
               const isEnterprise = plan.fareName === null
@@ -257,9 +259,9 @@ export const PricingPage = () => {
                 <div
                   key={plan.key}
                   className={cn(
-                    'relative flex h-full flex-col overflow-hidden rounded-xl border bg-bg-card transition-all',
+                    'relative flex h-full flex-col overflow-hidden rounded-xl border bg-bg-card transition-all lg:mx-1.5',
                     plan.featured
-                      ? 'z-10 scale-[1.03] border-primary shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]'
+                      ? 'z-10 border-primary shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]'
                       : 'border-border-subtle shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]',
                   )}
                 >
