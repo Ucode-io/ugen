@@ -2857,6 +2857,13 @@ export const ProjectPreviewViewer = ({
                 refreshKey={refreshKey}
                 onFocusPage={handleFocusPage}
                 onClearFocus={handleClearFocus}
+                notesStorageKey={
+                  projectId ? `ugen:canvas-notes:${projectId}` : undefined
+                }
+                imagesStorageKey={
+                  projectId ? `ugen:canvas-images:${projectId}` : undefined
+                }
+                projectId={projectId}
               />
               {canvasBuilding && canvasPages.length === 0 && (
                 <WorkspaceLoader
