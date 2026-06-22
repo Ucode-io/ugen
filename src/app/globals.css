@@ -44,6 +44,9 @@
   --animate-glow-drift-c: glow-drift-c 14s ease-in-out infinite;
   --animate-glow-drift-d: glow-drift-d 20s ease-in-out infinite;
 
+  /* Голографический блик по перелистывающемуся слову заголовка */
+  --animate-holo-shimmer: holo-shimmer 4s linear infinite;
+
   @keyframes shimmer {
     from {
       background-position: 200% 0;
@@ -115,6 +118,23 @@
 @keyframes glow-drift-d {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50%      { transform: translate(10%, -10%) scale(1.1); }
+}
+
+/* Голографический блик: спектр бесшовно переливается по слову */
+@keyframes holo-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Уважаем системную настройку «уменьшить движение» — гасим дрейф и блик */
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-drift-a,
+  .animate-glow-drift-b,
+  .animate-glow-drift-c,
+  .animate-glow-drift-d,
+  .animate-holo-shimmer {
+    animation: none;
+  }
 }
 
 @keyframes scanner-line {

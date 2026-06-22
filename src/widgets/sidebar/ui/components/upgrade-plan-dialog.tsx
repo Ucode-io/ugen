@@ -48,17 +48,10 @@ const PERIODS = [
     per: "per user · billed monthly",
   },
   {
-    key: "6month",
-    label: "6 months",
-    save: "Save 13%",
-    multiplier: 0.87,
-    per: "per user · billed every 6 months",
-  },
-  {
     key: "year",
     label: "Annual",
-    save: "Save 24%",
-    multiplier: 0.76,
+    save: "Save 13%",
+    multiplier: 0.87,
     per: "per user · billed annually",
   },
 ] as const;
@@ -67,14 +60,12 @@ type Period = (typeof PERIODS)[number]["key"];
 /** Months billed per period -- used to size the top-up to the full billing cycle. */
 const PERIOD_MONTHS: Record<Period, number> = {
   year: 12,
-  "6month": 6,
   month: 1,
 };
 
 /** Backend billing-period codes sent in the AttachFare body. */
 const PERIOD_CODE: Record<Period, "monthly" | "six_months" | "annual"> = {
   month: "monthly",
-  "6month": "six_months",
   year: "annual",
 };
 
@@ -691,7 +682,7 @@ export const UpgradePlanDialog = ({
                   key={plan.key}
                   className={cn(
                     "relative flex flex-col overflow-hidden rounded-xl border shadow-[0_2px_12px_0_rgba(0,0,0,0.06)] transition-all hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]",
-                    plan.featured && "z-10 scale-[1.03]",
+                    plan.featured && "z-10",
                     (isCurrent && !isFareFallback) || isRestorePlan
                       ? "border-primary shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]"
                       : "border-border-subtle",
