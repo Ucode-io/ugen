@@ -1,2 +1,6 @@
 export { FileUploadModal } from './ui/FileUploadModal'
 export { useFileUpload } from './model/use-file-upload'
+export { AttachmentPreviews, type AttachmentPreviewsProps } from './ui/attachment-preview'
+export { FileDropOverlay } from './ui/file-drop-overlay'
+export { useFileDrop } from './lib/use-file-drop'
+export * from './lib/file-meta'
