@@ -588,6 +588,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
           queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
           toast.success('Google Calendar connected')
+          // Right after a successful connect, prompt the user to pick a table and
+          // bind its fields — the field-mapping modal opens immediately.
+          setCalendarMappingOpen(true)
         } else {
           toast.error('Google Calendar connection failed')
         }

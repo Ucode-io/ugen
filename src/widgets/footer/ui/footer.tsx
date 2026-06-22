@@ -25,7 +25,7 @@ const FOOTER_COLS = [
     links: [
       { label: 'Blog', href: '#' },
       { label: 'Careers', href: '#' },
-      { label: 'Privacy', href: '#' },
+      { label: 'Privacy', href: '/privacy-policy' },
       { label: 'Terms', href: '#' },
     ],
   },
@@ -119,7 +119,7 @@ export const Footer = () => {
             © {year} u&#8209;gen — All rights reserved.
           </p>
           <div className="flex gap-4 text-[0.76rem] text-text-muted/60">
-            <a href="#" className="hover:text-text-muted transition-colors no-underline">Privacy</a>
+            <Link href="/privacy-policy" className="hover:text-text-muted transition-colors no-underline">Privacy</Link>
             <a href="#" className="hover:text-text-muted transition-colors no-underline">Terms</a>
             <a href="#" className="hover:text-text-muted transition-colors no-underline">Security</a>
           </div>
