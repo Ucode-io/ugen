@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  AlignLeft,
+  CalendarCheck,
+  CalendarClock,
   CalendarDays,
   Check,
-  ChevronDown,
+  CircleDot,
   Database,
+  MapPin,
   Search,
   Table as TableIcon,
+  TriangleAlert,
+  Type,
+  type LucideIcon,
 } from "lucide-react";
 import { useTables, useTableDetail } from "@/entities/database";
 import type { Table } from "@/entities/database";
@@ -19,6 +26,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Skeleton,
 } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
@@ -33,20 +45,78 @@ interface CalendarFieldDef {
   key: GoogleCalendarEventField;
   label: string;
   required: boolean;
+  icon: LucideIcon;
+  hint: string;
+  /** Start/End read best from a date field — used for a soft type hint. */
+  expectsDate?: boolean;
 }
 
-// Google Calendar event properties a table column can be bound to. Order = the
-// display order; `required` marks properties an event cannot exist without.
+// The Google Calendar event properties, in display order. These are the fixed
+// targets the user maps table fields onto; `required` marks the ones an event
+// cannot exist without.
 const CALENDAR_FIELDS: CalendarFieldDef[] = [
-  { key: "summary", label: "Title", required: true },
-  { key: "start", label: "Start", required: true },
-  { key: "end", label: "End", required: true },
-  { key: "description", label: "Description", required: false },
-  { key: "location", label: "Location", required: false },
-  { key: "status", label: "Status", required: false },
+  {
+    key: "summary",
+    label: "Title",
+    required: true,
+    icon: Type,
+    hint: "Short title shown on the calendar event.",
+  },
+  {
+    key: "start",
+    label: "Start",
+    required: true,
+    icon: CalendarClock,
+    hint: "When the event begins. Choose a date / date-time field.",
+    expectsDate: true,
+  },
+  {
+    key: "end",
+    label: "End",
+    required: true,
+    icon: CalendarCheck,
+    hint: "When the event ends. Choose a date / date-time field.",
+    expectsDate: true,
+  },
+  {
+    key: "description",
+    label: "Description",
+    required: false,
+    icon: AlignLeft,
+    hint: "Longer details shown in the event body.",
+  },
+  {
+    key: "location",
+    label: "Location",
+    required: false,
+    icon: MapPin,
+    hint: "Where the event takes place.",
+  },
+  {
+    key: "status",
+    label: "Status",
+    required: false,
+    icon: CircleDot,
+    hint: "Event status: confirmed, tentative or cancelled.",
+  },
 ];
 
-// Google Calendar event property → table column slug.
+// uCode field types that carry a date — used for the Start/End soft hint.
+const DATE_FIELD_TYPES = new Set([
+  "DATE",
+  "DATE_TIME",
+  "DATETIME",
+  "TIME",
+  "TIMESTAMP",
+]);
+const isDateField = (type?: string) =>
+  !!type && DATE_FIELD_TYPES.has(type.toUpperCase());
+
+// Radix Select forbids an empty-string item value, so the "clear" option uses
+// this sentinel and is translated back to "" (unmapped) on change.
+const NONE_VALUE = "__none__";
+
+// Google Calendar event property → table field slug.
 type Mapping = Partial<Record<GoogleCalendarEventField, string>>;
 
 interface GoogleCalendarFieldMappingModalProps {
@@ -90,8 +160,8 @@ export const GoogleCalendarFieldMappingModal = ({
   // Bind to the table's uCode fields (what the Calendar mapping API validates
   // against), NOT the raw DB columns: the latter include system fields like
   // created_at / updated_at / deleted_at that the endpoint rejects with
-  // "field not found in table".
-  const columns = tableDetail?.fields ?? [];
+  // "field not found in table". Memoised so it stays a stable effect dep.
+  const columns = useMemo(() => tableDetail?.fields ?? [], [tableDetail]);
 
   // Seed a table's saved binding the first time it is opened this session —
   // without clobbering edits made before the user switched away and back.
@@ -107,39 +177,50 @@ export const GoogleCalendarFieldMappingModal = ({
     });
   }, [selectedTable, projectId]);
 
+  // Once the real fields load, drop any mapped slug that no longer exists on the
+  // table (e.g. a stale `created_at` from an older cache) so it can't be shown
+  // as a blank dropdown or re-sent to the API.
+  useEffect(() => {
+    if (!selectedTable || columns.length === 0) return;
+    const valid = new Set(columns.map((c) => c.slug));
+    setMappingByTable((prev) => {
+      const current = prev[selectedTable];
+      if (!current) return prev;
+      let changed = false;
+      const next: Mapping = {};
+      for (const [key, slug] of Object.entries(current)) {
+        if (slug && valid.has(slug))
+          next[key as GoogleCalendarEventField] = slug;
+        else changed = true;
+      }
+      return changed ? { ...prev, [selectedTable]: next } : prev;
+    });
+  }, [selectedTable, columns]);
+
   const mapping: Mapping =
     (selectedTable && mappingByTable[selectedTable]) || {};
 
-  // Which calendar property (if any) a column is currently bound to.
-  const propertyForColumn = (
-    colSlug: string,
-  ): GoogleCalendarEventField | "" =>
-    CALENDAR_FIELDS.find((f) => mapping[f.key] === colSlug)?.key ?? "";
-
-  const assignColumn = (
-    colSlug: string,
-    property: GoogleCalendarEventField | "",
-  ) => {
+  const setProperty = (key: GoogleCalendarEventField, slug: string) => {
     if (!selectedTable) return;
     setMappingByTable((prev) => {
       const current: Mapping = { ...(prev[selectedTable] ?? {}) };
-      // Unbind this column from whatever property it currently held.
-      for (const f of CALENDAR_FIELDS) {
-        if (current[f.key] === colSlug) delete current[f.key];
-      }
-      // Bind the chosen property to this column (steals it from another column).
-      if (property) current[property] = colSlug;
+      if (slug) current[key] = slug;
+      else delete current[key];
       return { ...prev, [selectedTable]: current };
     });
   };
 
+  const fieldType = (slug: string) =>
+    columns.find((c) => c.slug === slug)?.type;
+
+  const requiredFields = CALENDAR_FIELDS.filter((f) => f.required);
+  const missingRequired = requiredFields.filter((f) => !mapping[f.key]);
+  const requiredMapped = requiredFields.length - missingRequired.length;
   const mappedCount = CALENDAR_FIELDS.filter((f) => mapping[f.key]).length;
-  const missingRequired = CALENDAR_FIELDS.filter(
-    (f) => f.required && !mapping[f.key],
-  );
+  const canSave = !!selectedTable && missingRequired.length === 0;
 
   const handleSave = async () => {
-    if (!selectedTable) return;
+    if (!selectedTable || !canSave) return;
     setIsSaving(true);
     try {
       const binding: GoogleCalendarFieldBinding = {
@@ -152,6 +233,7 @@ export const GoogleCalendarFieldMappingModal = ({
       };
       await googleCalendarIntegrationApi.saveFieldBinding(projectId, binding);
       toast.success("Field mapping saved");
+      onOpenChange(false);
     } catch {
       toast.error("Failed to save field mapping");
     } finally {
@@ -175,17 +257,17 @@ export const GoogleCalendarFieldMappingModal = ({
               Map fields to Google Calendar
             </DialogTitle>
             <DialogDescription>
-              Pick a table, then bind its fields to Google Calendar event
-              properties.
+              Pick a table, then choose which of its fields fills each Google
+              Calendar event property.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Body — tables (left) + fields & mapping (right) */}
+          {/* Body — tables (left) + properties & mapping (right) */}
           <div className="flex min-h-0 flex-1">
             {/* Left — tables */}
             <div className="border-border-subtle flex w-60 shrink-0 flex-col border-r">
               <div className="border-border-subtle border-b p-2">
-                <div className="bg-bg-main border-border-subtle flex items-center rounded-md border px-2">
+                <div className="bg-bg-main border-border-subtle focus-within:border-primary/60 flex items-center rounded-md border px-2 transition-colors">
                   <Search size={13} className="text-text-muted shrink-0" />
                   <input
                     placeholder="Search tables..."
@@ -254,35 +336,60 @@ export const GoogleCalendarFieldMappingModal = ({
               </div>
             </div>
 
-            {/* Right — fields + mapping */}
+            {/* Right — properties + mapping */}
             <div className="flex min-w-0 flex-1 flex-col">
               {!selectedTable ? (
                 <div className="text-text-muted flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
                   <Database size={26} className="opacity-40" />
                   <p className="text-[13px]">
-                    Select a table to view its fields and bind them.
+                    Select a table on the left to map its fields to calendar
+                    events.
                   </p>
                 </div>
               ) : (
                 <>
-                  <div className="border-border-subtle flex items-center gap-2 border-b px-4 py-2.5">
-                    <span className="text-text-main truncate text-[13px] font-semibold">
-                      {selectedTableLabel}
+                  {/* Selected-table bar with required progress */}
+                  <div className="border-border-subtle flex items-center gap-3 border-b px-5 py-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <TableIcon
+                          size={13}
+                          className="text-text-muted shrink-0"
+                        />
+                        <span className="text-text-main truncate text-[13px] font-semibold">
+                          {selectedTableLabel}
+                        </span>
+                      </div>
+                      <p className="text-text-muted mt-0.5 text-[11px]">
+                        {columns.length} fields available
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "ml-auto shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                        missingRequired.length === 0
+                          ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+                      )}
+                    >
+                      {requiredMapped}/{requiredFields.length} required mapped
                     </span>
-                    <span className="text-text-muted shrink-0 text-[11px]">
-                      {columns.length} fields
-                    </span>
-                    <span className="text-text-muted ml-auto shrink-0 text-[11px] font-medium">
-                      {mappedCount}/{CALENDAR_FIELDS.length} calendar fields
-                      mapped
-                    </span>
+                  </div>
+
+                  {/* Guidance banner */}
+                  <div className="bg-bg-sidebar/40 border-border-subtle text-text-muted border-b px-5 py-2 text-[12px]">
+                    Choose which field fills each property.{" "}
+                    <span className="font-medium text-amber-600 dark:text-amber-400">
+                      Required
+                    </span>{" "}
+                    properties must be mapped before saving.
                   </div>
 
                   <div className="flex-1 overflow-y-auto">
                     {fieldsLoading ? (
-                      <div className="flex flex-col gap-2 p-4">
+                      <div className="flex flex-col gap-3 p-5">
                         {Array.from({ length: 6 }).map((_, i) => (
-                          <Skeleton key={i} className="h-9 w-full rounded-md" />
+                          <Skeleton key={i} className="h-14 w-full rounded-lg" />
                         ))}
                       </div>
                     ) : columns.length === 0 ? (
@@ -290,72 +397,114 @@ export const GoogleCalendarFieldMappingModal = ({
                         No fields found for this table.
                       </div>
                     ) : (
-                      columns.map((col) => {
-                        const assigned = propertyForColumn(col.slug);
-                        const label = col.label || col.slug;
+                      CALENDAR_FIELDS.map((f) => {
+                        const Icon = f.icon;
+                        const selected = mapping[f.key] ?? "";
+                        const isMissing = f.required && !selected;
+                        const showDateHint =
+                          !!selected &&
+                          f.expectsDate &&
+                          !isDateField(fieldType(selected));
                         return (
                           <div
-                            key={col.id ?? col.slug}
-                            className="group border-border-subtle hover:bg-hover-bg/50 flex items-center gap-3 border-b px-4 py-2 transition-colors"
+                            key={f.key}
+                            className={cn(
+                              "border-border-subtle flex items-start gap-4 border-b px-5 py-3.5 transition-colors",
+                              isMissing
+                                ? "bg-amber-500/[0.03]"
+                                : "hover:bg-hover-bg/40",
+                            )}
                           >
-                            <div className="flex min-w-0 flex-1 items-center gap-2">
-                              <span className="text-text-main truncate text-[13px] font-medium">
-                                {label}
-                              </span>
-                              {col.label && col.label !== col.slug && (
-                                <span className="text-text-muted shrink-0 font-mono text-[11px]">
-                                  {col.slug}
-                                </span>
-                              )}
-                              <span className="shrink-0 rounded bg-blue-400/[0.08] px-1.5 py-0.5 font-mono text-[11px] text-blue-400">
-                                {col.type}
-                              </span>
-                            </div>
-
-                            <div className="relative w-52 shrink-0">
-                              <select
-                                value={assigned}
-                                onChange={(e) =>
-                                  assignColumn(
-                                    col.slug,
-                                    e.target
-                                      .value as GoogleCalendarEventField | "",
-                                  )
-                                }
+                            {/* Property identity */}
+                            <div className="flex min-w-0 flex-1 items-start gap-3">
+                              <div
                                 className={cn(
-                                  "w-full appearance-none rounded border py-1.5 pr-7 pl-2.5 text-[12px] outline-none transition-colors",
-                                  assigned
-                                    ? "text-text-main border-green-500/40 bg-green-500/5 font-medium"
-                                    : "border-border-subtle bg-bg-main text-text-muted focus:border-primary/60",
+                                  "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
+                                  selected
+                                    ? "border-green-500/30 bg-green-500/10 text-green-500"
+                                    : isMissing
+                                      ? "border-amber-500/30 bg-amber-500/10 text-amber-500"
+                                      : "border-border-subtle bg-bg-sidebar text-text-muted",
                                 )}
                               >
-                                <option value="">Not mapped</option>
-                                {CALENDAR_FIELDS.map((f) => (
-                                  <option key={f.key} value={f.key}>
+                                <Icon size={15} />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-text-main text-[13px] font-semibold">
                                     {f.label}
-                                    {f.required ? " *" : ""}
-                                  </option>
-                                ))}
-                              </select>
-                              <ChevronDown
-                                size={12}
-                                className="text-text-muted pointer-events-none absolute top-1/2 right-2 -translate-y-1/2"
-                              />
+                                  </span>
+                                  {f.required ? (
+                                    <span className="rounded-full bg-amber-500/15 px-1.5 py-px text-[10px] font-semibold tracking-wide text-amber-600 uppercase dark:text-amber-400">
+                                      Required
+                                    </span>
+                                  ) : (
+                                    <span className="text-text-muted/60 text-[10px] font-medium tracking-wide uppercase">
+                                      Optional
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-text-muted mt-0.5 text-[12px] leading-snug">
+                                  {f.hint}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Field picker */}
+                            <div className="w-56 shrink-0">
+                              <Select
+                                value={selected || NONE_VALUE}
+                                onValueChange={(v) =>
+                                  setProperty(f.key, v === NONE_VALUE ? "" : v)
+                                }
+                              >
+                                <SelectTrigger
+                                  className={cn(
+                                    "h-9 text-[13px]",
+                                    selected
+                                      ? "border-green-500/40"
+                                      : isMissing
+                                        ? "border-amber-500/50"
+                                        : "",
+                                  )}
+                                >
+                                  <SelectValue placeholder="Choose a field…" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-64">
+                                  <SelectItem value={NONE_VALUE}>
+                                    <span className="text-text-muted">
+                                      — Not mapped —
+                                    </span>
+                                  </SelectItem>
+                                  {columns.map((col) => (
+                                    <SelectItem
+                                      key={col.id ?? col.slug}
+                                      value={col.slug}
+                                    >
+                                      <span className="flex items-center gap-2">
+                                        <span className="truncate">
+                                          {col.label || col.slug}
+                                        </span>
+                                        <span className="bg-bg-sidebar text-text-muted shrink-0 rounded px-1 py-px font-mono text-[10px]">
+                                          {col.type}
+                                        </span>
+                                      </span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {showDateHint && (
+                                <p className="mt-1 flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                  <TriangleAlert size={11} className="shrink-0" />
+                                  Works best with a date / date-time field
+                                </p>
+                              )}
                             </div>
                           </div>
                         );
                       })
                     )}
                   </div>
-
-                  {missingRequired.length > 0 && columns.length > 0 && (
-                    <div className="border-border-subtle text-text-muted border-t px-4 py-2 text-[11px]">
-                      Required calendar fields not yet mapped:{" "}
-                      <span className="text-text-main font-medium">
-                        {missingRequired.map((f) => f.label).join(", ")}
-                      </span>
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -364,7 +513,17 @@ export const GoogleCalendarFieldMappingModal = ({
           {/* Footer */}
           <div className="border-border-subtle flex items-center justify-between gap-3 border-t px-5 py-3">
             <p className="text-text-muted hidden text-[11px] sm:block">
-              Saved locally until the Google Calendar sync API is available.
+              {!selectedTable
+                ? "Select a table to begin mapping."
+                : missingRequired.length > 0
+                  ? `Map all required fields to save: ${missingRequired
+                      .map((f) => f.label)
+                      .join(", ")}`
+                  : `All required fields mapped${
+                      mappedCount > requiredFields.length
+                        ? ` · ${mappedCount} fields total`
+                        : ""
+                    } — ready to save.`}
             </p>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -374,7 +533,7 @@ export const GoogleCalendarFieldMappingModal = ({
                 variant="primary"
                 onClick={handleSave}
                 loading={isSaving}
-                disabled={!selectedTable || mappedCount === 0}
+                disabled={!canSave}
               >
                 <Check size={14} />
                 Save mapping
