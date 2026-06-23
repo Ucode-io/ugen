@@ -15,9 +15,20 @@ interface FileUploadResponse {
   };
 }
 
+/** A successfully uploaded attachment, as consumed by the preview UI. */
+export interface UploadedFile {
+  id: string;
+  url: string;
+  name: string;
+  /** Size in bytes (from the local File at upload time). */
+  size?: number;
+  /** MIME type (from the local File at upload time), e.g. "application/pdf". */
+  type?: string;
+}
+
 export const useFileUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<{ id: string; url: string; name: string }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   const uploadFile = useCallback(async (file: File, folderName?: string) => {
     setIsUploading(true);
@@ -33,10 +44,14 @@ export const useFileUpload = () => {
       const cdnUrl = process.env.NEXT_PUBLIC_CDN_BASE_URL || 'https://cdn.u-code.io';
       const fileUrl = `${cdnUrl}/${data.data.link}`;
 
-      const newFile = {
+      const newFile: UploadedFile = {
         id: data.data.id,
         url: fileUrl,
-        name: data.data.title,
+        name: data.data.title || file.name,
+        // Capture from the local File — the upload response carries no MIME
+        // type, and its title may lack an extension. These power the preview UI.
+        size: data.data.file_size ?? file.size,
+        type: file.type,
       };
 
       setUploadedFiles((prev) => [...prev, newFile]);

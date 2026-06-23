@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronLeft, Loader2, Trash2, RefreshCw, Box, Search, Plug } from 'lucide-react'
+import { ChevronLeft, Loader2, Trash2, RefreshCw, Box, Search, Plug, SlidersHorizontal } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi, api } from '@/shared/api'
 import { githubIntegrationApi } from '@/features/github-integration'
@@ -9,6 +9,7 @@ import type { GithubIntegration } from '@/features/github-integration'
 import { gitlabIntegrationApi } from '@/features/gitlab-integration'
 import { bitbucketIntegrationApi } from '@/features/bitbucket-integration'
 import { googleDriveIntegrationApi } from '@/features/google-drive-integration'
+import { googleCalendarIntegrationApi, GoogleCalendarFieldMappingModal } from '@/features/google-calendar-integration'
 import { useAuthStore } from '@/entities/session'
 import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
@@ -34,6 +35,7 @@ import { centeredPopupFeatures } from '@/shared/lib/utils/centered-popup'
 import { toast } from 'sonner'
 
 const GOOGLE_DRIVE_TYPE_VALUE = 1001
+const GOOGLE_CALENDAR_TYPE_VALUE = 1002
 
 // Resource type options — these are static, no API needed
 const resourceTypes = [
@@ -88,10 +90,23 @@ const normalizeApiResource = (item: any) => {
     canonType === 'GDRIVE' ||
     String(item.provider ?? '').toLowerCase() === 'google-drive' ||
     String(item.name ?? '').trim().toLowerCase() === 'google drive'
-  const finalType = isGoogleDrive ? GOOGLE_DRIVE_TYPE_VALUE : numericType
+  // Google Calendar — same story as Drive: connects via OAuth, not the create
+  // form, so pin it to its UI value and label by detecting its server type.
+  const isGoogleCalendar =
+    numericType === GOOGLE_CALENDAR_TYPE_VALUE ||
+    canonType === 'GOOGLECALENDAR' ||
+    canonType === 'GCALENDAR' ||
+    canonType === 'GCAL' ||
+    String(item.provider ?? '').toLowerCase() === 'google-calendar' ||
+    String(item.name ?? '').trim().toLowerCase() === 'google calendar'
+  const finalType = isGoogleDrive
+    ? GOOGLE_DRIVE_TYPE_VALUE
+    : isGoogleCalendar
+      ? GOOGLE_CALENDAR_TYPE_VALUE
+      : numericType
   const typeLabel =
     resourceTypes.find(t => t.value === finalType)?.label ??
-    (isGoogleDrive ? 'Google Drive' : undefined)
+    (isGoogleDrive ? 'Google Drive' : isGoogleCalendar ? 'Google Calendar' : undefined)
   return {
     ...item,
     resource_type: finalType,
@@ -133,6 +148,7 @@ const resourceCategories = [
     label: 'Productivity',
     items: [
       { label: 'Google Drive', typeValue: GOOGLE_DRIVE_TYPE_VALUE, icon: 'google-drive' },
+      { label: 'Google Calendar', typeValue: GOOGLE_CALENDAR_TYPE_VALUE, icon: 'google-calendar' },
     ]
   },
   {
@@ -162,6 +178,21 @@ const ResourceIcon = ({ type }: { type: string }) => {
         <path fill="#00832D" d="M43.65 25 57.4 1.2c-1.35-.8-2.9-1.2-4.5-1.2H34.4c-1.6 0-3.15.45-4.5 1.2L43.65 25Z" />
         <path fill="#2684FC" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2L59.8 53Z" />
         <path fill="#FFBA00" d="M73.4 26.5 60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5L73.4 26.5Z" />
+      </svg>
+    ),
+    'google-calendar': (
+      <svg width="22" height="22" viewBox="0 0 200 200" aria-hidden="true">
+        <path fill="#fff" d="M152 47H48v106h104z" />
+        <path fill="#1a73e8" d="M152 200l48-48h-48z" />
+        <path fill="#ea4335" d="M0 47l48-1V0H12C5.4 0 0 5.4 0 12z" />
+        <path fill="#4285f4" d="M48 0v47h104V0H60z" />
+        <path fill="#34a853" d="M0 153v35c0 6.6 5.4 12 12 12h36v-47z" />
+        <path fill="#188038" d="M0 47h48v106H0z" />
+        <path fill="#fbbc04" d="M200 47v106h-48V47z" />
+        <path fill="#1967d2" d="M200 47V12c0-6.6-5.4-12-12-12h-36v47z" />
+        <path fill="#4285f4" d="M48 153h104v47H48z" />
+        <path fill="#4285f4" d="M71.6 124.3c-4-2.7-6.7-6.6-8.2-11.8l9-3.7c.8 3.2 2.3 5.6 4.4 7.4 2 1.7 4.5 2.6 7.4 2.6 3 0 5.5-.9 7.6-2.7 2.1-1.8 3.1-4.1 3.1-6.9 0-2.9-1.1-5.2-3.3-7-2.2-1.8-5-2.7-8.2-2.7h-5.2v-8.9h4.7c2.8 0 5.2-.8 7.1-2.3 2-1.5 2.9-3.6 2.9-6.3 0-2.4-.9-4.3-2.6-5.7-1.7-1.4-4-2.1-6.6-2.1-2.6 0-4.7.7-6.2 2.1-1.6 1.4-2.7 3.1-3.4 5.1l-8.9-3.7c1.1-3.2 3.2-6 6.2-8.5 3-2.5 6.9-3.7 11.6-3.7 3.5 0 6.6.7 9.4 2 2.7 1.4 4.9 3.2 6.4 5.6 1.6 2.4 2.3 5.1 2.3 8 0 3-.7 5.6-2.2 7.6-1.4 2.1-3.3 3.7-5.4 4.8v.5c2.8 1.2 5.2 3 7 5.5 1.8 2.5 2.8 5.5 2.8 9 0 3.5-.9 6.6-2.7 9.3-1.8 2.7-4.2 4.9-7.4 6.4-3.1 1.5-6.6 2.3-10.6 2.3-4.6.1-8.8-1.3-12.8-4z" />
+        <path fill="#4285f4" d="M124.5 79.3l-9.9 7.2-5-7.6 17.8-12.8h6.8v60.4h-9.7z" />
       </svg>
     ),
     github: (
@@ -312,6 +343,10 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All Categories')
   const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
+  const [isGoogleCalendarConnected, setIsGoogleCalendarConnected] = useState(false)
+  // Field-mapping modal (bind a uCode table's fields to Google Calendar event
+  // properties). Kept here so it's reachable from every Google Calendar card.
+  const [calendarMappingOpen, setCalendarMappingOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
@@ -385,6 +420,36 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.data || err?.message || 'Failed to connect Google Drive')
+    },
+  })
+
+  const { mutate: connectGoogleCalendar, isPending: isConnectingGoogleCalendar } = useMutation({
+    mutationFn: async (popup: Window | null) => {
+      try {
+        // Same API-KEY resolution as Google Drive — prefer the session store and
+        // fall back to fetching the project's api_key.
+        const session = useAuthStore.getState()
+        let apiKey =
+          session.apiKey && session.apiKeyProjectId === projectId ? session.apiKey : null
+        if (!apiKey) {
+          const { data } = await api.get(`/v1/mcp_project/${projectId}`)
+          apiKey = data?.data?.api_key ?? null
+          if (apiKey) session.setApiKey(apiKey, projectId)
+        }
+        if (!apiKey) {
+          popup?.close()
+          throw new Error('Project API key is not available')
+        }
+        const url = await googleCalendarIntegrationApi.getConnectUrl(apiKey, projectId)
+        if (popup && !popup.closed) popup.location.href = url
+        else window.open(url, '_blank')
+      } catch (err) {
+        popup?.close()
+        throw err
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.data || err?.message || 'Failed to connect Google Calendar')
     },
   })
 
@@ -505,9 +570,29 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       if (d.provider === 'google-drive') {
         if (d.status === 'success') {
           setIsGoogleDriveConnected(true)
+          // Refetch the resource lists so the new Google Drive card shows up —
+          // same as GitHub/GitLab/Bitbucket below.
+          queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
+          queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
+          queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
           toast.success('Google Drive connected')
         } else {
           toast.error('Google Drive connection failed')
+        }
+        return
+      }
+      if (d.provider === 'google-calendar') {
+        if (d.status === 'success') {
+          setIsGoogleCalendarConnected(true)
+          queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
+          queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
+          queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
+          toast.success('Google Calendar connected')
+          // Right after a successful connect, prompt the user to pick a table and
+          // bind its fields — the field-mapping modal opens immediately.
+          setCalendarMappingOpen(true)
+        } else {
+          toast.error('Google Calendar connection failed')
         }
         return
       }
@@ -758,6 +843,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       return
     }
 
+    if (item.typeValue === GOOGLE_CALENDAR_TYPE_VALUE) {
+      connectGoogleCalendar(openOAuthPopup())
+      return
+    }
+
     // GitHub — connect via backend OAuth flow (opens in a popup window)
     if (item.typeValue === 5) {
       connectGithub(openOAuthPopup())
@@ -791,6 +881,12 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const handleEditResource = (resource: any) => {
     // resource_type может быть числом или type строкой ('GITHUB', 'CLICK_HOUSE' etc)
     const numericType = resource.resource_type ?? resource.type_value ?? null
+    // Google Calendar has no editable connection form — instead of the detail
+    // view it opens the field-mapping modal (records → calendar event fields).
+    if (numericType === GOOGLE_CALENDAR_TYPE_VALUE) {
+      setCalendarMappingOpen(true)
+      return
+    }
     const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === numericType)
 
     setSelectedResource(categoryItem ?? {
@@ -1102,6 +1198,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   if (isGitlabConnected || isGitlabExpired) connectedTypeValues.add(8)
   if (isBitbucketConnected || isBitbucketExpired) connectedTypeValues.add(9)
   if (isGoogleDriveConnected) connectedTypeValues.add(GOOGLE_DRIVE_TYPE_VALUE)
+  if (isGoogleCalendarConnected) connectedTypeValues.add(GOOGLE_CALENDAR_TYPE_VALUE)
 
   const availableResources = resourceCategories.flatMap(c => c.items.map(i => ({...i, categoryId: c.id, categoryLabel: c.label})))
   const filteredAvailableResources = availableResources.filter(item => {
@@ -1111,7 +1208,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     return matchesSearch && matchesCategory
   })
 
-  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired || isGitlabConnected || isGitlabExpired || isBitbucketConnected || isBitbucketExpired || isGoogleDriveConnected
+  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired || isGitlabConnected || isGitlabExpired || isBitbucketConnected || isBitbucketExpired || isGoogleDriveConnected || isGoogleCalendarConnected
   const githubMatchesSearch = 'github'.includes(searchQuery.toLowerCase()) || searchQuery === ''
   const githubMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
   const gitlabMatchesSearch = 'gitlab'.includes(searchQuery.toLowerCase()) || searchQuery === ''
@@ -1120,6 +1217,14 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const bitbucketMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
   const googleDriveMatchesSearch = 'google drive'.includes(searchQuery.toLowerCase()) || searchQuery === ''
   const googleDriveMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'productivity'
+  const googleCalendarMatchesSearch = 'google calendar'.includes(searchQuery.toLowerCase()) || searchQuery === ''
+  const googleCalendarMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'productivity'
+
+  // Once the refetched resource list contains the Drive/Calendar resource it
+  // renders its own connected card below, so drop the session-state card to
+  // avoid a brief duplicate right after connecting (state flag + API resource).
+  const apiHasGoogleDrive = resourcesList.some((r: any) => r.resource_type === GOOGLE_DRIVE_TYPE_VALUE)
+  const apiHasGoogleCalendar = resourcesList.some((r: any) => r.resource_type === GOOGLE_CALENDAR_TYPE_VALUE)
 
   return (
     <div className="@container space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
@@ -1162,7 +1267,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
             <div className="grid grid-cols-1 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4 gap-4">
 
               {/* Google Drive card */}
-              {isGoogleDriveConnected && googleDriveMatchesSearch && googleDriveMatchesCategory && (
+              {isGoogleDriveConnected && !apiHasGoogleDrive && googleDriveMatchesSearch && googleDriveMatchesCategory && (
                 <div
                   className="bg-bg-card border-border-subtle flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
                   style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
@@ -1190,6 +1295,49 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     {isConnectingGoogleDrive ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     {isConnectingGoogleDrive ? 'Connecting…' : 'Reconnect'}
                   </Button>
+                </div>
+              )}
+
+              {/* Google Calendar card */}
+              {isGoogleCalendarConnected && !apiHasGoogleCalendar && googleCalendarMatchesSearch && googleCalendarMatchesCategory && (
+                <div
+                  className="bg-bg-card border-border-subtle flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
+                  style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <ResourceIcon type="google-calendar" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-text-main truncate text-sm font-bold">Google Calendar</div>
+                      <div className="text-text-muted truncate text-[11px]">Calendar &amp; scheduling</div>
+                    </div>
+                    <span className="ml-auto shrink-0 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-green-500 uppercase">
+                      Connected
+                    </span>
+                  </div>
+                  <div className="text-text-muted text-xs leading-relaxed">
+                    Google Calendar authorization completed successfully.
+                  </div>
+                  <div className="mt-auto flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border-subtle bg-bg-main text-primary hover:bg-primary/5 min-w-27.5 flex-1 justify-center gap-2 rounded-lg font-semibold"
+                      onClick={() => setCalendarMappingOpen(true)}
+                    >
+                      <SlidersHorizontal size={14} />
+                      Map fields
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border-subtle bg-bg-main text-text-muted hover:bg-primary/5 hover:text-primary min-w-27.5 flex-1 justify-center gap-2 rounded-lg font-semibold"
+                      onClick={() => connectGoogleCalendar(openOAuthPopup())}
+                      disabled={isConnectingGoogleCalendar}
+                    >
+                      {isConnectingGoogleCalendar ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                      {isConnectingGoogleCalendar ? 'Connecting…' : 'Reconnect'}
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -1446,7 +1594,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       (item.typeValue === 5 && isConnectingGithub) ||
                       (item.typeValue === 8 && isConnectingGitlab) ||
                       (item.typeValue === 9 && isConnectingBitbucket) ||
-                      (item.typeValue === GOOGLE_DRIVE_TYPE_VALUE && isConnectingGoogleDrive)
+                      (item.typeValue === GOOGLE_DRIVE_TYPE_VALUE && isConnectingGoogleDrive) ||
+                      (item.typeValue === GOOGLE_CALENDAR_TYPE_VALUE && isConnectingGoogleCalendar)
                     return (
                       <Button
                         variant="outline"
@@ -1472,6 +1621,13 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           </div>
         )}
       </div>
+
+      {calendarMappingOpen && (
+        <GoogleCalendarFieldMappingModal
+          open={calendarMappingOpen}
+          onOpenChange={setCalendarMappingOpen}
+        />
+      )}
     </div>
   )
 }
