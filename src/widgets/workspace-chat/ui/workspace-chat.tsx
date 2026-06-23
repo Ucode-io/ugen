@@ -579,7 +579,13 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
           ? resData
           : resData.messages || resData.data || [];
 
-        activeChatId = historyMessages?.[0]?.chat_id || historyMessages?.[1]?.chat_id;
+        // A brand-new chat comes back with an empty `messages` array, so the
+        // chat id can't be read off a message. Fall back to `data.data.id`,
+        // which the project endpoint returns as the chat's own id.
+        activeChatId =
+          historyMessages?.[0]?.chat_id ||
+          historyMessages?.[1]?.chat_id ||
+          (!Array.isArray(resData) ? resData?.id : undefined);
         setChatId(activeChatId);
       } catch (err) {
         console.error("Failed to create chat", err);
