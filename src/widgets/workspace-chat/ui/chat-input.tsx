@@ -3,7 +3,6 @@ import {
   MousePointerClick,
   ArrowUp,
   X,
-  FileIcon,
   Loader2,
   Plus,
   Zap,
@@ -19,7 +18,6 @@ import {
   useRef,
   KeyboardEvent,
   ClipboardEvent,
-  DragEvent,
   useEffect,
 } from "react";
 import {
@@ -29,6 +27,7 @@ import {
   PopoverTrigger,
 } from "@/shared/ui";
 import { useFileUpload } from "@/shared/hooks/useFileUpload";
+import { AttachmentPreviews, FileDropOverlay, useFileDrop } from "@/features/file-upload";
 import { useVisualEditorStore } from "@/entities/visual-editor";
 import {
   DEFAULT_MODEL_ID,
@@ -114,6 +113,9 @@ export const ChatInput = ({
 
   const { uploadFile, uploadedFiles, removeFile, clearFiles, isUploading } =
     useFileUpload();
+  const { isDragging, dragProps } = useFileDrop(async (files) => {
+    for (let i = 0; i < files.length; i++) await uploadFile(files[i]);
+  });
 
   const apiKey = useAuthStore((s) => s.apiKey);
   const project = useAuthStore((s) => s.project);
@@ -495,15 +497,6 @@ export const ChatInput = ({
     }
   };
 
-  const handleDrop = async (e: DragEvent) => {
-    e.preventDefault();
-    const files = e.dataTransfer.files;
-    if (files) {
-      for (let i = 0; i < files.length; i++) {
-        await uploadFile(files[i]);
-      }
-    }
-  };
 
   return (
     <div
@@ -511,9 +504,10 @@ export const ChatInput = ({
         "bg-bg-card border-border-subtle focus-within:ring-border-subtle relative flex w-full flex-col overflow-hidden rounded-[20px] border p-2 shadow-sm transition-all focus-within:ring-1",
         className,
       )}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={handleDrop}
+      {...dragProps}
     >
+      <FileDropOverlay active={isDragging} />
+
       {/* Visual Edit Selected Elements */}
       {selectedElements.length > 0 && (
         <div className="mb-1 flex max-h-[60px] flex-wrap gap-2 overflow-x-auto px-3 pt-2">
@@ -549,42 +543,7 @@ export const ChatInput = ({
       )}
 
       {/* File Previews */}
-      {uploadedFiles.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-3 pt-2">
-          {uploadedFiles.map((file) => {
-            const isImage = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(file.name);
-            return (
-              <div
-                key={file.id}
-                className="group bg-bg-main border-border-subtle relative flex max-w-[200px] items-center gap-2 rounded-lg border p-2"
-              >
-                {isImage ? (
-                  <div className="border-border-subtle h-10 w-10 shrink-0 overflow-hidden rounded-md border">
-                    <img
-                      src={file.url}
-                      alt={file.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="bg-border-subtle text-text-muted group-hover:text-text-main rounded-md p-1.5 transition-colors">
-                    <FileIcon size={16} />
-                  </div>
-                )}
-                <span className="text-text-main truncate text-xs font-medium">
-                  {file.name}
-                </span>
-                <button
-                  onClick={() => removeFile(file.id)}
-                  className="absolute -top-1.5 -right-1.5 z-10 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
-                >
-                  <X size={10} strokeWidth={3} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <AttachmentPreviews files={uploadedFiles} onRemove={removeFile} size="sm" className="px-3 pt-2" />
 
       <textarea
         ref={textareaRef}

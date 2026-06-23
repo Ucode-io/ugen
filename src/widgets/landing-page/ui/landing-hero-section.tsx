@@ -1,11 +1,12 @@
 'use client'
-import { Plus, ArrowUp, Loader2, X, FileIcon } from 'lucide-react'
-import { useRef, useEffect, useState, ClipboardEvent, DragEvent } from 'react'
+import { Plus, ArrowUp, Loader2 } from 'lucide-react'
+import { useRef, useEffect, useState, ClipboardEvent } from 'react'
 import { useRouter } from '@/shared/lib/i18n/navigation'
 import { api } from '@/shared/api'
 import { useChatStore } from '@/entities/chat'
 import { AudioRecorder } from '@/shared/ui'
 import { useFileUpload } from '@/shared/hooks/useFileUpload'
+import { AttachmentPreviews, FileDropOverlay, useFileDrop } from '@/features/file-upload'
 import { ModelSelector, DEFAULT_MODEL_ID } from '@/entities/ai-model'
 import { useAuthStore } from '@/entities/session'
 
@@ -27,6 +28,9 @@ export const LandingHeroSection = () => {
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID)
 
   const { uploadFile, uploadedFiles, removeFile, isUploading } = useFileUpload()
+  const { isDragging, dragProps } = useFileDrop(async (files) => {
+    for (let i = 0; i < files.length; i++) await uploadFile(files[i])
+  })
   const { isAuthenticated } = useAuthStore()
   const router = useRouter()
   const setChatId = useChatStore(state => state.setChatId)
@@ -112,15 +116,6 @@ export const LandingHeroSection = () => {
     }
   }
 
-  const handleDrop = async (e: DragEvent) => {
-    e.preventDefault()
-    const files = e.dataTransfer.files
-    if (files) {
-      for (let i = 0; i < files.length; i++) {
-        await uploadFile(files[i])
-      }
-    }
-  }
 
   return (
     <section className="relative flex flex-col items-center justify-center text-center px-6 border-b border-border-subtle"
@@ -150,38 +145,12 @@ export const LandingHeroSection = () => {
       <div className="w-full max-w-[680px] mb-5">
         <div
           className="relative overflow-hidden flex flex-col rounded-3xl border border-border-subtle bg-bg-card/80 backdrop-blur-xl p-2.5 shadow-2xl transition-all focus-within:border-primary/20 focus-within:ring-4 focus-within:ring-primary/5"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
+          {...dragProps}
         >
+          <FileDropOverlay active={isDragging} />
+
           {/* File Previews */}
-          {uploadedFiles.length > 0 && (
-            <div className="flex flex-wrap gap-2 px-3 pt-2">
-              {uploadedFiles.map((file) => {
-                const isImage = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(file.name)
-                return (
-                  <div key={file.id} className="relative group bg-bg-main border border-border-subtle rounded-lg p-2 flex items-center gap-2 max-w-[200px]">
-                    {isImage ? (
-                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border-subtle">
-                        {/* eslint-disable-next-line */}
-                        <img src={file.url} alt={file.name} className="h-full w-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="bg-border-subtle p-1.5 rounded-md text-text-muted">
-                        <FileIcon size={16} />
-                      </div>
-                    )}
-                    <span className="text-xs text-text-main truncate font-medium">{file.name}</span>
-                    <button
-                      onClick={() => removeFile(file.id)}
-                      className="absolute -top-1.5 -right-1.5 z-10 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                    >
-                      <X size={10} strokeWidth={3} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          <AttachmentPreviews files={uploadedFiles} onRemove={removeFile} className="px-3 pt-2" />
 
           {/* Textarea */}
           <textarea
