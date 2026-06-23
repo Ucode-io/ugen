@@ -34,7 +34,9 @@ const cleanParams = (params?: FetchChatsListParams) => {
 
 export const fetchChatsList = async (params?: FetchChatsListParams) => {
   const cleaned = cleanParams(params)
-  const { data } = await api.get('/v1/ai-chat/list', { params: cleaned })
+  const { data } = await api.get('/v1/ai-chat/list', {
+    params: { ...cleaned, type: 'ugen' },
+  })
   return data
 }
 
