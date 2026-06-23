@@ -289,12 +289,12 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         params: { limit: 10, offset: currentOffset },
       });
 
-      const resData = data.data || data.messages || [];
+      const resData = data?.data || data?.messages || [];
       const historyMessages = Array.isArray(resData)
         ? resData
         : resData.messages || resData.data || [];
 
-      if (historyMessages.length > 0) {
+      if (historyMessages?.length > 0) {
         setChatId(historyMessages[0].chat_id || historyMessages?.[1]?.chat_id);
         // Sync the chat-level provider when the payload carries it. Only set on
         // a truthy value so the post-send refresh (which may omit `model`) can't
@@ -579,7 +579,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
           ? resData
           : resData.messages || resData.data || [];
 
-        activeChatId = historyMessages[0].chat_id || historyMessages?.[1]?.chat_id;
+        activeChatId = historyMessages?.[0]?.chat_id || historyMessages?.[1]?.chat_id;
         setChatId(activeChatId);
       } catch (err) {
         console.error("Failed to create chat", err);
