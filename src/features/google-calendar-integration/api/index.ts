@@ -26,13 +26,10 @@ const readConnectUrl = (payload: unknown): string | null => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Field mapping (Google Calendar ⇄ uCode table)
 //
-// Persisted via PUT /v1/google-calendar/mapping. The `api` instance's request
-// interceptor attaches the project-scoped API-KEY (Authorization: API-KEY +
-// x-api-key) automatically on a project page, so no explicit auth header is
-// needed here — same as every other resource call in this app.
-//
-// The save also caches the binding in localStorage so the modal can re-seed the
-// UI on reopen (there is no GET endpoint for a saved mapping yet).
+// Read with GET /v1/google-calendar/mapping, written with PUT. The `api`
+// instance's request interceptor attaches the project-scoped API-KEY
+// (Authorization: API-KEY + x-api-key) automatically on a project page, so no
+// explicit auth header is needed here — same as every other resource call.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** A Google Calendar event property a table column can be bound to. */
@@ -47,13 +44,19 @@ export type GoogleCalendarEventField =
 export interface GoogleCalendarFieldBinding {
   /** UUID of the uCode table — sent to the API as `table_id`. */
   tableId: string;
-  /** Slug of the uCode table — used for UI keying + the localStorage cache. */
+  /** Slug of the uCode table — used for UI keying. */
   tableSlug: string;
   /** Google Calendar event property → table column slug. */
   mapping: Partial<Record<GoogleCalendarEventField, string>>;
 }
 
-// Internal event-property key → API request field name.
+/** The mapping currently saved on the server (the API returns a slug, no id). */
+export interface GoogleCalendarSavedMapping {
+  tableSlug: string;
+  mapping: Partial<Record<GoogleCalendarEventField, string>>;
+}
+
+// Internal event-property key ⇄ API request/response field name.
 const FIELD_TO_API_KEY: Record<GoogleCalendarEventField, string> = {
   summary: "title_field",
   start: "start_field",
@@ -63,8 +66,19 @@ const FIELD_TO_API_KEY: Record<GoogleCalendarEventField, string> = {
   status: "status_field",
 };
 
-const fieldBindingStorageKey = (projectId: string, tableSlug: string) =>
-  `gcal:field-binding:${projectId}:${tableSlug}`;
+// Server mapping object (title_field, start_field, …) → internal mapping.
+const apiMappingToInternal = (
+  m: Record<string, unknown>,
+): Partial<Record<GoogleCalendarEventField, string>> => {
+  const mapping: Partial<Record<GoogleCalendarEventField, string>> = {};
+  (Object.keys(FIELD_TO_API_KEY) as GoogleCalendarEventField[]).forEach(
+    (field) => {
+      const value = m[FIELD_TO_API_KEY[field]];
+      if (typeof value === "string" && value) mapping[field] = value;
+    },
+  );
+  return mapping;
+};
 
 export const googleCalendarIntegrationApi = {
   getConnectUrl: async (
@@ -89,33 +103,23 @@ export const googleCalendarIntegrationApi = {
   },
 
   /**
-   * Read a previously saved field binding for a table from the local cache.
-   * There is no GET endpoint yet, so this only reflects bindings saved in this
-   * browser; used to seed the modal on reopen.
+   * The table currently linked to Google Calendar for this project, or null if
+   * none is configured yet. GET /v1/google-calendar/mapping.
    */
-  getFieldBinding: (
-    projectId: string,
-    tableSlug: string,
-  ): GoogleCalendarFieldBinding | null => {
-    if (typeof window === "undefined" || !projectId || !tableSlug) return null;
+  getMapping: async (): Promise<GoogleCalendarSavedMapping | null> => {
     try {
-      const raw = window.localStorage.getItem(
-        fieldBindingStorageKey(projectId, tableSlug),
-      );
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as GoogleCalendarFieldBinding;
-      return parsed?.mapping ? parsed : null;
+      const { data } = await api.get("/v1/google-calendar/mapping");
+      const m = data?.data?.settings?.google_calendar?.mapping;
+      if (!m || typeof m.table_slug !== "string" || !m.table_slug) return null;
+      return { tableSlug: m.table_slug, mapping: apiMappingToInternal(m) };
     } catch {
+      // No mapping yet (or not connected) — treat as "nothing linked".
       return null;
     }
   },
 
-  /**
-   * Persist a field binding via PUT /v1/google-calendar/mapping, then cache it
-   * locally so getFieldBinding can re-seed the modal on reopen.
-   */
+  /** Persist a field binding via PUT /v1/google-calendar/mapping. */
   saveFieldBinding: async (
-    projectId: string,
     binding: GoogleCalendarFieldBinding,
   ): Promise<GoogleCalendarFieldBinding> => {
     if (!binding.tableId) {
@@ -128,13 +132,6 @@ export const googleCalendarIntegrationApi = {
     }
 
     await api.put("/v1/google-calendar/mapping", payload);
-
-    if (typeof window !== "undefined" && projectId && binding.tableSlug) {
-      window.localStorage.setItem(
-        fieldBindingStorageKey(projectId, binding.tableSlug),
-        JSON.stringify(binding),
-      );
-    }
     return binding;
   },
 };

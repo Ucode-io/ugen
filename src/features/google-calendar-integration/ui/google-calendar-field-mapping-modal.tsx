@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlignLeft,
   CalendarCheck,
@@ -129,6 +130,18 @@ export const GoogleCalendarFieldMappingModal = ({
   onOpenChange,
 }: GoogleCalendarFieldMappingModalProps) => {
   const projectId = useAuthStore((s) => s.ucodeProjectId) || "";
+  const queryClient = useQueryClient();
+
+  // The table currently linked to Google Calendar (server-side mapping). Used to
+  // flag it in the list, auto-open it on launch, and pre-fill its field bindings.
+  const { data: currentMapping } = useQuery({
+    queryKey: ["google-calendar-mapping", projectId],
+    queryFn: () => googleCalendarIntegrationApi.getMapping(),
+    enabled: open,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const linkedSlug = currentMapping?.tableSlug ?? null;
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -163,19 +176,17 @@ export const GoogleCalendarFieldMappingModal = ({
   // "field not found in table". Memoised so it stays a stable effect dep.
   const columns = useMemo(() => tableDetail?.fields ?? [], [tableDetail]);
 
-  // Seed a table's saved binding the first time it is opened this session —
-  // without clobbering edits made before the user switched away and back.
+  // When the server's saved mapping loads, seed it and auto-select that table so
+  // the modal opens straight onto the table already linked to the calendar,
+  // showing its current field bindings — without clobbering in-session edits.
   useEffect(() => {
-    if (!selectedTable || !projectId) return;
-    setMappingByTable((prev) => {
-      if (prev[selectedTable]) return prev;
-      const saved = googleCalendarIntegrationApi.getFieldBinding(
-        projectId,
-        selectedTable,
-      );
-      return { ...prev, [selectedTable]: saved?.mapping ?? {} };
-    });
-  }, [selectedTable, projectId]);
+    if (!currentMapping?.tableSlug) return;
+    const slug = currentMapping.tableSlug;
+    setMappingByTable((prev) =>
+      prev[slug] ? prev : { ...prev, [slug]: currentMapping.mapping },
+    );
+    setSelectedTable((prev) => prev ?? slug);
+  }, [currentMapping]);
 
   // Once the real fields load, drop any mapped slug that no longer exists on the
   // table (e.g. a stale `created_at` from an older cache) so it can't be shown
@@ -231,7 +242,10 @@ export const GoogleCalendarFieldMappingModal = ({
         tableSlug: selectedTable,
         mapping,
       };
-      await googleCalendarIntegrationApi.saveFieldBinding(projectId, binding);
+      await googleCalendarIntegrationApi.saveFieldBinding(binding);
+      queryClient.invalidateQueries({
+        queryKey: ["google-calendar-mapping", projectId],
+      });
       toast.success("Field mapping saved");
       onOpenChange(false);
     } catch {
@@ -245,6 +259,52 @@ export const GoogleCalendarFieldMappingModal = ({
     () => tables.find((t) => t.slug === selectedTable)?.label ?? selectedTable,
     [tables, selectedTable],
   );
+
+  const hasLinkedInList =
+    !!linkedSlug && tables.some((t) => t.slug === linkedSlug);
+
+  const renderTableRow = (table: Table) => {
+    const isActive = selectedTable === table.slug;
+    const isLinked = table.slug === linkedSlug;
+    const tableMapping = mappingByTable[table.slug];
+    const count = tableMapping
+      ? CALENDAR_FIELDS.filter((f) => tableMapping[f.key]).length
+      : 0;
+    return (
+      <button
+        key={table.id}
+        onClick={() => {
+          setSelectedTable(table.slug);
+          setSelectedTableId(table.id);
+        }}
+        className={cn(
+          "group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors",
+          isActive
+            ? "bg-[#004eea]/10 font-medium text-[#004eea]"
+            : "text-text-muted hover:bg-bg-sidebar hover:text-text-main",
+        )}
+      >
+        <TableIcon
+          size={12}
+          className={cn(
+            "shrink-0",
+            isActive ? "text-[#004eea]" : "text-text-muted/70",
+          )}
+        />
+        <span className="truncate">{table.label || table.slug}</span>
+        {isLinked ? (
+          <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-green-600 dark:text-green-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            Linked
+          </span>
+        ) : count > 0 ? (
+          <span className="ml-auto shrink-0 rounded-full bg-green-500/15 px-1.5 text-[10px] font-semibold text-green-500">
+            {count}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -289,48 +349,31 @@ export const GoogleCalendarFieldMappingModal = ({
                     No tables found.
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-0.5">
-                    {tables.map((table: Table) => {
-                      const isActive = selectedTable === table.slug;
-                      const tableMapping = mappingByTable[table.slug];
-                      const count = tableMapping
-                        ? CALENDAR_FIELDS.filter((f) => tableMapping[f.key])
-                            .length
-                        : 0;
-                      return (
-                        <button
-                          key={table.id}
-                          onClick={() => {
-                            setSelectedTable(table.slug);
-                            setSelectedTableId(table.id);
-                          }}
-                          className={cn(
-                            "group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors",
-                            isActive
-                              ? "bg-[#004eea]/10 font-medium text-[#004eea]"
-                              : "text-text-muted hover:bg-bg-sidebar hover:text-text-main",
-                          )}
-                        >
-                          <TableIcon
-                            size={12}
-                            className={cn(
-                              "shrink-0",
-                              isActive
-                                ? "text-[#004eea]"
-                                : "text-text-muted/70",
-                            )}
-                          />
-                          <span className="truncate">
-                            {table.label || table.slug}
-                          </span>
-                          {count > 0 && (
-                            <span className="ml-auto shrink-0 rounded-full bg-green-500/15 px-1.5 text-[10px] font-semibold text-green-500">
-                              {count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                  <div className="flex flex-col gap-3">
+                    {hasLinkedInList && (
+                      <div className="flex flex-col gap-1">
+                        <p className="text-text-muted/70 px-1.5 text-[10px] font-semibold tracking-wide uppercase">
+                          Linked to calendar
+                        </p>
+                        <div className="flex flex-col gap-0.5">
+                          {tables
+                            .filter((t) => t.slug === linkedSlug)
+                            .map(renderTableRow)}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      {hasLinkedInList && (
+                        <p className="text-text-muted/70 px-1.5 text-[10px] font-semibold tracking-wide uppercase">
+                          All tables
+                        </p>
+                      )}
+                      <div className="flex flex-col gap-0.5">
+                        {tables
+                          .filter((t) => t.slug !== linkedSlug)
+                          .map(renderTableRow)}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -359,6 +402,12 @@ export const GoogleCalendarFieldMappingModal = ({
                         <span className="text-text-main truncate text-[13px] font-semibold">
                           {selectedTableLabel}
                         </span>
+                        {selectedTable === linkedSlug && (
+                          <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-green-600 dark:text-green-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                            Linked
+                          </span>
+                        )}
                       </div>
                       <p className="text-text-muted mt-0.5 text-[11px]">
                         {columns.length} fields available
@@ -377,13 +426,21 @@ export const GoogleCalendarFieldMappingModal = ({
                   </div>
 
                   {/* Guidance banner */}
-                  <div className="bg-bg-sidebar/40 border-border-subtle text-text-muted border-b px-5 py-2 text-[12px]">
-                    Choose which field fills each property.{" "}
-                    <span className="font-medium text-amber-600 dark:text-amber-400">
-                      Required
-                    </span>{" "}
-                    properties must be mapped before saving.
-                  </div>
+                  {selectedTable === linkedSlug ? (
+                    <div className="border-border-subtle flex items-center gap-2 border-b bg-green-500/[0.06] px-5 py-2 text-[12px] text-green-700 dark:text-green-400">
+                      <CalendarCheck size={14} className="shrink-0" />
+                      This table is currently synced to Google Calendar — update
+                      its field mapping below.
+                    </div>
+                  ) : (
+                    <div className="bg-bg-sidebar/40 border-border-subtle text-text-muted border-b px-5 py-2 text-[12px]">
+                      Choose which field fills each property.{" "}
+                      <span className="font-medium text-amber-600 dark:text-amber-400">
+                        Required
+                      </span>{" "}
+                      properties must be mapped before saving.
+                    </div>
+                  )}
 
                   <div className="flex-1 overflow-y-auto">
                     {fieldsLoading ? (
@@ -536,7 +593,7 @@ export const GoogleCalendarFieldMappingModal = ({
                 disabled={!canSave}
               >
                 <Check size={14} />
-                Save mapping
+                {selectedTable === linkedSlug ? "Update mapping" : "Save mapping"}
               </Button>
             </div>
           </div>
