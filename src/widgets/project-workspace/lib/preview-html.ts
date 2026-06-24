@@ -518,6 +518,7 @@ function applyReact19Overrides(
   return out;
 }
 
+
 export function generatePreviewHtml(
   bundledCode: string,
   dependenciesMap: Record<string, string> = {},
@@ -603,6 +604,28 @@ export function generatePreviewHtml(
     // esm.sh handles this automatically when version is specified
     imports[name] = `https://esm.sh/${name}@${version}${depsParam}`;
   });
+
+  // ── react-router must dedupe to react-router-dom's exact build ──
+  // react-router-dom@6 and bare `react-router` share ONE Router context. They
+  // must resolve to the SAME esm.sh build or the context splits and consumers
+  // throw "useX() may be used only in the context of a <Router>" (the H invariant
+  // in @remix-run/router). Two traps:
+  //   1. `react-router` is usually NOT in package.json, so the bundle-scan
+  //      fallback below would pin it to esm.sh "latest" (a different major).
+  //   2. esm.sh keys builds by their `?deps` hash. react-router-dom@6 imports
+  //      react-router with a REACT-ONLY hash, but our uniform `?deps=react,
+  //      react-dom` would resolve bare `react-router` to a different build.
+  // Both are fixed by pinning react-router to react-router-dom's version with
+  // react-only deps (react-router@6's only React peer), matching the internal
+  // build so the browser dedupes to a single module/context.
+  const rrdSpec = dependenciesMap["react-router-dom"];
+  const rrdMajor = rrdSpec ? parseInt(rrdSpec.replace(/^[^\d]*/, ""), 10) : 0;
+  if (rrdSpec && rrdMajor === 6) {
+    const rrVersion =
+      (dependenciesMap["react-router"] || rrdSpec).replace(/[\^~]/, "") ||
+      "latest";
+    imports["react-router"] = `https://esm.sh/react-router@${rrVersion}?deps=react@${REACT_VERSION}`;
+  }
 
   // ── Auto-detect sub-path imports from the bundled output ──
   // esbuild marks externals as bare imports in ESM output.
