@@ -267,11 +267,29 @@ export async function buildProjectFromFiles(
     "/src/components/ui/tooltip.tsx": `export { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from './primitives';`,
   };
 
+  // Resolve a logical path against the virtual FS, trying extensions and
+  // /index variants — mirrors the esbuild plugin's resolver so the shim guard
+  // agrees with how imports actually resolve at build time.
+  const SHIM_EXTS = [".tsx", ".ts", ".jsx", ".js", "", ".css", ".json", ".svg"];
+  const resolvesInFs = (logicalPath: string): boolean => {
+    for (const ext of SHIM_EXTS) if (fs[logicalPath + ext] != null) return true;
+    for (const ext of SHIM_EXTS) if (fs[logicalPath + "/index" + ext] != null) return true;
+    return false;
+  };
+
   for (const [shimPath, shimContent] of Object.entries(shimFiles)) {
-    // Only add shim if file doesn't already exist in the virtual FS
-    if (!fs[shimPath]) {
-      fs[shimPath] = shimContent;
-    }
+    // Skip if the component already resolves (a real file OR a directory-index
+    // like `tabs/index.tsx`) — a shim would otherwise shadow the real component.
+    const logical = shimPath.replace(/\.tsx$/, "");
+    if (resolvesInFs(logical)) continue;
+
+    // Skip if the shim's re-export target (e.g. './primitives', './misc') isn't
+    // present in this template — otherwise the shim just fails the build itself.
+    const targetMatch = shimContent.match(/from\s+['"]\.\/([^'"]+)['"]/);
+    const dir = shimPath.slice(0, shimPath.lastIndexOf("/"));
+    if (targetMatch && !resolvesInFs(`${dir}/${targetMatch[1]}`)) continue;
+
+    fs[shimPath] = shimContent;
   }
 
   fs["/__entry.tsx"] = `
