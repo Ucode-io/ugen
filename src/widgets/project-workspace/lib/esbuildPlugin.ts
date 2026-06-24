@@ -61,10 +61,118 @@ function getLoader(path: string): esbuild.Loader {
   return "js";
 }
 
+/**
+ * Convert an SVG attribute name to its React/JSX prop name.
+ * Keeps data-/aria-* as-is, maps `class` → `className`, and camelCases
+ * the rest (`fill-rule` → `fillRule`, `xlink:href` → `xlinkHref`).
+ */
+function svgAttrToReactName(name: string): string {
+  if (name.startsWith("data-") || name.startsWith("aria-")) return name;
+  if (name === "class") return "className";
+  return name.replace(/[-:](\w)/g, (_, c: string) => c.toUpperCase());
+}
+
+/** Parse the attributes of an opening `<svg ...>` tag into a JS object literal string. */
+function svgAttrsToObjectLiteral(attrsStr: string): string {
+  const re = /([:\w-]+)\s*=\s*"([^"]*)"/g;
+  const entries: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(attrsStr)) !== null) {
+    const rawName = m[1];
+    // Skip string `style` — React expects a style object, a string throws.
+    if (rawName === "style") continue;
+    const name = svgAttrToReactName(rawName);
+    entries.push(`${JSON.stringify(name)}: ${JSON.stringify(m[2])}`);
+  }
+  return "{" + entries.join(", ") + "}";
+}
+
+/**
+ * Turn raw SVG markup into a JS module that mirrors `vite-plugin-svgr`:
+ *  - named export `ReactComponent` → a React component spreading props onto <svg>
+ *  - default export → a data-URI string (so `import url from './x.svg'` still works)
+ *
+ * The inner SVG markup is injected via dangerouslySetInnerHTML (parsed in the SVG
+ * namespace by the browser), which avoids a fragile full JSX conversion of children.
+ */
+function svgToReactModule(raw: string): string {
+  const svg = raw.trim();
+  const open = svg.match(/<svg([^>]*)>/i);
+  const attrsStr = open ? open[1] : "";
+  const openEnd = open ? (open.index ?? 0) + open[0].length : 0;
+  const closeIdx = svg.lastIndexOf("</svg>");
+  const inner = closeIdx >= 0 ? svg.slice(openEnd, closeIdx) : "";
+  const attrsLiteral = svgAttrsToObjectLiteral(attrsStr);
+  const dataUri = "data:image/svg+xml," + encodeURIComponent(svg);
+
+  return `
+import * as React from "react";
+const __attrs = ${attrsLiteral};
+const __html = ${JSON.stringify(inner)};
+export const ReactComponent = (props) => {
+  const { className, ...rest } = props || {};
+  const merged = [__attrs.className, className].filter(Boolean).join(" ");
+  return React.createElement("svg", Object.assign(
+    {},
+    __attrs,
+    rest,
+    merged ? { className: merged } : {},
+    { dangerouslySetInnerHTML: { __html: __html } }
+  ));
+};
+const __src = ${JSON.stringify(dataUri)};
+export default __src;
+`;
+}
+
 export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
   return {
     name: "virtual-fs",
     setup(build) {
+      const extensions = [".tsx", ".ts", ".jsx", ".js", "", ".css", ".json", ".svg"];
+
+      /**
+       * Resolve a logical path to a concrete virtual-FS key, trying extensions
+       * and `/index` variants (directory imports). Returns null if nothing matches.
+       */
+      const findFsKey = (logicalPath: string): string | null => {
+        const bases = logicalPath.startsWith("/")
+          ? [logicalPath]
+          : [logicalPath, "/" + logicalPath];
+
+        for (const base of bases) {
+          for (const ext of extensions) {
+            if (fs[base + ext] != null) return base + ext;
+          }
+        }
+        for (const base of bases) {
+          for (const ext of extensions) {
+            if (fs[base + "/index" + ext] != null) return base + "/index" + ext;
+          }
+        }
+        return null;
+      };
+
+      /**
+       * Build a `virtual` resolve result for a logical import path. Strips any
+       * query suffix (e.g. `?react`, `?url`) before probing the FS, and resolves
+       * to the *real* file key so esbuild uses it as the module identity — this
+       * keeps relative imports inside `index` files anchored to the right dir.
+       */
+      const resolveVirtual = (rawPath: string) => {
+        const qi = rawPath.indexOf("?");
+        const query = qi >= 0 ? rawPath.slice(qi + 1) : "";
+        const bare = qi >= 0 ? rawPath.slice(0, qi) : rawPath;
+        const normalized = normalizePath(bare);
+        // Fall back to the normalized path so onLoad can emit a clear error.
+        const fsKey = findFsKey(normalized) ?? normalized;
+        const path = query ? fsKey + "?" + query : fsKey;
+        return {
+          path,
+          namespace: "virtual" as const,
+          pluginData: { fsKey, query },
+        };
+      };
 
       // ── 1. External CSS (npm packages like 'leaflet/dist/leaflet.css') ──
       build.onResolve({ filter: /\.css$/ }, (args) => {
@@ -75,29 +183,30 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
 
       // ── 2. @/ alias → /src/ ──
       build.onResolve({ filter: /^@\// }, (args) => {
-        const resolvedPath = normalizePath("/src/" + args.path.slice(2));
-        return { path: resolvedPath, namespace: "virtual" };
+        return resolveVirtual("/src/" + args.path.slice(2));
       });
 
       // ── 3. Catch-all resolver ──
       build.onResolve({ filter: /.*/ }, (args) => {
         // Entry point
         if (args.kind === "entry-point") {
-          return { path: args.path, namespace: "virtual" };
+          return resolveVirtual(args.path);
         }
 
         // Relative imports
         if (args.path.startsWith(".")) {
-          const importerDir = args.importer?.includes("/")
-            ? args.importer.substring(0, args.importer.lastIndexOf("/"))
+          // Importer path may carry a query suffix (e.g. an .svg?react module);
+          // strip it before deriving the importer directory.
+          const importerBare = args.importer.split("?")[0];
+          const importerDir = importerBare.includes("/")
+            ? importerBare.substring(0, importerBare.lastIndexOf("/"))
             : "/";
-          const resolved = normalizePath(importerDir + "/" + args.path);
-          return { path: resolved, namespace: "virtual" };
+          return resolveVirtual(importerDir + "/" + args.path);
         }
 
         // Absolute imports
         if (args.path.startsWith("/")) {
-          return { path: normalizePath(args.path), namespace: "virtual" };
+          return resolveVirtual(args.path);
         }
 
         // HTTP URLs → external (handled by importmap at runtime)
@@ -129,73 +238,54 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
 
       // ── 5. Load from virtual FS ──
       build.onLoad({ filter: /.*/, namespace: "virtual" }, (args) => {
-        // Try multiple extensions in priority order (.tsx first for React projects)
-        const extensions = [".tsx", ".ts", ".jsx", ".js", "", ".css", ".json"];
-        const pathsToCheck = [args.path];
+        // The resolver records the concrete FS key in pluginData. Fall back to
+        // probing the (query-stripped) path for entry points / safety.
+        const pluginData = args.pluginData as { fsKey?: string } | undefined;
+        const fullPath =
+          pluginData?.fsKey ?? findFsKey(normalizePath(args.path.split("?")[0]));
 
-        if (!args.path.startsWith("/")) {
-          pathsToCheck.push("/" + args.path);
+        if (!fullPath || fs[fullPath] == null) {
+          console.warn(
+            `[VirtualFS] File not found: ${args.path}. Available files:`,
+            Object.keys(fs),
+          );
+          return {
+            errors: [{ text: `File not found in virtual FS: ${args.path}` }],
+          };
         }
 
-        // Also try /index variants for directory imports
-        const indexPaths: string[] = [];
-        for (const basePath of pathsToCheck) {
-          for (const ext of extensions) {
-            indexPaths.push(basePath + "/index" + ext);
-          }
+        // SVG → React component module (mirrors vite-plugin-svgr `?react`).
+        if (fullPath.endsWith(".svg")) {
+          return { contents: svgToReactModule(fs[fullPath]), loader: "js" };
         }
 
-        // First: check direct file matches
-        for (const basePath of pathsToCheck) {
-          for (const ext of extensions) {
-            const fullPath = basePath + ext;
-            if (fs[fullPath] != null) {
-              if (fullPath.endsWith(".css")) {
-                const cleanedCss = cleanCssForBrowser(fs[fullPath]);
+        if (fullPath.endsWith(".css")) {
+          const cleanedCss = cleanCssForBrowser(fs[fullPath]);
 
-                const js = `
-                  (function() {
-                    const id = 'virtual-css-${fullPath.replace(/[^a-z0-9]/g, '_')}';
-                    if (!document.getElementById(id)) {
-                      // Use type="text/tailwindcss" so the local Tailwind Play script
-                      // processes @apply, @layer, and other Tailwind directives natively.
-                      const style = document.createElement('style');
-                      style.id = id;
-                      style.setAttribute('type', 'text/tailwindcss');
-                      style.textContent = ${JSON.stringify(cleanedCss)};
-                      document.head.appendChild(style);
-                      // Ask Tailwind Play to re-scan after injecting new styles
-                      if (typeof window.tailwind !== 'undefined' && typeof window.tailwind.refresh === 'function') {
-                        window.tailwind.refresh();
-                      }
-                    }
-                  })();
-                `;
-                return { contents: js, loader: "js" };
+          const js = `
+            (function() {
+              const id = 'virtual-css-${fullPath.replace(/[^a-z0-9]/g, '_')}';
+              if (!document.getElementById(id)) {
+                // Use type="text/tailwindcss" so the local Tailwind Play script
+                // processes @apply, @layer, and other Tailwind directives natively.
+                const style = document.createElement('style');
+                style.id = id;
+                style.setAttribute('type', 'text/tailwindcss');
+                style.textContent = ${JSON.stringify(cleanedCss)};
+                document.head.appendChild(style);
+                // Ask Tailwind Play to re-scan after injecting new styles
+                if (typeof window.tailwind !== 'undefined' && typeof window.tailwind.refresh === 'function') {
+                  window.tailwind.refresh();
+                }
               }
-
-              return {
-                contents: fs[fullPath],
-                loader: getLoader(fullPath),
-              };
-            }
-          }
+            })();
+          `;
+          return { contents: js, loader: "js" };
         }
-
-        // Second: check /index variants (directory imports)
-        for (const fullPath of indexPaths) {
-          if (fs[fullPath] != null) {
-            return {
-              contents: fs[fullPath],
-              loader: getLoader(fullPath),
-            };
-          }
-        }
-
-        console.warn(`[VirtualFS] File not found: ${args.path}. Available files:`, Object.keys(fs));
 
         return {
-          errors: [{ text: `File not found in virtual FS: ${args.path}` }],
+          contents: fs[fullPath],
+          loader: getLoader(fullPath),
         };
       })
     },
