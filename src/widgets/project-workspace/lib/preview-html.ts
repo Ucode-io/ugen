@@ -282,12 +282,30 @@ export const INSPECTOR_SCRIPT = `
   });
 `;
 
+// Pick the React version for the importmap from the project's own package.json.
+// Templates that target React 19 (e.g. Mantine 9 / BlockNote, which import the
+// React-19-only `use` API) must NOT be forced onto React 18 — that throws
+// "does not provide an export named 'use'" at runtime. React-18 templates keep
+// the known-good 18.3.1 pin, so existing previews are unaffected.
+const REACT_18_VERSION = "18.3.1";
+const REACT_19_VERSION = "19.0.0";
+
+function resolveReactVersion(deps: Record<string, string>): string {
+  const spec = deps.react || deps["react-dom"];
+  if (!spec) return REACT_18_VERSION;
+  // Strip range operators (^, ~, >=, etc.) and read the major.
+  const cleaned = spec.replace(/^[^\d]*/, "").trim();
+  const major = parseInt(cleaned, 10);
+  if (major >= 19) return REACT_19_VERSION;
+  return REACT_18_VERSION;
+}
+
 export function generatePreviewHtml(
   bundledCode: string,
   dependenciesMap: Record<string, string> = {},
   files: Array<{ path: string; content: string }> = [],
 ) {
-  const REACT_VERSION = "18.3.1";
+  const REACT_VERSION = resolveReactVersion(dependenciesMap);
   // A srcDoc iframe's location is `about:srcdoc`, whose origin is the string
   // "null" and cannot be used as the base passed to `new URL(relative, base)`.
   // Give generated apps a stable, valid base while keeping preview resources on
@@ -326,9 +344,9 @@ export function generatePreviewHtml(
   }
 
   // IMPORTANT: keep `?deps=react@…,react-dom@…` on every esm.sh URL. It pins all
-  // packages to a single /react@18.3.1/…/react.mjs instance — dropping it (or
-  // switching to ?bundle/?standalone) reintroduces a second React graph and
-  // "Invalid hook call". Exact versions also avoid 302 redirects from esm.sh.
+  // packages to a single /react@${REACT_VERSION}/…/react.mjs instance — dropping
+  // it (or switching to ?bundle/?standalone) reintroduces a second React graph
+  // and "Invalid hook call". Exact versions also avoid 302 redirects from esm.sh.
   const depsParam = `?deps=react@${REACT_VERSION},react-dom@${REACT_VERSION}`;
 
   // Static imports: only React core (version must be pinned and consistent)
