@@ -8,7 +8,7 @@ export default function AuthCallbackPage() {
   const searchParams = useSearchParams()
   const provider = searchParams.get('provider')
   const status = searchParams.get('status')
-  const reason = searchParams.get('reason')
+  const reason = searchParams.get('reason') ?? searchParams.get('message')
 
   useEffect(() => {
     if (typeof window === 'undefined') return
