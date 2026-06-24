@@ -485,6 +485,39 @@ function resolveReactVersion(deps: Record<string, string>): string {
   return REACT_18_VERSION;
 }
 
+// Some templates declare React 19 but pin React-18-era package versions that
+// import APIs React 19 removed (findDOMNode/render/hydrate/unmountComponentAtNode).
+// Because esm.sh bakes a pinned absolute react-dom URL into those packages under
+// `?deps=`, an importmap shim can't intercept them — the only reliable fix is to
+// build their esm.sh URL from a React-19-compatible version instead.
+//
+// Each entry is EMPIRICALLY verified (the esm.sh build for that version no longer
+// imports the removed API and preserves the public API the app uses) — not picked
+// from a changelog. Add a pair only after confirming the override loads clean.
+//
+//  - react-datepicker 6.x → react-onclickoutside@6 → `findDOMNode` (removed in 19).
+//    7.6.0 dropped react-onclickoutside, supports React ^19, keeps date-fns v3
+//    (same major as 6.x → minimal drift), and still exports default DatePicker +
+//    named registerLocale/setDefaultLocale.
+const REACT_19_VERSION_OVERRIDES: Record<string, string> = {
+  "react-datepicker": "7.6.0",
+};
+
+// On React-19 projects, swap known-incompatible dependency versions for their
+// verified React-19 versions BEFORE any esm.sh URL is built. No-op on React 18,
+// so existing previews are untouched. Returns a new map; never mutates the input.
+function applyReact19Overrides(
+  deps: Record<string, string>,
+  reactVersion: string,
+): Record<string, string> {
+  if (parseInt(reactVersion, 10) < 19) return deps;
+  const out = { ...deps };
+  for (const [name, version] of Object.entries(REACT_19_VERSION_OVERRIDES)) {
+    if (out[name]) out[name] = version;
+  }
+  return out;
+}
+
 export function generatePreviewHtml(
   bundledCode: string,
   dependenciesMap: Record<string, string> = {},
@@ -492,6 +525,9 @@ export function generatePreviewHtml(
   options: { initialPath?: string; expandHeight?: boolean } = {},
 ) {
   const REACT_VERSION = resolveReactVersion(dependenciesMap);
+  // Apply React-19 version overrides before building any esm.sh URL so both the
+  // dependency loop and the bundle-scan fallback below use the corrected version.
+  dependenciesMap = applyReact19Overrides(dependenciesMap, REACT_VERSION);
   // A srcDoc iframe's location is `about:srcdoc`, whose origin is the string
   // "null" and cannot be used as the base passed to `new URL(relative, base)`.
   // Give generated apps a stable, valid base while keeping preview resources on
