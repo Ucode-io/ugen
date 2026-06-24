@@ -71,6 +71,7 @@ export const LandingHeroSection = () => {
         project_name: prompt.slice(0, 20) || 'New Project',
         description: '',
         model: selectedModel,
+        type: 'ugen',
       })
       const chatId = createData.data.id
       const projectId = createData.data.project_id
