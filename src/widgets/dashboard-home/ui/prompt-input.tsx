@@ -82,7 +82,8 @@ export const PromptInput = () => {
         title: content.slice(0, 30) || t("newProject"),
         project_name: content.slice(0, 20) || t("newProject"),
         description: "",
-        model: chatProvider
+        model: chatProvider,
+        type: 'ugen'
       })
 
       const chatId = createData.data.id
