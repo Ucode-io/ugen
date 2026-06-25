@@ -30,8 +30,18 @@ function cleanCssForBrowser(raw: string): string {
   // Remove @tailwind directives (Tailwind Play already injects base/components/utilities)
   css = css.replace(/@tailwind\s+\S+;/g, "");
 
-  // Remove @import for local/relative paths (leave CDN/https @imports untouched)
-  css = css.replace(/@import\s+['"](?!https?:\/\/)([^'"]+)['"]\s*;/g, "");
+  // Remove @import for local/relative paths we can't resolve inside the iframe,
+  // but KEEP `@import "tailwindcss"`: the Tailwind v4 browser build needs it to
+  // pull in core (Preflight + utilities), otherwise `@apply font-normal` and every
+  // other core utility fail as "unknown utility class". The v4 build only
+  // auto-injects this import when the CSS has NO @import at all — and the project's
+  // Google-fonts @import suppresses that — so we must preserve it explicitly.
+  // CDN/https @imports are left untouched too. (v3 projects use @tailwind
+  // directives, not this import, so this is a no-op there.)
+  css = css.replace(
+    /@import\s+['"](?!https?:\/\/|tailwindcss)([^'"]+)['"]\s*;/g,
+    "",
+  );
 
   return css.trim();
 }

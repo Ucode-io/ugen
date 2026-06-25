@@ -2,9 +2,16 @@ import { previewOptimizationsEnabled } from "./preview-flags";
 
 // Include this in preview build cache keys. Bump it whenever the generated
 // iframe runtime changes so long-lived tabs cannot reuse stale srcDoc HTML.
-export const PREVIEW_RUNTIME_VERSION = "5";
+export const PREVIEW_RUNTIME_VERSION = "6";
 
 const TAILWIND_PLAY_RUNTIME_URL = "/tailwind-play-3.4.17.js";
+// Tailwind v4 projects are CSS-first: their theme lives in the stylesheet via
+// @theme/@utility/@custom-variant (no tailwind.config.js), which the v3 Play
+// runtime can't parse — `@apply font-outfit` etc. throw "class does not exist".
+// For those we load Tailwind's official browser build, which compiles
+// @theme/@utility/@apply natively from the project's own CSS. Committed under
+// /public like the v3 runtime above; the version in the filename busts the cache.
+const TAILWIND_BROWSER_V4_URL = "/tailwindcss-browser-4.3.1.js";
 
 export const PREVIEW_Refresher_SCRIPT = `
   window.addEventListener("error", (e) => {
@@ -288,7 +295,12 @@ export const INSPECTOR_SCRIPT = `
 // "does not provide an export named 'use'" at runtime. React-18 templates keep
 // the known-good 18.3.1 pin, so existing previews are unaffected.
 const REACT_18_VERSION = "18.3.1";
-const REACT_19_VERSION = "19.0.0";
+// Latest stable 19.x. Must be ≥ 19.2.0: Mantine 9 (pulled transitively by
+// BlockNote) imports `useEffectEvent`, which only exists from React 19.2.0 — an
+// older 19.0.0 pin throws "does not provide an export named 'useEffectEvent'".
+// 19.2.x also has `use` (the earlier Mantine-9 crash). Keep react/react-dom in
+// lockstep on this version.
+const REACT_19_VERSION = "19.2.7";
 
 function resolveReactVersion(deps: Record<string, string>): string {
   const spec = deps.react || deps["react-dom"];
@@ -318,6 +330,24 @@ const REACT_19_VERSION_OVERRIDES: Record<string, string> = {
   "react-datepicker": "7.6.0",
 };
 
+// Packages whose esm.sh URL must NOT carry the `?deps=react,react-dom` param.
+// esm.sh serves two build variants of a package: a `?deps`-hashed one and a
+// PLAIN one. Sibling packages cross-import the PLAIN build. If the app imports
+// such a package WITH `?deps`, it loads the hashed variant — a SECOND instance
+// alongside the plain one siblings use. For a framework-agnostic singleton this
+// duplicates module-load side effects. Concretely: @blocknote/react and
+// @blocknote/mantine import the plain `/@blocknote/core@x/es2022/core.mjs`, but
+// the app importing `@blocknote/core` with `?deps` got the hashed build — two
+// @blocknote/core instances, each registering ProseMirror's "multiple-node"
+// selection into the shared prosemirror-state registry → RangeError "Duplicate
+// use of selection JSON ID". @blocknote/core imports no React, so the plain
+// build is safe. Matched by exact name or `name/`-subpath.
+const PLAIN_BUILD_PACKAGES = new Set<string>(["@blocknote/core"]);
+
+function isPlainBuildPackage(pkgName: string): boolean {
+  return PLAIN_BUILD_PACKAGES.has(pkgName);
+}
+
 // On React-19 projects, swap known-incompatible dependency versions for their
 // verified React-19 versions BEFORE any esm.sh URL is built. No-op on React 18,
 // so existing previews are untouched. Returns a new map; never mutates the input.
@@ -333,6 +363,22 @@ function applyReact19Overrides(
   return out;
 }
 
+
+// Tailwind v4 is CSS-first: the theme is declared in the stylesheet via
+// `@import "tailwindcss"`, `@theme`, `@utility`, or `@custom-variant`, with no
+// tailwind.config.js. Detect it from the project's CSS so the preview loads the
+// matching Tailwind runtime (v4 browser build vs v3 Play).
+function isTailwindV4(
+  files: Array<{ path: string; content: string }>,
+): boolean {
+  return files.some(
+    (f) =>
+      f.path.endsWith(".css") &&
+      /@import\s+["']tailwindcss["']|@theme\b|@custom-variant\b|@utility\b/.test(
+        f.content || "",
+      ),
+  );
+}
 
 export function generatePreviewHtml(
   bundledCode: string,
@@ -380,6 +426,32 @@ export function generatePreviewHtml(
     }
   }
 
+  // Pick the Tailwind runtime by project: v4 (CSS-first @theme/@utility) loads the
+  // official browser build, which reads the theme from the project's own CSS; v3
+  // loads Tailwind Play and gets the theme from the parsed tailwind.config.js.
+  const tailwindV4 = isTailwindV4(files);
+  const tailwindRuntimeUrl = tailwindV4
+    ? TAILWIND_BROWSER_V4_URL
+    : TAILWIND_PLAY_RUNTIME_URL;
+  const tailwindRuntimeHead = tailwindV4
+    ? `<!-- Tailwind v4 browser build: compiles @theme/@utility/@apply from the
+           project's own CSS. Auto-runs on load, scans <style type="text/tailwindcss">
+           blocks (what the esbuild plugin injects), recompiles on React mount. -->
+      <script
+        src="${TAILWIND_BROWSER_V4_URL}"
+        onerror="window.__TAILWIND_PREVIEW_FAILED__ = true"
+      ></script>`
+    : `<!-- Tailwind Play is pinned and served locally. A remote CDN failure used
+           to reveal completely unstyled preview HTML after the cloak timeout. -->
+      <script
+        src="${TAILWIND_PLAY_RUNTIME_URL}"
+        onerror="window.__TAILWIND_PREVIEW_FAILED__ = true"
+      ></script>
+      <script>
+        window.tailwind = window.tailwind || {};
+        window.tailwind.config = ${tailwindConfigJson};
+      </script>`;
+
   // IMPORTANT: keep `?deps=react@…,react-dom@…` on every esm.sh URL. It pins all
   // packages to a single /react@${REACT_VERSION}/…/react.mjs instance — dropping
   // it (or switching to ?bundle/?standalone) reintroduces a second React graph
@@ -416,7 +488,8 @@ export function generatePreviewHtml(
 
     // For Radix UI packages, we need sub-path exports to work
     // esm.sh handles this automatically when version is specified
-    imports[name] = `https://esm.sh/${name}@${version}${depsParam}`;
+    const params = isPlainBuildPackage(name) ? "" : depsParam;
+    imports[name] = `https://esm.sh/${name}@${version}${params}`;
   });
 
   // ── react-router must dedupe to react-router-dom's exact build ──
@@ -468,8 +541,11 @@ export function generatePreviewHtml(
       const cleanVersion = versionSpec.replace(/[\^~]/, "") || "latest";
       // Build the sub-path URL: e.g. zustand@5.0.0/middleware?deps=...
       const subPath = specifier.slice(pkgName.length); // e.g. "/middleware"
+      // Keep plain-build packages (and their subpaths) off `?deps` so they
+      // dedupe with the build sibling packages cross-import — see above.
+      const params = isPlainBuildPackage(pkgName) ? "" : depsParam;
       imports[specifier] =
-        `https://esm.sh/${pkgName}@${cleanVersion}${subPath}${depsParam}`;
+        `https://esm.sh/${pkgName}@${cleanVersion}${subPath}${params}`;
     } else {
       // Unknown package (not in package.json) — try latest from esm.sh
       imports[specifier] = `https://esm.sh/${specifier}${depsParam}`;
@@ -507,16 +583,7 @@ export function generatePreviewHtml(
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
       <base href="${previewBaseUrl}">
       ${warmupHead}
-      <!-- Tailwind Play is pinned and served locally. A remote CDN failure used
-           to reveal completely unstyled preview HTML after the cloak timeout. -->
-      <script
-        src="${TAILWIND_PLAY_RUNTIME_URL}"
-        onerror="window.__TAILWIND_PREVIEW_FAILED__ = true"
-      ></script>
-      <script>
-        window.tailwind = window.tailwind || {};
-        window.tailwind.config = ${tailwindConfigJson};
-      </script>
+      ${tailwindRuntimeHead}
       
       <script>
         window.process = { env: { NODE_ENV: 'production' } };
@@ -730,9 +797,9 @@ export function generatePreviewHtml(
               try {
                 window.parent.postMessage({
                   type: 'PREVIEW_RUNTIME_ERROR',
-                  message: 'Preview styles failed to load from ${TAILWIND_PLAY_RUNTIME_URL}',
+                  message: 'Preview styles failed to load from ${tailwindRuntimeUrl}',
                   stack: null,
-                  filename: '${TAILWIND_PLAY_RUNTIME_URL}',
+                  filename: '${tailwindRuntimeUrl}',
                   lineno: null,
                   colno: null,
                 }, '*');
@@ -748,8 +815,18 @@ export function generatePreviewHtml(
             // raw serif HTML.
             var startedAt = Date.now();
             function hasGeneratedTailwindStyles() {
+              if (${tailwindV4}) {
+                // The v4 browser build appends compiled CSS to a <style> with no
+                // marker comment — detect Tailwind's own output (its --tw-* props
+                // or Preflight's text-size-adjust), absent from the preview's
+                // hand-written styles.
+                return Array.from(document.querySelectorAll('style')).some(function(style) {
+                  var t = style.textContent || '';
+                  return t.indexOf('--tw-') !== -1 || t.indexOf('text-size-adjust') !== -1;
+                });
+              }
               return Array.from(document.querySelectorAll('style')).some(function(style) {
-                return (style.textContent || '').includes('tailwindcss v3.4.17');
+                return (style.textContent || '').indexOf('tailwindcss v3.4.17') !== -1;
               });
             }
             function waitForStyles() {
@@ -768,7 +845,7 @@ export function generatePreviewHtml(
                   type: 'PREVIEW_RUNTIME_ERROR',
                   message: 'Preview Tailwind runtime loaded but generated no styles',
                   stack: null,
-                  filename: '${TAILWIND_PLAY_RUNTIME_URL}',
+                  filename: '${tailwindRuntimeUrl}',
                   lineno: null,
                   colno: null,
                 }, '*');
