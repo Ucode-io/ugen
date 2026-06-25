@@ -237,7 +237,11 @@ export async function buildProjectFromFiles(
         routerPatched = true;
         content = redirected;
       }
-    } else if (content?.includes("react-router-dom") && content?.includes("BrowserRouter")) {
+    } else if (content?.includes("react-router") && content?.includes("BrowserRouter")) {
+      // BrowserRouter can't drive routing inside an `about:srcdoc` iframe (opaque
+      // origin, bogus location, pushState SecurityError) — swap it for MemoryRouter.
+      // Match both `react-router-dom` (v6) and bare `react-router` (v7), where apps
+      // import `BrowserRouter` straight from the core package.
       console.log(`[Bundler] Patching BrowserRouter to MemoryRouter in ${path}`);
       content = content.replace(/BrowserRouter/g, "MemoryRouter");
     }
@@ -292,27 +296,56 @@ export async function buildProjectFromFiles(
     fs[shimPath] = shimContent;
   }
 
-  fs["/__entry.tsx"] = `
-    import App from "/src/App";
-    import { createRoot } from "react-dom/client";
-    import React from "react";
+  // ── Pick the entry point ──
+  // Prefer the project's REAL entry — the module that mounts React (createRoot/
+  // ReactDOM.render). Real Vite apps put their provider tree (Router, Theme,
+  // Helmet, QueryClient, …) in src/main.tsx and render <App/> from there; rendering
+  // a bare <App/> drops those providers, so the first page throws on a missing
+  // context (useTheme, <Helmet>, …) and the preview goes blank. Running the real
+  // entry mirrors production. Fall back to a synthetic entry that renders /src/App
+  // for older templates that have no mounting entry.
+  const ENTRY_CANDIDATES = [
+    "/src/main.tsx",
+    "/src/main.jsx",
+    "/src/main.ts",
+    "/src/main.js",
+    "/src/index.tsx",
+    "/src/index.jsx",
+  ];
+  const MOUNTS_REACT = /\b(?:createRoot|hydrateRoot)\s*\(|ReactDOM\.render\s*\(/;
+  let entryPoint =
+    ENTRY_CANDIDATES.find(
+      (p) => typeof fs[p] === "string" && MOUNTS_REACT.test(fs[p]),
+    ) ??
+    Object.keys(fs).find(
+      (p) => /\.(tsx|jsx|ts|js)$/.test(p) && MOUNTS_REACT.test(fs[p]),
+    ) ??
+    null;
 
-    const container = document.getElementById("root");
-    if (!container) throw new Error("Root element not found");
+  if (!entryPoint) {
+    fs["/__entry.tsx"] = `
+      import App from "/src/App";
+      import { createRoot } from "react-dom/client";
+      import React from "react";
 
-    if (!window.__react_root__) {
-      window.__react_root__ = createRoot(container);
-    }
+      const container = document.getElementById("root");
+      if (!container) throw new Error("Root element not found");
 
-    try {
-      window.__react_root__.render(React.createElement(App));
-    } catch (e) {
-      console.error(e);
-    }
-  `;
+      if (!window.__react_root__) {
+        window.__react_root__ = createRoot(container);
+      }
+
+      try {
+        window.__react_root__.render(React.createElement(App));
+      } catch (e) {
+        console.error(e);
+      }
+    `;
+    entryPoint = "/__entry.tsx";
+  }
 
   const result = await esbuild.build({
-    entryPoints: ["/__entry.tsx"],
+    entryPoints: [entryPoint],
     bundle: true,
     write: false,
     format: "esm",
