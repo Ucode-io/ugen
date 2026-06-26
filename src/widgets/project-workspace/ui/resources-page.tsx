@@ -530,6 +530,17 @@ const TELEGRAM_FIELD_TARGETS: TelegramFieldTarget[] = [
   },
 ]
 
+const TELEGRAM_DEFAULT_MAPPING: Record<TelegramMappingFieldKey, string> = {
+  telegram_chat_id_field: 'ugen_telegram_chat_id',
+  telegram_user_id_field: 'telegram_user_id',
+  display_name_field: 'customer_name',
+  username_field: 'telegram_username',
+  last_message_field: 'last_message',
+  last_message_at_field: 'last_message_at',
+  unread_count_field: 'unread_count',
+  status_field: 'status',
+}
+
 const TELEGRAM_UNMAPPED_VALUE = '__telegram_unmapped__'
 
 const readObject = (value: unknown): Record<string, any> =>
@@ -688,6 +699,17 @@ const createTelegramAutoMapping = (
   return mapping
 }
 
+const createTelegramPayloadMapping = (
+  tableId: string,
+  mapping: Partial<Record<TelegramMappingFieldKey, string>>,
+) => {
+  const payload: Record<string, string> = { table_id: tableId }
+  TELEGRAM_FIELD_TARGETS.forEach((target) => {
+    payload[target.key] = mapping[target.key]?.trim() || TELEGRAM_DEFAULT_MAPPING[target.key]
+  })
+  return payload
+}
+
 const createTelegramBotUsername = (name: string): string => {
   const base = name
     .toLowerCase()
@@ -792,8 +814,7 @@ const TelegramSetupModal = ({
     setupReady &&
     !!selectedTable &&
     !!displayName.trim() &&
-    usernameValid &&
-    missingFields.length === 0
+    usernameValid
 
   const selectTable = (table: TelegramTableOption) => {
     setSelectedTableId(table.id)
@@ -820,10 +841,7 @@ const TelegramSetupModal = ({
       const payload = {
         display_name: displayName.trim(),
         suggested_username: suggestedUsername.trim(),
-        mapping: {
-          table_id: selectedTable.id,
-          ...mapping,
-        },
+        mapping: createTelegramPayloadMapping(selectedTable.id, mapping),
       }
       const { data } = await api.post(`/v1/mcp_project/${mcpProjectId}/telegram/managed-session`, payload, {
         params: { 'project-id': mainProjectId },
@@ -1064,7 +1082,7 @@ const TelegramSetupModal = ({
                           </span>
                         </div>
                         <p className="text-text-muted mt-0.5 text-xs">
-                          Map every Telegram property to a field in this table.
+                          Map available fields. Unselected fields use default names.
                         </p>
                       </div>
                       <span className={cn(
@@ -1100,8 +1118,13 @@ const TelegramSetupModal = ({
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-text-main text-sm font-semibold">{target.label}</span>
-                                <span className="rounded-full bg-amber-500/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
-                                  Required
+                                <span className={cn(
+                                  'rounded-full px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide',
+                                  selected
+                                    ? 'bg-green-500/15 text-green-600 dark:text-green-400'
+                                    : 'bg-bg-sidebar text-text-muted',
+                                )}>
+                                  {selected ? 'Mapped' : 'Default'}
                                 </span>
                               </div>
                               <p className="text-text-muted mt-1 text-xs leading-snug">{target.hint}</p>
@@ -1123,7 +1146,9 @@ const TelegramSetupModal = ({
                                 </SelectTrigger>
                                 <SelectContent className="max-h-72">
                                   <SelectItem value={TELEGRAM_UNMAPPED_VALUE}>
-                                    <span className="text-text-muted">Not mapped</span>
+                                    <span className="text-text-muted">
+                                      Use default: {TELEGRAM_DEFAULT_MAPPING[target.key]}
+                                    </span>
                                   </SelectItem>
                                   {selectedTable.fields.map((field) => (
                                     <SelectItem key={field.value} value={field.value}>
@@ -1173,7 +1198,7 @@ const TelegramSetupModal = ({
                   {!selectedTable
                     ? 'Select a table to continue.'
                     : missingFields.length > 0
-                      ? `Missing: ${missingFields.map((field) => field.label).join(', ')}`
+                      ? `${mappedCount}/${TELEGRAM_FIELD_TARGETS.length} fields selected. Defaults will be sent for the rest.`
                       : 'All mappings are ready.'}
                 </p>
                 <div className="flex items-center gap-2">
