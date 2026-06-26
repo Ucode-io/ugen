@@ -550,6 +550,22 @@ const unwrapApiPayload = (payload: unknown): any => {
 const normalizeTelegramString = (value: unknown): string =>
   typeof value === 'string' ? value : value == null ? '' : String(value)
 
+const getTelegramBotUsername = (resource: any): string => {
+  const username = normalizeTelegramString(
+    resource?.settings?.telegram?.bot_username ??
+      resource?.settings?.telegram?.botUsername ??
+      resource?.bot_username ??
+      resource?.botUsername,
+  ).trim()
+
+  return username.replace(/^@+/, '')
+}
+
+const formatTelegramBotUsername = (resource: any): string => {
+  const username = getTelegramBotUsername(resource)
+  return username ? `@${username}` : ''
+}
+
 const getTelegramFieldValue = (field: any): string =>
   normalizeTelegramString(
     field?.slug ??
@@ -2070,7 +2086,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
   const filteredConnectedResources = resourcesList.filter((resource: any) => {
     const categoryItem = resourceItemByType.get(resource.resource_type)
-    const label = `${resource.name ?? ''} ${categoryItem?.label ?? ''}`
+    const telegramBotUsername =
+      resource.resource_type === TELEGRAM_TYPE_VALUE ? formatTelegramBotUsername(resource) : ''
+    const label = `${resource.name ?? ''} ${telegramBotUsername} ${categoryItem?.label ?? ''}`
     return matchesIntegrationSearch(label) && matchesCategoryFilter(categoryItem?.categoryId)
   })
 
@@ -2441,6 +2459,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               {filteredConnectedResources.map((resource: any) => {
                 const typeInfo = resourceTypes.find(t => t.value === resource.resource_type)
                 const categoryItem = resourceItemByType.get(resource.resource_type)
+                const isTelegramResource = resource.resource_type === TELEGRAM_TYPE_VALUE
+                const telegramBotUsername = isTelegramResource ? formatTelegramBotUsername(resource) : ''
+                const resourceName = resource.name || categoryItem?.label || typeInfo?.label || 'Resource'
                 return (
                   <div
                     key={resource.id}
@@ -2451,15 +2472,24 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     <div className="flex items-center gap-3 flex-wrap">
                       <ResourceIcon type={categoryItem?.icon ?? 'mongodb'} />
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-sm text-text-main truncate group-hover:text-primary transition-colors">{resource.name}</div>
-                        <div className="text-[11px] text-text-muted font-medium">{typeInfo?.label ?? categoryItem?.label}</div>
+                        <div className="font-bold text-sm text-text-main truncate group-hover:text-primary transition-colors">{resourceName}</div>
+                        <div className="text-[11px] text-text-muted font-medium truncate">
+                          {telegramBotUsername || typeInfo?.label || categoryItem?.label}
+                        </div>
                       </div>
                       <span className="bg-green-500/10 text-green-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 border border-green-500/20 ml-auto">
                         {resource.is_configured ? 'Connected' : 'Pending'}
                       </span>
                     </div>
                     <div className="text-xs text-text-muted leading-relaxed">
-                      {categoryItem?.summary ?? 'Custom integration'}: {resource.name}
+                      {isTelegramResource && telegramBotUsername ? (
+                        <>
+                          Bot username:{' '}
+                          <span className="text-text-main font-medium">{telegramBotUsername}</span>
+                        </>
+                      ) : (
+                        `${categoryItem?.summary ?? 'Custom integration'}: ${resourceName}`
+                      )}
                     </div>
                   </div>
                 )
