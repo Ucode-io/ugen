@@ -617,13 +617,14 @@ const normalizeTelegramMapping = (raw: any): Partial<Record<TelegramMappingField
 const normalizeTelegramManagedSession = (payload: unknown): TelegramManagedSession => {
   const data = readObject(unwrapApiPayload(payload))
   const startLink = normalizeTelegramString(data.start_link ?? data.startLink)
-  if (!startLink) throw new Error('Telegram setup response is missing start_link')
+  const createLink = normalizeTelegramString(data.create_link ?? data.createLink)
+  if (!createLink && !startLink) throw new Error('Telegram setup response is missing setup link')
 
   return {
     id: normalizeTelegramString(data.id),
     status: normalizeTelegramString(data.status),
     startLink,
-    createLink: normalizeTelegramString(data.create_link ?? data.createLink),
+    createLink,
     displayName: normalizeTelegramString(data.display_name ?? data.displayName),
     suggestedUsername: normalizeTelegramString(data.suggested_username ?? data.suggestedUsername),
   }
@@ -957,34 +958,39 @@ const TelegramSetupModal = ({
           </DialogHeader>
 
           {managedSession ? (
-            <div className="flex min-h-0 flex-1 flex-col items-center px-6 py-6 text-center">
-              <h3 className="text-text-main text-base font-semibold">Open Telegram setup</h3>
-              <p className="text-text-muted mt-1 max-w-72 text-sm leading-relaxed">
-                Scan the QR code or open Telegram. This window closes automatically after connection.
-              </p>
+            (() => {
+              const telegramSetupLink = managedSession.createLink || managedSession.startLink
+              return (
+                <div className="flex min-h-0 flex-1 flex-col items-center px-6 py-6 text-center">
+                  <h3 className="text-text-main text-base font-semibold">Open Telegram setup</h3>
+                  <p className="text-text-muted mt-1 max-w-72 text-sm leading-relaxed">
+                    Scan the QR code or open Telegram. This window closes automatically after connection.
+                  </p>
 
-              <a
-                href={managedSession.startLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border-border-subtle mt-5 rounded-xl border bg-white p-2.5 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
-                aria-label="Open Telegram setup link"
-              >
-                <StyledQr value={managedSession.startLink} size={220} />
-              </a>
+                  <a
+                    href={telegramSetupLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="border-border-subtle mt-5 rounded-xl border bg-white p-2.5 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
+                    aria-label="Open Telegram setup link"
+                  >
+                    <StyledQr value={telegramSetupLink} size={220} />
+                  </a>
 
-              <div className="mt-4 w-full max-w-72">
-                <a
-                  href={managedSession.startLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium shadow transition-all active:scale-[0.98]"
-                >
-                  <ExternalLink size={14} />
-                  Open Telegram setup
-                </a>
-              </div>
-            </div>
+                  <div className="mt-4 w-full max-w-72">
+                    <a
+                      href={telegramSetupLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium shadow transition-all active:scale-[0.98]"
+                    >
+                      <ExternalLink size={14} />
+                      Open Telegram setup
+                    </a>
+                  </div>
+                </div>
+              )
+            })()
           ) : !setupReady ? (
             <div className="flex flex-col items-center justify-center gap-3 px-8 py-14 text-center">
               <AlertCircle className="text-amber-500" size={28} />
