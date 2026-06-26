@@ -74,9 +74,6 @@ const INSTAGRAM_DIRECT_TYPE_VALUE = 15
 const GOOGLE_ADS_TYPE_VALUE = 16
 const META_ADS_TYPE_VALUE = 17
 
-// TEMP: open the Telegram QR modal with mock data for visual review.
-const TELEGRAM_QR_MOCK_ENABLED = true
-
 interface ResourceItem {
   label: string
   typeValue: number
@@ -480,15 +477,6 @@ interface TelegramManagedSession {
   createLink: string
   displayName: string
   suggestedUsername: string
-}
-
-const TELEGRAM_QR_MOCK_SESSION: TelegramManagedSession = {
-  id: 'mock-managed-session',
-  status: 'awaiting_link',
-  startLink: 'https://t.me/ugen_set_up_bot?start=mb_zYt26MS27nAHUbqHKdfhAg',
-  createLink: 'https://t.me/newbot/ugen_set_up_bot/nexaerp_bot?name=Support+Bot',
-  displayName: 'Support Bot',
-  suggestedUsername: 'nexaerp_bot',
 }
 
 const TELEGRAM_FIELD_TARGETS: TelegramFieldTarget[] = [
@@ -1213,7 +1201,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   // Field-mapping modal (bind a uCode table's fields to Google Calendar event
   // properties). Kept here so it's reachable from every Google Calendar card.
   const [calendarMappingOpen, setCalendarMappingOpen] = useState(false)
-  const [telegramSetupOpen, setTelegramSetupOpen] = useState(TELEGRAM_QR_MOCK_ENABLED)
+  const [telegramSetupOpen, setTelegramSetupOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
@@ -2578,7 +2566,6 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           mainProjectId={mainProjectId}
           mainEnvironmentId={mainEnvironmentId}
           projectTitle={projectTitle}
-          mockSession={TELEGRAM_QR_MOCK_ENABLED ? TELEGRAM_QR_MOCK_SESSION : undefined}
           onSaved={() => {
             queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
             queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
