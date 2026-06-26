@@ -1,7 +1,29 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { ChevronLeft, Loader2, Trash2, RefreshCw, Box, Search, Plug, SlidersHorizontal } from 'lucide-react'
+import { Fragment, useState, useEffect, useMemo, useRef } from 'react'
+import {
+  BarChart3,
+  AlertCircle,
+  Bot,
+  Box,
+  Check,
+  ChevronLeft,
+  Cloud,
+  Code2,
+  Database,
+  ExternalLink,
+  Loader2,
+  Mail,
+  Megaphone,
+  Plug,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  Table2,
+  Trash2,
+  Video,
+  type LucideIcon,
+} from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authApi, api } from '@/shared/api'
 import { githubIntegrationApi } from '@/features/github-integration'
@@ -11,13 +33,23 @@ import { bitbucketIntegrationApi } from '@/features/bitbucket-integration'
 import { googleDriveIntegrationApi } from '@/features/google-drive-integration'
 import { googleCalendarIntegrationApi, GoogleCalendarFieldMappingModal } from '@/features/google-calendar-integration'
 import { useAuthStore } from '@/entities/session'
-import { Button } from '@/shared/ui'
-import { Input } from '@/shared/ui'
-import { Switch } from '@/shared/ui'
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Skeleton,
+} from '@/shared/ui'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui'
@@ -33,25 +65,126 @@ import { DataLoadingState } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import { centeredPopupFeatures } from '@/shared/lib/utils/centered-popup'
 import { toast } from 'sonner'
+import { StyledQr } from './styled-qr'
 
 const GOOGLE_DRIVE_TYPE_VALUE = 1001
 const GOOGLE_CALENDAR_TYPE_VALUE = 1002
+const TELEGRAM_TYPE_VALUE = 14
+const INSTAGRAM_DIRECT_TYPE_VALUE = 15
+const GOOGLE_ADS_TYPE_VALUE = 16
+const META_ADS_TYPE_VALUE = 17
+
+// TEMP: open the Telegram QR modal with mock data for visual review.
+const TELEGRAM_QR_MOCK_ENABLED = true
+
+interface ResourceItem {
+  label: string
+  typeValue: number
+  icon: string
+  summary: string
+}
+
+interface ResourceCategory {
+  id: string
+  label: string
+  icon: LucideIcon
+  items: ResourceItem[]
+}
+
+// Resource categories with their items (static config)
+const resourceCategories: ResourceCategory[] = [
+  {
+    id: 'databases',
+    label: 'Databases',
+    icon: Database,
+    items: [
+      { label: 'MongoDB', typeValue: 1, icon: 'mongodb', summary: 'Document database' },
+      { label: 'ClickHouse', typeValue: 2, icon: 'clickhouse', summary: 'Analytical database' },
+      { label: 'PostgreSQL', typeValue: 3, icon: 'postgresql', summary: 'Relational database' },
+    ],
+  },
+  {
+    id: 'api_messaging',
+    label: 'API & Messaging',
+    icon: Mail,
+    items: [
+      { label: 'REST', typeValue: 4, icon: 'rest', summary: 'HTTP API endpoint' },
+      { label: 'SMS', typeValue: 6, icon: 'sms', summary: 'SMS delivery provider' },
+      { label: 'SMTP', typeValue: 7, icon: 'smtp', summary: 'Email delivery provider' },
+      { label: 'Telegram', typeValue: TELEGRAM_TYPE_VALUE, icon: 'telegram', summary: 'Telegram bot messaging' },
+      { label: 'Instagram Direct', typeValue: INSTAGRAM_DIRECT_TYPE_VALUE, icon: 'instagram-direct', summary: 'Instagram direct messages' },
+    ],
+  },
+  {
+    id: 'source_control',
+    label: 'Source Control',
+    icon: Code2,
+    items: [
+      { label: 'GitHub', typeValue: 5, icon: 'github', summary: 'Repository hosting' },
+      { label: 'GitLab', typeValue: 8, icon: 'gitlab', summary: 'Repository hosting' },
+      { label: 'Bitbucket', typeValue: 9, icon: 'bitbucket', summary: 'Repository hosting' },
+    ],
+  },
+  {
+    id: 'productivity',
+    label: 'Productivity',
+    icon: Cloud,
+    items: [
+      { label: 'Google Drive', typeValue: GOOGLE_DRIVE_TYPE_VALUE, icon: 'google-drive', summary: 'Cloud file storage' },
+      { label: 'Google Calendar', typeValue: GOOGLE_CALENDAR_TYPE_VALUE, icon: 'google-calendar', summary: 'Calendar and events' },
+    ],
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing',
+    icon: Megaphone,
+    items: [
+      { label: 'Google Ads', typeValue: GOOGLE_ADS_TYPE_VALUE, icon: 'google-ads', summary: 'Google advertising account' },
+      { label: 'Meta Ads', typeValue: META_ADS_TYPE_VALUE, icon: 'meta-ads', summary: 'Meta advertising account' },
+    ],
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    icon: BarChart3,
+    items: [
+      { label: 'Superset', typeValue: 11, icon: 'superset', summary: 'BI dashboards' },
+      { label: 'Metabase', typeValue: 12, icon: 'metabase', summary: 'BI dashboards' },
+    ],
+  },
+  {
+    id: 'media',
+    label: 'Media',
+    icon: Video,
+    items: [
+      { label: 'Transcode', typeValue: 13, icon: 'transcoder', summary: 'Media processing' },
+    ],
+  },
+]
+
+const OAUTH_ONLY_TYPE_VALUES = new Set([GOOGLE_DRIVE_TYPE_VALUE, GOOGLE_CALENDAR_TYPE_VALUE])
+
+const allResourceItems = resourceCategories.flatMap(category =>
+  category.items.map(item => ({
+    ...item,
+    categoryId: category.id,
+    categoryLabel: category.label,
+  }))
+)
+
+const formResourceCategories = resourceCategories
+  .map(category => ({
+    ...category,
+    items: category.items.filter(item => !OAUTH_ONLY_TYPE_VALUES.has(item.typeValue)),
+  }))
+  .filter(category => category.items.length > 0)
 
 // Resource type options — these are static, no API needed
-const resourceTypes = [
-  { label: "MongoDB", value: 1 },
-  { label: "ClickHouse", value: 2 },
-  { label: "PostgreSQL", value: 3 },
-  { label: "Rest", value: 4 },
-  { label: "GitHub", value: 5 },
-  { label: "Sms", value: 6 },
-  { label: "Smtp", value: 7 },
-  { label: "Gitlab", value: 8 },
-  { label: "Bitbucket", value: 9 },
-  { label: "Superset", value: 11 },
-  { label: "Metabase", value: 12 },
-  { label: "Transcode", value: 13 },
-]
+const resourceTypes = allResourceItems
+  .filter(item => !OAUTH_ONLY_TYPE_VALUES.has(item.typeValue))
+  .map(item => ({ label: item.label, value: item.typeValue }))
+
+const resourceItemByType = new Map(allResourceItems.map(item => [item.typeValue, item]))
 
 // Map server-side string type → numeric typeValue used across the UI
 const RESOURCE_TYPE_STRING_TO_VALUE: Record<string, number> = {
@@ -71,13 +204,20 @@ const RESOURCE_TYPE_STRING_TO_VALUE: Record<string, number> = {
   METABASE: 12,
   TRANSCODE: 13,
   TRANSCODER: 13,
+  TELEGRAM: TELEGRAM_TYPE_VALUE,
+  INSTAGRAM_DIRECT: INSTAGRAM_DIRECT_TYPE_VALUE,
+  INSTAGRAMDIRECT: INSTAGRAM_DIRECT_TYPE_VALUE,
+  GOOGLE_ADS: GOOGLE_ADS_TYPE_VALUE,
+  GOOGLEADS: GOOGLE_ADS_TYPE_VALUE,
+  META_ADS: META_ADS_TYPE_VALUE,
+  METAADS: META_ADS_TYPE_VALUE,
 }
 
 const normalizeApiResource = (item: any) => {
   const numericType =
     typeof item.resource_type === 'number'
       ? item.resource_type
-      : RESOURCE_TYPE_STRING_TO_VALUE[String(item.type ?? '').toUpperCase()] ?? null
+      : RESOURCE_TYPE_STRING_TO_VALUE[String(item.resource_type ?? item.type ?? '').toUpperCase()] ?? null
   // Google Drive has no entry in resourceTypes (it connects via OAuth, not the
   // create form), so the server type doesn't resolve to a numeric value and the
   // icon fell back to MongoDB. Detect it explicitly and pin it to its UI value.
@@ -115,59 +255,6 @@ const normalizeApiResource = (item: any) => {
   }
 }
 
-// Resource categories with their items (static config)
-const resourceCategories = [
-  {
-    id: 'databases',
-    label: 'Databases',
-    items: [
-      { label: 'MongoDB', typeValue: 1, icon: 'mongodb' },
-      { label: 'ClickHouse', typeValue: 2, icon: 'clickhouse' },
-      { label: 'PostgreSQL', typeValue: 3, icon: 'postgresql' },
-    ]
-  },
-  {
-    id: 'api',
-    label: 'API',
-    items: [
-      { label: 'Playmobile', typeValue: 6, icon: 'sms' },
-      { label: 'SMTP', typeValue: 7, icon: 'smtp' },
-    ]
-  },
-  {
-    id: 'source_control',
-    label: 'Source Code Version Control',
-    items: [
-      { label: 'GitHub', typeValue: 5, icon: 'github' },
-      { label: 'Gitlab', typeValue: 8, icon: 'gitlab' },
-      { label: 'Bitbucket', typeValue: 9, icon: 'bitbucket' },
-    ]
-  },
-  {
-    id: 'productivity',
-    label: 'Productivity',
-    items: [
-      { label: 'Google Drive', typeValue: GOOGLE_DRIVE_TYPE_VALUE, icon: 'google-drive' },
-      { label: 'Google Calendar', typeValue: GOOGLE_CALENDAR_TYPE_VALUE, icon: 'google-calendar' },
-    ]
-  },
-  {
-    id: 'bi',
-    label: 'BI tool',
-    items: [
-      { label: 'Superset', typeValue: 11, icon: 'superset' },
-      { label: 'Metabase', typeValue: 12, icon: 'metabase' },
-    ]
-  },
-  {
-    id: 'transcoder',
-    label: 'Transcoder',
-    items: [
-      { label: 'Transcoder', typeValue: 13, icon: 'transcoder' },
-    ]
-  },
-]
-
 const ResourceIcon = ({ type }: { type: string }) => {
   const icons: Record<string, React.ReactNode> = {
     'google-drive': (
@@ -194,6 +281,35 @@ const ResourceIcon = ({ type }: { type: string }) => {
         <path fill="#4285f4" d="M71.6 124.3c-4-2.7-6.7-6.6-8.2-11.8l9-3.7c.8 3.2 2.3 5.6 4.4 7.4 2 1.7 4.5 2.6 7.4 2.6 3 0 5.5-.9 7.6-2.7 2.1-1.8 3.1-4.1 3.1-6.9 0-2.9-1.1-5.2-3.3-7-2.2-1.8-5-2.7-8.2-2.7h-5.2v-8.9h4.7c2.8 0 5.2-.8 7.1-2.3 2-1.5 2.9-3.6 2.9-6.3 0-2.4-.9-4.3-2.6-5.7-1.7-1.4-4-2.1-6.6-2.1-2.6 0-4.7.7-6.2 2.1-1.6 1.4-2.7 3.1-3.4 5.1l-8.9-3.7c1.1-3.2 3.2-6 6.2-8.5 3-2.5 6.9-3.7 11.6-3.7 3.5 0 6.6.7 9.4 2 2.7 1.4 4.9 3.2 6.4 5.6 1.6 2.4 2.3 5.1 2.3 8 0 3-.7 5.6-2.2 7.6-1.4 2.1-3.3 3.7-5.4 4.8v.5c2.8 1.2 5.2 3 7 5.5 1.8 2.5 2.8 5.5 2.8 9 0 3.5-.9 6.6-2.7 9.3-1.8 2.7-4.2 4.9-7.4 6.4-3.1 1.5-6.6 2.3-10.6 2.3-4.6.1-8.8-1.3-12.8-4z" />
         <path fill="#4285f4" d="M124.5 79.3l-9.9 7.2-5-7.6 17.8-12.8h6.8v60.4h-9.7z" />
       </svg>
+    ),
+    rest: <Plug className="h-5 w-5 text-text-muted" />,
+    telegram: (
+      <span
+        aria-hidden="true"
+        className="h-5 w-5 bg-contain bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/telegram.svg')" }}
+      />
+    ),
+    'instagram-direct': (
+      <span
+        aria-hidden="true"
+        className="h-5 w-5 bg-contain bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/instagram.svg')" }}
+      />
+    ),
+    'google-ads': (
+      <span
+        aria-hidden="true"
+        className="h-5 w-5 bg-contain bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/googleads.svg')" }}
+      />
+    ),
+    'meta-ads': (
+      <span
+        aria-hidden="true"
+        className="h-5 w-5 bg-contain bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/meta.svg')" }}
+      />
     ),
     github: (
       <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none">
@@ -325,15 +441,765 @@ const ResourceIcon = ({ type }: { type: string }) => {
   )
 }
 
-type View = 'grid' | 'detail'
+type TelegramMappingFieldKey =
+  | 'telegram_chat_id_field'
+  | 'telegram_user_id_field'
+  | 'display_name_field'
+  | 'username_field'
+  | 'last_message_field'
+  | 'last_message_at_field'
+  | 'unread_count_field'
+  | 'status_field'
 
-interface ResourceItem {
+interface TelegramFieldTarget {
+  key: TelegramMappingFieldKey
   label: string
-  typeValue: number
-  icon: string
+  hint: string
+  patterns: string[]
 }
 
+interface TelegramFieldOption {
+  id: string
+  value: string
+  label: string
+  type?: string
+}
+
+interface TelegramTableOption {
+  id: string
+  slug: string
+  label: string
+  fields: TelegramFieldOption[]
+  suggestedMapping: Partial<Record<TelegramMappingFieldKey, string>>
+}
+
+interface TelegramManagedSession {
+  id: string
+  status: string
+  startLink: string
+  createLink: string
+  displayName: string
+  suggestedUsername: string
+}
+
+const TELEGRAM_QR_MOCK_SESSION: TelegramManagedSession = {
+  id: 'mock-managed-session',
+  status: 'awaiting_link',
+  startLink: 'https://t.me/ugen_set_up_bot?start=mb_zYt26MS27nAHUbqHKdfhAg',
+  createLink: 'https://t.me/newbot/ugen_set_up_bot/nexaerp_bot?name=Support+Bot',
+  displayName: 'Support Bot',
+  suggestedUsername: 'nexaerp_bot',
+}
+
+const TELEGRAM_FIELD_TARGETS: TelegramFieldTarget[] = [
+  {
+    key: 'telegram_chat_id_field',
+    label: 'Telegram chat ID',
+    hint: 'Unique chat identifier used to route incoming and outgoing messages.',
+    patterns: ['ugen_telegram_chat_id', 'telegram_chat_id', 'chat_id'],
+  },
+  {
+    key: 'telegram_user_id_field',
+    label: 'Telegram user ID',
+    hint: 'Telegram user identifier for the person behind the chat.',
+    patterns: ['telegram_user_id', 'telegram_id', 'user_id'],
+  },
+  {
+    key: 'display_name_field',
+    label: 'Display name',
+    hint: 'Human-readable customer name shown in the inbox.',
+    patterns: ['customer_name', 'display_name', 'full_name', 'name', 'title'],
+  },
+  {
+    key: 'username_field',
+    label: 'Username',
+    hint: 'Telegram username, when the user has one.',
+    patterns: ['telegram_username', 'username', 'user_name', 'login'],
+  },
+  {
+    key: 'last_message_field',
+    label: 'Last message',
+    hint: 'Preview text for the most recent message.',
+    patterns: ['last_message', 'message', 'text', 'body'],
+  },
+  {
+    key: 'last_message_at_field',
+    label: 'Last message time',
+    hint: 'Timestamp of the most recent message.',
+    patterns: ['last_message_at', 'message_at', 'updated_at', 'created_at'],
+  },
+  {
+    key: 'unread_count_field',
+    label: 'Unread count',
+    hint: 'Number of unread messages in the chat.',
+    patterns: ['unread_count', 'unread', 'unread_messages', 'count'],
+  },
+  {
+    key: 'status_field',
+    label: 'Status',
+    hint: 'Conversation state, for example open, pending or closed.',
+    patterns: ['status', 'state'],
+  },
+]
+
+const TELEGRAM_UNMAPPED_VALUE = '__telegram_unmapped__'
+
+const readObject = (value: unknown): Record<string, any> =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}
+
+const readArray = (value: unknown): any[] => Array.isArray(value) ? value : []
+
+const unwrapApiPayload = (payload: unknown): any => {
+  const root = readObject(payload)
+  if ('data' in root) {
+    const data = root.data
+    if (data && typeof data === 'object' && 'data' in readObject(data)) return readObject(data).data
+    return data
+  }
+  return payload
+}
+
+const normalizeTelegramString = (value: unknown): string =>
+  typeof value === 'string' ? value : value == null ? '' : String(value)
+
+const getTelegramFieldValue = (field: any): string =>
+  normalizeTelegramString(
+    field?.slug ??
+      field?.name ??
+      field?.key ??
+      field?.field_slug ??
+      field?.field_name ??
+      field?.column_name ??
+      field?.id,
+  )
+
+const normalizeTelegramMapping = (raw: any): Partial<Record<TelegramMappingFieldKey, string>> => {
+  const source = readObject(raw)
+  const mapping: Partial<Record<TelegramMappingFieldKey, string>> = {}
+  TELEGRAM_FIELD_TARGETS.forEach((target) => {
+    const value = normalizeTelegramString(source[target.key])
+    if (value) mapping[target.key] = value
+  })
+  return mapping
+}
+
+const normalizeTelegramManagedSession = (payload: unknown): TelegramManagedSession => {
+  const data = readObject(unwrapApiPayload(payload))
+  const startLink = normalizeTelegramString(data.start_link ?? data.startLink)
+  if (!startLink) throw new Error('Telegram setup response is missing start_link')
+
+  return {
+    id: normalizeTelegramString(data.id),
+    status: normalizeTelegramString(data.status),
+    startLink,
+    createLink: normalizeTelegramString(data.create_link ?? data.createLink),
+    displayName: normalizeTelegramString(data.display_name ?? data.displayName),
+    suggestedUsername: normalizeTelegramString(data.suggested_username ?? data.suggestedUsername),
+  }
+}
+
+const normalizeTelegramField = (field: any, index: number): TelegramFieldOption | null => {
+  const value = getTelegramFieldValue(field)
+  if (!value) return null
+  return {
+    id: normalizeTelegramString(field?.id) || value || String(index),
+    value,
+    label: normalizeTelegramString(field?.label ?? field?.title ?? field?.name ?? field?.slug) || value,
+    type: normalizeTelegramString(field?.type ?? field?.field_type ?? field?.data_type) || undefined,
+  }
+}
+
+const normalizeTelegramMappingOptions = (payload: unknown): TelegramTableOption[] => {
+  const root = unwrapApiPayload(payload)
+  const data = readObject(root)
+  const tablesRaw = readArray(
+    Array.isArray(root)
+      ? root
+      : data.tables ??
+          data.table_options ??
+          data.mapping_options ??
+          data.options ??
+          data.items ??
+          data.response,
+  )
+  const fieldsByTable = readObject(data.fields_by_table ?? data.fieldsByTable ?? data.table_fields)
+
+  return tablesRaw.map((table: any, index: number) => {
+    const id = normalizeTelegramString(table?.id ?? table?.table_id ?? table?.tableId)
+    const slug = normalizeTelegramString(table?.slug ?? table?.name ?? table?.table_slug ?? id)
+    const key = id || slug || String(index)
+    const fieldsRaw = readArray(
+      table?.fields ??
+        table?.columns ??
+        table?.table_fields ??
+        table?.schema?.fields ??
+        fieldsByTable[id] ??
+        fieldsByTable[slug],
+    )
+    const fields = fieldsRaw
+      .map((field: any, fieldIndex: number) => normalizeTelegramField(field, fieldIndex))
+      .filter(Boolean) as TelegramFieldOption[]
+
+    return {
+      id: key,
+      slug: slug || key,
+      label: normalizeTelegramString(table?.label ?? table?.title ?? table?.name ?? slug ?? id) || 'Untitled table',
+      fields,
+      suggestedMapping: normalizeTelegramMapping(table?.mapping ?? table?.suggested_mapping ?? table?.suggestedMapping),
+    }
+  }).filter((table) => table.id)
+}
+
+const findTelegramFieldMatch = (
+  fields: TelegramFieldOption[],
+  patterns: string[],
+): string => {
+  const normalized = fields.map((field) => ({
+    ...field,
+    comparable: field.value.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+  }))
+
+  for (const pattern of patterns) {
+    const target = pattern.toLowerCase()
+    const exact = normalized.find((field) => field.comparable === target)
+    if (exact) return exact.value
+  }
+
+  for (const pattern of patterns) {
+    const target = pattern.toLowerCase()
+    const partial = normalized.find((field) => field.comparable.includes(target))
+    if (partial) return partial.value
+  }
+
+  return ''
+}
+
+const createTelegramAutoMapping = (
+  table: TelegramTableOption,
+): Partial<Record<TelegramMappingFieldKey, string>> => {
+  const mapping: Partial<Record<TelegramMappingFieldKey, string>> = { ...table.suggestedMapping }
+  TELEGRAM_FIELD_TARGETS.forEach((target) => {
+    if (!mapping[target.key]) mapping[target.key] = findTelegramFieldMatch(table.fields, target.patterns)
+  })
+  return mapping
+}
+
+const createTelegramBotUsername = (name: string): string => {
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_')
+  const trimmed = (base || 'support').replace(/_?bot$/i, '').slice(0, 24)
+  return `${trimmed}_bot`
+}
+
+const isTelegramBotUsernameValid = (value: string): boolean =>
+  /^[a-z][a-z0-9_]{2,28}bot$/i.test(value) && value.length >= 5 && value.length <= 32
+
+const TelegramSetupModal = ({
+  open,
+  onOpenChange,
+  mcpProjectId,
+  mainProjectId,
+  mainEnvironmentId,
+  projectTitle,
+  onSaved,
+  mockSession,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  mcpProjectId: string
+  mainProjectId: string
+  mainEnvironmentId: string
+  projectTitle: string
+  onSaved: () => void
+  mockSession?: TelegramManagedSession
+}) => {
+  const [search, setSearch] = useState('')
+  const [selectedTableId, setSelectedTableId] = useState<string>('')
+  const [displayName, setDisplayName] = useState('Support Bot')
+  const [suggestedUsername, setSuggestedUsername] = useState('')
+  const [mappingByTable, setMappingByTable] = useState<Record<string, Partial<Record<TelegramMappingFieldKey, string>>>>({})
+  const [managedSession, setManagedSession] = useState<TelegramManagedSession | null>(null)
+  const [isWaitingForResource, setIsWaitingForResource] = useState(false)
+  const pollInFlightRef = useRef(false)
+
+  const setupReady = !!mcpProjectId && !!mainProjectId && !!mainEnvironmentId
+  const isMockSession = !!mockSession
+
+  useEffect(() => {
+    if (!open) return
+    if (mockSession) {
+      setManagedSession(mockSession)
+      setIsWaitingForResource(true)
+      return
+    }
+    setDisplayName((current) => current || 'Support Bot')
+    setSuggestedUsername((current) => current || createTelegramBotUsername(projectTitle || 'support'))
+  }, [open, projectTitle, mockSession])
+
+  const {
+    data: tables = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['telegram-mapping-options', mcpProjectId, mainProjectId, mainEnvironmentId],
+    queryFn: async () => {
+      const { data } = await api.get(`/v1/mcp_project/${mcpProjectId}/telegram/mapping-options`, {
+        params: { 'project-id': mainProjectId },
+        headers: { 'Environment-Id': mainEnvironmentId },
+      })
+      return normalizeTelegramMappingOptions(data)
+    },
+    enabled: open && setupReady && !isMockSession,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+
+  const filteredTables = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return tables
+    return tables.filter((table) =>
+      `${table.label} ${table.slug}`.toLowerCase().includes(query),
+    )
+  }, [tables, search])
+
+  useEffect(() => {
+    if (!open || selectedTableId || tables.length === 0) return
+    const first = tables[0]
+    setSelectedTableId(first.id)
+    setMappingByTable((prev) => ({
+      ...prev,
+      [first.id]: prev[first.id] ?? createTelegramAutoMapping(first),
+    }))
+  }, [open, selectedTableId, tables])
+
+  const selectedTable = useMemo(
+    () => tables.find((table) => table.id === selectedTableId) ?? null,
+    [tables, selectedTableId],
+  )
+  const mapping = selectedTable ? mappingByTable[selectedTable.id] ?? {} : {}
+  const missingFields = TELEGRAM_FIELD_TARGETS.filter((target) => !mapping[target.key])
+  const mappedCount = TELEGRAM_FIELD_TARGETS.length - missingFields.length
+  const usernameValid = isTelegramBotUsernameValid(suggestedUsername)
+  const canSave =
+    setupReady &&
+    !!selectedTable &&
+    !!displayName.trim() &&
+    usernameValid &&
+    missingFields.length === 0
+
+  const selectTable = (table: TelegramTableOption) => {
+    setSelectedTableId(table.id)
+    setMappingByTable((prev) => ({
+      ...prev,
+      [table.id]: prev[table.id] ?? createTelegramAutoMapping(table),
+    }))
+  }
+
+  const setMappingValue = (key: TelegramMappingFieldKey, value: string) => {
+    if (!selectedTable) return
+    setMappingByTable((prev) => ({
+      ...prev,
+      [selectedTable.id]: {
+        ...(prev[selectedTable.id] ?? {}),
+        [key]: value,
+      },
+    }))
+  }
+
+  const { mutate: saveTelegramSession, isPending: isSaving } = useMutation({
+    mutationFn: async (): Promise<TelegramManagedSession> => {
+      if (!selectedTable) throw new Error('Select a table first')
+      const payload = {
+        display_name: displayName.trim(),
+        suggested_username: suggestedUsername.trim(),
+        mapping: {
+          table_id: selectedTable.id,
+          ...mapping,
+        },
+      }
+      const { data } = await api.post(`/v1/mcp_project/${mcpProjectId}/telegram/managed-session`, payload, {
+        params: { 'project-id': mainProjectId },
+        headers: { 'Environment-Id': mainEnvironmentId },
+      })
+      return normalizeTelegramManagedSession(data)
+    },
+    onSuccess: (session) => {
+      setManagedSession(session)
+      setIsWaitingForResource(true)
+      toast.success('Telegram setup link created')
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.data || err?.response?.data?.message || err?.message || 'Failed to configure Telegram')
+    },
+  })
+
+  useEffect(() => {
+    if (!open || !managedSession || !isWaitingForResource || !mcpProjectId || isMockSession) return
+
+    let cancelled = false
+
+    const pollTelegramResource = async () => {
+      if (pollInFlightRef.current) return
+      pollInFlightRef.current = true
+      try {
+        const { data } = await api.get('/v2/company/project/resource', {
+          params: { project_id: mcpProjectId },
+        })
+        const resources = readArray(data?.data?.resources).map(normalizeApiResource)
+        const hasTelegram = resources.some((resource: any) => resource.resource_type === TELEGRAM_TYPE_VALUE)
+        if (!cancelled && hasTelegram) {
+          setIsWaitingForResource(false)
+          toast.success('Telegram connected')
+          onSaved()
+          onOpenChange(false)
+        }
+      } catch (err) {
+        console.error('Telegram resource polling failed', err)
+      } finally {
+        pollInFlightRef.current = false
+      }
+    }
+
+    void pollTelegramResource()
+    const interval = window.setInterval(() => {
+      void pollTelegramResource()
+    }, 2000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+      pollInFlightRef.current = false
+    }
+  }, [open, managedSession, isWaitingForResource, mcpProjectId, isMockSession, onSaved, onOpenChange])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={cn(
+        'gap-0 overflow-hidden p-0',
+        managedSession ? 'sm:max-w-[420px]' : 'sm:max-w-[980px]',
+      )}>
+        <div className="flex max-h-[86vh] flex-col">
+          <DialogHeader className="border-border-subtle space-y-1 border-b px-5 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-5 w-5 bg-contain bg-center bg-no-repeat"
+                style={{ backgroundImage: "url('/telegram.svg')" }}
+              />
+              Telegram integration
+            </DialogTitle>
+            <DialogDescription>
+              Select the chat table, map Telegram fields, then create a managed Telegram session.
+            </DialogDescription>
+          </DialogHeader>
+
+          {managedSession ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center px-6 py-6 text-center">
+              <h3 className="text-text-main text-base font-semibold">Open Telegram setup</h3>
+              <p className="text-text-muted mt-1 max-w-72 text-sm leading-relaxed">
+                Scan the QR code or open Telegram. This window closes automatically after connection.
+              </p>
+
+              <a
+                href={managedSession.startLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border-border-subtle mt-5 rounded-xl border bg-white p-2.5 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
+                aria-label="Open Telegram setup link"
+              >
+                <StyledQr value={managedSession.startLink} size={220} />
+              </a>
+
+              <div className="mt-4 w-full max-w-72">
+                <a
+                  href={managedSession.startLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium shadow transition-all active:scale-[0.98]"
+                >
+                  <ExternalLink size={14} />
+                  Open Telegram setup
+                </a>
+              </div>
+            </div>
+          ) : !setupReady ? (
+            <div className="flex flex-col items-center justify-center gap-3 px-8 py-14 text-center">
+              <AlertCircle className="text-amber-500" size={28} />
+              <div>
+                <p className="text-text-main text-sm font-semibold">Project context is still loading</p>
+                <p className="text-text-muted mt-1 text-sm">
+                  Telegram setup needs the main project id and environment id. Try again after the project finishes loading.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1">
+              <div className="border-border-subtle flex w-72 shrink-0 flex-col border-r">
+                <div className="border-border-subtle border-b p-3">
+                  <div className="bg-bg-main border-border-subtle focus-within:border-primary/60 flex items-center rounded-lg border px-2.5 transition-colors">
+                    <Search size={14} className="text-text-muted shrink-0" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search tables..."
+                      className="placeholder:text-text-muted text-text-main w-full bg-transparent px-2 py-2 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                  {isLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 8 }).map((_, index) => (
+                        <Skeleton key={index} className="h-14 rounded-lg" />
+                      ))}
+                    </div>
+                  ) : isError ? (
+                    <div className="text-text-muted flex flex-col items-center gap-3 px-2 py-8 text-center text-sm">
+                      <AlertCircle className="text-destructive" size={22} />
+                      <span>Failed to load tables.</span>
+                      <Button size="sm" variant="outline" onClick={() => refetch()}>
+                        Retry
+                      </Button>
+                    </div>
+                  ) : filteredTables.length === 0 ? (
+                    <div className="text-text-muted px-2 py-8 text-center text-sm">
+                      No tables found.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredTables.map((table) => {
+                        const tableMapping = mappingByTable[table.id] ?? createTelegramAutoMapping(table)
+                        const tableMappedCount = TELEGRAM_FIELD_TARGETS.filter((target) => tableMapping[target.key]).length
+                        const isActive = selectedTableId === table.id
+                        return (
+                          <button
+                            key={table.id}
+                            type="button"
+                            onClick={() => selectTable(table)}
+                            className={cn(
+                              'border-border-subtle flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all',
+                              isActive
+                                ? 'border-primary/50 bg-primary/5'
+                                : 'hover:border-primary/30 hover:bg-bg-sidebar',
+                            )}
+                          >
+                            <div className={cn(
+                              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border',
+                              isActive ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-subtle bg-bg-main text-text-muted',
+                            )}>
+                              <Table2 size={16} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-text-main truncate text-sm font-semibold">
+                                {table.label}
+                              </div>
+                              <div className="text-text-muted mt-0.5 text-xs">
+                                {table.fields.length} fields · {tableMappedCount}/{TELEGRAM_FIELD_TARGETS.length} matched
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="border-border-subtle border-b p-5">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="text-text-main text-sm font-medium">Display name</label>
+                      <Input
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Support Bot"
+                        className="bg-bg-sidebar border-border-subtle"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-text-main text-sm font-medium">Suggested username</label>
+                      <Input
+                        value={suggestedUsername}
+                        onChange={(e) =>
+                          setSuggestedUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
+                        }
+                        placeholder="my_shop_support_bot"
+                        className={cn(
+                          'bg-bg-sidebar border-border-subtle',
+                          suggestedUsername && !usernameValid && 'border-amber-500/60',
+                        )}
+                      />
+                      {suggestedUsername && !usernameValid && (
+                        <p className="text-amber-600 dark:text-amber-400 text-xs">
+                          Use 5-32 latin letters, numbers or underscores. Bot usernames must end with "bot".
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {!selectedTable ? (
+                  <div className="text-text-muted flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
+                    <Database size={28} className="opacity-40" />
+                    <p className="text-sm">Select a table to start mapping Telegram fields.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="border-border-subtle flex items-center gap-3 border-b px-5 py-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Bot size={16} className="text-[#26A5E4]" />
+                          <span className="text-text-main truncate text-sm font-semibold">
+                            {selectedTable.label}
+                          </span>
+                        </div>
+                        <p className="text-text-muted mt-0.5 text-xs">
+                          Map every Telegram property to a field in this table.
+                        </p>
+                      </div>
+                      <span className={cn(
+                        'ml-auto shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold',
+                        missingFields.length === 0
+                          ? 'bg-green-500/15 text-green-600 dark:text-green-400'
+                          : 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+                      )}>
+                        {mappedCount}/{TELEGRAM_FIELD_TARGETS.length} mapped
+                      </span>
+                    </div>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                      {TELEGRAM_FIELD_TARGETS.map((target) => {
+                        const selected = mapping[target.key] ?? ''
+                        const isMissing = !selected
+                        return (
+                          <div
+                            key={target.key}
+                            className={cn(
+                              'border-border-subtle flex items-start gap-4 border-b px-5 py-4',
+                              isMissing ? 'bg-amber-500/[0.03]' : 'hover:bg-hover-bg/40',
+                            )}
+                          >
+                            <div className={cn(
+                              'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border',
+                              selected
+                                ? 'border-green-500/30 bg-green-500/10 text-green-500'
+                                : 'border-amber-500/30 bg-amber-500/10 text-amber-500',
+                            )}>
+                              {selected ? <Check size={15} /> : <AlertCircle size={15} />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-text-main text-sm font-semibold">{target.label}</span>
+                                <span className="rounded-full bg-amber-500/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                                  Required
+                                </span>
+                              </div>
+                              <p className="text-text-muted mt-1 text-xs leading-snug">{target.hint}</p>
+                            </div>
+                            <div className="w-64 shrink-0">
+                              <Select
+                                value={selected || TELEGRAM_UNMAPPED_VALUE}
+                                onValueChange={(value) =>
+                                  setMappingValue(target.key, value === TELEGRAM_UNMAPPED_VALUE ? '' : value)
+                                }
+                              >
+                                <SelectTrigger
+                                  className={cn(
+                                    'h-9 bg-bg-sidebar text-sm',
+                                    selected ? 'border-green-500/40' : 'border-amber-500/50',
+                                  )}
+                                >
+                                  <SelectValue placeholder="Choose field" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                  <SelectItem value={TELEGRAM_UNMAPPED_VALUE}>
+                                    <span className="text-text-muted">Not mapped</span>
+                                  </SelectItem>
+                                  {selectedTable.fields.map((field) => (
+                                    <SelectItem key={field.value} value={field.value}>
+                                      <span className="flex min-w-0 items-center gap-2">
+                                        <span className="truncate">{field.label}</span>
+                                        {field.type && (
+                                          <span className="bg-bg-sidebar text-text-muted shrink-0 rounded px-1 py-px font-mono text-[10px]">
+                                            {field.type}
+                                          </span>
+                                        )}
+                                      </span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="border-border-subtle flex items-center justify-between gap-3 border-t px-5 py-3">
+            {managedSession ? (
+              <>
+                <p className="text-text-muted flex items-center gap-2 text-xs">
+                  {isWaitingForResource ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      Waiting for connection...
+                    </>
+                  ) : (
+                    'Connected.'
+                  )}
+                </p>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Close
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-text-muted hidden text-xs sm:block">
+                  {!selectedTable
+                    ? 'Select a table to continue.'
+                    : missingFields.length > 0
+                      ? `Missing: ${missingFields.map((field) => field.label).join(', ')}`
+                      : 'All mappings are ready.'}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    Close
+                  </Button>
+                  <Button
+                    variant="primary"
+                    loading={isSaving}
+                    disabled={!canSave}
+                    onClick={() => saveTelegramSession()}
+                  >
+                    Create managed session
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+type View = 'grid' | 'detail'
+
 export const ResourcesPage = ({ projectId }: { projectId: string }) => {
+  const mainProjectId = useAuthStore((state) => state.ucodeProjectId || '')
+  const mainEnvironmentId = useAuthStore((state) => state.projectEnvId || '')
+  const projectTitle = useAuthStore((state) => state.project?.title || 'support')
   const [view, setView] = useState<View>('grid')
   const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null)
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null)
@@ -347,6 +1213,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   // Field-mapping modal (bind a uCode table's fields to Google Calendar event
   // properties). Kept here so it's reachable from every Google Calendar card.
   const [calendarMappingOpen, setCalendarMappingOpen] = useState(false)
+  const [telegramSetupOpen, setTelegramSetupOpen] = useState(TELEGRAM_QR_MOCK_ENABLED)
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
@@ -838,6 +1705,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   const handleSelectResource = (item: ResourceItem) => {
+    if (item.typeValue === TELEGRAM_TYPE_VALUE) {
+      setTelegramSetupOpen(true)
+      return
+    }
+
     if (item.typeValue === GOOGLE_DRIVE_TYPE_VALUE) {
       connectGoogleDrive(openOAuthPopup())
       return
@@ -880,20 +1752,28 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
   const handleEditResource = (resource: any) => {
     // resource_type может быть числом или type строкой ('GITHUB', 'CLICK_HOUSE' etc)
-    const numericType = resource.resource_type ?? resource.type_value ?? null
-    // Google Calendar has no editable connection form — instead of the detail
+    const rawType = resource.resource_type ?? resource.type_value ?? resource.type
+    const numericType =
+      typeof rawType === 'number'
+        ? rawType
+        : RESOURCE_TYPE_STRING_TO_VALUE[String(rawType ?? '').toUpperCase()] ?? null
+    // Google Calendar has no editable connection form; instead of the detail
     // view it opens the field-mapping modal (records → calendar event fields).
     if (numericType === GOOGLE_CALENDAR_TYPE_VALUE) {
       setCalendarMappingOpen(true)
       return
     }
-    const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === numericType)
+    if (numericType === TELEGRAM_TYPE_VALUE) {
+      setTelegramSetupOpen(true)
+      return
+    }
+    const categoryItem = numericType == null ? undefined : resourceItemByType.get(numericType)
 
     setSelectedResource(categoryItem ?? {
-      label: resource.name,
-      typeValue: numericType,
-      // @ts-expect-error: internal type mismatch
-      icon: categoryItem?.icon ?? 'mongodb'
+      label: resource.name || 'Resource',
+      typeValue: numericType ?? 0,
+      icon: 'mongodb',
+      summary: 'Custom integration',
     })
     setEditingResourceId(resource.id)
     setEditingResourceType(numericType)
@@ -993,10 +1873,20 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       <SelectValue placeholder="Select resource type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {resourceTypes.map(rt => (
-                        <SelectItem key={rt.value} value={String(rt.value)}>
-                          {rt.label}
-                        </SelectItem>
+                      {formResourceCategories.map((category, index) => (
+                        <Fragment key={category.id}>
+                          {index > 0 && <SelectSeparator />}
+                          <SelectGroup>
+                            <SelectLabel className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                              {category.label}
+                            </SelectLabel>
+                            {category.items.map(item => (
+                              <SelectItem key={item.typeValue} value={String(item.typeValue)}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </Fragment>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1184,12 +2074,16 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const isBitbucketConnected = bitbucketStatus?.connected === true
   const isBitbucketExpired = bitbucketStatus?.connected === false && bitbucketStatus?.reason === 'token_expired'
 
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase()
+  const matchesIntegrationSearch = (label: string) =>
+    normalizedSearchQuery === '' || label.toLowerCase().includes(normalizedSearchQuery)
+  const matchesCategoryFilter = (categoryId?: string) =>
+    categoryFilter === 'All Categories' || categoryId === categoryFilter
+
   const filteredConnectedResources = resourcesList.filter((resource: any) => {
-    const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === resource.resource_type)
-    const categoryId = resourceCategories.find(c => c.items.includes(categoryItem as any))?.id
-    const matchesSearch = resource.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = categoryFilter === 'All Categories' || categoryId === categoryFilter
-    return matchesSearch && matchesCategory
+    const categoryItem = resourceItemByType.get(resource.resource_type)
+    const label = `${resource.name ?? ''} ${categoryItem?.label ?? ''}`
+    return matchesIntegrationSearch(label) && matchesCategoryFilter(categoryItem?.categoryId)
   })
 
   // Types that are already connected — exclude them from Available
@@ -1200,31 +2094,50 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   if (isGoogleDriveConnected) connectedTypeValues.add(GOOGLE_DRIVE_TYPE_VALUE)
   if (isGoogleCalendarConnected) connectedTypeValues.add(GOOGLE_CALENDAR_TYPE_VALUE)
 
-  const availableResources = resourceCategories.flatMap(c => c.items.map(i => ({...i, categoryId: c.id, categoryLabel: c.label})))
-  const filteredAvailableResources = availableResources.filter(item => {
+  const filteredAvailableResources = allResourceItems.filter(item => {
     if (connectedTypeValues.has(item.typeValue)) return false
-    const matchesSearch = item.label.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = categoryFilter === 'All Categories' || item.categoryId === categoryFilter
-    return matchesSearch && matchesCategory
+    return matchesIntegrationSearch(`${item.label} ${item.summary}`) && matchesCategoryFilter(item.categoryId)
   })
 
-  const showConnectedSection = filteredConnectedResources.length > 0 || isGithubConnected || isGithubExpired || isGitlabConnected || isGitlabExpired || isBitbucketConnected || isBitbucketExpired || isGoogleDriveConnected || isGoogleCalendarConnected
-  const githubMatchesSearch = 'github'.includes(searchQuery.toLowerCase()) || searchQuery === ''
-  const githubMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
-  const gitlabMatchesSearch = 'gitlab'.includes(searchQuery.toLowerCase()) || searchQuery === ''
-  const gitlabMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
-  const bitbucketMatchesSearch = 'bitbucket'.includes(searchQuery.toLowerCase()) || searchQuery === ''
-  const bitbucketMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'source_control'
-  const googleDriveMatchesSearch = 'google drive'.includes(searchQuery.toLowerCase()) || searchQuery === ''
-  const googleDriveMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'productivity'
-  const googleCalendarMatchesSearch = 'google calendar'.includes(searchQuery.toLowerCase()) || searchQuery === ''
-  const googleCalendarMatchesCategory = categoryFilter === 'All Categories' || categoryFilter === 'productivity'
+  const filteredAvailableResourceGroups = resourceCategories
+    .map(category => ({
+      ...category,
+      items: filteredAvailableResources.filter(item => item.categoryId === category.id),
+    }))
+    .filter(category => category.items.length > 0)
+
+  const githubMatchesSearch = matchesIntegrationSearch('GitHub Repository hosting')
+  const githubMatchesCategory = matchesCategoryFilter('source_control')
+  const gitlabMatchesSearch = matchesIntegrationSearch('GitLab Repository hosting')
+  const gitlabMatchesCategory = matchesCategoryFilter('source_control')
+  const bitbucketMatchesSearch = matchesIntegrationSearch('Bitbucket Repository hosting')
+  const bitbucketMatchesCategory = matchesCategoryFilter('source_control')
+  const googleDriveMatchesSearch = matchesIntegrationSearch('Google Drive Cloud file storage')
+  const googleDriveMatchesCategory = matchesCategoryFilter('productivity')
+  const googleCalendarMatchesSearch = matchesIntegrationSearch('Google Calendar Calendar and events')
+  const googleCalendarMatchesCategory = matchesCategoryFilter('productivity')
 
   // Once the refetched resource list contains the Drive/Calendar resource it
   // renders its own connected card below, so drop the session-state card to
   // avoid a brief duplicate right after connecting (state flag + API resource).
   const apiHasGoogleDrive = resourcesList.some((r: any) => r.resource_type === GOOGLE_DRIVE_TYPE_VALUE)
   const apiHasGoogleCalendar = resourcesList.some((r: any) => r.resource_type === GOOGLE_CALENDAR_TYPE_VALUE)
+  const showGoogleDriveCard =
+    isGoogleDriveConnected && !apiHasGoogleDrive && googleDriveMatchesSearch && googleDriveMatchesCategory
+  const showGoogleCalendarCard =
+    isGoogleCalendarConnected && !apiHasGoogleCalendar && googleCalendarMatchesSearch && googleCalendarMatchesCategory
+  const showGithubCard = (isGithubConnected || isGithubExpired) && githubMatchesSearch && githubMatchesCategory
+  const showGitlabCard = (isGitlabConnected || isGitlabExpired) && gitlabMatchesSearch && gitlabMatchesCategory
+  const showBitbucketCard =
+    (isBitbucketConnected || isBitbucketExpired) && bitbucketMatchesSearch && bitbucketMatchesCategory
+
+  const showConnectedSection =
+    filteredConnectedResources.length > 0 ||
+    showGoogleDriveCard ||
+    showGoogleCalendarCard ||
+    showGithubCard ||
+    showGitlabCard ||
+    showBitbucketCard
 
   return (
     <div className="@container space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
@@ -1267,7 +2180,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
             <div className="grid grid-cols-1 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4 gap-4">
 
               {/* Google Drive card */}
-              {isGoogleDriveConnected && !apiHasGoogleDrive && googleDriveMatchesSearch && googleDriveMatchesCategory && (
+              {showGoogleDriveCard && (
                 <div
                   className="bg-bg-card border-border-subtle flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
                   style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
@@ -1299,7 +2212,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               )}
 
               {/* Google Calendar card */}
-              {isGoogleCalendarConnected && !apiHasGoogleCalendar && googleCalendarMatchesSearch && googleCalendarMatchesCategory && (
+              {showGoogleCalendarCard && (
                 <div
                   className="bg-bg-card border-border-subtle flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
                   style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
@@ -1342,7 +2255,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               )}
 
               {/* GitHub card (new API) */}
-              {(isGithubConnected || isGithubExpired) && githubMatchesSearch && githubMatchesCategory && (
+              {showGithubCard && (
                 <div
                   className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 shadow-sm"
                   style={{ borderLeftWidth: '3px', borderLeftColor: isGithubConnected ? 'var(--green, #22c55e)' : 'var(--destructive, #ef4444)' }}
@@ -1407,7 +2320,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               )}
 
               {/* GitLab card (new API) */}
-              {(isGitlabConnected || isGitlabExpired) && gitlabMatchesSearch && gitlabMatchesCategory && (
+              {showGitlabCard && (
                 <div
                   className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 shadow-sm"
                   style={{ borderLeftWidth: '3px', borderLeftColor: isGitlabConnected ? 'var(--green, #22c55e)' : 'var(--destructive, #ef4444)' }}
@@ -1472,7 +2385,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               )}
 
               {/* Bitbucket card (new API) */}
-              {(isBitbucketConnected || isBitbucketExpired) && bitbucketMatchesSearch && bitbucketMatchesCategory && (
+              {showBitbucketCard && (
                 <div
                   className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 shadow-sm"
                   style={{ borderLeftWidth: '3px', borderLeftColor: isBitbucketConnected ? 'var(--green, #22c55e)' : 'var(--destructive, #ef4444)' }}
@@ -1539,7 +2452,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               {/* Old-API connected resources */}
               {filteredConnectedResources.map((resource: any) => {
                 const typeInfo = resourceTypes.find(t => t.value === resource.resource_type)
-                const categoryItem = resourceCategories.flatMap(c => c.items).find(i => i.typeValue === resource.resource_type)
+                const categoryItem = resourceItemByType.get(resource.resource_type)
                 return (
                   <div
                     key={resource.id}
@@ -1558,7 +2471,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       </span>
                     </div>
                     <div className="text-xs text-text-muted leading-relaxed">
-                      Integration for {typeInfo?.label ?? categoryItem?.label} — {resource.name}
+                      {categoryItem?.summary ?? 'Custom integration'}: {resource.name}
                     </div>
                   </div>
                 )
@@ -1568,54 +2481,82 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
         )}
 
         {/* Available section — only types without connected instances */}
-        {filteredAvailableResources.length > 0 && (
-          <div>
-            <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em] mb-3">
-              Available
+        {filteredAvailableResourceGroups.length > 0 && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em]">
+                Available
+              </div>
+              <div className="text-text-muted text-xs">
+                {filteredAvailableResources.length} integrations
+              </div>
             </div>
-            <div className="grid grid-cols-1 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4 gap-4">
-              {filteredAvailableResources.map(item => (
-                <div
-                  key={item.typeValue}
-                  className="bg-bg-card border border-border-subtle rounded-xl p-4 flex flex-col gap-3 hover:border-primary/40 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <ResourceIcon type={item.icon} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-sm text-text-main truncate">{item.label}</div>
-                      <div className="text-[11px] text-text-muted">{item.categoryLabel}</div>
+            <div className="space-y-6">
+              {filteredAvailableResourceGroups.map(category => {
+                const CategoryIcon = category.icon
+                return (
+                  <section key={category.id} className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="border-border-subtle bg-bg-sidebar flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border">
+                          <CategoryIcon className="text-text-muted h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <h2 className="text-text-main truncate text-sm font-semibold">
+                            {category.label}
+                          </h2>
+                          <div className="text-text-muted text-[11px]">
+                            {category.items.length} available
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-xs text-text-muted leading-relaxed flex-1">
-                    Connect {item.label} to configure your infrastructure integration.
-                  </div>
-                  {(() => {
-                    const isConnecting =
-                      (item.typeValue === 5 && isConnectingGithub) ||
-                      (item.typeValue === 8 && isConnectingGitlab) ||
-                      (item.typeValue === 9 && isConnectingBitbucket) ||
-                      (item.typeValue === GOOGLE_DRIVE_TYPE_VALUE && isConnectingGoogleDrive) ||
-                      (item.typeValue === GOOGLE_CALENDAR_TYPE_VALUE && isConnectingGoogleCalendar)
-                    return (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-center gap-2 rounded-lg font-semibold text-text-main hover:bg-primary/5 hover:text-primary border-border-subtle bg-bg-main"
-                        onClick={() => handleSelectResource(item)}
-                        disabled={isConnecting}
-                      >
-                        {isConnecting ? <Loader2 size={14} className="animate-spin" /> : <Plug size={14} />}
-                        {isConnecting ? 'Connecting…' : 'Connect'}
-                      </Button>
-                    )
-                  })()}
-                </div>
-              ))}
+                    <div className="grid grid-cols-1 gap-4 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4">
+                      {category.items.map(item => {
+                        const isConnecting =
+                          (item.typeValue === 5 && isConnectingGithub) ||
+                          (item.typeValue === 8 && isConnectingGitlab) ||
+                          (item.typeValue === 9 && isConnectingBitbucket) ||
+                          (item.typeValue === GOOGLE_DRIVE_TYPE_VALUE && isConnectingGoogleDrive) ||
+                          (item.typeValue === GOOGLE_CALENDAR_TYPE_VALUE && isConnectingGoogleCalendar)
+
+                        return (
+                          <div
+                            key={item.typeValue}
+                            className="bg-bg-card border-border-subtle hover:border-primary/40 flex flex-col gap-3 rounded-xl border p-4 transition-all hover:shadow-md"
+                          >
+                            <div className="flex items-center gap-3">
+                              <ResourceIcon type={item.icon} />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-text-main truncate text-sm font-bold">{item.label}</div>
+                                <div className="text-text-muted text-[11px]">{item.categoryLabel}</div>
+                              </div>
+                            </div>
+                            <div className="text-text-muted flex-1 text-xs leading-relaxed">
+                              {item.summary}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-border-subtle bg-bg-main text-text-main hover:bg-primary/5 hover:text-primary w-full justify-center gap-2 rounded-lg font-semibold"
+                              onClick={() => handleSelectResource(item)}
+                              disabled={isConnecting}
+                            >
+                              {isConnecting ? <Loader2 size={14} className="animate-spin" /> : <Plug size={14} />}
+                              {isConnecting ? 'Connecting…' : 'Connect'}
+                            </Button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </section>
+                )
+              })}
             </div>
           </div>
         )}
 
-        {filteredAvailableResources.length === 0 && !showConnectedSection && (
+        {filteredAvailableResourceGroups.length === 0 && !showConnectedSection && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="text-text-muted text-sm">No integrations match your search.</div>
           </div>
@@ -1626,6 +2567,23 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
         <GoogleCalendarFieldMappingModal
           open={calendarMappingOpen}
           onOpenChange={setCalendarMappingOpen}
+        />
+      )}
+
+      {telegramSetupOpen && (
+        <TelegramSetupModal
+          open={telegramSetupOpen}
+          onOpenChange={setTelegramSetupOpen}
+          mcpProjectId={projectId}
+          mainProjectId={mainProjectId}
+          mainEnvironmentId={mainEnvironmentId}
+          projectTitle={projectTitle}
+          mockSession={TELEGRAM_QR_MOCK_ENABLED ? TELEGRAM_QR_MOCK_SESSION : undefined}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
+            queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
+            queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
+          }}
         />
       )}
     </div>
