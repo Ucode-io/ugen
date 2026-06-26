@@ -73,6 +73,7 @@ const TELEGRAM_TYPE_VALUE = 14
 const INSTAGRAM_DIRECT_TYPE_VALUE = 15
 const GOOGLE_ADS_TYPE_VALUE = 16
 const META_ADS_TYPE_VALUE = 17
+const SOON_TYPE_VALUES = new Set([INSTAGRAM_DIRECT_TYPE_VALUE])
 
 interface ResourceItem {
   label: string
@@ -1778,6 +1779,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   const handleSelectResource = (item: ResourceItem) => {
+    if (SOON_TYPE_VALUES.has(item.typeValue)) return
+
     if (item.typeValue === TELEGRAM_TYPE_VALUE) {
       setTelegramSetupResource(null)
       setTelegramSetupOpen(true)
@@ -2602,6 +2605,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     </div>
                     <div className="grid grid-cols-1 gap-4 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4">
                       {category.items.map(item => {
+                        const isSoon = SOON_TYPE_VALUES.has(item.typeValue)
                         const isConnecting =
                           (item.typeValue === 5 && isConnectingGithub) ||
                           (item.typeValue === 8 && isConnectingGitlab) ||
@@ -2612,7 +2616,12 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                         return (
                           <div
                             key={item.typeValue}
-                            className="bg-bg-card border-border-subtle hover:border-primary/40 flex flex-col gap-3 rounded-xl border p-4 transition-all hover:shadow-md"
+                            className={cn(
+                              'bg-bg-card border-border-subtle flex flex-col gap-3 rounded-xl border p-4 transition-all',
+                              isSoon
+                                ? 'opacity-75'
+                                : 'hover:border-primary/40 hover:shadow-md',
+                            )}
                           >
                             <div className="flex items-center gap-3">
                               <ResourceIcon type={item.icon} />
@@ -2620,6 +2629,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                                 <div className="text-text-main truncate text-sm font-bold">{item.label}</div>
                                 <div className="text-text-muted text-[11px]">{item.categoryLabel}</div>
                               </div>
+                              {isSoon && (
+                                <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 ml-auto shrink-0 rounded-md border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                  Soon
+                                </span>
+                              )}
                             </div>
                             <div className="text-text-muted flex-1 text-xs leading-relaxed">
                               {item.summary}
@@ -2627,12 +2641,21 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="border-border-subtle bg-bg-main text-text-main hover:bg-primary/5 hover:text-primary w-full justify-center gap-2 rounded-lg font-semibold"
+                              className={cn(
+                                'border-border-subtle bg-bg-main w-full justify-center gap-2 rounded-lg font-semibold',
+                                isSoon
+                                  ? 'text-text-muted'
+                                  : 'text-text-main hover:bg-primary/5 hover:text-primary',
+                              )}
                               onClick={() => handleSelectResource(item)}
-                              disabled={isConnecting}
+                              disabled={isConnecting || isSoon}
                             >
-                              {isConnecting ? <Loader2 size={14} className="animate-spin" /> : <Plug size={14} />}
-                              {isConnecting ? 'Connecting…' : 'Connect'}
+                              {isConnecting ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Plug size={14} />
+                              )}
+                              {isSoon ? 'Soon' : isConnecting ? 'Connecting…' : 'Connect'}
                             </Button>
                           </div>
                         )
