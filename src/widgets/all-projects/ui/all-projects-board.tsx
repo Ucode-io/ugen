@@ -39,6 +39,26 @@ import {
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils/cn'
 
+const formatTimeAgo = (raw: string): string => {
+  if (!raw) return '—'
+
+  const timestamp = new Date(raw).getTime()
+  if (!Number.isFinite(timestamp)) return raw
+
+  const diffMs = Date.now() - timestamp
+  const sec = Math.max(0, Math.floor(diffMs / 1000))
+  if (sec < 60) return `${sec}s ago`
+
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}h ago`
+
+  const days = Math.floor(hr / 24)
+  return `${days}d ago`
+}
+
 const PaginationFooter = ({
   page,
   setPage,
@@ -373,7 +393,7 @@ export const AllProjectsBoard = () => {
                           <div className="flex items-center gap-1">
                             <Clock size={12} className="text-text-muted shrink-0" />
                             <span className="text-text-muted text-[12px]">
-                              {new Date(project.last_activity_date).toLocaleDateString('en-GB')}
+                              {formatTimeAgo(project.last_activity_date)}
                             </span>
                           </div>
                         ) : (
