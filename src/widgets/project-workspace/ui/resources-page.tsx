@@ -577,6 +577,22 @@ const formatTelegramBotUsername = (resource: any): string => {
   return username ? `@${username}` : ''
 }
 
+const getTelegramResourceMapping = (
+  resource: any,
+): Partial<Record<TelegramMappingFieldKey | 'table_id', string>> => {
+  const rawMapping = readObject(resource?.settings?.telegram?.mapping)
+  const mapping: Partial<Record<TelegramMappingFieldKey | 'table_id', string>> = {}
+  const tableId = normalizeTelegramString(rawMapping.table_id ?? rawMapping.tableId)
+  if (tableId) mapping.table_id = tableId
+
+  TELEGRAM_FIELD_TARGETS.forEach((target) => {
+    const value = normalizeTelegramString(rawMapping[target.key])
+    if (value) mapping[target.key] = value
+  })
+
+  return mapping
+}
+
 const getTelegramFieldValue = (field: any): string =>
   normalizeTelegramString(
     field?.slug ??
@@ -732,6 +748,7 @@ const TelegramSetupModal = ({
   projectTitle,
   onSaved,
   mockSession,
+  initialResource,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -741,6 +758,7 @@ const TelegramSetupModal = ({
   projectTitle: string
   onSaved: () => void
   mockSession?: TelegramManagedSession
+  initialResource?: any
 }) => {
   const [search, setSearch] = useState('')
   const [selectedTableId, setSelectedTableId] = useState<string>('')
@@ -761,9 +779,28 @@ const TelegramSetupModal = ({
       setIsWaitingForResource(true)
       return
     }
-    setDisplayName((current) => current || 'Support Bot')
-    setSuggestedUsername((current) => current || createTelegramBotUsername(projectTitle || 'support'))
-  }, [open, projectTitle, mockSession])
+    const resourceName = normalizeTelegramString(initialResource?.name).trim()
+    const botUsername = getTelegramBotUsername(initialResource)
+    const resourceMapping = getTelegramResourceMapping(initialResource)
+
+    setDisplayName(resourceName || 'Support Bot')
+    setSuggestedUsername(botUsername || createTelegramBotUsername(projectTitle || 'support'))
+    setManagedSession(null)
+    setIsWaitingForResource(false)
+
+    if (resourceMapping.table_id) {
+      const tableMapping: Partial<Record<TelegramMappingFieldKey, string>> = {}
+      TELEGRAM_FIELD_TARGETS.forEach((target) => {
+        const value = resourceMapping[target.key]
+        if (value) tableMapping[target.key] = value
+      })
+      setSelectedTableId(resourceMapping.table_id)
+      setMappingByTable({ [resourceMapping.table_id]: tableMapping })
+    } else {
+      setSelectedTableId('')
+      setMappingByTable({})
+    }
+  }, [open, projectTitle, mockSession, initialResource])
 
   const {
     data: tables = [],
@@ -1243,6 +1280,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   // properties). Kept here so it's reachable from every Google Calendar card.
   const [calendarMappingOpen, setCalendarMappingOpen] = useState(false)
   const [telegramSetupOpen, setTelegramSetupOpen] = useState(false)
+  const [telegramSetupResource, setTelegramSetupResource] = useState<any | null>(null)
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
@@ -1735,6 +1773,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
   const handleSelectResource = (item: ResourceItem) => {
     if (item.typeValue === TELEGRAM_TYPE_VALUE) {
+      setTelegramSetupResource(null)
       setTelegramSetupOpen(true)
       return
     }
@@ -1793,6 +1832,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       return
     }
     if (numericType === TELEGRAM_TYPE_VALUE) {
+      setTelegramSetupResource(resource)
       setTelegramSetupOpen(true)
       return
     }
@@ -2616,11 +2656,15 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       {telegramSetupOpen && (
         <TelegramSetupModal
           open={telegramSetupOpen}
-          onOpenChange={setTelegramSetupOpen}
+          onOpenChange={(nextOpen) => {
+            setTelegramSetupOpen(nextOpen)
+            if (!nextOpen) setTelegramSetupResource(null)
+          }}
           mcpProjectId={projectId}
           mainProjectId={mainProjectId}
           mainEnvironmentId={mainEnvironmentId}
           projectTitle={projectTitle}
+          initialResource={telegramSetupResource}
           onSaved={() => {
             queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
             queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
