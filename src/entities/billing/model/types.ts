@@ -67,3 +67,68 @@ export interface ProjectWithBalance {
   fare_id?: string;
   credit_limit?: number;
 }
+
+export interface TokenPackCurrency {
+  id?: string;
+  symbol?: string;
+  name?: string;
+  code?: string;
+}
+
+export interface TokenPack {
+  id: string;
+  name?: string;
+  token_amount?: number;
+  price?: number;
+  currency_id?: string;
+  product_type?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  currency?: TokenPackCurrency;
+}
+
+export interface TokenPackWritePayload {
+  id?: string;
+  name: string;
+  token_amount: number;
+  price: number;
+  currency_id?: string;
+  product_type?: "ugen" | "ucode" | (string & {});
+  is_active?: boolean;
+}
+
+export interface TokenPackBalance {
+  company_id?: string;
+  remaining_tokens?: number;
+}
+
+export interface TokenPackPurchaseResponse {
+  company_id?: string;
+  tokens_added?: number;
+  remaining_tokens?: number;
+  charged_amount?: number;
+  transaction_id?: string;
+}
+
+export type TokenActiveSource = "plan" | "pack" | "exhausted" | (string & {});
+
+export interface TokenUsagePeriod {
+  input_tokens?: number;
+  output_tokens?: number;
+  plan_tokens?: number;
+  limit?: number;
+  limit_reached?: boolean;
+}
+
+export interface CompanyPricingStats {
+  tokens?: {
+    daily?: TokenUsagePeriod;
+    monthly?: TokenUsagePeriod;
+    pack_remaining?: number;
+    active_source?: TokenActiveSource;
+  };
+  project_count?: { current?: number; limit?: number };
+  builders?: { current?: number; limit?: number };
+  user_count?: { current?: number; limit?: number };
+}

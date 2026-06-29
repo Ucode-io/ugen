@@ -76,8 +76,11 @@ export const UsageLimitsTab = ({ companyStats, fareData, fareId }: any) => {
     return Math.min((current / limit) * 100, 100);
   };
 
-  const sumTokens = (t?: { input_tokens?: number; output_tokens?: number }) =>
-    (t?.input_tokens ?? 0) + (t?.output_tokens ?? 0);
+  const planTokens = (t?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    plan_tokens?: number;
+  }) => t?.plan_tokens ?? (t?.input_tokens ?? 0) + (t?.output_tokens ?? 0);
 
   const usageMetrics = [
     {
@@ -91,7 +94,7 @@ export const UsageLimitsTab = ({ companyStats, fareData, fareId }: any) => {
     {
       key: "monthly_tokens",
       label: "Monthly Tokens",
-      current: sumTokens(stats.tokens?.monthly),
+      current: planTokens(stats.tokens?.monthly),
       limit: stats.tokens?.monthly?.limit ?? 0,
       color: "bg-orange-500",
       textColor: "text-orange-500",
@@ -99,7 +102,7 @@ export const UsageLimitsTab = ({ companyStats, fareData, fareId }: any) => {
     {
       key: "today_tokens",
       label: "Daily Tokens",
-      current: sumTokens(stats.tokens?.daily),
+      current: planTokens(stats.tokens?.daily),
       limit: stats.tokens?.daily?.limit ?? 0,
       color: "bg-pink-500",
       textColor: "text-pink-500",

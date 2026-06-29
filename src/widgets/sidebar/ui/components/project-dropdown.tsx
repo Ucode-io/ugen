@@ -153,8 +153,19 @@ export const ProjectDropdown = ({
     currentSubscription?.type === 'free' ||
     (currentFare ? Number(currentFare.price) <= 0 : false)
 
-  const toTokenUsage = (t?: { input_tokens?: number; output_tokens?: number; limit?: number }) =>
-    t ? { current: (t.input_tokens ?? 0) + (t.output_tokens ?? 0), limit: t.limit ?? 0 } : undefined
+  const toTokenUsage = (t?: {
+    input_tokens?: number
+    output_tokens?: number
+    plan_tokens?: number
+    limit?: number
+  }) =>
+    t
+      ? {
+          current:
+            t.plan_tokens ?? (t.input_tokens ?? 0) + (t.output_tokens ?? 0),
+          limit: t.limit ?? 0,
+        }
+      : undefined
 
   const dailyTokens = toTokenUsage(pricingData?.data?.tokens?.daily)
   const monthlyTokens = toTokenUsage(pricingData?.data?.tokens?.monthly)

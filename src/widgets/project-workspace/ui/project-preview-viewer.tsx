@@ -79,6 +79,94 @@ const PREVIEW_VIEW_MODE_KEY = "ugen:preview-view-mode";
 // Newer generated templates use hex directly (e.g. `--primary: #4f46e5`).
 // We detect the format per-variable on read and write back in the same shape.
 type ColorFormat = "hex" | "hsl";
+type HiddenPreviewReadyReason =
+  | "preview-ready"
+  | "load"
+  | "rendered"
+  | "timeout";
+
+const SCREENSHOT_READY_TIMEOUT_BASE_MS = 45_000;
+const SCREENSHOT_READY_TIMEOUT_PER_MB_MS = 2_000;
+const SCREENSHOT_READY_TIMEOUT_MAX_MS = 120_000;
+const SCREENSHOT_STABILIZE_MS = 5_000;
+
+function getScreenshotReadyTimeoutMs(htmlLength: number): number {
+  const htmlMb = Math.ceil(htmlLength / (1024 * 1024));
+  return Math.min(
+    SCREENSHOT_READY_TIMEOUT_MAX_MS,
+    SCREENSHOT_READY_TIMEOUT_BASE_MS +
+      htmlMb * SCREENSHOT_READY_TIMEOUT_PER_MB_MS,
+  );
+}
+
+function isHiddenPreviewRenderable(iframe: HTMLIFrameElement): boolean {
+  const doc = iframe.contentDocument;
+  const win = iframe.contentWindow;
+  if (!doc?.body || !win) return false;
+
+  const root = doc.getElementById("root");
+  if (!root?.children.length) return false;
+
+  return win.getComputedStyle(doc.body).visibility !== "hidden";
+}
+
+function waitForHiddenPreviewReady(
+  iframe: HTMLIFrameElement,
+  timeoutMs: number,
+): Promise<{ ok: boolean; reason: HiddenPreviewReadyReason; elapsedMs: number }> {
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    let finished = false;
+    let loaded = false;
+    let previewReady = false;
+    let interval: number | null = null;
+    let timeout: number | null = null;
+
+    const cleanup = () => {
+      iframe.removeEventListener("load", handleLoad);
+      window.removeEventListener("message", handleMessage);
+      if (interval !== null) window.clearInterval(interval);
+      if (timeout !== null) window.clearTimeout(timeout);
+    };
+
+    const finish = (ok: boolean, reason: HiddenPreviewReadyReason) => {
+      if (finished) return;
+      finished = true;
+      cleanup();
+      resolve({ ok, reason, elapsedMs: Date.now() - startedAt });
+    };
+
+    const maybeFinish = () => {
+      if (!isHiddenPreviewRenderable(iframe)) return;
+      finish(
+        true,
+        previewReady ? "preview-ready" : loaded ? "load" : "rendered",
+      );
+    };
+
+    function handleLoad() {
+      loaded = true;
+      maybeFinish();
+    }
+
+    function handleMessage(event: MessageEvent) {
+      if (event.source !== iframe.contentWindow) return;
+      if (event.data?.type !== "PREVIEW_READY") return;
+      previewReady = true;
+      maybeFinish();
+    }
+
+    iframe.addEventListener("load", handleLoad);
+    window.addEventListener("message", handleMessage);
+
+    interval = window.setInterval(maybeFinish, 250);
+    timeout = window.setTimeout(() => {
+      finish(isHiddenPreviewRenderable(iframe), "timeout");
+    }, timeoutMs);
+
+    maybeFinish();
+  });
+}
 
 function hslStringToHex(hsl: string): string {
   const [hStr, sStr, lStr] = hsl.trim().split(/\s+/);
@@ -1765,20 +1853,23 @@ export const ProjectPreviewViewer = ({
       "sandbox",
       "allow-scripts allow-same-origin allow-forms allow-modals",
     );
-    hidden.srcdoc = html;
-    document.body.appendChild(hidden);
+    const readyTimeoutMs = getScreenshotReadyTimeoutMs(html.length);
+    const readyPromise = waitForHiddenPreviewReady(hidden, readyTimeoutMs);
     try {
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(
-          () => reject(new Error("hidden iframe load timed out")),
-          15_000,
+      hidden.srcdoc = html;
+      document.body.appendChild(hidden);
+
+      const ready = await readyPromise;
+      if (!ready.ok) {
+        console.warn(
+          `[preview screenshot] hidden iframe did not render within ${readyTimeoutMs / 1000}s — aborting capture`,
         );
-        hidden.onload = () => {
-          clearTimeout(timer);
-          resolve();
-        };
-      });
-      await new Promise((r) => setTimeout(r, 5000));
+        return;
+      }
+      console.log(
+        `[preview screenshot] hidden iframe ready via ${ready.reason} in ${ready.elapsedMs}ms`,
+      );
+      await new Promise((r) => setTimeout(r, SCREENSHOT_STABILIZE_MS));
       const target = hidden.contentDocument?.body;
       if (!target) {
         console.warn("[preview screenshot] no hidden body — aborting");

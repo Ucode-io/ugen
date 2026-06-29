@@ -27,11 +27,17 @@ const BEARER_ONLY_ENDPOINTS = [
   /^\/v1\/ugen-template(?!\/public)(\/|$)/,
   /^\/v1\/company-project(\/|$)/,
   /^\/v1\/pricing\/company-stats(\/|$)/,
+  /^\/v1\/token-pack(\/|$)/,
 ]
 
 const requiresBearerToken = (url: string = '') => {
   const path = url.startsWith('http') ? new URL(url).pathname : url
   return BEARER_ONLY_ENDPOINTS.some((pattern) => pattern.test(path))
+}
+
+const handlesPaymentRequiredLocally = (url: string = '') => {
+  const path = url.startsWith('http') ? new URL(url).pathname : url
+  return /^\/v1\/token-pack\/purchase(\/|$)/.test(path)
 }
 
 const waitForMatchingApiKey = async (urlProjectId: string, timeoutMs = 5000): Promise<string | null> => {
@@ -97,7 +103,11 @@ githubApi.interceptors.request.use(buildRequestInterceptor(), onRequestError)
 // user actually hits via an action are all POST/PUT/PATCH/DELETE.
 const handle402 = (error: any) => {
   const method = (error?.config?.method || 'get').toLowerCase()
-  if (error?.response?.status === 402 && method !== 'get') {
+  if (
+    error?.response?.status === 402 &&
+    method !== 'get' &&
+    !handlesPaymentRequiredLocally(error?.config?.url)
+  ) {
     handlePaymentRequired(error.response.data?.data)
   }
   return Promise.reject(error)
@@ -172,7 +182,8 @@ api.interceptors.response.use(
     // Skip GET — see handle402 above (api_call_limit fires on background GETs).
     if (
       error.response?.status === 402 &&
-      (originalRequest?.method || 'get').toLowerCase() !== 'get'
+      (originalRequest?.method || 'get').toLowerCase() !== 'get' &&
+      !handlesPaymentRequiredLocally(originalRequest?.url)
     ) {
       handlePaymentRequired(error.response.data?.data)
       return Promise.reject(error)
