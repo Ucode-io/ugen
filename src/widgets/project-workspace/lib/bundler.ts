@@ -222,10 +222,14 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
   // ReactDOM.render). Real Vite apps put their provider tree (Router, Theme,
   // Helmet, QueryClient, …) in src/main.tsx and render <App/> from there; rendering
   // a bare <App/> drops those providers, so the first page throws on a missing
-  // context (useTheme, <Helmet>, …) and the preview goes blank. Running the real
-  // entry mirrors production. Fall back to a synthetic entry that renders /src/App
-  // for older templates that have no mounting entry.
+  // context (useTheme, <Helmet>, …) and the preview goes blank.
+  // Templates may ship a dedicated ugen-preview entry for a faster in-browser
+  // preview without changing their production Vite entry.
   const ENTRY_CANDIDATES = [
+    "/src/ugen-preview.tsx",
+    "/src/ugen-preview.jsx",
+    "/src/preview.tsx",
+    "/src/preview.jsx",
     "/src/main.tsx",
     "/src/main.jsx",
     "/src/main.ts",
