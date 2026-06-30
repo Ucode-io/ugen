@@ -23,7 +23,8 @@ const buildBearerConfig = (token: string, projectId?: string | null) => {
 
 const buildTokenPackConfig = (projectId?: string | null) => {
   const resolvedProjectId = projectId ?? useAuthStore.getState().project?.project_id
-  const config = buildBearerConfig(projectId)
+  const token = useAuthStore.getState().accessToken
+  const config = buildBearerConfig(token!, projectId)
   return {
     ...config,
     params: resolvedProjectId ? { "project-id": resolvedProjectId } : undefined,
