@@ -1572,9 +1572,13 @@ export const ProjectPreviewViewer = ({
 
     const build = async () => {
       await timer.measure("esbuild-init", () => ensureEsbuild());
-      const { code, dependencies } = await timer.measure("bundle", () =>
+      const { code, dependencies, stats } = await timer.measure("bundle", () =>
         buildProjectFromFiles(files, PREVIEW_BUILD_ENV),
       );
+      // Surface plugin round-trip counts/time + lazy-import edge count on the
+      // build sample (see build-timer). Lets `previewBuildStats()` show where the
+      // bundle phase goes: callback overhead vs parse volume vs lazy bloat.
+      if (stats) buildMeta.pluginStats = stats;
       const html = await timer.measure("generate-html", () =>
         generatePreviewHtml(code, dependencies, files),
       );
