@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild-wasm"
-import { virtualFsPlugin } from "./esbuildPlugin"
+import { virtualFsPlugin, createPluginStats, type PluginStats } from "./esbuildPlugin"
 import { previewOptimizationsEnabled } from "./preview-flags"
 
 // Hosted locally in /public — esm.sh hangs/blocks in some prod environments
@@ -15,81 +15,39 @@ export const WASM_URL = `/esbuild.wasm?v=${esbuild.version}`;
 // упадёт по ложному таймауту до того, как WASM реально докачается.
 const INIT_TIMEOUT_MS = 90_000;
 
-// esbuild.initialize() можно вызвать ровно ОДИН раз за жизнь страницы. Повторный
-// вызов всегда кидает 'Cannot call "initialize" more than once' — поэтому любые
-// "ретраи" должны переиспользовать тот же самый промис, а не звать initialize
-// заново. Промис кладём на window, чтобы он пережил HMR и повторные импорты
-// модуля (разные чанки могут получить свою копию bundler.ts).
-const INIT_KEY = "__ESBUILD_INIT_PROMISE__";
-
-function isAlreadyInitialized(err: unknown) {
-  const msg = (err as Error)?.message ?? "";
-  // 'Cannot call "initialize" more than once' означает, что initialize уже был
-  // вызван где-то ещё (другая копия модуля / гонка) — это не ошибка для нас.
-  return msg.includes("Cannot call") || msg.includes("more than once") || msg.includes("already");
+// ── Build dispatch: dedicated worker vs legacy main-thread ─────────────────
+// Default (optimizations ON): build inside a dedicated worker that hosts esbuild
+// with worker:false, so the virtual-FS plugin's onResolve/onLoad callbacks are
+// in-realm calls instead of per-edge worker↔main postMessage round-trips. The
+// legacy path (esbuild.initialize({worker:true}) on the main thread) stays as the
+// fallback — used when the kill-switch is OFF (A/B baseline) or when the worker
+// fails to boot (bundling/CSP). Output is byte-identical between the two.
+function workerBuildEnabled(): boolean {
+  if (!previewOptimizationsEnabled()) return false;
+  if (typeof window === "undefined" || typeof Worker === "undefined") return false;
+  // Set once if the worker ever fails — pin this session to the main-thread path.
+  if ((window as any).__PREVIEW_WORKER_DISABLED__) return false;
+  return true;
 }
 
-// Единственный на всю страницу вызов esbuild.initialize(). Все последующие
-// обращения переиспользуют этот промис.
-function getInitPromise(): Promise<void> {
-  const w = window as any;
-  if (w[INIT_KEY]) return w[INIT_KEY] as Promise<void>;
-
-  let raw: Promise<unknown>;
-  try {
-    raw = esbuild.initialize({ worker: true, wasmURL: WASM_URL });
-  } catch (err) {
-    // initialize может бросить синхронно, если её уже звали.
-    raw = isAlreadyInitialized(err) ? Promise.resolve() : Promise.reject(err);
-  }
-
-  const guarded = raw.then(
-    () => {
-      w.__ESBUILD_READY__ = true;
-    },
-    (err) => {
-      if (isAlreadyInitialized(err)) {
-        w.__ESBUILD_READY__ = true;
-        return;
-      }
-      // Реальная ошибка инициализации (например, WASM вообще не загрузился).
-      // esbuild.initialize в рамках страницы повторно звать нельзя, поэтому
-      // оставляем этот (отклонённый) промис в кэше: следующие вызовы получат тот
-      // же понятный текст ошибки, а не "more than once". Восстановление — только
-      // перезагрузкой страницы.
-      throw err;
-    },
-  );
-
-  w[INIT_KEY] = guarded;
-  return guarded;
+function markWorkerDisabled() {
+  if (typeof window !== "undefined") (window as any).__PREVIEW_WORKER_DISABLED__ = true;
 }
 
-export function ensureEsbuild(): Promise<void> {
-  // Уже готов — мгновенно.
-  if ((window as any).__ESBUILD_READY__) return Promise.resolve();
-
-  // Гонка с таймаутом нужна для UI: esbuild.initialize иногда никогда не
-  // resolve/reject (WASM блокируется CSP или CDN недоступен) — без таймаута
-  // сборка зависает молча. Сам initialize при этом НЕ перезапускаем.
-  const init = getInitPromise();
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(
-      () =>
-        reject(
-          new Error(
-            `esbuild.initialize timed out (${INIT_TIMEOUT_MS / 1000}s) — couldn't load ${WASM_URL}`,
-          ),
-        ),
-      INIT_TIMEOUT_MS,
-    ),
-  );
-
-  return Promise.race([init, timeout]);
+// ── Shared build input ─────────────────────────────────────────────────────
+// Everything esbuild needs, computed on the main thread (where localStorage /
+// the optimization flag live) and either passed to the worker or fed to the
+// main-thread esbuild.build. Pure string/JSON data → safe to structured-clone.
+export interface BuildInput {
+  fs: Record<string, string>;
+  entryPoint: string;
+  external: string[];
+  define: Record<string, string>;
+  jsxDev: boolean;
+  externalDepsMap: Record<string, string>;
 }
 
-
-export async function buildProjectFromFiles(files: any[], env: any = {}) {
+function makeBuildInput(files: any[], env: any = {}): BuildInput {
   const fs: Record<string, string> = {};
   let externalDepsMap: Record<string, string> = {};
 
@@ -269,15 +227,25 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
     entryPoint = "/__entry.tsx";
   }
 
-  const result = await esbuild.build({
-    entryPoints: [entryPoint],
-    bundle: true,
-    write: false,
-    format: "esm",
-    platform: "browser",
-    plugins: [virtualFsPlugin(fs)],
+  const define: Record<string, string> = {
+    "process.env.NODE_ENV": '"development"',
+    // Define import.meta.env as a FULL object so both static
+    // (import.meta.env.VITE_X) and dynamic (import.meta.env[key]) access work.
+    "import.meta.env": JSON.stringify({
+      DEV: true,
+      PROD: false,
+      MODE: "development",
+      BASE_URL: "",
+      SSR: false,
+      ...env,
+    }),
+  };
+
+  return {
+    fs,
+    entryPoint,
     external: allExternals,
-    jsx: "automatic",
+    define,
     // Production JSX runtime (react/jsx-runtime), not jsx-dev-runtime. The dev
     // runtime pulls react.development from esm.sh as a SECOND React graph
     // alongside react-dom's production react.mjs — an extra large request plus a
@@ -285,25 +253,265 @@ export async function buildProjectFromFiles(files: any[], env: any = {}) {
     // window.onerror, not React's dev warnings, so we lose nothing here.
     // Gated so the build-timer can A/B against the old dev runtime (see preview-flags).
     jsxDev: !previewOptimizationsEnabled(),
-    logLevel: "silent",
-    define: {
-      "process.env.NODE_ENV": '"development"',
-      // Define import.meta.env as a FULL object so both static
-      // (import.meta.env.VITE_X) and dynamic (import.meta.env[key]) access work.
-      "import.meta.env": JSON.stringify({
-        DEV: true,
-        PROD: false,
-        MODE: "development",
-        BASE_URL: "",
-        SSR: false,
-        ...env,
-      }),
-    },
-
-  });
-
-  return {
-    code: result.outputFiles?.[0]?.text || "",
-    dependencies: externalDepsMap,
+    externalDepsMap,
   };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Worker path (default)
+// ════════════════════════════════════════════════════════════════════════════
+const WORKER_KEY = "__PREVIEW_BUILD_WORKER__";
+interface PendingReq {
+  resolve: (v: any) => void;
+  reject: (e: any) => void;
+}
+interface WorkerState {
+  worker: Worker;
+  pending: Map<number, PendingReq>;
+  initPromise: Promise<void> | null;
+}
+let reqSeq = 0;
+
+// One worker per page, stashed on window so it survives HMR and re-imports of
+// this module from different chunks. Throws if the bundler can't create the
+// worker (caller catches and falls back to the main-thread path).
+function getWorkerState(): WorkerState {
+  const w = window as any;
+  if (w[WORKER_KEY]) return w[WORKER_KEY] as WorkerState;
+
+  const worker = new Worker(
+    new URL("./preview-build.worker.ts", import.meta.url),
+    { type: "module" },
+  );
+  const pending = new Map<number, PendingReq>();
+
+  worker.onmessage = (e: MessageEvent) => {
+    const msg = e.data;
+    const p = pending.get(msg.id);
+    if (!p) return;
+    pending.delete(msg.id);
+    if (msg.type === "build-error") {
+      // Legitimate build/user-code error — reject, but tag it so the caller
+      // surfaces it without disabling the (healthy) worker.
+      const err = new Error(msg.error);
+      (err as any).isPreviewBuildError = true;
+      p.reject(err);
+    } else if (msg.type === "error") {
+      p.reject(new Error(msg.error));
+    } else {
+      p.resolve(msg);
+    }
+  };
+  // A fatal worker-level error (script failed to load/parse, e.g. CSP). Reject
+  // everything in flight and disable the worker path for the session.
+  worker.onerror = () => {
+    for (const [, p] of pending) p.reject(new Error("preview build worker crashed"));
+    pending.clear();
+    markWorkerDisabled();
+    w[WORKER_KEY] = null;
+  };
+
+  const state: WorkerState = { worker, pending, initPromise: null };
+  w[WORKER_KEY] = state;
+  return state;
+}
+
+function callWorker(type: "init" | "build", extra: Record<string, unknown>): Promise<any> {
+  const state = getWorkerState();
+  const id = ++reqSeq;
+  return new Promise((resolve, reject) => {
+    state.pending.set(id, { resolve, reject });
+    state.worker.postMessage({ id, type, wasmURL: WASM_URL, ...extra });
+  });
+}
+
+function ensureWorkerInit(): Promise<void> {
+  const state = getWorkerState();
+  if (!state.initPromise) {
+    const init = callWorker("init", {}).then(() => {
+      // Keep the warm/cold flag that runCode reads to size its build timeout.
+      (window as any).__ESBUILD_READY__ = true;
+    });
+    // UI safety: if the WASM never loads (CSP/CDN), don't hang the loader forever.
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `preview worker esbuild init timed out (${INIT_TIMEOUT_MS / 1000}s) — couldn't load ${WASM_URL}`,
+            ),
+          ),
+        INIT_TIMEOUT_MS,
+      ),
+    );
+    state.initPromise = Promise.race([init, timeout]);
+  }
+  return state.initPromise;
+}
+
+async function buildViaWorker(input: BuildInput): Promise<{ code: string; stats?: PluginStats }> {
+  await ensureWorkerInit();
+  const res = await callWorker("build", {
+    payload: {
+      fs: input.fs,
+      entryPoint: input.entryPoint,
+      external: input.external,
+      define: input.define,
+      jsxDev: input.jsxDev,
+    },
+  });
+  return { code: res.code, stats: res.stats };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Legacy main-thread path (kill-switch OFF, or worker fallback)
+// ════════════════════════════════════════════════════════════════════════════
+// esbuild.initialize() можно вызвать ровно ОДИН раз за жизнь страницы. Повторный
+// вызов всегда кидает 'Cannot call "initialize" more than once' — поэтому любые
+// "ретраи" должны переиспользовать тот же самый промис, а не звать initialize
+// заново. Промис кладём на window, чтобы он пережил HMR и повторные импорты
+// модуля (разные чанки могут получить свою копию bundler.ts).
+const INIT_KEY = "__ESBUILD_INIT_PROMISE__";
+
+function isAlreadyInitialized(err: unknown) {
+  const msg = (err as Error)?.message ?? "";
+  // 'Cannot call "initialize" more than once' означает, что initialize уже был
+  // вызван где-то ещё (другая копия модуля / гонка) — это не ошибка для нас.
+  return msg.includes("Cannot call") || msg.includes("more than once") || msg.includes("already");
+}
+
+// Единственный на всю страницу вызов esbuild.initialize(). Все последующие
+// обращения переиспользуют этот промис.
+function getInitPromise(): Promise<void> {
+  const w = window as any;
+  if (w[INIT_KEY]) return w[INIT_KEY] as Promise<void>;
+
+  let raw: Promise<unknown>;
+  try {
+    raw = esbuild.initialize({ worker: true, wasmURL: WASM_URL });
+  } catch (err) {
+    // initialize может бросить синхронно, если её уже звали.
+    raw = isAlreadyInitialized(err) ? Promise.resolve() : Promise.reject(err);
+  }
+
+  const guarded = raw.then(
+    () => {
+      // __ESBUILD_MAIN_READY__ tracks THIS realm's init specifically; the worker
+      // and main thread are separate esbuild instances, so the shared
+      // __ESBUILD_READY__ (warm flag for runCode) must not let the main path skip
+      // its own initialize() when only the worker was inited.
+      w.__ESBUILD_MAIN_READY__ = true;
+      w.__ESBUILD_READY__ = true;
+    },
+    (err) => {
+      if (isAlreadyInitialized(err)) {
+        w.__ESBUILD_MAIN_READY__ = true;
+        w.__ESBUILD_READY__ = true;
+        return;
+      }
+      // Реальная ошибка инициализации (например, WASM вообще не загрузился).
+      // esbuild.initialize в рамках страницы повторно звать нельзя, поэтому
+      // оставляем этот (отклонённый) промис в кэше: следующие вызовы получат тот
+      // же понятный текст ошибки, а не "more than once". Восстановление — только
+      // перезагрузкой страницы.
+      throw err;
+    },
+  );
+
+  w[INIT_KEY] = guarded;
+  return guarded;
+}
+
+function ensureMainThreadEsbuild(): Promise<void> {
+  // Уже готов — мгновенно. Проверяем именно main-realm флаг: __ESBUILD_READY__
+  // мог выставить воркер, но main-thread instance тогда ещё не инициализирован.
+  if ((window as any).__ESBUILD_MAIN_READY__) return Promise.resolve();
+
+  // Гонка с таймаутом нужна для UI: esbuild.initialize иногда никогда не
+  // resolve/reject (WASM блокируется CSP или CDN недоступен) — без таймаута
+  // сборка зависает молча. Сам initialize при этом НЕ перезапускаем.
+  const init = getInitPromise();
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(
+      () =>
+        reject(
+          new Error(
+            `esbuild.initialize timed out (${INIT_TIMEOUT_MS / 1000}s) — couldn't load ${WASM_URL}`,
+          ),
+        ),
+      INIT_TIMEOUT_MS,
+    ),
+  );
+
+  return Promise.race([init, timeout]);
+}
+
+async function buildOnMainThread(input: BuildInput): Promise<{ code: string; stats?: PluginStats }> {
+  // The main-thread esbuild instance may not be initialized — e.g. we reached
+  // here via worker fallback, where only the worker was inited. Idempotent.
+  await ensureMainThreadEsbuild();
+  const stats = createPluginStats();
+  const result = await esbuild.build({
+    entryPoints: [input.entryPoint],
+    bundle: true,
+    write: false,
+    format: "esm",
+    platform: "browser",
+    plugins: [virtualFsPlugin(input.fs, stats)],
+    external: input.external,
+    jsx: "automatic",
+    jsxDev: input.jsxDev,
+    logLevel: "silent",
+    define: input.define,
+  });
+  return { code: result.outputFiles?.[0]?.text || "", stats };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Public API
+// ════════════════════════════════════════════════════════════════════════════
+
+// Warm up esbuild (worker or main thread). Idempotent; called early on the
+// project route and again on idle from the preview viewer.
+export function ensureEsbuild(): Promise<void> {
+  if ((window as any).__ESBUILD_READY__) return Promise.resolve();
+  if (workerBuildEnabled()) {
+    const fallback = (err: unknown) => {
+      // Worker couldn't boot/init (bundling, CSP, timeout) — pin to main thread.
+      console.warn("[bundler] worker init failed, falling back to main thread", err);
+      markWorkerDisabled();
+      return ensureMainThreadEsbuild();
+    };
+    try {
+      // ensureWorkerInit can also throw SYNCHRONOUSLY (e.g. `new Worker` rejected
+      // by the environment), which a trailing .catch wouldn't see — guard both.
+      return ensureWorkerInit().catch(fallback);
+    } catch (err) {
+      return fallback(err);
+    }
+  }
+  return ensureMainThreadEsbuild();
+}
+
+export async function buildProjectFromFiles(files: any[], env: any = {}) {
+  const input = makeBuildInput(files, env);
+
+  if (workerBuildEnabled()) {
+    try {
+      const { code, stats } = await buildViaWorker(input);
+      return { code, dependencies: input.externalDepsMap, stats };
+    } catch (err) {
+      // A genuine build error (user code) must surface as-is — the worker is
+      // healthy, so don't disable it or rebuild on the main thread (that would
+      // just reproduce the same error and permanently demote the session).
+      if ((err as any)?.isPreviewBuildError) throw err;
+      // Otherwise it's a worker-infra failure — fall back to the main thread for
+      // this and every later build this session (avoids thrashing a broken worker).
+      console.warn("[bundler] worker build failed, falling back to main thread", err);
+      markWorkerDisabled();
+    }
+  }
+
+  const { code, stats } = await buildOnMainThread(input);
+  return { code, dependencies: input.externalDepsMap, stats };
 }

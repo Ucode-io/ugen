@@ -135,11 +135,60 @@ export default __src;
 `;
 }
 
-export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
+// ── Build instrumentation ────────────────────────────────────────────────
+// Counters/timers wrapped around the plugin callbacks. Under the legacy
+// worker:true path every onResolve/onLoad is a worker↔main postMessage
+// round-trip, so `resolves`/`loads` are the round-trip count and
+// `resolveMs`/`loadMs` the time spent in the JS callbacks. `dynamicImports`
+// is the number of lazy `import()` edges — the go/no-go signal for whether
+// deferring lazy subtrees (Tier 2) would pay off for a given project.
+export interface PluginStats {
+  resolves: number;
+  loads: number;
+  dynamicImports: number;
+  resolveMs: number;
+  loadMs: number;
+}
+
+export function createPluginStats(): PluginStats {
+  return { resolves: 0, loads: 0, dynamicImports: 0, resolveMs: 0, loadMs: 0 };
+}
+
+export function virtualFsPlugin(
+  fs: Record<string, string>,
+  stats?: PluginStats,
+): esbuild.Plugin {
   return {
     name: "virtual-fs",
     setup(build) {
       const extensions = [".tsx", ".ts", ".jsx", ".js", "", ".css", ".json", ".svg"];
+
+      // Wrap onResolve/onLoad so the measurement patch can attribute build time
+      // to plugin round-trips vs raw parse. No-op (zero overhead) when no stats
+      // handle is passed.
+      const onResolve: typeof build.onResolve = (opts, fn) =>
+        build.onResolve(opts, (args) => {
+          if (!stats) return fn(args);
+          if (args.kind === "dynamic-import") stats.dynamicImports++;
+          stats.resolves++;
+          const t = performance.now();
+          try {
+            return fn(args);
+          } finally {
+            stats.resolveMs += performance.now() - t;
+          }
+        });
+      const onLoad: typeof build.onLoad = (opts, fn) =>
+        build.onLoad(opts, (args) => {
+          if (!stats) return fn(args);
+          stats.loads++;
+          const t = performance.now();
+          try {
+            return fn(args);
+          } finally {
+            stats.loadMs += performance.now() - t;
+          }
+        });
 
       /**
        * Resolve a logical path to a concrete virtual-FS key, trying extensions
@@ -185,19 +234,19 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
       };
 
       // ── 1. External CSS (npm packages like 'leaflet/dist/leaflet.css') ──
-      build.onResolve({ filter: /\.css$/ }, (args) => {
+      onResolve({ filter: /\.css$/ }, (args) => {
         // Internal CSS (relative or absolute) → handled by virtual namespace
         if (args.path.startsWith(".") || args.path.startsWith("/")) return null;
         return { path: args.path, namespace: "cdn-css" };
       });
 
       // ── 2. @/ alias → /src/ ──
-      build.onResolve({ filter: /^@\// }, (args) => {
+      onResolve({ filter: /^@\// }, (args) => {
         return resolveVirtual("/src/" + args.path.slice(2));
       });
 
       // ── 3. Catch-all resolver ──
-      build.onResolve({ filter: /.*/ }, (args) => {
+      onResolve({ filter: /.*/ }, (args) => {
         // Entry point
         if (args.kind === "entry-point") {
           return resolveVirtual(args.path);
@@ -229,7 +278,7 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
       });
 
       // ── 4. Load external CSS from CDN ──
-      build.onLoad({ filter: /.*/, namespace: "cdn-css" }, (args) => {
+      onLoad({ filter: /.*/, namespace: "cdn-css" }, (args) => {
         const cssUrl = `https://esm.sh/${args.path}`;
         const js = `
           (function() {
@@ -247,7 +296,7 @@ export function virtualFsPlugin(fs: Record<string, string>): esbuild.Plugin {
       });
 
       // ── 5. Load from virtual FS ──
-      build.onLoad({ filter: /.*/, namespace: "virtual" }, (args) => {
+      onLoad({ filter: /.*/, namespace: "virtual" }, (args) => {
         // The resolver records the concrete FS key in pluginData. Fall back to
         // probing the (query-stripped) path for entry points / safety.
         const pluginData = args.pluginData as { fsKey?: string } | undefined;

@@ -8,6 +8,9 @@
 // Then rebuild the preview and compare window.previewBuildStats().
 //
 // Gates the optimizations that affect measured build/visible time:
+//   - build in a dedicated worker (no per-edge   → bundler.ts
+//     worker↔main round-trips); OFF = legacy
+//     main-thread esbuild.initialize({worker:true})
 //   - jsxDev:false (single React graph)          → bundler.ts
 //   - esm.sh preconnect + modulepreload          → preview-html.ts
 //   - build result cache lookup                  → project-preview-viewer.tsx

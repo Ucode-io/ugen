@@ -66,6 +66,20 @@ function logSample(s: BuildSample): void {
     for (const p of s.phases) table[p.name] = Math.round(p.ms * 10) / 10;
     console.table(table);
   }
+  // Plugin instrumentation (esbuildPlugin PluginStats): resolve/load counts are
+  // the per-edge plugin round-trips (the dominant bundle cost under worker:true);
+  // resolveMs/loadMs is time spent inside the callbacks; dynamicImports is the
+  // number of lazy import() edges = the Tier-2 (lazy deferral) go/no-go signal.
+  const stats = (s.meta as { pluginStats?: Record<string, number> }).pluginStats;
+  if (stats) {
+    console.table({
+      resolves: stats.resolves,
+      loads: stats.loads,
+      dynamicImports: stats.dynamicImports,
+      resolveMs: Math.round((stats.resolveMs ?? 0) * 10) / 10,
+      loadMs: Math.round((stats.loadMs ?? 0) * 10) / 10,
+    });
+  }
   console.log("meta:", s.meta);
   console.groupEnd();
 }
