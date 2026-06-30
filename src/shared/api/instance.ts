@@ -28,6 +28,9 @@ const BEARER_ONLY_ENDPOINTS = [
   /^\/v1\/company-project(\/|$)/,
   /^\/v1\/pricing\/company-stats(\/|$)/,
   /^\/v1\/token-pack(\/|$)/,
+  // Google Lead Form Ads — authenticated with the platform user's Bearer token
+  // (plus Environment-Id / Resource-Id headers), NOT the project-scoped API-KEY.
+  /^\/v1\/google-leads(\/|$)/,
 ]
 
 const requiresBearerToken = (url: string = '') => {

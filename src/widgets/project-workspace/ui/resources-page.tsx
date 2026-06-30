@@ -32,6 +32,7 @@ import { gitlabIntegrationApi } from '@/features/gitlab-integration'
 import { bitbucketIntegrationApi } from '@/features/bitbucket-integration'
 import { googleDriveIntegrationApi } from '@/features/google-drive-integration'
 import { googleCalendarIntegrationApi, GoogleCalendarFieldMappingModal } from '@/features/google-calendar-integration'
+import { googleAdsIntegrationApi, GoogleAdsSetupModal, type GoogleAdsScope } from '@/features/google-ads-integration'
 import { useAuthStore } from '@/entities/session'
 import {
   Button,
@@ -1272,6 +1273,7 @@ type View = 'grid' | 'detail'
 export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const mainProjectId = useAuthStore((state) => state.ucodeProjectId || '')
   const mainEnvironmentId = useAuthStore((state) => state.projectEnvId || '')
+  const resourceEnvId = useAuthStore((state) => state.resourceEnvId || '')
   const projectTitle = useAuthStore((state) => state.project?.title || 'support')
   const [view, setView] = useState<View>('grid')
   const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null)
@@ -1288,6 +1290,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const [calendarMappingOpen, setCalendarMappingOpen] = useState(false)
   const [telegramSetupOpen, setTelegramSetupOpen] = useState(false)
   const [telegramSetupResource, setTelegramSetupResource] = useState<any | null>(null)
+  // Google Lead Ads setup/management modal (table + field mapping → key/webhook).
+  const [googleAdsModalOpen, setGoogleAdsModalOpen] = useState(false)
+  const [googleAdsModalMode, setGoogleAdsModalMode] = useState<'list' | 'create'>('list')
 
   const queryClient = useQueryClient()
   const isEditMode = !!editingResourceId
@@ -1495,6 +1500,27 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       queryClient.invalidateQueries({ queryKey: ['bitbucket-integration', projectId, integrationEnvId] })
     },
   })
+
+  // Google Lead Ads — no OAuth: connections are created/listed via the dedicated
+  // /v1/google-leads endpoints (Bearer + Environment-Id/Resource-Id), so they
+  // don't appear in the /v2 resource list. We query them separately to drive the
+  // connected card, and the modal handles create / mapping / verify / disconnect.
+  const googleAdsScope: GoogleAdsScope = { environmentId: mainEnvironmentId, resourceId: resourceEnvId }
+  const googleAdsScopeReady = !!mainEnvironmentId
+  const { data: googleAdsData } = useQuery({
+    queryKey: ['google-ads-integration', mainEnvironmentId, resourceEnvId],
+    queryFn: () => googleAdsIntegrationApi.getIntegration(googleAdsScope),
+    enabled: googleAdsScopeReady,
+    retry: false,
+    staleTime: 60 * 1000,
+  })
+  const googleAdsIntegrations = googleAdsData?.integrations ?? []
+  const isGoogleAdsConnected = googleAdsIntegrations.length > 0
+
+  const openGoogleAdsModal = (mode: 'list' | 'create') => {
+    setGoogleAdsModalMode(mode)
+    setGoogleAdsModalOpen(true)
+  }
 
   // Open the OAuth window synchronously (within the click) so popup blockers
   // allow it, then let the mutation point it at the fetched authorize URL.
@@ -1794,6 +1820,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
     if (item.typeValue === GOOGLE_CALENDAR_TYPE_VALUE) {
       connectGoogleCalendar(openOAuthPopup())
+      return
+    }
+
+    if (item.typeValue === GOOGLE_ADS_TYPE_VALUE) {
+      openGoogleAdsModal(isGoogleAdsConnected ? 'list' : 'create')
       return
     }
 
@@ -2173,6 +2204,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   if (isBitbucketConnected || isBitbucketExpired) connectedTypeValues.add(9)
   if (isGoogleDriveConnected) connectedTypeValues.add(GOOGLE_DRIVE_TYPE_VALUE)
   if (isGoogleCalendarConnected) connectedTypeValues.add(GOOGLE_CALENDAR_TYPE_VALUE)
+  if (isGoogleAdsConnected) connectedTypeValues.add(GOOGLE_ADS_TYPE_VALUE)
 
   const filteredAvailableResources = allResourceItems.filter(item => {
     if (connectedTypeValues.has(item.typeValue)) return false
@@ -2196,6 +2228,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const googleDriveMatchesCategory = matchesCategoryFilter('productivity')
   const googleCalendarMatchesSearch = matchesIntegrationSearch('Google Calendar Calendar and events')
   const googleCalendarMatchesCategory = matchesCategoryFilter('productivity')
+  const googleAdsMatchesSearch = matchesIntegrationSearch('Google Ads Google advertising account')
+  const googleAdsMatchesCategory = matchesCategoryFilter('marketing')
 
   // Once the refetched resource list contains the Drive/Calendar resource it
   // renders its own connected card below, so drop the session-state card to
@@ -2210,6 +2244,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const showGitlabCard = (isGitlabConnected || isGitlabExpired) && gitlabMatchesSearch && gitlabMatchesCategory
   const showBitbucketCard =
     (isBitbucketConnected || isBitbucketExpired) && bitbucketMatchesSearch && bitbucketMatchesCategory
+  const showGoogleAdsCard = isGoogleAdsConnected && googleAdsMatchesSearch && googleAdsMatchesCategory
 
   const showConnectedSection =
     filteredConnectedResources.length > 0 ||
@@ -2217,7 +2252,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     showGoogleCalendarCard ||
     showGithubCard ||
     showGitlabCard ||
-    showBitbucketCard
+    showBitbucketCard ||
+    showGoogleAdsCard
 
   return (
     <div className="@container space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
@@ -2529,6 +2565,50 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                 </div>
               )}
 
+              {/* Google Lead Ads card (dedicated /v1/google-leads endpoints) */}
+              {showGoogleAdsCard && (
+                <div
+                  className="bg-bg-card border-border-subtle flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
+                  style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <ResourceIcon type="google-ads" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-text-main truncate text-sm font-bold">Google Lead Ads</div>
+                      <div className="text-text-muted truncate text-[11px]">
+                        {googleAdsIntegrations.length} connection{googleAdsIntegrations.length > 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <span className="ml-auto shrink-0 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-green-500 uppercase">
+                      Connected
+                    </span>
+                  </div>
+                  <div className="text-text-muted text-xs leading-relaxed">
+                    Leads from your Google forms flow straight into your project tables.
+                  </div>
+                  <div className="mt-auto flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border-subtle bg-bg-main text-primary hover:bg-primary/5 min-w-27.5 flex-1 justify-center gap-2 rounded-lg font-semibold"
+                      onClick={() => openGoogleAdsModal('list')}
+                    >
+                      <SlidersHorizontal size={14} />
+                      Manage
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border-subtle bg-bg-main text-text-muted hover:bg-primary/5 hover:text-primary min-w-27.5 flex-1 justify-center gap-2 rounded-lg font-semibold"
+                      onClick={() => openGoogleAdsModal('create')}
+                    >
+                      <Plug size={14} />
+                      New
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Old-API connected resources */}
               {filteredConnectedResources.map((resource: any) => {
                 const typeInfo = resourceTypes.find(t => t.value === resource.resource_type)
@@ -2698,6 +2778,19 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
             queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
             queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
             queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
+          }}
+        />
+      )}
+
+      {googleAdsModalOpen && (
+        <GoogleAdsSetupModal
+          open={googleAdsModalOpen}
+          onOpenChange={setGoogleAdsModalOpen}
+          scope={googleAdsScope}
+          mainProjectId={mainProjectId}
+          initialMode={googleAdsModalMode}
+          onChanged={() => {
+            queryClient.invalidateQueries({ queryKey: ['google-ads-integration', mainEnvironmentId, resourceEnvId] })
           }}
         />
       )}
