@@ -49,13 +49,16 @@ export const AddTemplateDialog = ({
   const router = useRouter();
   const queryClient = useQueryClient();
   const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
-  const { project, apiKey, resourceEnvId } = useAuthStore(
-    useShallow((s) => ({
-      project: s.project,
-      apiKey: s.apiKey,
-      resourceEnvId: s.resourceEnvId,
-    })),
-  );
+  const { project, apiKey, resourceEnvId, ucodeProjectId, projectEnvId } =
+    useAuthStore(
+      useShallow((s) => ({
+        project: s.project,
+        apiKey: s.apiKey,
+        resourceEnvId: s.resourceEnvId,
+        ucodeProjectId: s.ucodeProjectId,
+        projectEnvId: s.projectEnvId,
+      })),
+    );
 
   const [isOpen, setIsOpen] = useState(false);
   const [templateName, setTemplateName] = useState(projectTitle);
@@ -174,11 +177,10 @@ export const AddTemplateDialog = ({
             .map((s) => s.cdnUrl as string),
           mcp_project_id: projectId,
           preview_url: projectUrl || "",
-          source_project_id: project?.project_id ?? "",
-          // source_environment_id: project?.environment_id ?? "",
+          source_project_id: ucodeProjectId ?? "",
           // source_resource_env_id: microfrontendsList?.[0]?.environment_id || "",
           source_mcp_resource_env_id: microfrontendsList?.[0]?.project_id ?? "",
-          source_environment_id: "3acc5294-c3a3-456e-9c8c-b0c74043967b",
+          source_environment_id: projectEnvId ?? "",
           source_function_id: microfrontendsList?.[0]?.id || "",
           source_repo_id: microfrontendsList?.[0]?.repo_id || "",
         },
