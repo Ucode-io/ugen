@@ -32,7 +32,7 @@ import { gitlabIntegrationApi } from '@/features/gitlab-integration'
 import { bitbucketIntegrationApi } from '@/features/bitbucket-integration'
 import { googleDriveIntegrationApi } from '@/features/google-drive-integration'
 import { googleCalendarIntegrationApi, GoogleCalendarFieldMappingModal } from '@/features/google-calendar-integration'
-import { googleAdsIntegrationApi, GoogleAdsSetupModal, type GoogleAdsScope } from '@/features/google-ads-integration'
+import { googleAdsIntegrationApi, GoogleAdsSetupModal } from '@/features/google-ads-integration'
 import { useAuthStore } from '@/entities/session'
 import {
   Button,
@@ -1273,7 +1273,6 @@ type View = 'grid' | 'detail'
 export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const mainProjectId = useAuthStore((state) => state.ucodeProjectId || '')
   const mainEnvironmentId = useAuthStore((state) => state.projectEnvId || '')
-  const resourceEnvId = useAuthStore((state) => state.resourceEnvId || '')
   const projectTitle = useAuthStore((state) => state.project?.title || 'support')
   const [view, setView] = useState<View>('grid')
   const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null)
@@ -1502,15 +1501,14 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   })
 
   // Google Lead Ads — no OAuth: connections are created/listed via the dedicated
-  // /v1/google-leads endpoints (Bearer + Environment-Id/Resource-Id), so they
-  // don't appear in the /v2 resource list. We query them separately to drive the
-  // connected card, and the modal handles create / mapping / verify / disconnect.
-  const googleAdsScope: GoogleAdsScope = { environmentId: mainEnvironmentId, resourceId: resourceEnvId }
-  const googleAdsScopeReady = !!mainEnvironmentId
+  // /v1/google-leads endpoints (project API-KEY, attached by the shared `api`
+  // interceptor), so they don't appear in the /v2 resource list. We query them
+  // separately to drive the connected card, and the modal handles create /
+  // mapping / verify / disconnect.
   const { data: googleAdsData } = useQuery({
-    queryKey: ['google-ads-integration', mainEnvironmentId, resourceEnvId],
-    queryFn: () => googleAdsIntegrationApi.getIntegration(googleAdsScope),
-    enabled: googleAdsScopeReady,
+    queryKey: ['google-ads-integration', mainProjectId],
+    queryFn: () => googleAdsIntegrationApi.getIntegration(),
+    enabled: !!projectId,
     retry: false,
     staleTime: 60 * 1000,
   })
@@ -2786,11 +2784,10 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
         <GoogleAdsSetupModal
           open={googleAdsModalOpen}
           onOpenChange={setGoogleAdsModalOpen}
-          scope={googleAdsScope}
           mainProjectId={mainProjectId}
           initialMode={googleAdsModalMode}
           onChanged={() => {
-            queryClient.invalidateQueries({ queryKey: ['google-ads-integration', mainEnvironmentId, resourceEnvId] })
+            queryClient.invalidateQueries({ queryKey: ['google-ads-integration', mainProjectId] })
           }}
         />
       )}

@@ -46,7 +46,6 @@ import {
   type GoogleAdsCreateResult,
   type GoogleAdsFieldMapping,
   type GoogleAdsIntegration,
-  type GoogleAdsScope,
 } from "../api";
 
 type View = "list" | "editor" | "keys";
@@ -119,9 +118,11 @@ const buildPayload = (
 interface GoogleAdsSetupModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Environment-Id / Resource-Id headers for every google-leads request. */
-  scope: GoogleAdsScope;
-  /** uCode project id used for table-schema and record (verify) lookups. */
+  /**
+   * uCode project id, used both as the cache discriminator for the google-leads
+   * queries and for the table-schema / record (verify) lookups. Auth itself is
+   * the project API-KEY, attached automatically by the shared `api` interceptor.
+   */
   mainProjectId: string;
   /** Open straight into the create wizard ("create") or the connection list. */
   initialMode?: "list" | "create";
@@ -132,13 +133,10 @@ interface GoogleAdsSetupModalProps {
 export const GoogleAdsSetupModal = ({
   open,
   onOpenChange,
-  scope,
   mainProjectId,
   initialMode = "list",
   onChanged,
 }: GoogleAdsSetupModalProps) => {
-  const scopeReady = !!scope.environmentId;
-
   const [view, setView] = useState<View>("list");
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -160,8 +158,8 @@ export const GoogleAdsSetupModal = ({
   const verifyTokenRef = useRef(0);
 
   const columnsQuery = useQuery({
-    queryKey: ["google-ads-columns", scope.environmentId],
-    queryFn: () => googleAdsIntegrationApi.getColumns(scope),
+    queryKey: ["google-ads-columns", mainProjectId],
+    queryFn: () => googleAdsIntegrationApi.getColumns(),
     enabled: open,
     staleTime: 5 * 60 * 1000,
   });
@@ -175,9 +173,9 @@ export const GoogleAdsSetupModal = ({
   );
 
   const integrationQuery = useQuery({
-    queryKey: ["google-ads-integration", scope.environmentId, scope.resourceId],
-    queryFn: () => googleAdsIntegrationApi.getIntegration(scope),
-    enabled: open && scopeReady,
+    queryKey: ["google-ads-integration", mainProjectId],
+    queryFn: () => googleAdsIntegrationApi.getIntegration(),
+    enabled: open,
     staleTime: 0,
     refetchOnMount: "always",
   });
@@ -303,12 +301,11 @@ export const GoogleAdsSetupModal = ({
   const validFieldCount = rows.filter(
     (r) => resolveLeadColumn(r) && r.tableField.trim(),
   ).length;
-  const canSave = scopeReady && !!tableSlug && validFieldCount > 0;
+  const canSave = !!tableSlug && validFieldCount > 0;
 
   const createMutation = useMutation({
     mutationFn: () =>
       googleAdsIntegrationApi.createConnection(
-        scope,
         buildPayload(tableSlug, formName, formId, rows),
       ),
     onSuccess: (result) => {
@@ -326,7 +323,6 @@ export const GoogleAdsSetupModal = ({
   const updateMutation = useMutation({
     mutationFn: () =>
       googleAdsIntegrationApi.updateMapping(
-        scope,
         editingId!,
         buildPayload(tableSlug, formName, formId, rows),
       ),
@@ -341,7 +337,7 @@ export const GoogleAdsSetupModal = ({
   });
 
   const disconnectMutation = useMutation({
-    mutationFn: (id: string) => googleAdsIntegrationApi.disconnect(scope, id),
+    mutationFn: (id: string) => googleAdsIntegrationApi.disconnect(id),
     onSuccess: () => {
       toast.success("Connection removed");
       integrationQuery.refetch();
@@ -412,9 +408,7 @@ export const GoogleAdsSetupModal = ({
             </DialogDescription>
           </DialogHeader>
 
-          {!scopeReady ? (
-            <ContextLoading />
-          ) : view === "list" ? (
+          {view === "list" ? (
             <ListView
               loading={integrationQuery.isLoading}
               integrations={integrations}
@@ -507,22 +501,6 @@ export const GoogleAdsSetupModal = ({
     </Dialog>
   );
 };
-
-// ── Context-not-ready notice ────────────────────────────────────────────────
-const ContextLoading = () => (
-  <div className="flex flex-col items-center justify-center gap-3 px-8 py-14 text-center">
-    <AlertCircle className="text-amber-500" size={28} />
-    <div>
-      <p className="text-text-main text-sm font-semibold">
-        Project context is still loading
-      </p>
-      <p className="text-text-muted mt-1 text-sm">
-        Google Lead Ads needs the project environment. Try again once the project
-        finishes loading.
-      </p>
-    </div>
-  </div>
-);
 
 // ── List of connections (Screen 1) ──────────────────────────────────────────
 interface ListViewProps {

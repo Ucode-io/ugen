@@ -10,6 +10,5 @@ export type {
   GoogleAdsFieldMapping,
   GoogleAdsIntegration,
   GoogleAdsIntegrationList,
-  GoogleAdsScope,
 } from "./api";
 export { GoogleAdsSetupModal } from "./ui/google-ads-setup-modal";

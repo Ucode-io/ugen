@@ -8,11 +8,11 @@ import { api } from "@/shared/api";
 // mapping + pick a target table, (2) hand them a `google_key` + `webhook_url` to
 // paste into Google Ads, and (3) help them verify a test lead landed.
 //
-// All endpoints live on the gateway under `/v1/google-leads` and authenticate
-// with the platform user's Bearer token (added automatically by the shared `api`
-// request interceptor — the prefix is registered in BEARER_ONLY_ENDPOINTS) plus
-// the `Environment-Id` / `Resource-Id` headers we attach here. `project_id` and
-// `user_id` are derived from the token server-side, so we never send them.
+// All endpoints live on the gateway under `/v1/google-leads`. On a project page
+// the shared `api` request interceptor authenticates them with the project-scoped
+// API-KEY (Authorization: API-KEY + x-api-key) automatically — same as every
+// other project resource call — so the project / environment / resource are
+// derived from the key and we don't send them ourselves.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** A standard Google lead-form field (left side of the mapping). */
@@ -74,12 +74,6 @@ export interface GoogleAdsCreateResult {
   webhook_url: string;
 }
 
-/** Project-scoped headers attached to every google-leads request. */
-export interface GoogleAdsScope {
-  environmentId: string;
-  resourceId: string;
-}
-
 // Standard column_ids per the integration spec. Used as a resilient fallback so
 // the mapping UI still works if GET /columns is unavailable (the list is static).
 export const GOOGLE_ADS_FALLBACK_COLUMNS: GoogleAdsColumn[] = [
@@ -99,11 +93,6 @@ export const GOOGLE_ADS_FALLBACK_COLUMNS: GoogleAdsColumn[] = [
   { column_id: "COUNTRY", label: "Country" },
 ];
 
-const buildHeaders = (scope: GoogleAdsScope) => ({
-  "Environment-Id": scope.environmentId,
-  "Resource-Id": scope.resourceId,
-});
-
 /**
  * Pull a human-readable error out of the gateway envelope. On failure the
  * envelope's `data` is a plain string, so prefer that, then custom_message.
@@ -121,11 +110,9 @@ export const getGoogleAdsErrorMessage = (err: unknown, fallback: string): string
 
 export const googleAdsIntegrationApi = {
   /** Standard column_ids for the mapping dropdown. Falls back to the static list. */
-  getColumns: async (scope: GoogleAdsScope): Promise<GoogleAdsColumn[]> => {
+  getColumns: async (): Promise<GoogleAdsColumn[]> => {
     try {
-      const { data } = await api.get("/v1/google-leads/columns", {
-        headers: buildHeaders(scope),
-      });
+      const { data } = await api.get("/v1/google-leads/columns");
       const columns = data?.data?.columns;
       return Array.isArray(columns) && columns.length > 0
         ? columns
@@ -136,10 +123,8 @@ export const googleAdsIntegrationApi = {
   },
 
   /** All Google Lead Ads connections for the current project/environment. */
-  getIntegration: async (scope: GoogleAdsScope): Promise<GoogleAdsIntegrationList> => {
-    const { data } = await api.get("/v1/google-leads/integration", {
-      headers: buildHeaders(scope),
-    });
+  getIntegration: async (): Promise<GoogleAdsIntegrationList> => {
+    const { data } = await api.get("/v1/google-leads/integration");
     const payload = data?.data ?? {};
     const integrations = Array.isArray(payload.integrations) ? payload.integrations : [];
     return { connected: !!payload.connected, integrations };
@@ -147,35 +132,24 @@ export const googleAdsIntegrationApi = {
 
   /** Create a connection — returns google_key + webhook_url to paste into Google Ads. */
   createConnection: async (
-    scope: GoogleAdsScope,
     payload: GoogleAdsConnectionPayload,
   ): Promise<GoogleAdsCreateResult> => {
-    const { data } = await api.post("/v1/google-leads", payload, {
-      headers: buildHeaders(scope),
-    });
+    const { data } = await api.post("/v1/google-leads", payload);
     return data?.data as GoogleAdsCreateResult;
   },
 
   /** Update an existing connection's table/mapping. The key/webhook are unchanged. */
   updateMapping: async (
-    scope: GoogleAdsScope,
     id: string,
     payload: GoogleAdsConnectionPayload,
   ): Promise<{ resource_id: string }> => {
-    const { data } = await api.put(`/v1/google-leads/mapping/${id}`, payload, {
-      headers: buildHeaders(scope),
-    });
+    const { data } = await api.put(`/v1/google-leads/mapping/${id}`, payload);
     return data?.data;
   },
 
   /** Remove a connection. Leads stop being routed to the project. */
-  disconnect: async (
-    scope: GoogleAdsScope,
-    id: string,
-  ): Promise<{ resource_id: string }> => {
-    const { data } = await api.delete(`/v1/google-leads/integration/${id}`, {
-      headers: buildHeaders(scope),
-    });
+  disconnect: async (id: string): Promise<{ resource_id: string }> => {
+    const { data } = await api.delete(`/v1/google-leads/integration/${id}`);
     return data?.data;
   },
 };
