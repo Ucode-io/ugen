@@ -34,6 +34,7 @@ import {
   type BillingTransaction,
   type TokenPack,
   type TokenUsagePeriod,
+  useCompanyProjectGetById,
 } from "@/entities/billing";
 import { UpgradePlanDialog } from "./upgrade-plan-dialog";
 import { TopUpModal, formatAmount, pickErrorMessage } from "./top-up-modal";
@@ -98,7 +99,7 @@ export const BillingTab = () => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const { data: companyProjects = [] } = useCompanyProjectsList(
-    null,
+    companyId,
     projectId,
   );
   const { data: fare, isLoading: fareLoading } = useFare(fareId, projectId);
@@ -106,6 +107,8 @@ export const BillingTab = () => {
     useCurrentSubscription(projectId);
   const { data: transactions = [], isLoading: transactionsLoading } =
     useTransactions(projectId);
+
+  const {data: projectData} = useCompanyProjectGetById(projectId)
 
   // Billing-period end -- /v1/subscription/current is authoritative; fall back to
   // the date embedded in the fare-by-id response.
@@ -129,7 +132,7 @@ export const BillingTab = () => {
   const currency = (fare?.currency || "uzs").toLowerCase();
 
   const { data: usdRate } = useUsdRate();
-  const balance = currentProject?.balance ?? 0;
+  const balance = projectData?.balance ?? 0;
   const balanceUsd = currency === "uzs" ? uzsToUsd(balance, usdRate) : null;
 
   return (
