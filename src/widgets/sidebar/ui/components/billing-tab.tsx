@@ -98,7 +98,7 @@ export const BillingTab = () => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const { data: companyProjects = [] } = useCompanyProjectsList(
-    companyId,
+    // companyId,
     projectId,
   );
   const { data: fare, isLoading: fareLoading } = useFare(fareId, projectId);
