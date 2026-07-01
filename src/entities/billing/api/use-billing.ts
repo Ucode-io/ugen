@@ -17,7 +17,7 @@ import type {
 const buildBearerConfig = (token: string, projectId?: string | null) => {
   return {
     headers: { Authorization: `Bearer ${token}` },
-    params: projectId ? { "project-id": projectId } : undefined,
+    params: projectId ? { "project_id": projectId } : undefined,
   }
 }
 
@@ -54,6 +54,22 @@ export const useCompanyProjectsList = (companyId?: string | null, projectId?: st
       return projects
     },
     enabled: Boolean(companyId && token),
+  })
+}
+
+export const useCompanyProjectGetById = (projectId: string | null) => {
+  const token = useAuthStore((state) => state.accessToken)
+  return useQuery({
+    queryKey: ["billing", "company-project", "by-id", projectId],
+    queryFn: async () => {
+      const { data } = await api.get(`/v1/company-project/${projectId}`, {
+        ...buildBearerConfig(token!, projectId)
+      })
+
+      const project = data?.data
+      return project
+    },
+    enabled: Boolean(projectId && token),
   })
 }
 
