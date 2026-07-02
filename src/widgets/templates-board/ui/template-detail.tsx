@@ -27,6 +27,7 @@ import { cn } from "@/shared/lib/utils/cn";
 
 import {
   fetchTemplateDetail,
+  formatTemplatePrice,
   getTemplateDemoUrl,
   getTemplateDescription,
   getTemplateDislikeCount,
@@ -100,6 +101,8 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
     ...rawImages.filter((img) => img !== photo),
   ].map((img) => buildImageUrl(img));
 
+  const price = template ? formatTemplatePrice(template) : null;
+
   useEffect(() => {
     if (lightboxIndex === null || images.length === 0) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -144,6 +147,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
   const title = getTemplateTitle(template);
   const description = getTemplateDescription(template);
   const demoUrl = getTemplateDemoUrl(template);
+  const priceLabel = price ?? "Free";
 
   const selectedDevice = DEVICES.find((d) => d.id === device) ?? DEVICES[0];
   const iframeWidth = DEVICE_WIDTHS[device];
@@ -287,6 +291,17 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
           </h1>
 
           <div className="flex shrink-0 items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold",
+                price
+                  ? "bg-bg-card border-border-subtle text-text-main border"
+                  : "bg-green-500/10 text-green-600",
+              )}
+            >
+              {priceLabel}
+            </span>
+
             <TemplateReactions
               key={template.id}
               templateId={template.id}
