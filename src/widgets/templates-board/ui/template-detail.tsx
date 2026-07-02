@@ -37,6 +37,7 @@ import {
 } from "../model/templates";
 import { useTemplateLaunch } from "../model/use-template-launch";
 import { TemplateReactions } from "./template-reactions";
+import { TopUpModal } from "@/widgets/sidebar/ui/components/top-up-modal";
 
 const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
 
@@ -76,7 +77,13 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const { launchTemplate, launchingTemplateId } = useTemplateLaunch();
+  const {
+    launchTemplate,
+    launchingTemplateId,
+    topUpOpen,
+    setTopUpOpen,
+    topUpProjectId,
+  } = useTemplateLaunch();
 
   const { data: template, isLoading } = useQuery({
     queryKey: ["ugen-template", id],
@@ -394,6 +401,12 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
           </div>
         )}
       </div>
+
+      <TopUpModal
+        open={topUpOpen}
+        onOpenChange={setTopUpOpen}
+        projectId={topUpProjectId}
+      />
     </div>
   );
 };

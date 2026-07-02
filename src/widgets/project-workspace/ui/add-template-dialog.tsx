@@ -3,7 +3,8 @@ import { BookTemplate, ImagePlus, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/shared/api";
+import { toast } from "sonner";
+import { api, getApiErrorMessage } from "@/shared/api";
 import { useRouter } from "@/shared/lib/i18n/navigation";
 import { useAuthStore } from "@/entities/session";
 import { useShallow } from "zustand/react/shallow";
@@ -124,6 +125,8 @@ export const AddTemplateDialog = ({
       setPreviewFilename(filename);
     } catch (e) {
       console.error("Image upload failed", e);
+      setPreviewLocalUrl(null);
+      toast.error(getApiErrorMessage(e, "Failed to upload image"));
     } finally {
       setIsUploadingImage(false);
     }
@@ -147,6 +150,7 @@ export const AddTemplateDialog = ({
     } catch (e) {
       console.error("Screenshot upload failed", e);
       setScreenshots((prev) => prev.filter((s) => s.id !== id));
+      toast.error(getApiErrorMessage(e, "Failed to upload screenshot"));
     } finally {
       setIsUploadingScreenshot(false);
     }
@@ -190,10 +194,12 @@ export const AddTemplateDialog = ({
         },
       );
       await queryClient.invalidateQueries({ queryKey: ["ugen-templates"] });
+      toast.success("Template added");
       router.push("/dashboard/templates");
       setIsOpen(false);
     } catch (e) {
       console.error("Failed to add template", e);
+      toast.error(getApiErrorMessage(e, "Failed to add template"));
     } finally {
       setIsSubmitting(false);
     }

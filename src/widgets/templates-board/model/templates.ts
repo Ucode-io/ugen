@@ -58,6 +58,23 @@ export const getTemplateDemoUrl = (t: Template) =>
 export const getTemplatePrompt = (t: Template) =>
   t.request || t.prompt || `Recreate the template "${getTemplateTitle(t)}".`
 
+// Price the admin has assigned to the template. 0 (or missing) = free.
+export const getTemplatePrice = (t: Template): number =>
+  toCount(t.price ?? t.amount)
+
+export const getTemplateCurrencyId = (t: Template): string =>
+  t.currency_id || t.currency?.id || ''
+
+// Admin-only: assign/change a template's price. `price = 0` makes it free
+// again; omitting `currency_id` defaults to UZS on the server.
+export const updateTemplatePrice = async (
+  id: string,
+  payload: { price: number; currency_id?: string },
+): Promise<Template | null> => {
+  const { data } = await api.patch(`/v1/ugen-template/${id}/price`, payload)
+  return unwrapItem(data)
+}
+
 export type ReactionType = 'like' | 'dislike'
 
 const toCount = (v: any): number => {

@@ -1,7 +1,7 @@
 'use client'
 import { Link } from "@/shared/lib/i18n/navigation"
 import { useTranslations } from "next-intl"
-import { Home, Search, LayoutGrid, MessagesSquare, LayoutTemplate, Package } from "lucide-react"
+import { Home, Search, LayoutGrid, MessagesSquare, LayoutTemplate, Package, Tag } from "lucide-react"
 import { usePathname } from "@/shared/lib/i18n/navigation"
 import { useAuthStore } from "@/entities/session"
 import { useShallow } from "zustand/react/shallow"
@@ -35,6 +35,7 @@ export const CoreNav = ({ onSearchClick, isUgen = true }: CoreNavProps) => {
     { key: "templates", href: "/dashboard/templates", icon: LayoutTemplate, action: "link" as const },
     { key: "all_projects", href: "/dashboard/all-projects", icon: LayoutGrid, action: "link" as const, requiresSuperAdmin: true },
     { key: "token_packs", href: "/dashboard/token-packs", icon: Package, action: "link" as const, requiresSuperAdmin: true },
+    { key: "template_pricing", href: "/dashboard/template-pricing", icon: Tag, action: "link" as const, requiresSuperAdmin: true },
   ]
 
   const items = allItems.filter(item => {
