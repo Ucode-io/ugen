@@ -35,9 +35,15 @@ const requiresBearerToken = (url: string = '') => {
   return BEARER_ONLY_ENDPOINTS.some((pattern) => pattern.test(path))
 }
 
+// A 402 on these is a project-balance shortfall (surfaced with a top-up
+// prompt), not a plan limit — so skip the global upgrade dialog and let the
+// caller handle it locally.
 const handlesPaymentRequiredLocally = (url: string = '') => {
   const path = url.startsWith('http') ? new URL(url).pathname : url
-  return /^\/v1\/token-pack\/purchase(\/|$)/.test(path)
+  return (
+    /^\/v1\/token-pack\/purchase(\/|$)/.test(path) ||
+    /^\/v1\/ugen-template\/create-project(\/|$)/.test(path)
+  )
 }
 
 const waitForMatchingApiKey = async (urlProjectId: string, timeoutMs = 5000): Promise<string | null> => {
