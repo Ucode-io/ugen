@@ -3,9 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { useRouter } from "@/shared/lib/i18n/navigation";
+import { cn } from "@/shared/lib/utils/cn";
 
 import {
   fetchTemplates,
+  formatTemplatePrice,
   getTemplateDislikeCount,
   getTemplateImage,
   getTemplateLikeCount,
@@ -100,6 +102,7 @@ const TemplateCard = ({
     }
   };
   const image = rawImage ? buildImageUrl(rawImage) : "";
+  const price = formatTemplatePrice(template);
 
   return (
     <div
@@ -116,6 +119,16 @@ const TemplateCard = ({
             loading="lazy"
           />
         )}
+        <span
+          className={cn(
+            "absolute top-2 left-2 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm backdrop-blur-sm",
+            price
+              ? "bg-black/70 text-white"
+              : "bg-green-500/90 text-white",
+          )}
+        >
+          {price ?? "Free"}
+        </span>
       </div>
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-text-main truncate text-[15px] font-semibold">
