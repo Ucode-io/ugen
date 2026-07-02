@@ -65,6 +65,26 @@ export const getTemplatePrice = (t: Template): number =>
 export const getTemplateCurrencyId = (t: Template): string =>
   t.currency_id || t.currency?.id || ''
 
+const CURRENCY_LABELS: Record<string, string> = {
+  '0803582e-29d6-42fe-86ac-b4287b8fa929': 'UZS',
+  '88c816a3-24e8-4994-ab70-9bc826bb9dc3': 'USD',
+}
+
+// Currency label for a template: prefer the embedded currency object, then map
+// the known currency ids, defaulting to UZS (server default).
+export const getTemplateCurrencyLabel = (t: Template): string =>
+  t.currency?.code ||
+  t.currency?.symbol ||
+  CURRENCY_LABELS[getTemplateCurrencyId(t)] ||
+  'UZS'
+
+// Human-readable price ("23,000 UZS") or null when the template is free.
+export const formatTemplatePrice = (t: Template): string | null => {
+  const price = getTemplatePrice(t)
+  if (!price || price <= 0) return null
+  return `${new Intl.NumberFormat('en-US').format(price)} ${getTemplateCurrencyLabel(t)}`
+}
+
 // Admin-only: assign/change a template's price. `price = 0` makes it free
 // again; omitting `currency_id` defaults to UZS on the server.
 export const updateTemplatePrice = async (
