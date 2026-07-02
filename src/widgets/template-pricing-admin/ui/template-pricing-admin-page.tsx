@@ -33,6 +33,7 @@ import {
   fetchTemplates,
   getTemplateCurrencyId,
   getTemplateImage,
+  getTemplatePerUserPrice,
   getTemplatePrice,
   getTemplateTitle,
   updateTemplatePrice,
@@ -104,6 +105,7 @@ const getErrorMessage = (err: any, fallback: string) => {
 
 type PriceForm = {
   price: string;
+  per_user_price: string;
   currency_id: string;
 };
 
@@ -116,6 +118,7 @@ export const TemplatePricingAdminPage = () => {
   const [editing, setEditing] = useState<Template | null>(null);
   const [form, setForm] = useState<PriceForm>({
     price: "",
+    per_user_price: "",
     currency_id: DEFAULT_CURRENCY_ID,
   });
   const [error, setError] = useState<string | null>(null);
@@ -137,10 +140,12 @@ export const TemplatePricingAdminPage = () => {
     mutationFn: (payload: {
       id: string;
       price: number;
+      per_user_price: number;
       currency_id?: string;
     }) =>
       updateTemplatePrice(payload.id, {
         price: payload.price,
+        per_user_price: payload.per_user_price,
         currency_id: payload.currency_id,
       }),
     onSuccess: () => {
@@ -160,14 +165,18 @@ export const TemplatePricingAdminPage = () => {
     );
   }, [templates, search]);
 
-  const paidCount = templates.filter((t) => getTemplatePrice(t) > 0).length;
+  const paidCount = templates.filter(
+    (t) => getTemplatePrice(t) > 0 || getTemplatePerUserPrice(t) > 0,
+  ).length;
   const freeCount = templates.length - paidCount;
 
   const openEdit = (template: Template) => {
     setEditing(template);
     const price = getTemplatePrice(template);
+    const perUserPrice = getTemplatePerUserPrice(template);
     setForm({
       price: price ? String(price) : "",
+      per_user_price: perUserPrice ? String(perUserPrice) : "",
       currency_id: getTemplateCurrencyId(template) || DEFAULT_CURRENCY_ID,
     });
     setError(null);
@@ -180,13 +189,23 @@ export const TemplatePricingAdminPage = () => {
       setError("Price must be zero or greater");
       return;
     }
+    const perUserPrice = parseNumberInput(form.per_user_price || "0");
+    if (!Number.isFinite(perUserPrice) || perUserPrice < 0) {
+      setError("Price per user must be zero or greater");
+      return;
+    }
     try {
       await updatePrice.mutateAsync({
         id: editing.id,
         price,
+        per_user_price: perUserPrice,
         currency_id: form.currency_id || undefined,
       });
-      toast.success(price > 0 ? "Template price updated" : "Template is now free");
+      toast.success(
+        price > 0 || perUserPrice > 0
+          ? "Template pricing updated"
+          : "Template is now free",
+      );
       setEditing(null);
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to update template price"));
@@ -223,7 +242,8 @@ export const TemplatePricingAdminPage = () => {
               Template pricing
             </h1>
             <p className="text-text-muted mt-0.5 text-sm">
-              Set what users pay to create a project from a template. 0 = free.
+              Set the one-time import price and the per-user price for each
+              template. 0 = free.
             </p>
           </div>
         </div>
@@ -287,11 +307,12 @@ export const TemplatePricingAdminPage = () => {
         ) : (
           <div className="border-border-subtle flex flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
             <div className="flex-1 overflow-auto">
-              <table className="w-full min-w-[720px]">
+              <table className="w-full min-w-205">
                 <thead className="sticky top-0 z-10">
                   <tr className="border-border-subtle bg-bg-sidebar border-b">
                     <TableHead>Template</TableHead>
-                    <TableHead>Price</TableHead>
+                    <TableHead>Import price</TableHead>
+                    <TableHead>Per user</TableHead>
                     <TableHead>Status</TableHead>
                     <th className="w-px px-4 py-2.5" />
                   </tr>
@@ -300,11 +321,12 @@ export const TemplatePricingAdminPage = () => {
                   {filteredTemplates.map((template) => {
                     const title = getTemplateTitle(template);
                     const price = getTemplatePrice(template);
+                    const perUserPrice = getTemplatePerUserPrice(template);
                     const currencyLabel = getCurrencyLabel(
                       getTemplateCurrencyId(template),
                     );
                     const image = buildImageUrl(getTemplateImage(template));
-                    const isPaid = price > 0;
+                    const isPaid = price > 0 || perUserPrice > 0;
                     return (
                       <tr
                         key={template.id}
@@ -335,11 +357,21 @@ export const TemplatePricingAdminPage = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-text-main text-[13px] font-medium tabular-nums">
-                            {isPaid ? formatNumber(price) : "—"}
+                            {price > 0 ? formatNumber(price) : "—"}
                           </div>
-                          {isPaid && (
+                          {price > 0 && (
                             <div className="text-text-muted text-[11px]">
                               {currencyLabel || "UZS"}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-text-main text-[13px] font-medium tabular-nums">
+                            {perUserPrice > 0 ? formatNumber(perUserPrice) : "—"}
+                          </div>
+                          {perUserPrice > 0 && (
+                            <div className="text-text-muted text-[11px]">
+                              {currencyLabel || "UZS"} / user
                             </div>
                           )}
                         </td>
@@ -385,7 +417,7 @@ export const TemplatePricingAdminPage = () => {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Set template price</DialogTitle>
+            <DialogTitle>Set template pricing</DialogTitle>
             <DialogDescription>
               {editing ? getTemplateTitle(editing) : ""}
             </DialogDescription>
@@ -394,7 +426,7 @@ export const TemplatePricingAdminPage = () => {
           <div className="grid gap-4 py-1">
             <div className="block">
               <span className="text-text-muted mb-1.5 block text-[12px] font-semibold">
-                Price
+                Import price (one-time)
               </span>
               <div className="relative">
                 <Input
@@ -430,10 +462,40 @@ export const TemplatePricingAdminPage = () => {
                 </Select>
               </div>
               <p className="text-text-muted mt-1.5 text-[11px]">
-                Set 0 to make this template free again.
+                Charged once when a project is created. 0 = free import.
               </p>
-              {error && <p className="mt-1 text-[11px] text-red-600">{error}</p>}
             </div>
+
+            <div className="block">
+              <span className="text-text-muted mb-1.5 block text-[12px] font-semibold">
+                Price per user
+              </span>
+              <div className="relative">
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={formatDecimalInput(form.per_user_price)}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      per_user_price: sanitizeDecimalInput(event.target.value),
+                    }))
+                  }
+                  placeholder="5,000"
+                  className="pr-24 font-mono tabular-nums"
+                />
+                <span className="bg-bg-sidebar/70 border-border-subtle text-text-muted absolute top-1/2 right-1 flex h-7 w-[82px] -translate-y-1/2 items-center justify-center rounded-md border text-[11px] font-bold tracking-wider uppercase">
+                  {getCurrencyLabel(form.currency_id) || "UZS"}
+                </span>
+              </div>
+              <p className="text-text-muted mt-1.5 text-[11px]">
+                Charged for each user added in projects from this template. 0 =
+                free (tariff limit applies).
+              </p>
+            </div>
+
+            {error && <p className="text-[11px] text-red-600">{error}</p>}
           </div>
 
           <DialogFooter>

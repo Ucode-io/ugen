@@ -85,11 +85,36 @@ export const formatTemplatePrice = (t: Template): string | null => {
   return `${new Intl.NumberFormat('en-US').format(price)} ${getTemplateCurrencyLabel(t)}`
 }
 
-// Admin-only: assign/change a template's price. `price = 0` makes it free
-// again; omitting `currency_id` defaults to UZS on the server.
+// Per-seat price the admin has assigned to the template. When a project is
+// created from this template the value is copied over, and every user added to
+// that project is charged this amount. 0 (or missing) = no per-user charge.
+export const getTemplatePerUserPrice = (t: Template): number =>
+  toCount(t.per_user_price)
+
+export const getTemplatePerUserCurrencyId = (t: Template): string =>
+  t.per_user_currency_id || ''
+
+// Currency label for the per-user price. Empty currency id defaults to UZS
+// (server default), mirroring getTemplateCurrencyLabel.
+export const getTemplatePerUserCurrencyLabel = (t: Template): string =>
+  CURRENCY_LABELS[getTemplatePerUserCurrencyId(t)] || 'UZS'
+
+// Human-readable per-user price ("5,000 UZS") or null when adding users is free.
+export const formatTemplatePerUserPrice = (t: Template): string | null => {
+  const price = getTemplatePerUserPrice(t)
+  if (!price || price <= 0) return null
+  return `${new Intl.NumberFormat('en-US').format(price)} ${getTemplatePerUserCurrencyLabel(t)}`
+}
+
+// Admin-only: assign/change a template's prices. This is a PATCH that
+// overwrites `price`, `per_user_price` and `currency_id` with the values sent,
+// so always pass the full current set (an omitted price resets to 0 on the
+// server). `price = 0` makes the import free; `per_user_price = 0` removes the
+// per-seat charge (tariff limit applies). Omitting `currency_id` defaults to
+// UZS on the server. Both prices share the same currency.
 export const updateTemplatePrice = async (
   id: string,
-  payload: { price: number; currency_id?: string },
+  payload: { price: number; per_user_price?: number; currency_id?: string },
 ): Promise<Template | null> => {
   const { data } = await api.patch(`/v1/ugen-template/${id}/price`, payload)
   return unwrapItem(data)

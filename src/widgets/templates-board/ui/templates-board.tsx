@@ -7,6 +7,7 @@ import { cn } from "@/shared/lib/utils/cn";
 
 import {
   fetchTemplates,
+  formatTemplatePerUserPrice,
   formatTemplatePrice,
   getTemplateDislikeCount,
   getTemplateImage,
@@ -103,6 +104,7 @@ const TemplateCard = ({
   };
   const image = rawImage ? buildImageUrl(rawImage) : "";
   const price = formatTemplatePrice(template);
+  const perUserPrice = formatTemplatePerUserPrice(template);
 
   return (
     <div
@@ -130,18 +132,41 @@ const TemplateCard = ({
           {price ?? "Free"}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-text-main truncate text-[15px] font-semibold">
-          {title}
-        </h3>
-        <div onClick={(e) => e.stopPropagation()}>
-          <TemplateReactions
-            templateId={template.id}
-            initialReaction={getTemplateMyReaction(template)}
-            initialLikeCount={getTemplateLikeCount(template)}
-            initialDislikeCount={getTemplateDislikeCount(template)}
-          />
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-text-main truncate text-[15px] font-semibold">
+            {title}
+          </h3>
+          <div onClick={(e) => e.stopPropagation()}>
+            <TemplateReactions
+              templateId={template.id}
+              initialReaction={getTemplateMyReaction(template)}
+              initialLikeCount={getTemplateLikeCount(template)}
+              initialDislikeCount={getTemplateDislikeCount(template)}
+            />
+          </div>
         </div>
+        {perUserPrice && (
+          <span className="text-text-muted inline-flex w-fit items-center gap-1 text-xs">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            {perUserPrice} / user
+          </span>
+        )}
       </div>
     </div>
   );
