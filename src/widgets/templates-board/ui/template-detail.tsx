@@ -27,6 +27,7 @@ import { cn } from "@/shared/lib/utils/cn";
 
 import {
   fetchTemplateDetail,
+  formatTemplatePerUserPrice,
   formatTemplatePrice,
   getTemplateDemoUrl,
   getTemplateDescription,
@@ -102,6 +103,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
   ].map((img) => buildImageUrl(img));
 
   const price = template ? formatTemplatePrice(template) : null;
+  const perUserPrice = template ? formatTemplatePerUserPrice(template) : null;
 
   useEffect(() => {
     if (lightboxIndex === null || images.length === 0) return;
@@ -301,6 +303,11 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
             >
               {priceLabel}
             </span>
+            {perUserPrice && (
+              <span className="border-border-subtle text-text-muted bg-bg-card inline-flex h-9 items-center rounded-lg border px-3 text-sm font-semibold">
+                {perUserPrice} / user
+              </span>
+            )}
 
             <TemplateReactions
               key={template.id}

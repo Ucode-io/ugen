@@ -70,12 +70,12 @@ const CURRENCY_LABELS: Record<string, string> = {
   '88c816a3-24e8-4994-ab70-9bc826bb9dc3': 'USD',
 }
 
-// Currency label for a template: prefer the embedded currency object, then map
-// the known currency ids, defaulting to UZS (server default).
+// Currency label for a template: prefer the explicit currency id, then the
+// embedded currency object, defaulting to UZS (server default).
 export const getTemplateCurrencyLabel = (t: Template): string =>
+  CURRENCY_LABELS[getTemplateCurrencyId(t)] ||
   t.currency?.code ||
   t.currency?.symbol ||
-  CURRENCY_LABELS[getTemplateCurrencyId(t)] ||
   'UZS'
 
 // Human-readable price ("23,000 UZS") or null when the template is free.
@@ -92,12 +92,17 @@ export const getTemplatePerUserPrice = (t: Template): number =>
   toCount(t.per_user_price)
 
 export const getTemplatePerUserCurrencyId = (t: Template): string =>
-  t.per_user_currency_id || ''
+  t.per_user_currency_id || t.per_user_currency?.id || getTemplateCurrencyId(t)
 
 // Currency label for the per-user price. Empty currency id defaults to UZS
-// (server default), mirroring getTemplateCurrencyLabel.
+// (server default), mirroring getTemplateCurrencyLabel. Older API responses may
+// only return the shared template currency, so fall back to that when the
+// per-user currency field is absent.
 export const getTemplatePerUserCurrencyLabel = (t: Template): string =>
-  CURRENCY_LABELS[getTemplatePerUserCurrencyId(t)] || 'UZS'
+  CURRENCY_LABELS[getTemplatePerUserCurrencyId(t)] ||
+  t.per_user_currency?.code ||
+  t.per_user_currency?.symbol ||
+  getTemplateCurrencyLabel(t)
 
 // Human-readable per-user price ("5,000 UZS") or null when adding users is free.
 export const formatTemplatePerUserPrice = (t: Template): string | null => {
@@ -107,14 +112,19 @@ export const formatTemplatePerUserPrice = (t: Template): string | null => {
 }
 
 // Admin-only: assign/change a template's prices. This is a PATCH that
-// overwrites `price`, `per_user_price` and `currency_id` with the values sent,
+// overwrites `price`, `per_user_price` and currency fields with the values sent,
 // so always pass the full current set (an omitted price resets to 0 on the
 // server). `price = 0` makes the import free; `per_user_price = 0` removes the
-// per-seat charge (tariff limit applies). Omitting `currency_id` defaults to
-// UZS on the server. Both prices share the same currency.
+// per-seat charge (tariff limit applies). Omitting currency defaults to UZS on
+// the server. Both prices share the same selected currency.
 export const updateTemplatePrice = async (
   id: string,
-  payload: { price: number; per_user_price?: number; currency_id?: string },
+  payload: {
+    price: number
+    per_user_price?: number
+    currency_id?: string
+    per_user_currency_id?: string
+  },
 ): Promise<Template | null> => {
   const { data } = await api.patch(`/v1/ugen-template/${id}/price`, payload)
   return unwrapItem(data)
