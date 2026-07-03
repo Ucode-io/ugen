@@ -32,7 +32,10 @@ import { useAuthStore } from "@/entities/session";
 import {
   fetchTemplates,
   getTemplateCurrencyId,
+  getTemplateCurrencyLabel,
   getTemplateImage,
+  getTemplatePerUserCurrencyId,
+  getTemplatePerUserCurrencyLabel,
   getTemplatePerUserPrice,
   getTemplatePrice,
   getTemplateTitle,
@@ -142,11 +145,13 @@ export const TemplatePricingAdminPage = () => {
       price: number;
       per_user_price: number;
       currency_id?: string;
+      per_user_currency_id?: string;
     }) =>
       updateTemplatePrice(payload.id, {
         price: payload.price,
         per_user_price: payload.per_user_price,
         currency_id: payload.currency_id,
+        per_user_currency_id: payload.per_user_currency_id,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ugen-templates"] });
@@ -177,7 +182,10 @@ export const TemplatePricingAdminPage = () => {
     setForm({
       price: price ? String(price) : "",
       per_user_price: perUserPrice ? String(perUserPrice) : "",
-      currency_id: getTemplateCurrencyId(template) || DEFAULT_CURRENCY_ID,
+      currency_id:
+        getTemplateCurrencyId(template) ||
+        getTemplatePerUserCurrencyId(template) ||
+        DEFAULT_CURRENCY_ID,
     });
     setError(null);
   };
@@ -200,6 +208,7 @@ export const TemplatePricingAdminPage = () => {
         price,
         per_user_price: perUserPrice,
         currency_id: form.currency_id || undefined,
+        per_user_currency_id: form.currency_id || undefined,
       });
       toast.success(
         price > 0 || perUserPrice > 0
@@ -322,9 +331,9 @@ export const TemplatePricingAdminPage = () => {
                     const title = getTemplateTitle(template);
                     const price = getTemplatePrice(template);
                     const perUserPrice = getTemplatePerUserPrice(template);
-                    const currencyLabel = getCurrencyLabel(
-                      getTemplateCurrencyId(template),
-                    );
+                    const currencyLabel = getTemplateCurrencyLabel(template);
+                    const perUserCurrencyLabel =
+                      getTemplatePerUserCurrencyLabel(template);
                     const image = buildImageUrl(getTemplateImage(template));
                     const isPaid = price > 0 || perUserPrice > 0;
                     return (
@@ -371,7 +380,7 @@ export const TemplatePricingAdminPage = () => {
                           </div>
                           {perUserPrice > 0 && (
                             <div className="text-text-muted text-[11px]">
-                              {currencyLabel || "UZS"} / user
+                              {perUserCurrencyLabel || "UZS"} / user
                             </div>
                           )}
                         </td>
