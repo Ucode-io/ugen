@@ -209,6 +209,10 @@ export const DiagramCanvas = forwardRef<DiagramCanvasHandle, Props>(
     const [hoveredTable, setHoveredTable] = useState<string | null>(null);
     const [panActive, setPanActive] = useState(false);
     const [autoFitDone, setAutoFitDone] = useState(false);
+    const tableSignature = useMemo(
+      () => tables.map((table) => table.slug).join("|"),
+      [tables],
+    );
 
     const dragNode = useRef<{
       slug: string;
@@ -286,6 +290,10 @@ export const DiagramCanvas = forwardRef<DiagramCanvasHandle, Props>(
       // Re-fit on next tick
       setAutoFitDone(false);
     }, [tables, relations, setPositions]);
+
+    useEffect(() => {
+      setAutoFitDone(false);
+    }, [tableSignature]);
 
     useImperativeHandle(
       ref,

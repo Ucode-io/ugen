@@ -59,24 +59,62 @@ type ActiveTab = "records" | "schema";
 // Module-level cache so all cells for the same related table share one fetch
 const _lookupCache = new Map<string, any[]>();
 const _lookupInFlight = new Map<string, Promise<any[]>>();
+const _lookupCacheVersion = new Map<string, number>();
+
+const lookupCacheKey = (
+  relatedTable: string,
+  projectId: string,
+  clientTypeId: string,
+) => `${relatedTable}:${projectId}:${clientTypeId}`;
+
+const clearLookupOptionsCache = (
+  tableSlug: string,
+  projectId?: string,
+  clientTypeId?: string,
+) => {
+  const prefix =
+    projectId && clientTypeId
+      ? lookupCacheKey(tableSlug, projectId, clientTypeId)
+      : `${tableSlug}:`;
+
+  for (const key of _lookupCache.keys()) {
+    if (key === prefix || key.startsWith(prefix)) {
+      _lookupCache.delete(key);
+      _lookupCacheVersion.set(key, (_lookupCacheVersion.get(key) ?? 0) + 1);
+    }
+  }
+  for (const key of _lookupInFlight.keys()) {
+    if (key === prefix || key.startsWith(prefix)) {
+      _lookupInFlight.delete(key);
+      _lookupCacheVersion.set(key, (_lookupCacheVersion.get(key) ?? 0) + 1);
+    }
+  }
+};
 
 const fetchLookupOptions = (
   relatedTable: string,
   projectId: string,
   clientTypeId: string,
 ): Promise<any[]> => {
-  const key = `${relatedTable}:${projectId}`;
+  const key = lookupCacheKey(relatedTable, projectId, clientTypeId);
   if (_lookupCache.has(key)) return Promise.resolve(_lookupCache.get(key)!);
   if (_lookupInFlight.has(key)) return _lookupInFlight.get(key)!;
+  const version = _lookupCacheVersion.get(key) ?? 0;
   const p = databaseApi
     .fetchTableRecords(relatedTable, projectId, clientTypeId, 200, 0)
     .then((r) => {
-      _lookupCache.set(key, r.items);
-      _lookupInFlight.delete(key);
+      if ((_lookupCacheVersion.get(key) ?? 0) === version) {
+        _lookupCache.set(key, r.items);
+      }
+      if (_lookupInFlight.get(key) === p) {
+        _lookupInFlight.delete(key);
+      }
       return r.items;
     })
     .catch(() => {
-      _lookupInFlight.delete(key);
+      if (_lookupInFlight.get(key) === p) {
+        _lookupInFlight.delete(key);
+      }
       return [] as any[];
     });
   _lookupInFlight.set(key, p);
@@ -154,13 +192,43 @@ const inputTypeForKind = (kind: FilterInputKind): string =>
         ? "datetime-local"
         : "text";
 
+const RECORD_LABEL_PRIORITY_KEYS = [
+  "label",
+  "name",
+  "title",
+  "display_name",
+  "full_name",
+  "username",
+];
+
+const RECORD_LABEL_IGNORED_KEYS = new Set([
+  "guid",
+  "id",
+  "created_at",
+  "updated_at",
+  "deleted_at",
+]);
+
+const isUuidLike = (value: unknown): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(value || ""));
+
 const getRecordLabel = (record: any): string => {
-  const keys = Object.keys(record).filter(
-    (k) =>
-      typeof record[k] === "string" &&
-      k !== "guid" &&
-      !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(record[k] || ""),
-  );
+  for (const key of RECORD_LABEL_PRIORITY_KEYS) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim() && !isUuidLike(value)) {
+      return value;
+    }
+  }
+
+  const keys = Object.keys(record).filter((k) => {
+    const value = record[k];
+    return (
+      typeof value === "string" &&
+      value.trim() &&
+      !RECORD_LABEL_IGNORED_KEYS.has(k) &&
+      !isUuidLike(value)
+    );
+  });
   if (keys.length > 0) return String(record[keys[0]]);
   return record.guid || record.id || "—";
 };
@@ -183,7 +251,7 @@ const LookupEditSelect = ({
   autoOpen?: boolean;
 }) => {
   const relatedTable = getRelatedTable(slug);
-  const cacheKey = `${relatedTable}:${projectId}`;
+  const cacheKey = lookupCacheKey(relatedTable, projectId, clientTypeId);
 
   const [options, setOptions] = useState<any[]>(
     () => _lookupCache.get(cacheKey) ?? [],
@@ -566,6 +634,7 @@ export const RecordsView = ({
         tableName: selectedTable,
         data: dataToSave,
       });
+      clearLookupOptionsCache(selectedTable, projectId, ucodeProjectId || "");
       setIsInlineAdding(false);
       setInlineRowData({});
       toast.success("Record added successfully");
@@ -590,6 +659,7 @@ export const RecordsView = ({
         tableName: selectedTable,
         data: updatedData,
       });
+      clearLookupOptionsCache(selectedTable, projectId, ucodeProjectId || "");
       queryClient.invalidateQueries({
         queryKey: ["db-records", selectedTable, projectId, ucodeProjectId || ""],
       });
@@ -624,6 +694,7 @@ export const RecordsView = ({
         tableName: selectedTable,
         data: updatedData,
       });
+      clearLookupOptionsCache(selectedTable, projectId, ucodeProjectId || "");
       // Update the cached row in place — no refetch needed.
       queryClient.setQueryData(
         [
@@ -1648,7 +1719,14 @@ export const RecordsView = ({
           schema={schema}
           record={editingRecord}
           onClose={() => setEditingRecord(null)}
-          onSuccess={() => refetch()}
+          onSuccess={() => {
+            clearLookupOptionsCache(
+              selectedTable,
+              projectId,
+              ucodeProjectId || "",
+            );
+            refetch();
+          }}
         />
       )}
 
@@ -1670,6 +1748,11 @@ export const RecordsView = ({
                 tableName: selectedTable,
                 guid,
               });
+              clearLookupOptionsCache(
+                selectedTable,
+                projectId,
+                ucodeProjectId || "",
+              );
               toast.success("Record deleted");
               setDeleteTarget(null);
               refetch();

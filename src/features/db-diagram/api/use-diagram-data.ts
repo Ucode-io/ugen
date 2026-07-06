@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { useDbDiagram } from "@/entities/database";
 import { dagreLayout } from "../lib/auto-layout";
 import { generateDbml } from "../lib/dbml";
@@ -37,42 +37,37 @@ export const useDiagramData = (projectId: string): DiagramData => {
     [relations],
   );
 
-  // Seed store: generate DBML once when API data first arrives, and ensure
-  // every table has a position (without clobbering the user's drags).
-  const seededRef = useRef<{ dbml: boolean; positions: boolean }>({
-    dbml: false,
-    positions: false,
-  });
-
   useEffect(() => {
     // Wait until ALL schema queries (and therefore relations) have loaded.
-    // Seeding earlier means dagreLayout / generateDbml run with empty or
-    // partial relations, producing a bad layout and incorrect DBML — exactly
-    // what previously forced a manual "Auto layout" / "Regenerate" click.
+    // Updating earlier means dagreLayout / generateDbml run with empty or
+    // partial relations, producing a bad layout and incorrect DBML.
     if (isLoading) return;
     if (tables.length === 0) return;
     const state = useDiagramStore.getState();
 
-    if (!seededRef.current.positions) {
-      const known = state.positions;
-      const missing = tables.filter((t) => !known[t.slug]);
-      if (missing.length > 0) {
-        const layout = dagreLayout(tables, enrichedRelations);
-        if (Object.keys(known).length === 0) {
-          state.setPositions(layout);
-        } else {
-          missing.forEach((t) => {
-            const fresh = layout[t.slug];
-            if (fresh) state.setPosition(t.slug, fresh);
-          });
-        }
-      }
-      seededRef.current.positions = true;
+    const known = state.positions;
+    const slugs = new Set(tables.map((t) => t.slug));
+    const missing = tables.filter((t) => !known[t.slug]);
+    const hasDeletedPositions = Object.keys(known).some((slug) => !slugs.has(slug));
+
+    if (missing.length > 0 || hasDeletedPositions) {
+      const layout = dagreLayout(tables, enrichedRelations);
+      const nextPositions = tables.reduce<Record<string, { x: number; y: number }>>(
+        (acc, table) => {
+          const fresh = layout[table.slug];
+          acc[table.slug] = known[table.slug] ?? fresh ?? { x: 0, y: 0 };
+          return acc;
+        },
+        {},
+      );
+      state.setPositions(nextPositions);
     }
 
-    if (!seededRef.current.dbml && !state.isDbmlEditing) {
-      state.setDbml(generateDbml(tables, enrichedRelations));
-      seededRef.current.dbml = true;
+    if (!state.isDbmlEditing) {
+      const nextDbml = generateDbml(tables, enrichedRelations);
+      if (state.dbml !== nextDbml) {
+        state.setDbml(nextDbml);
+      }
     }
   }, [isLoading, tables, enrichedRelations]);
 

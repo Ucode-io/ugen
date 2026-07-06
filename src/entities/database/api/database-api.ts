@@ -1,4 +1,4 @@
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api, githubApi } from '@/shared/api';
 import { getPaymentRequiredFromError } from '@/entities/billing';
 import { Table, Column, TableRecord, TableDetail, SchemaColumn, SchemaConstraint } from '../model/types';
@@ -32,6 +32,30 @@ const MOCK_RECORDS: Record<string, TableRecord[]> = {
     full_name: `John Doe ${i}`,
     avatar_url: 'https://github.com/shadcn.png',
   }))
+};
+
+const invalidateTableRecords = (queryClient: QueryClient, tableSlug?: string) => {
+  queryClient.invalidateQueries({
+    queryKey: tableSlug ? ['db-records', tableSlug] : ['db-records'],
+  });
+};
+
+const invalidateTableSchema = (
+  queryClient: QueryClient,
+  tableSlug: string,
+  projectId: string
+) => {
+  queryClient.invalidateQueries({ queryKey: ['db-schema-v2', tableSlug, projectId] });
+  queryClient.invalidateQueries({ queryKey: ['db-table-detail', tableSlug] });
+  queryClient.invalidateQueries({ queryKey: ['db-records', tableSlug] });
+  queryClient.invalidateQueries({ queryKey: ['db-diagram', 'schema', tableSlug, projectId] });
+};
+
+const invalidateProjectTables = (queryClient: QueryClient, projectId?: string) => {
+  queryClient.invalidateQueries({ queryKey: ['db-tables'] });
+  queryClient.invalidateQueries({
+    queryKey: projectId ? ['db-diagram', 'tables', projectId] : ['db-diagram', 'tables'],
+  });
 };
 
 // API Service
@@ -393,7 +417,7 @@ export const useAddRecord = () => {
   return useMutation({
     mutationFn: ({ tableName, data }: { tableName: string, data: any }) => databaseApi.addRecord(tableName, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['db-records', variables.tableName] });
+      invalidateTableRecords(queryClient, variables.tableName);
     }
   });
 };
@@ -403,8 +427,8 @@ export const useUpdateRecord = () => {
   return useMutation({
     mutationFn: ({ tableName, data }: { tableName: string; data: any }) =>
       databaseApi.updateRecord(tableName, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["table-records"] });
+    onSuccess: (_data, variables) => {
+      invalidateTableRecords(queryClient, variables.tableName);
     },
   });
 };
@@ -415,7 +439,7 @@ export const useDeleteRecord = () => {
     mutationFn: ({ tableName, guid }: { tableName: string; guid: string }) =>
       databaseApi.deleteRecord(tableName, guid),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["db-records", variables.tableName] });
+      invalidateTableRecords(queryClient, variables.tableName);
     },
   });
 };
@@ -425,9 +449,9 @@ export const useLogs = () =>
 
 export const useTableDetail = (tableSlug: string | null, projectId: string) =>
   useQuery({
-    queryKey: ['db-table-detail', tableSlug],
+    queryKey: ['db-table-detail', tableSlug, projectId],
     queryFn: () => databaseApi.fetchTableDetail(tableSlug!, projectId),
-    enabled: !!tableSlug
+    enabled: !!tableSlug && !!projectId
   });
 
 export const useDeleteTable = () => {
@@ -435,8 +459,8 @@ export const useDeleteTable = () => {
   return useMutation({
     mutationFn: ({ tableId, projectId }: { tableId: string; projectId: string }) =>
       databaseApi.deleteTable(tableId, projectId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['db-tables'] });
+    onSuccess: (_data, variables) => {
+      invalidateProjectTables(queryClient, variables.projectId);
     }
   });
 };
@@ -457,8 +481,8 @@ export const useCreateTable = () => {
         icon?: string;
       };
     }) => databaseApi.createTable(projectId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['db-tables'] });
+    onSuccess: (_data, variables) => {
+      invalidateProjectTables(queryClient, variables.projectId);
     },
   });
 };
@@ -487,9 +511,7 @@ export const useAddSchemaField = () => {
       };
     }) => databaseApi.addSchemaField(tableSlug, projectId, payload),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug, variables.projectId] });
-      // tableDetail powers the column headers in the records tab — bust it too.
-      queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableSlug] });
+      invalidateTableSchema(queryClient, variables.tableSlug, variables.projectId);
     },
   });
 };
@@ -521,9 +543,8 @@ export const useAddRelationField = () => {
       };
     }) => databaseApi.addRelationField(tableFrom, projectId, payload),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableFrom, variables.projectId] });
+      invalidateTableSchema(queryClient, variables.tableFrom, variables.projectId);
       queryClient.invalidateQueries({ queryKey: ['db-relations', variables.tableFrom, variables.projectId] });
-      queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableFrom] });
     },
   });
 };
@@ -541,8 +562,8 @@ export const useDeleteSchemaField = () => {
       projectId: string;
     }) => databaseApi.deleteSchemaField(tableSlug, fieldId, projectId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug, variables.projectId] });
-      queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableSlug] });
+      invalidateTableSchema(queryClient, variables.tableSlug, variables.projectId);
+      queryClient.invalidateQueries({ queryKey: ['db-relations', variables.tableSlug, variables.projectId] });
     },
   });
 };
@@ -571,8 +592,8 @@ export const useUpdateSchemaField = () => {
       };
     }) => databaseApi.updateSchemaField(tableSlug, projectId, payload),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['db-schema-v2', variables.tableSlug, variables.projectId] });
-      queryClient.invalidateQueries({ queryKey: ['db-table-detail', variables.tableSlug] });
+      invalidateTableSchema(queryClient, variables.tableSlug, variables.projectId);
+      queryClient.invalidateQueries({ queryKey: ['db-relations', variables.tableSlug, variables.projectId] });
     },
   });
 };
@@ -685,4 +706,3 @@ export const useDbDiagram = (projectId: string) => {
 
   return { tables, schemas, relations, isLoading, isError, error };
 };
-
