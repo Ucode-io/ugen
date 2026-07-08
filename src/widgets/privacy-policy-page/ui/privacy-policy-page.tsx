@@ -8,7 +8,7 @@ const SECTIONS = [
     blocks: [
       'When you use Ucode, we may process account, project, and workspace information required to provide the service.',
       'If you choose to connect Google Calendar to a Ucode project, Ucode requests permission to create, update, and delete calendar events in the Google Calendar selected for the integration.',
-      'For the Google Calendar integration, Ucode may process:',
+      'For the Google Calendar integration, Ucode may process only the information required to provide this user-facing integration:',
     ],
     list: [
       'Google OAuth authorization and refresh tokens;',
@@ -22,47 +22,44 @@ const SECTIONS = [
     ],
   },
   {
-    id: 'how-we-use-google-calendar-data',
-    title: '2. How We Use Google Calendar Data',
+    id: 'how-we-use-google-user-data',
+    title: '2. How We Use Google User Data',
     blocks: [
-      'Ucode uses Google Calendar data only to provide the calendar synchronization feature visible in the Ucode product.',
+      'Ucode uses Google user data only to provide and improve the user-facing Google Calendar integration requested by the user.',
       'When a record in a mapped Ucode project table is created, updated, or deleted, Ucode may create, update, or delete the corresponding event in the connected Google Calendar.',
-      'Ucode does not use Google Calendar data for advertising, profiling, credit decisions, sale to data brokers, or any purpose unrelated to the calendar synchronization feature.',
+      'Ucode does not use Google user data for advertising, retargeting, personalized advertising, marketing, profiling, analytics unrelated to the integration, credit decisions, sale to data brokers, or any purpose unrelated to providing or improving the Google Calendar integration.',
     ],
   },
   {
     id: 'google-api-services-user-data-policy',
     title: '3. Google API Services User Data Policy',
     blocks: [
-      "Ucode's use and transfer of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.",
-      'Ucode does not sell Google user data. Ucode does not use Google user data to serve advertisements, including retargeting, personalized advertising, or interest-based advertising.',
+      "Ucode's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
+      "Ucode does not sell Google user data. Ucode does not transfer Google user data to third parties except as necessary to provide or improve the user-facing Google Calendar integration, comply with applicable law, protect against security abuse, or with the user's explicit consent.",
     ],
   },
   {
     id: 'storage-and-retention',
     title: '4. Storage and Retention',
     blocks: [
-      'OAuth credentials are retained while the Google Calendar integration remains connected to the relevant Ucode project. Event identifiers and synchronization metadata may be retained with the corresponding Ucode project records.',
+      'OAuth credentials are retained only while the Google Calendar integration remains connected to the relevant Ucode project. Event identifiers and synchronization metadata may be retained with the corresponding Ucode project records only as needed to provide the Google Calendar integration.',
       'When you disconnect the Google Calendar integration or delete the relevant project resource, Ucode stops using the stored authorization credentials for that integration. Events previously created in Google Calendar are not automatically deleted solely because the integration is disconnected.',
-      'We retain other project data in accordance with the applicable workspace, project, and legal retention requirements.',
     ],
   },
   {
     id: 'sharing-of-information',
     title: '5. Sharing of Information',
-    blocks: ['We do not sell personal information or Google Calendar data.', 'We may share information only when necessary to:'],
-    list: [
-      'provide the Ucode service and its user-facing features;',
-      'comply with applicable law, legal process, or enforceable governmental requests;',
-      'protect the security, rights, and integrity of Ucode, our users, or the public;',
-      'use infrastructure or service providers that process information on our behalf and under appropriate confidentiality and security obligations.',
+    blocks: [
+      'We do not sell personal information or Google user data.',
+      "Google user data is shared only when necessary to provide or improve the user-facing Google Calendar integration, comply with applicable law, protect against security abuse, or with the user's explicit consent.",
+      'Service providers that process information on our behalf are required to protect the information and use it only to provide services to Ucode.',
     ],
   },
   {
     id: 'security',
     title: '6. Security',
     blocks: [
-      'We use reasonable technical and organizational measures designed to protect information from unauthorized access, loss, misuse, alteration, and disclosure. No method of electronic transmission or storage is completely secure, and we cannot guarantee absolute security.',
+      'We use reasonable technical and organizational measures designed to protect information from unauthorized access, loss, misuse, alteration, and disclosure.',
     ],
   },
   {
@@ -77,7 +74,7 @@ const SECTIONS = [
     id: 'changes-to-this-policy',
     title: '8. Changes to This Policy',
     blocks: [
-      'We may update this Privacy Policy from time to time. If we make material changes to how we use Google user data, we will update this page and, where required, request your consent before using the data for a new purpose.',
+      'We may update this Privacy Policy from time to time. Ucode will not use Google user data for any purpose other than providing or improving the user-facing Google Calendar integration unless the user is clearly notified, provides consent, and the use is permitted by the Google API Services User Data Policy.',
     ],
   },
 ]
@@ -153,12 +150,12 @@ export const PrivacyPolicyPage = () => {
               <div>
                 Website:{' '}
                 <a
-                  href="https://ucode.run"
+                  href="https://ucode.co"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  https://ucode.run
+                  https://ucode.co
                 </a>
               </div>
             </div>
