@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle2, XCircle, Github, Gitlab, GitBranch } from 'lucide-react'
+import { CheckCircle2, XCircle, Github, Gitlab, GitBranch, Instagram } from 'lucide-react'
 import { Button } from '@/shared/ui'
 
 // Backend redirects the OAuth popup here after handling the provider callback:
@@ -26,14 +26,17 @@ export default function OAuthSuccessPage() {
 
   const [closeFailed, setCloseFailed] = useState(false)
 
+  const isInstagram = provider.startsWith('instagram')
   const label =
     provider === 'gitlab' ? 'GitLab'
       : provider === 'github' ? 'GitHub'
       : provider === 'bitbucket' ? 'Bitbucket'
+      : isInstagram ? 'Instagram Direct'
       : 'Integration'
   const Icon =
     provider === 'gitlab' ? Gitlab
       : provider === 'bitbucket' ? GitBranch
+      : isInstagram ? Instagram
       : Github
 
   // Notify the app window that opened this popup so it can refresh the card.

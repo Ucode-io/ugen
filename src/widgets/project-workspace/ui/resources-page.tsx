@@ -199,6 +199,7 @@ const RESOURCE_TYPE_STRING_TO_VALUE: Record<string, number> = {
   SMTP: 7,
   GITLAB: 8,
   BITBUCKET: 9,
+  INSTAGRAM: INSTAGRAM_DIRECT_TYPE_VALUE,
   SUPERSET: 11,
   METABASE: 12,
   TRANSCODE: 13,
@@ -481,6 +482,32 @@ interface TelegramManagedSession {
   suggestedUsername: string
 }
 
+type InstagramMappingFieldKey =
+  | 'instagram_user_id_field'
+  | 'username_field'
+  | 'display_name_field'
+  | 'profile_picture_field'
+  | 'last_message_field'
+  | 'last_message_at_field'
+  | 'unread_count_field'
+  | 'status_field'
+  | 'conversation_id_field'
+
+interface InstagramFieldTarget {
+  key: InstagramMappingFieldKey
+  label: string
+  hint: string
+  patterns: string[]
+}
+
+interface InstagramTableOption {
+  id: string
+  slug: string
+  label: string
+  fields: TelegramFieldOption[]
+  suggestedMapping: Partial<Record<InstagramMappingFieldKey, string>>
+}
+
 const TELEGRAM_FIELD_TARGETS: TelegramFieldTarget[] = [
   {
     key: 'telegram_chat_id_field',
@@ -543,7 +570,77 @@ const TELEGRAM_DEFAULT_MAPPING: Record<TelegramMappingFieldKey, string> = {
   status_field: 'status',
 }
 
+const INSTAGRAM_FIELD_TARGETS: InstagramFieldTarget[] = [
+  {
+    key: 'instagram_user_id_field',
+    label: 'Instagram user ID',
+    hint: 'Instagram sender identifier used to match incoming messages to a contact.',
+    patterns: ['instagram_user_id', 'instagram_id', 'sender_id', 'user_id'],
+  },
+  {
+    key: 'username_field',
+    label: 'Username',
+    hint: 'Instagram username shown in conversations.',
+    patterns: ['instagram_username', 'username', 'user_name', 'login'],
+  },
+  {
+    key: 'display_name_field',
+    label: 'Display name',
+    hint: 'Human-readable customer name shown in the inbox.',
+    patterns: ['display_name', 'customer_name', 'full_name', 'name', 'title'],
+  },
+  {
+    key: 'profile_picture_field',
+    label: 'Profile picture',
+    hint: 'Profile image URL for the Instagram contact.',
+    patterns: ['profile_picture', 'profile_picture_url', 'avatar', 'avatar_url', 'photo_url'],
+  },
+  {
+    key: 'last_message_field',
+    label: 'Last message',
+    hint: 'Preview text for the most recent Instagram Direct message.',
+    patterns: ['last_message', 'message', 'text', 'body'],
+  },
+  {
+    key: 'last_message_at_field',
+    label: 'Last message time',
+    hint: 'Timestamp of the most recent Instagram Direct message.',
+    patterns: ['last_message_at', 'message_at', 'updated_at', 'created_at'],
+  },
+  {
+    key: 'unread_count_field',
+    label: 'Unread count',
+    hint: 'Number of unread messages in the conversation.',
+    patterns: ['unread_count', 'unread', 'unread_messages', 'count'],
+  },
+  {
+    key: 'status_field',
+    label: 'Status',
+    hint: 'Conversation state, for example open, pending or closed.',
+    patterns: ['status', 'state'],
+  },
+  {
+    key: 'conversation_id_field',
+    label: 'Conversation ID',
+    hint: 'Instagram Direct conversation identifier used for message routing.',
+    patterns: ['conversation_id', 'instagram_conversation_id', 'thread_id', 'chat_id'],
+  },
+]
+
+const INSTAGRAM_DEFAULT_MAPPING: Record<InstagramMappingFieldKey, string> = {
+  instagram_user_id_field: 'instagram_user_id',
+  username_field: 'instagram_username',
+  display_name_field: 'display_name',
+  profile_picture_field: 'profile_picture',
+  last_message_field: 'last_message',
+  last_message_at_field: 'last_message_at',
+  unread_count_field: 'unread_count',
+  status_field: 'status',
+  conversation_id_field: 'conversation_id',
+}
+
 const TELEGRAM_UNMAPPED_VALUE = '__telegram_unmapped__'
+const INSTAGRAM_UNMAPPED_VALUE = '__instagram_unmapped__'
 
 const readObject = (value: unknown): Record<string, any> =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}
@@ -562,6 +659,27 @@ const unwrapApiPayload = (payload: unknown): any => {
 
 const normalizeTelegramString = (value: unknown): string =>
   typeof value === 'string' ? value : value == null ? '' : String(value)
+
+const readOAuthUrl = (payload: unknown): string | null => {
+  if (typeof payload === 'string') {
+    try {
+      const url = new URL(payload)
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null
+    } catch {
+      return null
+    }
+  }
+  const data = readObject(payload)
+  if (Object.keys(data).length === 0) return null
+
+  return (
+    readOAuthUrl(data.data) ??
+    readOAuthUrl(data.auth_url) ??
+    readOAuthUrl(data.authorization_url) ??
+    readOAuthUrl(data.authorizationUrl) ??
+    readOAuthUrl(data.url)
+  )
+}
 
 const getTelegramBotUsername = (resource: any): string => {
   const username = normalizeTelegramString(
@@ -595,6 +713,29 @@ const getTelegramResourceMapping = (
   return mapping
 }
 
+const getInstagramResourceMapping = (
+  resource: any,
+): Partial<Record<InstagramMappingFieldKey | 'table_id' | 'table_slug', string>> => {
+  const rawMapping = readObject(
+    resource?.settings?.instagram?.mapping ??
+      resource?.settings?.instagram_direct?.mapping ??
+      resource?.settings?.instagramDirect?.mapping ??
+      resource?.settings?.instagramDirectMessages?.mapping,
+  )
+  const mapping: Partial<Record<InstagramMappingFieldKey | 'table_id' | 'table_slug', string>> = {}
+  const tableId = normalizeTelegramString(rawMapping.table_id ?? rawMapping.tableId)
+  const tableSlug = normalizeTelegramString(rawMapping.table_slug ?? rawMapping.tableSlug)
+  if (tableId) mapping.table_id = tableId
+  if (tableSlug) mapping.table_slug = tableSlug
+
+  INSTAGRAM_FIELD_TARGETS.forEach((target) => {
+    const value = normalizeTelegramString(rawMapping[target.key])
+    if (value) mapping[target.key] = value
+  })
+
+  return mapping
+}
+
 const getTelegramFieldValue = (field: any): string =>
   normalizeTelegramString(
     field?.slug ??
@@ -610,6 +751,16 @@ const normalizeTelegramMapping = (raw: any): Partial<Record<TelegramMappingField
   const source = readObject(raw)
   const mapping: Partial<Record<TelegramMappingFieldKey, string>> = {}
   TELEGRAM_FIELD_TARGETS.forEach((target) => {
+    const value = normalizeTelegramString(source[target.key])
+    if (value) mapping[target.key] = value
+  })
+  return mapping
+}
+
+const normalizeInstagramMapping = (raw: any): Partial<Record<InstagramMappingFieldKey, string>> => {
+  const source = readObject(raw)
+  const mapping: Partial<Record<InstagramMappingFieldKey, string>> = {}
+  INSTAGRAM_FIELD_TARGETS.forEach((target) => {
     const value = normalizeTelegramString(source[target.key])
     if (value) mapping[target.key] = value
   })
@@ -684,6 +835,47 @@ const normalizeTelegramMappingOptions = (payload: unknown): TelegramTableOption[
   }).filter((table) => table.id)
 }
 
+const normalizeInstagramMappingOptions = (payload: unknown): InstagramTableOption[] => {
+  const root = unwrapApiPayload(payload)
+  const data = readObject(root)
+  const tablesRaw = readArray(
+    Array.isArray(root)
+      ? root
+      : data.tables ??
+          data.table_options ??
+          data.mapping_options ??
+          data.options ??
+          data.items ??
+          data.response,
+  )
+  const fieldsByTable = readObject(data.fields_by_table ?? data.fieldsByTable ?? data.table_fields)
+
+  return tablesRaw.map((table: any, index: number) => {
+    const id = normalizeTelegramString(table?.id ?? table?.table_id ?? table?.tableId)
+    const slug = normalizeTelegramString(table?.slug ?? table?.name ?? table?.table_slug ?? id)
+    const key = id || slug || String(index)
+    const fieldsRaw = readArray(
+      table?.fields ??
+        table?.columns ??
+        table?.table_fields ??
+        table?.schema?.fields ??
+        fieldsByTable[id] ??
+        fieldsByTable[slug],
+    )
+    const fields = fieldsRaw
+      .map((field: any, fieldIndex: number) => normalizeTelegramField(field, fieldIndex))
+      .filter(Boolean) as TelegramFieldOption[]
+
+    return {
+      id: key,
+      slug: slug || key,
+      label: normalizeTelegramString(table?.label ?? table?.title ?? table?.name ?? slug ?? id) || 'Untitled table',
+      fields,
+      suggestedMapping: normalizeInstagramMapping(table?.mapping ?? table?.suggested_mapping ?? table?.suggestedMapping),
+    }
+  }).filter((table) => table.id)
+}
+
 const findTelegramFieldMatch = (
   fields: TelegramFieldOption[],
   patterns: string[],
@@ -727,6 +919,30 @@ const createTelegramPayloadMapping = (
     payload[target.key] = mapping[target.key]?.trim() || TELEGRAM_DEFAULT_MAPPING[target.key]
   })
   return payload
+}
+
+const createInstagramAutoMapping = (
+  table: InstagramTableOption,
+): Partial<Record<InstagramMappingFieldKey, string>> => {
+  const mapping: Partial<Record<InstagramMappingFieldKey, string>> = { ...table.suggestedMapping }
+  INSTAGRAM_FIELD_TARGETS.forEach((target) => {
+    if (!mapping[target.key]) mapping[target.key] = findTelegramFieldMatch(table.fields, target.patterns)
+  })
+  return mapping
+}
+
+const createInstagramConnectParams = (
+  table: InstagramTableOption,
+  mapping: Partial<Record<InstagramMappingFieldKey, string>>,
+) => {
+  const params: Record<string, string> = {
+    table_id: table.id,
+    table_slug: table.slug,
+  }
+  INSTAGRAM_FIELD_TARGETS.forEach((target) => {
+    params[target.key] = mapping[target.key]?.trim() || INSTAGRAM_DEFAULT_MAPPING[target.key]
+  })
+  return params
 }
 
 const createTelegramBotUsername = (name: string): string => {
@@ -1268,6 +1484,404 @@ const TelegramSetupModal = ({
   )
 }
 
+const InstagramSetupModal = ({
+  open,
+  onOpenChange,
+  mcpProjectId,
+  mainProjectId,
+  openOAuthPopup,
+  initialResource,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  mcpProjectId: string
+  mainProjectId: string
+  openOAuthPopup: () => Window | null
+  initialResource?: any
+}) => {
+  const [search, setSearch] = useState('')
+  const [selectedTableId, setSelectedTableId] = useState<string>('')
+  const [mappingByTable, setMappingByTable] = useState<Record<string, Partial<Record<InstagramMappingFieldKey, string>>>>({})
+  const [isWaitingForOAuth, setIsWaitingForOAuth] = useState(false)
+
+  const setupReady = !!mcpProjectId && !!mainProjectId
+
+  useEffect(() => {
+    if (!open) return
+    const resourceMapping = getInstagramResourceMapping(initialResource)
+    setIsWaitingForOAuth(false)
+
+    const selectedId = resourceMapping.table_id || resourceMapping.table_slug || ''
+    if (selectedId) {
+      const tableMapping: Partial<Record<InstagramMappingFieldKey, string>> = {}
+      INSTAGRAM_FIELD_TARGETS.forEach((target) => {
+        const value = resourceMapping[target.key]
+        if (value) tableMapping[target.key] = value
+      })
+      setSelectedTableId(selectedId)
+      setMappingByTable({ [selectedId]: tableMapping })
+    } else {
+      setSelectedTableId('')
+      setMappingByTable({})
+    }
+  }, [open, initialResource])
+
+  const {
+    data: tables = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['instagram-mapping-options', mcpProjectId, mainProjectId],
+    queryFn: async () => {
+      const { data } = await api.get(`/v1/mcp_project/${mcpProjectId}/instagram/mapping-options`, {
+        params: { 'project-id': mainProjectId },
+      })
+      return normalizeInstagramMappingOptions(data)
+    },
+    enabled: open && setupReady,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+
+  const filteredTables = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return tables
+    return tables.filter((table) =>
+      `${table.label} ${table.slug}`.toLowerCase().includes(query),
+    )
+  }, [tables, search])
+
+  useEffect(() => {
+    if (!open || tables.length === 0) return
+    if (!selectedTableId) {
+      const first = tables[0]
+      setSelectedTableId(first.id)
+      setMappingByTable((prev) => ({
+        ...prev,
+        [first.id]: prev[first.id] ?? createInstagramAutoMapping(first),
+      }))
+      return
+    }
+
+    if (tables.some((table) => table.id === selectedTableId)) return
+    const matchBySlug = tables.find((table) => table.slug === selectedTableId)
+    if (!matchBySlug) return
+    setSelectedTableId(matchBySlug.id)
+    setMappingByTable((prev) => ({
+      ...prev,
+      [matchBySlug.id]: prev[matchBySlug.id] ?? prev[selectedTableId] ?? createInstagramAutoMapping(matchBySlug),
+    }))
+  }, [open, selectedTableId, tables])
+
+  const selectedTable = useMemo(
+    () => tables.find((table) => table.id === selectedTableId) ?? null,
+    [tables, selectedTableId],
+  )
+  const mapping = selectedTable ? mappingByTable[selectedTable.id] ?? {} : {}
+  const missingFields = INSTAGRAM_FIELD_TARGETS.filter((target) => !mapping[target.key])
+  const mappedCount = INSTAGRAM_FIELD_TARGETS.length - missingFields.length
+  const canConnect = setupReady && !!selectedTable && !isWaitingForOAuth
+
+  const selectTable = (table: InstagramTableOption) => {
+    setSelectedTableId(table.id)
+    setMappingByTable((prev) => ({
+      ...prev,
+      [table.id]: prev[table.id] ?? createInstagramAutoMapping(table),
+    }))
+  }
+
+  const setMappingValue = (key: InstagramMappingFieldKey, value: string) => {
+    if (!selectedTable) return
+    setMappingByTable((prev) => ({
+      ...prev,
+      [selectedTable.id]: {
+        ...(prev[selectedTable.id] ?? {}),
+        [key]: value,
+      },
+    }))
+  }
+
+  const { mutate: connectInstagram, isPending: isConnecting } = useMutation({
+    mutationFn: async (popup: Window | null): Promise<void> => {
+      try {
+        if (!selectedTable) throw new Error('Select a table first')
+        const { data } = await api.get(`/v1/mcp_project/${mcpProjectId}/instagram/connect`, {
+          params: {
+            'project-id': mainProjectId,
+            ...createInstagramConnectParams(selectedTable, mapping),
+          },
+        })
+        const authUrl = readOAuthUrl(data)
+        if (!authUrl) throw new Error('Instagram connect endpoint returned no OAuth URL')
+        if (popup && !popup.closed) popup.location.href = authUrl
+        else window.open(authUrl, '_blank')
+      } catch (err) {
+        popup?.close()
+        throw err
+      }
+    },
+    onSuccess: () => {
+      setIsWaitingForOAuth(true)
+      toast.success('Instagram authorization opened')
+    },
+    onError: (err: any) => {
+      setIsWaitingForOAuth(false)
+      toast.error(err?.response?.data?.data || err?.response?.data?.message || err?.message || 'Failed to connect Instagram')
+    },
+  })
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[980px]">
+        <div className="flex max-h-[86vh] flex-col">
+          <DialogHeader className="border-border-subtle space-y-1 border-b px-5 py-4 text-left">
+            <DialogTitle className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-5 w-5 bg-contain bg-center bg-no-repeat"
+                style={{ backgroundImage: "url('/instagram.svg')" }}
+              />
+              Instagram Direct integration
+            </DialogTitle>
+            <DialogDescription>
+              Select the conversation table, map Instagram fields, then authorize the Instagram account.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!setupReady ? (
+            <div className="flex flex-col items-center justify-center gap-3 px-8 py-14 text-center">
+              <AlertCircle className="text-amber-500" size={28} />
+              <div>
+                <p className="text-text-main text-sm font-semibold">Project context is still loading</p>
+                <p className="text-text-muted mt-1 text-sm">
+                  Instagram Direct setup needs the main project id. Try again after the project finishes loading.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1">
+              <div className="border-border-subtle flex w-72 shrink-0 flex-col border-r">
+                <div className="border-border-subtle border-b p-3">
+                  <div className="bg-bg-main border-border-subtle focus-within:border-primary/60 flex items-center rounded-lg border px-2.5 transition-colors">
+                    <Search size={14} className="text-text-muted shrink-0" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search tables..."
+                      className="placeholder:text-text-muted text-text-main w-full bg-transparent px-2 py-2 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                  {isLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 8 }).map((_, index) => (
+                        <Skeleton key={index} className="h-14 rounded-lg" />
+                      ))}
+                    </div>
+                  ) : isError ? (
+                    <div className="text-text-muted flex flex-col items-center gap-3 px-2 py-8 text-center text-sm">
+                      <AlertCircle className="text-destructive" size={22} />
+                      <span>Failed to load tables.</span>
+                      <Button size="sm" variant="outline" onClick={() => refetch()}>
+                        Retry
+                      </Button>
+                    </div>
+                  ) : filteredTables.length === 0 ? (
+                    <div className="text-text-muted px-2 py-8 text-center text-sm">
+                      No tables found.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredTables.map((table) => {
+                        const tableMapping = mappingByTable[table.id] ?? createInstagramAutoMapping(table)
+                        const tableMappedCount = INSTAGRAM_FIELD_TARGETS.filter((target) => tableMapping[target.key]).length
+                        const isActive = selectedTableId === table.id
+                        return (
+                          <button
+                            key={table.id}
+                            type="button"
+                            onClick={() => selectTable(table)}
+                            className={cn(
+                              'border-border-subtle flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all',
+                              isActive
+                                ? 'border-primary/50 bg-primary/5'
+                                : 'hover:border-primary/30 hover:bg-bg-sidebar',
+                            )}
+                          >
+                            <div className={cn(
+                              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border',
+                              isActive ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border-subtle bg-bg-main text-text-muted',
+                            )}>
+                              <Table2 size={16} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-text-main truncate text-sm font-semibold">
+                                {table.label}
+                              </div>
+                              <div className="text-text-muted mt-0.5 text-xs">
+                                {table.fields.length} fields · {tableMappedCount}/{INSTAGRAM_FIELD_TARGETS.length} matched
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col">
+                {!selectedTable ? (
+                  <div className="text-text-muted flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
+                    <Database size={28} className="opacity-40" />
+                    <p className="text-sm">Select a table to start mapping Instagram fields.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="border-border-subtle flex items-center gap-3 border-b px-5 py-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="h-4 w-4 shrink-0 bg-contain bg-center bg-no-repeat"
+                            style={{ backgroundImage: "url('/instagram.svg')" }}
+                          />
+                          <span className="text-text-main truncate text-sm font-semibold">
+                            {selectedTable.label}
+                          </span>
+                        </div>
+                        <p className="text-text-muted mt-0.5 text-xs">
+                          Map available fields. Unselected fields use default names.
+                        </p>
+                      </div>
+                      <span className={cn(
+                        'ml-auto shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold',
+                        missingFields.length === 0
+                          ? 'bg-green-500/15 text-green-600 dark:text-green-400'
+                          : 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+                      )}>
+                        {mappedCount}/{INSTAGRAM_FIELD_TARGETS.length} mapped
+                      </span>
+                    </div>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                      {INSTAGRAM_FIELD_TARGETS.map((target) => {
+                        const selected = mapping[target.key] ?? ''
+                        const isMissing = !selected
+                        return (
+                          <div
+                            key={target.key}
+                            className={cn(
+                              'border-border-subtle flex items-start gap-4 border-b px-5 py-4',
+                              isMissing ? 'bg-amber-500/[0.03]' : 'hover:bg-hover-bg/40',
+                            )}
+                          >
+                            <div className={cn(
+                              'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border',
+                              selected
+                                ? 'border-green-500/30 bg-green-500/10 text-green-500'
+                                : 'border-amber-500/30 bg-amber-500/10 text-amber-500',
+                            )}>
+                              {selected ? <Check size={15} /> : <AlertCircle size={15} />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-text-main text-sm font-semibold">{target.label}</span>
+                                <span className={cn(
+                                  'rounded-full px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide',
+                                  selected
+                                    ? 'bg-green-500/15 text-green-600 dark:text-green-400'
+                                    : 'bg-bg-sidebar text-text-muted',
+                                )}>
+                                  {selected ? 'Mapped' : 'Default'}
+                                </span>
+                              </div>
+                              <p className="text-text-muted mt-1 text-xs leading-snug">{target.hint}</p>
+                            </div>
+                            <div className="w-64 shrink-0">
+                              <Select
+                                value={selected || INSTAGRAM_UNMAPPED_VALUE}
+                                onValueChange={(value) =>
+                                  setMappingValue(target.key, value === INSTAGRAM_UNMAPPED_VALUE ? '' : value)
+                                }
+                              >
+                                <SelectTrigger
+                                  className={cn(
+                                    'h-9 bg-bg-sidebar text-sm',
+                                    selected ? 'border-green-500/40' : 'border-amber-500/50',
+                                  )}
+                                >
+                                  <SelectValue placeholder="Choose field" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                  <SelectItem value={INSTAGRAM_UNMAPPED_VALUE}>
+                                    <span className="text-text-muted">
+                                      Use default: {INSTAGRAM_DEFAULT_MAPPING[target.key]}
+                                    </span>
+                                  </SelectItem>
+                                  {selectedTable.fields.map((field) => (
+                                    <SelectItem key={field.value} value={field.value}>
+                                      <span className="flex min-w-0 items-center gap-2">
+                                        <span className="truncate">{field.label}</span>
+                                        {field.type && (
+                                          <span className="bg-bg-sidebar text-text-muted shrink-0 rounded px-1 py-px font-mono text-[10px]">
+                                            {field.type}
+                                          </span>
+                                        )}
+                                      </span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="border-border-subtle flex items-center justify-between gap-3 border-t px-5 py-3">
+            <p className="text-text-muted hidden text-xs sm:flex sm:items-center sm:gap-2">
+              {isWaitingForOAuth ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  Complete Instagram authorization in the popup.
+                </>
+              ) : !selectedTable ? (
+                'Select a table to continue.'
+              ) : missingFields.length > 0 ? (
+                `${mappedCount}/${INSTAGRAM_FIELD_TARGETS.length} fields selected. Defaults will be sent for the rest.`
+              ) : (
+                'All mappings are ready.'
+              )}
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                loading={isConnecting}
+                disabled={!canConnect}
+                onClick={() => connectInstagram(openOAuthPopup())}
+              >
+                Authorize Instagram
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 type View = 'grid' | 'detail'
 
 export const ResourcesPage = ({ projectId }: { projectId: string }) => {
@@ -1284,11 +1898,14 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const [categoryFilter, setCategoryFilter] = useState('All Categories')
   const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
   const [isGoogleCalendarConnected, setIsGoogleCalendarConnected] = useState(false)
+  const [isInstagramDirectConnected, setIsInstagramDirectConnected] = useState(false)
   // Field-mapping modal (bind a uCode table's fields to Google Calendar event
   // properties). Kept here so it's reachable from every Google Calendar card.
   const [calendarMappingOpen, setCalendarMappingOpen] = useState(false)
   const [telegramSetupOpen, setTelegramSetupOpen] = useState(false)
   const [telegramSetupResource, setTelegramSetupResource] = useState<any | null>(null)
+  const [instagramSetupOpen, setInstagramSetupOpen] = useState(false)
+  const [instagramSetupResource, setInstagramSetupResource] = useState<any | null>(null)
   // Google Lead Ads setup/management modal (table + field mapping → key/webhook).
   const [googleAdsModalOpen, setGoogleAdsModalOpen] = useState(false)
   const [googleAdsModalMode, setGoogleAdsModalMode] = useState<'list' | 'create'>('list')
@@ -1532,6 +2149,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       if (e.origin !== window.location.origin) return
       const d = e.data
       if (d?.source !== 'ucode-oauth') return
+      const provider = String(d.provider ?? '').toLowerCase()
       if (d.provider === 'google-drive') {
         if (d.status === 'success') {
           setIsGoogleDriveConnected(true)
@@ -1558,6 +2176,20 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           setCalendarMappingOpen(true)
         } else {
           toast.error('Google Calendar connection failed')
+        }
+        return
+      }
+      if (provider.startsWith('instagram')) {
+        if (d.status === 'success') {
+          setIsInstagramDirectConnected(true)
+          setInstagramSetupOpen(false)
+          setInstagramSetupResource(null)
+          queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
+          queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
+          queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
+          toast.success('Instagram Direct connected')
+        } else {
+          toast.error('Instagram Direct connection failed')
         }
         return
       }
@@ -1811,6 +2443,12 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
       return
     }
 
+    if (item.typeValue === INSTAGRAM_DIRECT_TYPE_VALUE) {
+      setInstagramSetupResource(null)
+      setInstagramSetupOpen(true)
+      return
+    }
+
     if (item.typeValue === GOOGLE_DRIVE_TYPE_VALUE) {
       connectGoogleDrive(openOAuthPopup())
       return
@@ -1872,6 +2510,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     if (numericType === TELEGRAM_TYPE_VALUE) {
       setTelegramSetupResource(resource)
       setTelegramSetupOpen(true)
+      return
+    }
+    if (numericType === INSTAGRAM_DIRECT_TYPE_VALUE) {
+      setInstagramSetupResource(resource)
+      setInstagramSetupOpen(true)
       return
     }
     const categoryItem = numericType == null ? undefined : resourceItemByType.get(numericType)
@@ -2202,6 +2845,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   if (isBitbucketConnected || isBitbucketExpired) connectedTypeValues.add(9)
   if (isGoogleDriveConnected) connectedTypeValues.add(GOOGLE_DRIVE_TYPE_VALUE)
   if (isGoogleCalendarConnected) connectedTypeValues.add(GOOGLE_CALENDAR_TYPE_VALUE)
+  if (isInstagramDirectConnected) connectedTypeValues.add(INSTAGRAM_DIRECT_TYPE_VALUE)
   if (isGoogleAdsConnected) connectedTypeValues.add(GOOGLE_ADS_TYPE_VALUE)
 
   const filteredAvailableResources = allResourceItems.filter(item => {
@@ -2226,6 +2870,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   const googleDriveMatchesCategory = matchesCategoryFilter('productivity')
   const googleCalendarMatchesSearch = matchesIntegrationSearch('Google Calendar Calendar and events')
   const googleCalendarMatchesCategory = matchesCategoryFilter('productivity')
+  const instagramDirectMatchesSearch = matchesIntegrationSearch('Instagram Direct Instagram direct messages')
+  const instagramDirectMatchesCategory = matchesCategoryFilter('api_messaging')
   const googleAdsMatchesSearch = matchesIntegrationSearch('Google Ads Google advertising account')
   const googleAdsMatchesCategory = matchesCategoryFilter('marketing')
 
@@ -2234,10 +2880,13 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   // avoid a brief duplicate right after connecting (state flag + API resource).
   const apiHasGoogleDrive = resourcesList.some((r: any) => r.resource_type === GOOGLE_DRIVE_TYPE_VALUE)
   const apiHasGoogleCalendar = resourcesList.some((r: any) => r.resource_type === GOOGLE_CALENDAR_TYPE_VALUE)
+  const apiHasInstagramDirect = resourcesList.some((r: any) => r.resource_type === INSTAGRAM_DIRECT_TYPE_VALUE)
   const showGoogleDriveCard =
     isGoogleDriveConnected && !apiHasGoogleDrive && googleDriveMatchesSearch && googleDriveMatchesCategory
   const showGoogleCalendarCard =
     isGoogleCalendarConnected && !apiHasGoogleCalendar && googleCalendarMatchesSearch && googleCalendarMatchesCategory
+  const showInstagramDirectCard =
+    isInstagramDirectConnected && !apiHasInstagramDirect && instagramDirectMatchesSearch && instagramDirectMatchesCategory
   const showGithubCard = (isGithubConnected || isGithubExpired) && githubMatchesSearch && githubMatchesCategory
   const showGitlabCard = (isGitlabConnected || isGitlabExpired) && gitlabMatchesSearch && gitlabMatchesCategory
   const showBitbucketCard =
@@ -2248,6 +2897,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
     filteredConnectedResources.length > 0 ||
     showGoogleDriveCard ||
     showGoogleCalendarCard ||
+    showInstagramDirectCard ||
     showGithubCard ||
     showGitlabCard ||
     showBitbucketCard ||
@@ -2365,6 +3015,40 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       {isConnectingGoogleCalendar ? 'Connecting…' : 'Reconnect'}
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {/* Instagram Direct card */}
+              {showInstagramDirectCard && (
+                <div
+                  className="bg-bg-card border-border-subtle flex flex-col gap-3 rounded-xl border p-4 shadow-sm"
+                  style={{ borderLeftWidth: '3px', borderLeftColor: 'var(--green, #22c55e)' }}
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <ResourceIcon type="instagram-direct" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-text-main truncate text-sm font-bold">Instagram Direct</div>
+                      <div className="text-text-muted truncate text-[11px]">Direct messages</div>
+                    </div>
+                    <span className="ml-auto shrink-0 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-green-500 uppercase">
+                      Connected
+                    </span>
+                  </div>
+                  <div className="text-text-muted text-xs leading-relaxed">
+                    Instagram authorization completed successfully.
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border-subtle bg-bg-main text-primary hover:bg-primary/5 mt-auto w-full justify-center gap-2 rounded-lg font-semibold"
+                    onClick={() => {
+                      setInstagramSetupResource(null)
+                      setInstagramSetupOpen(true)
+                    }}
+                  >
+                    <SlidersHorizontal size={14} />
+                    Configure
+                  </Button>
                 </div>
               )}
 
@@ -2612,6 +3296,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                 const typeInfo = resourceTypes.find(t => t.value === resource.resource_type)
                 const categoryItem = resourceItemByType.get(resource.resource_type)
                 const isTelegramResource = resource.resource_type === TELEGRAM_TYPE_VALUE
+                const isInstagramResource = resource.resource_type === INSTAGRAM_DIRECT_TYPE_VALUE
                 const telegramBotUsername = isTelegramResource ? formatTelegramBotUsername(resource) : ''
                 const resourceName = resource.name || categoryItem?.label || typeInfo?.label || 'Resource'
                 return (
@@ -2639,6 +3324,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                           Bot username:{' '}
                           <span className="text-text-main font-medium">{telegramBotUsername}</span>
                         </>
+                      ) : isInstagramResource ? (
+                        'Instagram Direct messaging is connected.'
                       ) : (
                         `${categoryItem?.summary ?? 'Custom integration'}: ${resourceName}`
                       )}
@@ -2777,6 +3464,20 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
             queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
             queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
           }}
+        />
+      )}
+
+      {instagramSetupOpen && (
+        <InstagramSetupModal
+          open={instagramSetupOpen}
+          onOpenChange={(nextOpen) => {
+            setInstagramSetupOpen(nextOpen)
+            if (!nextOpen) setInstagramSetupResource(null)
+          }}
+          mcpProjectId={projectId}
+          mainProjectId={mainProjectId}
+          openOAuthPopup={openOAuthPopup}
+          initialResource={instagramSetupResource}
         />
       )}
 
