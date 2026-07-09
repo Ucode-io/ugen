@@ -142,8 +142,8 @@ export const PrivacyPolicyPage = () => {
               <div className="font-bold text-text-main">&ldquo;UCODE MCHJ&rdquo;</div>
               <div>
                 Email:{' '}
-                <a href="mailto:info@u-code.io" className="text-primary hover:underline">
-                  info@u-code.io
+                <a href="mailto:support@ucode.co" className="text-primary hover:underline">
+                  support@ucode.co
                 </a>
               </div>
               <div>Address: Yunusabad District, Tashkent, Uzbekistan</div>

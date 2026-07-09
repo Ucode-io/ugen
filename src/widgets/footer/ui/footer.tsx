@@ -31,6 +31,9 @@ const FOOTER_COLS = [
   },
 ]
 
+const BUSINESS_DETAILS =
+  'Legal entity: "UCODE" Limited Liability Company ("UCODE" LLC) — Address: Tashkent city, Yunusabad district, Firdavsiy MCC, Little Automobile Ring Road street, home 81. TIN: 311 320 023.'
+
 export const Footer = () => {
   const year = new Date().getFullYear()
 
@@ -114,10 +117,15 @@ export const Footer = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-border-subtle pt-6 flex justify-between items-center flex-wrap gap-2.5">
-          <p className="text-[0.76rem] text-text-muted/60">
-            © {year} u&#8209;gen — All rights reserved.
-          </p>
+        <div className="border-t border-border-subtle pt-6 flex justify-between items-start flex-wrap gap-4">
+          <div className="max-w-[680px]">
+            <p className="text-[0.76rem] text-text-muted/60">
+              © {year} UCODE — All rights reserved.
+            </p>
+            <p className="mt-2 text-[0.72rem] leading-[1.65] text-text-muted/50">
+              {BUSINESS_DETAILS}
+            </p>
+          </div>
           <div className="flex gap-4 text-[0.76rem] text-text-muted/60">
             <Link href="/privacy-policy" className="hover:text-text-muted transition-colors no-underline">Privacy</Link>
             <a href="#" className="hover:text-text-muted transition-colors no-underline">Terms</a>
