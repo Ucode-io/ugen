@@ -639,6 +639,18 @@ const INSTAGRAM_DEFAULT_MAPPING: Record<InstagramMappingFieldKey, string> = {
   conversation_id_field: 'conversation_id',
 }
 
+const INSTAGRAM_CONNECT_FIELD_KEYS: InstagramMappingFieldKey[] = [
+  'instagram_user_id_field',
+  'username_field',
+  'display_name_field',
+  'profile_picture_field',
+  'last_message_field',
+  'last_message_at_field',
+  'unread_count_field',
+  'status_field',
+  'conversation_id_field',
+]
+
 const TELEGRAM_UNMAPPED_VALUE = '__telegram_unmapped__'
 const INSTAGRAM_UNMAPPED_VALUE = '__instagram_unmapped__'
 
@@ -900,6 +912,42 @@ const findTelegramFieldMatch = (
   return ''
 }
 
+const normalizeFieldComparable = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+
+const isTelegramFieldValue = (value: string): boolean => {
+  const comparable = normalizeFieldComparable(value)
+  return comparable.includes('telegram') || comparable === 'chat_id' || comparable.endsWith('_chat_id')
+}
+
+const findInstagramFieldMatch = (
+  fields: TelegramFieldOption[],
+  patterns: string[],
+): string => {
+  const normalized = fields
+    .filter((field) => !isTelegramFieldValue(field.value))
+    .map((field) => ({
+      ...field,
+      comparable: normalizeFieldComparable(field.value),
+    }))
+
+  for (const pattern of patterns) {
+    const target = normalizeFieldComparable(pattern)
+    const exact = normalized.find((field) => field.comparable === target)
+    if (exact) return exact.value
+  }
+
+  const instagramSpecific = normalized.find((field) => field.comparable.startsWith('instagram_'))
+  if (instagramSpecific) {
+    for (const pattern of patterns) {
+      const target = normalizeFieldComparable(pattern)
+      if (instagramSpecific.comparable.includes(target)) return instagramSpecific.value
+    }
+  }
+
+  return ''
+}
+
 const createTelegramAutoMapping = (
   table: TelegramTableOption,
 ): Partial<Record<TelegramMappingFieldKey, string>> => {
@@ -924,9 +972,13 @@ const createTelegramPayloadMapping = (
 const createInstagramAutoMapping = (
   table: InstagramTableOption,
 ): Partial<Record<InstagramMappingFieldKey, string>> => {
-  const mapping: Partial<Record<InstagramMappingFieldKey, string>> = { ...table.suggestedMapping }
+  const mapping: Partial<Record<InstagramMappingFieldKey, string>> = {}
   INSTAGRAM_FIELD_TARGETS.forEach((target) => {
-    if (!mapping[target.key]) mapping[target.key] = findTelegramFieldMatch(table.fields, target.patterns)
+    const suggested = table.suggestedMapping[target.key]
+    if (suggested && !isTelegramFieldValue(suggested)) mapping[target.key] = suggested
+  })
+  INSTAGRAM_FIELD_TARGETS.forEach((target) => {
+    if (!mapping[target.key]) mapping[target.key] = findInstagramFieldMatch(table.fields, target.patterns)
   })
   return mapping
 }
@@ -939,8 +991,10 @@ const createInstagramConnectParams = (
     table_id: table.id,
     table_slug: table.slug,
   }
-  INSTAGRAM_FIELD_TARGETS.forEach((target) => {
-    params[target.key] = mapping[target.key]?.trim() || INSTAGRAM_DEFAULT_MAPPING[target.key]
+  INSTAGRAM_CONNECT_FIELD_KEYS.forEach((key) => {
+    const selected = mapping[key]?.trim() || ''
+    params[key] =
+      selected && !isTelegramFieldValue(selected) ? selected : INSTAGRAM_DEFAULT_MAPPING[key]
   })
   return params
 }
