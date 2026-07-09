@@ -5,7 +5,7 @@ import { LandingPageClientWrapper } from '@/widgets/landing-page/ui/landing-page
 export const metadata: Metadata = {
   title: 'Privacy Policy | Ugen',
   description:
-    'How UCODE MCHJ collects, uses, stores, and protects personal information, including the Google Calendar integration.',
+    'How UCODE MCHJ collects, uses, stores, and protects personal information, including Google Calendar and Instagram Direct integrations.',
 }
 
 export default function PrivacyPolicyRoute() {
