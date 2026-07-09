@@ -74,7 +74,7 @@ const TELEGRAM_TYPE_VALUE = 14
 const INSTAGRAM_DIRECT_TYPE_VALUE = 15
 const GOOGLE_ADS_TYPE_VALUE = 16
 const META_ADS_TYPE_VALUE = 17
-const SOON_TYPE_VALUES = new Set([INSTAGRAM_DIRECT_TYPE_VALUE])
+const SOON_TYPE_VALUES = new Set<number>()
 
 interface ResourceItem {
   label: string
