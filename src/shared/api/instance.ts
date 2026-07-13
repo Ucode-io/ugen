@@ -21,6 +21,7 @@ const getProjectIdFromUrl = (): string | null => {
 // Add any endpoint here that must NOT use the project-scoped API-KEY.
 const BEARER_ONLY_ENDPOINTS = [
   /^\/v1\/ai-chat(\/|$)/,
+  /^\/v1\/ai-edit-prompts(\/|$)/,
   /^\/v1\/mcp_project(\/|$)/,
   /^\/v1\/upload(\/|$)/,
   /^\/v1\/ugen\//,
