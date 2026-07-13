@@ -20,6 +20,7 @@ import {
   Box,
   Braces,
   Bot,
+  Sparkles,
 } from "lucide-react"
 import { UsersManagement } from './users-management'
 import { MediaGallery } from '@/widgets/media-gallery/ui/media-gallery'
@@ -41,6 +42,7 @@ import { AnalyticsDashboard } from "@/widgets/analytics"
 import { CustomEndpointsPage } from './custom-endpoints-page'
 import { AgentsPage } from './agents-page'
 import { cn } from '@/shared/lib/utils/cn'
+import { SystemPromptsPage } from './system-prompts-page'
 
 type DashboardSection = string
 
@@ -126,6 +128,19 @@ export const ProjectDashboard = ({
     { id: 'resources', icon: Layers2, label: 'Integrations', category: 'General' },
     // { id: 'api_integrations', icon: Layers2, label: 'Integrations', category: 'General' },
     { id: 'ai_agents', icon: Bot, label: 'AI Agents', category: 'General' },
+    {
+      id: 'system_prompts',
+      icon: Sparkles,
+      label: 'System prompt',
+      category: 'General',
+      isGroup: true,
+      items: [
+        { id: 'system_prompts_web', icon: Globe, label: 'Web' },
+        { id: 'system_prompts_admin', icon: ShieldCheck, label: 'Admin' },
+        { id: 'system_prompts_mobile', icon: Box, label: 'Mobile' },
+        { id: 'system_prompts_backend', icon: Braces, label: 'Backend' },
+      ],
+    },
     { id: 'api_custom_endpoints', icon: KeyRound, label: 'API', category: 'Development' },
     { id: 'functions', icon: Braces, label: 'Code', category: 'Development' },
     // { id: 'microfrontend', icon: Code, label: 'Microfrontend', category: 'Development' },
@@ -215,6 +230,14 @@ export const ProjectDashboard = ({
 
     if (activeSection === 'ai_agents') {
       return <AgentsPage projectId={projectId ?? ''} />
+    }
+
+    if (activeSection === 'system_prompts_web' || activeSection === 'system_prompts_admin' || activeSection === 'system_prompts_mobile') {
+      return <SystemPromptsPage projectId={projectId ?? ''} promptKind="visual_editor" />
+    }
+
+    if (activeSection === 'system_prompts_backend') {
+      return <SystemPromptsPage projectId={projectId ?? ''} promptKind="code_editor" />
     }
 
     if (activeSection === "functions") {
