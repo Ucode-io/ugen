@@ -1,6 +1,7 @@
 import * as esbuild from "esbuild-wasm"
 import { virtualFsPlugin, createPluginStats, type PluginStats } from "./esbuildPlugin"
 import { previewOptimizationsEnabled } from "./preview-flags"
+import { canonicalizePreviewFiles } from "./preview-file-paths"
 
 // ── Canvas per-route router shim ──────────────────────────────────────────
 // In "perRoute" mode we redirect every `react-router`/`react-router-dom` import
@@ -110,13 +111,14 @@ function makeBuildInput(
   env: any = {},
   opts: { routerMode?: "simple" | "perRoute" } = {},
 ): BuildInput {
+  const canonicalFiles = canonicalizePreviewFiles(files);
   const fs: Record<string, string> = {};
   let externalDepsMap: Record<string, string> = {};
   // perRoute only: did the surgical patch actually recognize a router? If not,
   // canvas frames can't be set to their route — the caller surfaces this.
   let routerPatched = false;
 
-  const pkgFile = files.find((f: any) => f.path.includes("package.json"));
+  const pkgFile = canonicalFiles.find((f: any) => f.path === "package.json");
   if (pkgFile) {
     try {
       const pkg = JSON.parse(pkgFile.content);
@@ -127,7 +129,9 @@ function makeBuildInput(
   }
 
   // Parse .env and .env.example for env variables
-  const envFiles = files.filter((f: any) => f.path.endsWith(".env") || f.path.endsWith(".env.example"));
+  const envFiles = canonicalFiles.filter(
+    (f: any) => f.path.endsWith(".env") || f.path.endsWith(".env.example"),
+  );
 
   // Sort so .env.example comes first, and .env overrides it
   envFiles.sort((a, b) => b.path.length - a.path.length);
@@ -174,8 +178,8 @@ function makeBuildInput(
     "index.html",
   ]);
 
-  for (const file of files) {
-    let path = file.path.startsWith("/") ? file.path.slice(1) : file.path;
+  for (const file of canonicalFiles) {
+    let path = file.path;
 
     if (SKIP_FILES.has(path)) continue;
 
