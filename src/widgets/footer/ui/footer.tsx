@@ -34,7 +34,7 @@ const FOOTER_COLS = [
     links: [
       { label: "Blog", href: "#" },
       { label: "Careers", href: "#" },
-      { label: "Privacy", href: "/privacy-policy" },
+      { label: "Privacy policy", href: "/privacy-policy" },
       { label: "User Agreement", href: "/user-agreement" },
       { label: "Cancellation Policy", href: "/cancel-policy" },
       { label: "Company Info", href: "/company-info" },
@@ -153,7 +153,7 @@ export const Footer = () => {
               href="/privacy-policy"
               className="hover:text-text-muted no-underline transition-colors"
             >
-              Privacy
+              Privacy Policy
             </Link>
             <Link
               href="/user-agreement"
