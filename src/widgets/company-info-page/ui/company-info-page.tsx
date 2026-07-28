@@ -20,7 +20,10 @@ const SECTIONS = [
   {
     id: "business-phone",
     title: "3. Business Phone",
-    blocks: [COMPANY_INFO.businessPhone],
+    blocks: [
+      `USA: ${COMPANY_INFO.businessPhoneUS}`,
+      `Uzbekistan: ${COMPANY_INFO.businessPhoneUZ}`,
+    ],
   },
   {
     id: "business-email",
