@@ -1,0 +1,1 @@
+export { googleAdsIntegrationApi } from "./api";
