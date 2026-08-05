@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:mobile-capabilities": "node --test src/entities/project/model/mobile-capabilities.test.mjs",
+    "test:auth-refresh": "node --test src/shared/api/refresh-token.test.mjs",
     "test:preview-runtime": "node --test src/widgets/project-workspace/lib/preview-html.test.mjs src/widgets/project-workspace/lib/preview-file-paths.test.mjs src/widgets/project-workspace/lib/esbuildPlugin.test.mjs",
     "postinstall": "node -e \"try{require('fs').copyFileSync('node_modules/esbuild-wasm/esbuild.wasm', 'public/esbuild.wasm')}catch(e){console.warn('esbuild.wasm copy skipped:', e.message)}\""
   },

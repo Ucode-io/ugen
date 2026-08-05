@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { ChevronLeft, Loader2, PenLine, ArrowLeftRight, Globe, Plus, SquarePen, RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, authApi } from '@/shared/api'
+import { api, refreshAuthTokens } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
 import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
@@ -183,25 +183,23 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
   const switchMutation = useMutation({
     mutationFn: async (envId: string) => {
       setSwitchingId(envId)
-      const { data } = await authApi.put('/v2/refresh', {
-        refresh_token: refreshToken,
-        env_id: envId,
-        project_id: projectId,
-        for_env: true,
-      }, {
-        params: { for_env: true, 'project-id': projectId }
-      })
+      const data = await refreshAuthTokens(
+        '/v2/refresh',
+        {
+          refresh_token: refreshToken,
+          env_id: envId,
+          project_id: projectId,
+          for_env: true,
+        },
+        {
+          params: { for_env: true, 'project-id': projectId },
+        },
+      )
       return data
     },
-    onSuccess: (data) => {
-      const tokenData = data.data?.token || data.data?.response?.token || data.data || data.response?.token || data
-      if (tokenData?.access_token) {
-        useAuthStore.setState({
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token || refreshToken
-        })
-        console.log('Environment switched successfully')
-      }
+    onSuccess: () => {
+      // refreshAuthTokens persists the rotated pair before releasing its lock.
+      console.log('Environment switched successfully')
     },
     onSettled: () => {
       setSwitchingId(null)

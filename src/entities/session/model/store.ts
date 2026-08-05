@@ -172,20 +172,26 @@ export const useAuthStore = create<AuthState>()(
           title: projectPatch.title,
           company_id: projectPatch.company_id,
         })
-        set((state) => ({
-          accessToken,
-          refreshToken,
-          activeCompanyId: projectPatch.company_id ?? state.activeCompanyId,
-          project: state.project
-            ? {
-                ...state.project,
-                project_id: projectPatch.project_id,
-                title: projectPatch.title,
-                environment_id: projectPatch.environment_id,
-                is_ugen: projectPatch.is_ugen,
-              }
-            : state.project,
-        }))
+        set((state) => {
+          // The shared refresh coordinator has already persisted these tokens.
+          // If another queued refresh advanced the session in the meantime,
+          // don't let this component write an older response back into it.
+          const responseIsCurrent = state.refreshToken === refreshToken
+          return {
+            accessToken: responseIsCurrent ? accessToken : state.accessToken,
+            refreshToken: responseIsCurrent ? refreshToken : state.refreshToken,
+            activeCompanyId: projectPatch.company_id ?? state.activeCompanyId,
+            project: state.project
+              ? {
+                  ...state.project,
+                  project_id: projectPatch.project_id,
+                  title: projectPatch.title,
+                  environment_id: projectPatch.environment_id,
+                  is_ugen: projectPatch.is_ugen,
+                }
+              : state.project,
+          }
+        })
       },
       beginSuperAdminImpersonation: () => {
         set((state) => {
