@@ -42,6 +42,7 @@ import {
   updateTemplatePrice,
   type Template,
 } from "@/widgets/templates-board/model/templates";
+import { useTranslations } from 'next-intl'
 
 const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
 
@@ -113,6 +114,7 @@ type PriceForm = {
 };
 
 export const TemplatePricingAdminPage = () => {
+  const t = useTranslations('widgets.templatePricingAdmin')
   const user = useAuthStore((state) => state.user);
   const isSuperAdmin = user?.id === SUPER_ADMIN_USER_ID;
   const queryClient = useQueryClient();
@@ -229,10 +231,10 @@ export const TemplatePricingAdminPage = () => {
             <AlertTriangle size={22} />
           </div>
           <h1 className="text-text-main text-lg font-semibold">
-            Super admin access required
+            {t('superAdminRequired')}
           </h1>
           <p className="text-text-muted mt-2 text-sm">
-            Template pricing is only available for super admins.
+            {t('onlySuperAdmins')}
           </p>
         </div>
       </div>
@@ -248,7 +250,7 @@ export const TemplatePricingAdminPage = () => {
           </div>
           <div>
             <h1 className="text-text-main text-2xl font-semibold">
-              Template pricing
+              {t('templatePricing')}
             </h1>
             <p className="text-text-muted mt-0.5 text-sm">
               Set the one-time import price and the per-user price for each
@@ -263,14 +265,14 @@ export const TemplatePricingAdminPage = () => {
           className="border-border-subtle text-text-main hover:bg-hover-bg inline-flex h-9 w-fit items-center gap-1.5 rounded-lg border px-3 text-[13px] font-medium transition-colors"
         >
           <RefreshCw size={14} className={cn(isFetching && "animate-spin")} />
-          Refresh
+          {t('refresh')}
         </button>
       </div>
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <SummaryTile label="Total templates" value={templates.length} />
-        <SummaryTile label="Paid" value={paidCount} tone="paid" />
-        <SummaryTile label="Free" value={freeCount} tone="free" />
+        <SummaryTile label={t('totalTemplates')} value={templates.length} />
+        <SummaryTile label={t('paid')} value={paidCount} tone="paid" />
+        <SummaryTile label={t('free')} value={freeCount} tone="free" />
       </div>
 
       <div className="mb-4">
@@ -279,7 +281,7 @@ export const TemplatePricingAdminPage = () => {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search templates..."
+            placeholder={t('searchTemplates')}
             className="text-text-main placeholder:text-text-muted/60 w-full bg-transparent outline-none"
           />
         </div>
@@ -298,20 +300,20 @@ export const TemplatePricingAdminPage = () => {
           <div className="border-border-subtle flex h-64 flex-col items-center justify-center rounded-xl border text-center">
             <AlertTriangle size={28} className="text-text-muted/50" />
             <p className="text-text-main mt-3 text-sm font-semibold">
-              Failed to load templates
+              {t('loadFailed')}
             </p>
             <button
               type="button"
               onClick={() => refetch()}
               className="text-primary mt-1 text-sm font-semibold hover:underline"
             >
-              Retry
+              {t('retry')}
             </button>
           </div>
         ) : filteredTemplates.length === 0 ? (
           <div className="border-border-subtle flex h-64 flex-col items-center justify-center rounded-xl border text-center">
             <Tag size={30} className="text-text-muted/40" />
-            <p className="text-text-muted mt-2 text-sm">No templates found</p>
+            <p className="text-text-muted mt-2 text-sm">{t('noTemplates')}</p>
           </div>
         ) : (
           <div className="border-border-subtle flex flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
@@ -319,10 +321,10 @@ export const TemplatePricingAdminPage = () => {
               <table className="w-full min-w-205">
                 <thead className="sticky top-0 z-10">
                   <tr className="border-border-subtle bg-bg-sidebar border-b">
-                    <TableHead>Template</TableHead>
-                    <TableHead>Import price</TableHead>
-                    <TableHead>Per user</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t('template')}</TableHead>
+                    <TableHead>{t('importPrice')}</TableHead>
+                    <TableHead>{t('perUser')}</TableHead>
+                    <TableHead>{t('status')}</TableHead>
                     <th className="w-px px-4 py-2.5" />
                   </tr>
                 </thead>
@@ -404,7 +406,7 @@ export const TemplatePricingAdminPage = () => {
                               className="border-border-subtle text-text-main hover:bg-hover-bg inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium whitespace-nowrap transition-colors"
                             >
                               <Tag size={13} />
-                              Set price
+                              {t('setPrice')}
                             </button>
                           </div>
                         </td>
@@ -426,7 +428,7 @@ export const TemplatePricingAdminPage = () => {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Set template pricing</DialogTitle>
+            <DialogTitle>{t('setTemplatePricing')}</DialogTitle>
             <DialogDescription>
               {editing ? getTemplateTitle(editing) : ""}
             </DialogDescription>
@@ -435,7 +437,7 @@ export const TemplatePricingAdminPage = () => {
           <div className="grid gap-4 py-1">
             <div className="block">
               <span className="text-text-muted mb-1.5 block text-[12px] font-semibold">
-                Import price (one-time)
+                {t('importPriceOneTime')}
               </span>
               <div className="relative">
                 <Input
@@ -459,7 +461,7 @@ export const TemplatePricingAdminPage = () => {
                   }
                 >
                   <SelectTrigger className="bg-bg-sidebar/70 hover:bg-bg-sidebar border-border-subtle focus:ring-primary absolute top-1/2 right-1 h-7 w-[82px] -translate-y-1/2 rounded-md px-2 py-0 text-[11px] font-bold tracking-wider uppercase shadow-none ring-offset-0 transition-colors focus:ring-1 [&>div]:gap-1 [&>svg]:h-3.5 [&>svg]:w-3.5">
-                    <SelectValue placeholder="CUR" />
+                    <SelectValue placeholder={t('cur')} />
                   </SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((currency) => (
@@ -477,7 +479,7 @@ export const TemplatePricingAdminPage = () => {
 
             <div className="block">
               <span className="text-text-muted mb-1.5 block text-[12px] font-semibold">
-                Price per user
+                {t('pricePerUser')}
               </span>
               <div className="relative">
                 <Input
@@ -513,10 +515,10 @@ export const TemplatePricingAdminPage = () => {
               onClick={() => setEditing(null)}
               disabled={updatePrice.isPending}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button loading={updatePrice.isPending} onClick={handleSave}>
-              Save price
+              {t('savePrice')}
             </Button>
           </DialogFooter>
         </DialogContent>

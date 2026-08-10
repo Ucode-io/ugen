@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/shared/ui";
+import { useTranslations } from 'next-intl'
 
 interface GoogleCalendarCallbackProps {
   status: "success" | "error";
@@ -11,6 +12,7 @@ interface GoogleCalendarCallbackProps {
 export const GoogleCalendarCallback = ({
   status,
 }: GoogleCalendarCallbackProps) => {
+  const t = useTranslations('features.oauthCallback')
   const [closeFailed, setCloseFailed] = useState(false);
   const isSuccess = status === "success";
 
@@ -74,11 +76,11 @@ export const GoogleCalendarCallback = ({
           onClick={handleClose}
           className="bg-primary hover:bg-primary/90 w-full rounded-xl text-white"
         >
-          Close window
+          {t('closeWindow')}
         </Button>
         {closeFailed && (
           <p className="text-text-muted text-xs">
-            You can safely close this tab and return to the app.
+            {t('safelyClose')}
           </p>
         )}
       </div>

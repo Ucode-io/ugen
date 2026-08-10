@@ -550,7 +550,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
         likeCount: previousLikeCount,
         dislikeCount: previousDislikeCount,
       });
-      toast.error("Could not update your reaction. Please try again.");
+      toast.error(t('reactionFailed'));
       console.error("Failed to react to assistant message", error);
     } finally {
       setReactingMessageIds((current) => {
@@ -955,7 +955,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
             <button
               type="button"
               onClick={onToggleVersionHistory}
-              title="Version History"
+              title={t('versionHistory')}
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
                 isVersionHistory
@@ -968,7 +968,7 @@ export const WorkspaceChat = ({ projectId, isChatCollapsed, isVersionHistory, on
             <button
               type="button"
               onClick={() => setChatPosition(chatPosition === 'left' ? 'right' : 'left')}
-              title="Toggle chat position"
+              title={t('toggleChatPosition')}
               className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors text-text-muted hover:bg-hover-bg hover:text-text-main"
             >
               {chatPosition === 'left' ? <PanelRight size={14} /> : <PanelLeft size={14} />}

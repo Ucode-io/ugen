@@ -42,6 +42,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce'
 import { cn } from '@/shared/lib/utils/cn'
 import { MicrofrontendEditor } from './gitlab-code-view'
 import { PipelineStatus } from './pipeline-status'
+import { useTranslations } from 'next-intl'
 
 interface Microfrontend {
   id: string
@@ -90,6 +91,7 @@ const timeData = [
 ]
 
 export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPageProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [view, setView] = useState<View>('list')
   const [selected, setSelected] = useState<Microfrontend | null>({
                 "id": "5d32280e-165c-4a52-8800-91d177e94994",
@@ -289,7 +291,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
             onClick={(e) => e.stopPropagation()}
             className="font-mono text-xs text-primary hover:underline flex items-center gap-1.5"
           >
-            Open <ExternalLink size={12} />
+            {t('open')} <ExternalLink size={12} />
           </a>
         ) : <span className="text-text-muted">—</span>
       )
@@ -320,7 +322,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               className="text-primary hover:bg-primary/10 rounded-lg h-7 px-2 text-[11px] font-semibold gap-1"
             >
               <Code2 size={13} />
-              Edit with AI
+              {t('editWithAi')}
             </Button>
           )}
           <Button
@@ -344,14 +346,14 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
       <div className="space-y-6 animate-in fade-in duration-500">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-text-main tracking-tight">Frontend</h1>
-            <p className="text-text-muted text-sm mt-1">Configure and manage modular micro-frontend components.</p>
+            <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('frontend')}</h1>
+            <p className="text-text-muted text-sm mt-1">{t('microfrontendSubtitle')}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4" />
               <input
-                placeholder="Search microfrontends..."
+                placeholder={t('searchMicrofrontends')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-[280px] h-8 pl-8 pr-4 rounded-xl bg-bg-sidebar border border-border-subtle text-sm text-text-main placeholder:text-text-muted outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
@@ -365,7 +367,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               className="bg-primary hover:bg-primary/90 text-white rounded-lg px-5 h-8 shadow-sm text-sm font-medium"
             >
               <PlusCircle size={18} className="mr-2" />
-              Add Microfrontend
+              {t('addMicrofrontend')}
             </Button>
           </div>
         </div>
@@ -377,8 +379,8 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
             <div className="bg-primary/5 p-4 rounded-full mb-4">
               <Layers2 size={32} className="text-primary/40" />
             </div>
-            <p className="text-text-main font-medium">No microfrontends found</p>
-            <p className="text-text-muted text-sm mt-1">Configure your first micro-frontend to enable modular development.</p>
+            <p className="text-text-main font-medium">{t('noMicrofrontends')}</p>
+            <p className="text-text-muted text-sm mt-1">{t('configureFirstMicrofrontend')}</p>
           </div>
         ) : (
           <WorkspaceDataTable
@@ -401,13 +403,13 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
         <Dialog open={!!toDelete} onOpenChange={(open) => !open && setToDelete(null)}>
           <DialogContent className="max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Delete Microfrontend</DialogTitle>
+              <DialogTitle>{t('deleteMicrofrontend')}</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete <span className="font-semibold text-text-main">{toDelete?.name}</span>? This action cannot be undone.
+                {t('confirmDelete')} <span className="font-semibold text-text-main">{toDelete?.name}</span>? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-4 gap-2">
-              <Button variant="ghost" onClick={() => setToDelete(null)} disabled={deleteMutation.isPending}>Cancel</Button>
+              <Button variant="ghost" onClick={() => setToDelete(null)} disabled={deleteMutation.isPending}>{t('cancel')}</Button>
               <Button
                 variant="destructive"
                 disabled={deleteMutation.isPending}
@@ -431,33 +433,33 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
           <Button variant="ghost" size="icon" onClick={() => setView('list')} className="h-8 w-8 rounded-lg">
             <ChevronLeft size={16} />
           </Button>
-          <h1 className="text-xl font-bold text-text-main leading-tight">New Microfrontend</h1>
+          <h1 className="text-xl font-bold text-text-main leading-tight">{t('newMicrofrontend')}</h1>
         </div>
 
         <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 max-w-lg shadow-sm">
           <div className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Name</label>
+              <label className="text-sm font-medium text-text-main">{t('name')}</label>
               <Input
-                placeholder="Microfrontend name"
+                placeholder={t('microfrontendName')}
                 value={createForm.name}
                 onChange={(e) => setCreateForm(p => ({ ...p, name: e.target.value }))}
                 className="bg-bg-sidebar border-border-subtle"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Description</label>
+              <label className="text-sm font-medium text-text-main">{t('descriptionLabel')}</label>
               <Input
-                placeholder="Short description"
+                placeholder={t('shortDescription')}
                 value={createForm.description}
                 onChange={(e) => setCreateForm(p => ({ ...p, description: e.target.value }))}
                 className="bg-bg-sidebar border-border-subtle"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Path / URL</label>
+              <label className="text-sm font-medium text-text-main">{t('pathUrl')}</label>
               <Input
-                placeholder="Repository path"
+                placeholder={t('repositoryPathPlaceholder')}
                 value={createForm.path}
                 onChange={(e) => setCreateForm(p => ({ ...p, path: e.target.value }))}
                 className="bg-bg-sidebar border-border-subtle"
@@ -465,7 +467,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
             </div>
             {/*
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Framework</label>
+              <label className="text-sm font-medium text-text-main">{t('framework')}</label>
               <Select
                 value={createForm.framework_type}
                 onValueChange={(v) => setCreateForm(p => ({ ...p, framework_type: v }))}
@@ -481,7 +483,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Resource</label>
+              <label className="text-sm font-medium text-text-main">{t('resource')}</label>
               <Select
                 value={createForm.resource_id}
                 onValueChange={(v) => setCreateForm(p => ({ ...p, resource_id: v }))}
@@ -500,7 +502,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
             */}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle/50">
-              <Button variant="ghost" onClick={() => setView('list')} className="rounded-xl px-4">Cancel</Button>
+              <Button variant="ghost" onClick={() => setView('list')} className="rounded-xl px-4">{t('cancel')}</Button>
               <Button
                 disabled={!createForm.name || createMutation.isPending || createWebhookMutation.isPending}
                 onClick={() => {
@@ -568,7 +570,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
           <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 max-w-lg shadow-sm">
             <div className="space-y-5">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Resource</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('resource')}</label>
                 <Select
                   value={editForm.resource_id}
                   onValueChange={(v) => setEditForm(p => ({ ...p, resource_id: v }))}
@@ -586,21 +588,21 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Repository (Path)</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('repositoryPath')}</label>
                 <div className="bg-bg-sidebar rounded-xl px-4 py-2.5 text-sm font-mono border border-border-subtle text-text-main">
                   {selected.path}
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Branch</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('branch')}</label>
                 <div className="bg-bg-sidebar rounded-xl px-4 py-2.5 text-sm font-mono border border-border-subtle text-text-main">
                   {selected.branch ?? '—'}
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Name</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('name')}</label>
                 <Input
                   value={editForm.name}
                   onChange={(e) => setEditForm(p => ({ ...p, name: e.target.value }))}
@@ -609,7 +611,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Framework</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('framework')}</label>
                 <Select
                   value={editForm.framework_type}
                   onValueChange={(v) => setEditForm(p => ({ ...p, framework_type: v }))}
@@ -626,7 +628,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">URL / Link</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('urlLink')}</label>
                 <div className="flex items-center justify-between bg-bg-sidebar rounded-xl px-4 py-2.5 text-sm border border-border-subtle text-text-main">
                   <span className="truncate pr-4 font-mono">{selected.url || '—'}</span>
                   {selected.url && (
@@ -638,7 +640,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle/50">
-                <Button variant="ghost" onClick={() => setView('list')} className="rounded-xl px-4">Cancel</Button>
+                <Button variant="ghost" onClick={() => setView('list')} className="rounded-xl px-4">{t('cancel')}</Button>
                 <Button
                   disabled={!editForm.name || updateMutation.isPending}
                   onClick={handleUpdateSubmit}
@@ -669,7 +671,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
               <div className="flex-1 min-w-[200px]">
                 <Select value={String(timeFrame)} onValueChange={(v) => setTimeFrame(Number(v))}>
                   <SelectTrigger className="bg-bg-sidebar border-border-subtle h-10">
-                    <SelectValue placeholder="Select time frame" />
+                    <SelectValue placeholder={t('selectTimeFrame')} />
                   </SelectTrigger>
                   <SelectContent>
                     {timeData.map(t => (
@@ -692,13 +694,13 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
             <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm min-h-[400px]">
               <div className="p-4 bg-bg-sidebar/50 border-b border-border-subtle flex items-center gap-2">
                 <ScrollText size={14} className="text-text-muted" />
-                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Log Stream</span>
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('logStream')}</span>
               </div>
               <div className="p-4 max-h-[600px] overflow-y-auto">
                 {fetchLogsMutation.isPending ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-3">
                     <Loader2 size={32} className="animate-spin text-primary/40" />
-                    <p className="text-sm text-text-muted font-medium animate-pulse">Streaming logs...</p>
+                    <p className="text-sm text-text-muted font-medium animate-pulse">{t('streamingLogs')}</p>
                   </div>
                 ) : logsList.length > 0 ? (
                   <div className="space-y-2">
@@ -731,7 +733,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <ScrollText size={36} className="text-text-muted/30 mb-3" strokeWidth={1.5} />
-                    <p className="text-sm font-medium text-text-main">No logs available</p>
+                    <p className="text-sm font-medium text-text-main">{t('noLogs')}</p>
                     <p className="text-xs text-text-muted mt-1 opacity-80">Select a time range and click "Show Logs" to retrieve activity.</p>
                   </div>
                 )}
@@ -770,7 +772,7 @@ export const MicrofrontendPage = ({ projectId, onEditCode }: MicrofrontendPagePr
                 <div className="p-4 bg-bg-sidebar/50 border-b border-border-subtle flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <ScrollText size={14} className="text-text-muted" />
-                    <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Code</span>
+                    <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('code')}</span>
                   </div>
                   <PipelineStatus repoId={selected.project_id} branch={selected.branch || "master"} lastPublish={lastPublish} />
                 </div>

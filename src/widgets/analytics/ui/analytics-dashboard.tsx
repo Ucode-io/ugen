@@ -8,8 +8,10 @@ import { DashboardUsageLimitsTab } from "./dashboard-usage-limits";
 import { ProjectStatisticsTab } from "./project-statistics";
 import { BarChart2, Gauge, BarChart } from "lucide-react";
 import { useAuthStore } from "@/entities/session";
+import { useTranslations } from 'next-intl'
 
 export const AnalyticsDashboard = () => {
+  const t = useTranslations('widgets.analytics')
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
   const [activeTab, setActiveTab] = useState("usage-limits");
 
@@ -57,9 +59,9 @@ export const AnalyticsDashboard = () => {
       <div className="mb-4">
         <h1 className="text-[22px] font-bold text-text-main mb-1 flex items-center gap-2">
           <BarChart2 size={20} className="text-primary" />
-          Analytics
+          {t('analyticsTitle')}
         </h1>
-        <p className="text-text-muted text-[13px]">Monitor project performance, API health, and user activity.</p>
+        <p className="text-text-muted text-[13px]">{t('analyticsSubtitle')}</p>
       </div>
 
       <ReusableTabs options={tabs} activeId={activeTab} onTabChange={setActiveTab} />

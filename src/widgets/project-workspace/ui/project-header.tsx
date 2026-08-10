@@ -119,7 +119,7 @@ export const ProjectHeader = ({
             type="button"
             onClick={() => setIsPinned(p => !p)}
             className="h-8 flex items-center justify-center rounded-lg hover:bg-hover-bg transition-all px-1.5"
-            title="Open sidebar"
+            title={t('openSidebar')}
           >
             <img src="/logo.svg" className="h-5 w-auto block shrink-0" alt="ugen" />
           </button>

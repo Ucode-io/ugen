@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/shared/ui";
 import { user } from "@elevenlabs/elevenlabs-js/api";
+import { useTranslations } from 'next-intl'
 
 interface User {
   id: string;
@@ -64,6 +65,7 @@ export const UsersManagement = ({
   projectId: propProjectId,
   projectInfo: propProjectInfo,
 }: UsersManagementProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   // Auth store data
   const authProject = useAuthStore((state) => state.project);
   const authUser = useAuthStore((state) => state.user);
@@ -216,7 +218,7 @@ export const UsersManagement = ({
       { accessorKey: "phone", header: "Phone" },
       {
         id: "actions",
-        header: () => <div className="text-right">Action</div>,
+        header: () => <div className="text-right">{t('action')}</div>,
         cell: ({ row }) => (
           <div className="text-right" onClick={(e) => e.stopPropagation()}>
             <Button
@@ -269,14 +271,14 @@ export const UsersManagement = ({
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-text-main mb-1 text-[22px] font-bold">Users</h1>
+          <h1 className="text-text-main mb-1 text-[22px] font-bold">{t('users')}</h1>
           <p className="text-text-muted text-[13px]">
-            Manage application users
+            {t('manageAppUsers')}
           </p>
         </div>
         <div className="flex items-center gap-4">
           <UsageIndicator
-            label="Builders"
+            label={t('builders')}
             value={buildersStat?.current || 0}
             total={buildersStat?.limit || 0}
             percentage={
@@ -289,7 +291,7 @@ export const UsersManagement = ({
             }
           />
           <UsageIndicator
-            label="Users"
+            label={t('users')}
             value={usersStat?.current || 0}
             total={usersStat?.limit || 0}
             percentage={
@@ -307,7 +309,7 @@ export const UsersManagement = ({
             className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-4 text-[13px] font-semibold text-white"
             onClick={() => setUpgradeOpen(true)}
           >
-            Upgrade Plan
+            {t('upgradePlan')}
           </Button>
         </div>
       </div>
@@ -332,7 +334,7 @@ export const UsersManagement = ({
             size={16}
           />
           <Input
-            placeholder="Search users..."
+            placeholder={t('searchUsers')}
             className="bg-bg-card border-border-subtle focus:border-primary focus:ring-primary/20 h-9 pl-10 transition-all outline-none focus:ring-2"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -345,14 +347,14 @@ export const UsersManagement = ({
             onClick={() => setIsBuilderModalOpen(true)}
           >
             <UserPlus size={16} />
-            Add Builder
+            {t('addBuilder')}
           </Button>
           <Button
             className="bg-primary hover:bg-primary/90 h-9 gap-2 px-8 font-semibold text-white"
             onClick={() => setIsInviteModalOpen(true)}
           >
             <UserPlus size={16} />
-            Invite User
+            {t('inviteUser')}
           </Button>
         </div>
       </div>
@@ -396,7 +398,7 @@ export const UsersManagement = ({
       >
         <DialogContent className="max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogTitle>{t('confirmDeletion')}</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete user{" "}
               <span className="text-text-main font-semibold">
@@ -411,7 +413,7 @@ export const UsersManagement = ({
               onClick={() => setUserToDelete(null)}
               disabled={isDeleting}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"

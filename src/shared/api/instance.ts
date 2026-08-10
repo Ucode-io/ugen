@@ -1,7 +1,12 @@
-import axios, { type InternalAxiosRequestConfig } from 'axios'
+import axios, { type AxiosInstance, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/entities/session'
 import { handlePaymentRequired } from '@/entities/billing/model/billing-limit-store'
 import { logIsUgen } from '@/shared/lib/is-ugen-log'
+import {
+  extractRefreshTokenData,
+  isTerminalRefreshFailure,
+  usesBearerAuthorization,
+} from './refresh-token'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://api.admin.u-code.io'
 const AUTH_BASE_URL = process.env.NEXT_PUBLIC_AUTH_BASE_URL || 'https://api.auth.u-code.io'
@@ -10,6 +15,10 @@ const GITHUB_API_BASE_URL = process.env.NEXT_PUBLIC_GITHUB_API_BASE_URL || 'http
 export const api = axios.create({ baseURL: BASE_URL, headers: { 'Content-Type': 'application/json' } })
 export const authApi = axios.create({ baseURL: AUTH_BASE_URL, headers: { 'Content-Type': 'application/json' } })
 export const githubApi = axios.create({ baseURL: GITHUB_API_BASE_URL, headers: { 'Content-Type': 'application/json' } })
+
+// Token rotation must never depend on the current project route or its API key.
+// This instance intentionally has no shared request/response interceptors.
+const refreshApi = axios.create({ baseURL: AUTH_BASE_URL, headers: { 'Content-Type': 'application/json' } })
 
 const getProjectIdFromUrl = (): string | null => {
   if (typeof window === 'undefined') return null
@@ -120,18 +129,82 @@ const handle402 = (error: any) => {
   return Promise.reject(error)
 }
 
-authApi.interceptors.response.use((res) => res, handle402)
-githubApi.interceptors.response.use((res) => res, handle402)
+let refreshOperations: Promise<void> = Promise.resolve()
+let accessTokenRefresh: Promise<string> | null = null
+const refreshTokenUsedByError = new WeakMap<object, string>()
 
-let isRefreshing = false
-let failedQueue: Array<{ resolve: (value?: unknown) => void; reject: (reason?: unknown) => void }> = []
+const rememberRefreshFailure = (error: unknown, refreshToken: string): never => {
+  if (error && typeof error === 'object') {
+    refreshTokenUsedByError.set(error, refreshToken)
+    throw error
+  }
 
-const processQueue = (error: unknown, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) prom.reject(error)
-    else prom.resolve(token)
+  const wrapped = new Error('Token refresh failed', { cause: error })
+  refreshTokenUsedByError.set(wrapped, refreshToken)
+  throw wrapped
+}
+
+const serializeRefreshOperation = <T>(operation: () => Promise<T>): Promise<T> => {
+  const result = refreshOperations.then(operation, operation)
+  refreshOperations = result.then(() => undefined, () => undefined)
+  return result
+}
+
+/**
+ * Execute any token-rotating auth request one at a time and persist its tokens
+ * before the next operation starts. Project/environment switches use the same
+ * coordinator as background access-token refreshes, preventing two same-tab
+ * requests from submitting the same rotating refresh token concurrently.
+ */
+export const refreshAuthTokens = <TPayload extends object>(
+  endpoint: '/v2/refresh' | '/v2/refresh-superadmin',
+  payload: TPayload & { refresh_token?: string },
+  config?: AxiosRequestConfig,
+): Promise<any> =>
+  serializeRefreshOperation(async () => {
+    const refreshToken = useAuthStore.getState().refreshToken
+      || (typeof payload.refresh_token === 'string' ? payload.refresh_token : '')
+
+    if (!refreshToken) throw new Error('No refresh token available')
+
+    try {
+      const { data } = await refreshApi.put(endpoint, {
+        ...payload,
+        refresh_token: refreshToken,
+      }, config)
+      const tokenData = extractRefreshTokenData(data)
+      if (!tokenData) throw new Error('No access token in refresh response')
+
+      useAuthStore.setState({
+        accessToken: tokenData.access_token,
+        ...(tokenData.refresh_token && { refreshToken: tokenData.refresh_token }),
+      })
+
+      return data
+    } catch (error) {
+      return rememberRefreshFailure(error, refreshToken)
+    }
   })
-  failedQueue = []
+
+const refreshExpiredAccessToken = (): Promise<string> => {
+  if (!accessTokenRefresh) {
+    accessTokenRefresh = refreshAuthTokens('/v2/refresh', {})
+      .then((data) => {
+        const tokenData = extractRefreshTokenData(data)
+        if (!tokenData) throw new Error('No access token in refresh response')
+        return tokenData.access_token
+      })
+      .finally(() => {
+        accessTokenRefresh = null
+      })
+  }
+
+  return accessTokenRefresh
+}
+
+const logoutAndRedirect = () => {
+  useAuthStore.getState().logout()
+  if (typeof window !== 'undefined') window.location.href = '/'
 }
 
 // Reconcile is_ugen from /v1/ugen/user-projects (the source of truth used by
@@ -181,79 +254,55 @@ const reconcileIsUgenFromUserProjects = async (token: string) => {
   }
 }
 
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
+const buildResponseErrorHandler = (instance: AxiosInstance) => async (error: any) => {
+  const originalRequest = error?.config
 
-    // Skip GET — see handle402 above (api_call_limit fires on background GETs).
-    if (
-      error.response?.status === 402 &&
-      (originalRequest?.method || 'get').toLowerCase() !== 'get' &&
-      !handlesPaymentRequiredLocally(originalRequest?.url)
-    ) {
-      handlePaymentRequired(error.response.data?.data)
-      return Promise.reject(error)
-    }
+  if (error?.response?.status === 402) return handle402(error)
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject })
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`
-            return api(originalRequest)
-          })
-          .catch((err) => Promise.reject(err))
-      }
-
-      originalRequest._retry = true
-      isRefreshing = true
-
-      const state = useAuthStore.getState()
-      const refreshToken = state.refreshToken
-
-      if (!refreshToken) {
-        state.logout()
-        if (typeof window !== 'undefined') window.location.href = '/'
-        return Promise.reject(error)
-      }
-
-      try {
-        const { data } = await authApi.put('/v2/refresh', { refresh_token: refreshToken })
-
-        const tokenData = data?.data?.response?.token || data?.data?.token || data?.data || data?.response?.token || data
-        const newAccessToken = tokenData?.access_token
-        const newRefreshToken = tokenData?.refresh_token
-
-        if (newAccessToken) {
-          useAuthStore.setState({
-            accessToken: newAccessToken,
-            ...(newRefreshToken && { refreshToken: newRefreshToken }),
-          })
-
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
-          processQueue(null, newAccessToken)
-
-          // is_ugen from /v2/refresh is unreliable; reconcile from the source
-          // of truth without blocking the retried request.
-          void reconcileIsUgenFromUserProjects(newAccessToken)
-
-          return api(originalRequest)
-        } else {
-          throw new Error('No access token in refresh response')
-        }
-      } catch (refreshError) {
-        processQueue(refreshError, null)
-        useAuthStore.getState().logout()
-        if (typeof window !== 'undefined') window.location.href = '/'
-        return Promise.reject(refreshError)
-      } finally {
-        isRefreshing = false
-      }
-    }
-
+  // A project API-key rejection is not evidence that the user's access token
+  // expired. Refresh only requests that were actually sent with Bearer auth.
+  if (
+    error?.response?.status !== 401 ||
+    originalRequest?._retry ||
+    !usesBearerAuthorization(originalRequest?.headers)
+  ) {
     return Promise.reject(error)
   }
-)
+
+  originalRequest._retry = true
+
+  if (!useAuthStore.getState().refreshToken) {
+    logoutAndRedirect()
+    return Promise.reject(error)
+  }
+
+  try {
+    const newAccessToken = await refreshExpiredAccessToken()
+    originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+
+    // is_ugen from /v2/refresh is unreliable; reconcile from the source of
+    // truth without blocking the retried request.
+    if (instance === api) void reconcileIsUgenFromUserProjects(newAccessToken)
+
+    return instance(originalRequest)
+  } catch (refreshError) {
+    const tokenUsed = refreshError && typeof refreshError === 'object'
+      ? refreshTokenUsedByError.get(refreshError)
+      : undefined
+    const tokenIsStillCurrent = Boolean(
+      tokenUsed && useAuthStore.getState().refreshToken === tokenUsed,
+    )
+
+    // Another refresh may already have rotated the token while this request
+    // was in flight. Never let a stale failure erase that newer session.
+    if (tokenIsStillCurrent && isTerminalRefreshFailure(refreshError)) {
+      logoutAndRedirect()
+    }
+
+    return Promise.reject(refreshError)
+  }
+}
+
+api.interceptors.response.use((response) => response, buildResponseErrorHandler(api))
+authApi.interceptors.response.use((response) => response, buildResponseErrorHandler(authApi))
+githubApi.interceptors.response.use((response) => response, buildResponseErrorHandler(githubApi))

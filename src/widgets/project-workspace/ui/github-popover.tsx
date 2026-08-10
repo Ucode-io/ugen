@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui'
 import { githubIntegrationApi } from '@/features/github-integration'
 import { cn } from '@/shared/lib/utils/cn'
 import { centeredPopupFeatures } from '@/shared/lib/utils/centered-popup'
+import { useTranslations } from 'next-intl'
 
 const GithubIcon = ({ size = 16, className }: { size?: number; className?: string }) => (
   <svg
@@ -27,6 +28,7 @@ const GithubIcon = ({ size = 16, className }: { size?: number; className?: strin
 )
 
 export const GithubPopover = () => {
+  const t = useTranslations('widgets.projectWorkspace')
   const queryClient = useQueryClient()
 
   // GitHub integration is user-level, not project-level — keying by projectId
@@ -93,7 +95,7 @@ export const GithubPopover = () => {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          title="GitHub Integration"
+          title={t('githubIntegration')}
           className={cn(
             'flex items-center justify-center w-7 h-7 rounded-lg border transition-all',
             isConnected
@@ -114,17 +116,17 @@ export const GithubPopover = () => {
         {/* Header */}
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border-subtle">
           <GithubIcon size={15} className="text-text-muted shrink-0" />
-          <span className="text-sm font-semibold text-text-main">GitHub Integration</span>
+          <span className="text-sm font-semibold text-text-main">{t('githubIntegration')}</span>
           {isConnected && (
             <span className="ml-auto flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-500">
               <CheckCircle2 size={11} />
-              Active
+              {t('active')}
             </span>
           )}
           {isExpired && (
             <span className="ml-auto flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-destructive">
               <AlertCircle size={11} />
-              Expired
+              {t('expired')}
             </span>
           )}
         </div>
@@ -158,8 +160,8 @@ export const GithubPopover = () => {
             <div className="flex items-start gap-2.5 p-3 rounded-lg bg-destructive/8 border border-destructive/20">
               <AlertCircle size={15} className="text-destructive shrink-0 mt-0.5" />
               <div>
-                <div className="text-sm font-medium text-text-main">Token expired</div>
-                <div className="text-[11px] text-text-muted mt-0.5">Reconnect to restore access to your repositories.</div>
+                <div className="text-sm font-medium text-text-main">{t('tokenExpired')}</div>
+                <div className="text-[11px] text-text-muted mt-0.5">{t('reconnectHint')}</div>
               </div>
             </div>
           )}
@@ -167,8 +169,8 @@ export const GithubPopover = () => {
           {/* Not connected state */}
           {!isConnected && !isExpired && !isLoading && (
             <div className="text-center py-2">
-              <div className="text-sm text-text-muted">Not connected</div>
-              <div className="text-[11px] text-text-muted mt-0.5">Connect GitHub to manage your repositories.</div>
+              <div className="text-sm text-text-muted">{t('notConnected')}</div>
+              <div className="text-[11px] text-text-muted mt-0.5">{t('connectGithubHint')}</div>
             </div>
           )}
 

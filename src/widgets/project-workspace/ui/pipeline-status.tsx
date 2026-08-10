@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { cn } from '@/shared/lib/utils/cn'
+import { useTranslations } from 'next-intl'
 
 const GitlabPendingIcon = ({ className }: { className?: string }) => (
   <svg
@@ -23,6 +24,7 @@ interface PipelineStatusProps {
 }
 
 export function PipelineStatus({ repoId, branch = 'master', lastPublish = 0 }: PipelineStatusProps) {
+  const t = useTranslations('widgets.projectWorkspace')
   const [isPolling, setIsPolling] = useState(true)
 
   const { data: pipelineData, isError, refetch, isFetching } = useQuery({
@@ -102,7 +104,7 @@ export function PipelineStatus({ repoId, branch = 'master', lastPublish = 0 }: P
         }}
         disabled={isFetching}
         className="p-1.5 hover:bg-bg-sidebar-hover rounded-full transition-colors text-text-muted hover:text-text-main disabled:opacity-50"
-        title="Refresh Status"
+        title={t('refreshStatus')}
       >
         <RefreshCw size={14} className={cn(isFetching && "animate-spin")} />
       </button>

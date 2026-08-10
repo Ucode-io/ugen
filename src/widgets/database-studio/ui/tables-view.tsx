@@ -59,11 +59,11 @@ export const TablesView = () => {
     const trimmedLabel = label.trim();
     const trimmedSlug = slug.trim();
     if (!trimmedLabel) {
-      toast.error("Label is required");
+      toast.error(t('labelRequired'));
       return;
     }
     if (!trimmedSlug) {
-      toast.error("Slug is required");
+      toast.error(t('slugRequired'));
       return;
     }
 
@@ -77,12 +77,12 @@ export const TablesView = () => {
           description: description.trim(),
         },
       });
-      toast.success("Table created");
+      toast.success(t('tableCreated'));
       setIsCreateOpen(false);
       resetCreateForm();
     } catch (error) {
       console.error("Create table error:", error);
-      toast.error("Failed to create table");
+      toast.error(t('tableCreateFailed'));
     }
   };
 
@@ -116,7 +116,7 @@ export const TablesView = () => {
     <div className="flex h-full flex-col">
       <div className="mb-2 px-2">
         <input
-          placeholder="Search tables..."
+          placeholder={t('searchTables')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="bg-bg-main border-border-subtle w-full rounded-md border px-2 py-1.5 text-[11px] outline-none focus:border-[#004eea]"
@@ -174,7 +174,7 @@ export const TablesView = () => {
             className="text-text-muted hover:bg-bg-sidebar flex w-full items-center gap-2 rounded-lg px-3 py-1 text-[13px] transition-colors hover:text-[#004eea]"
           >
             <Plus size={12} />
-            <span className="truncate">Create table</span>
+            <span className="truncate">{t('createTable')}</span>
           </button>
         </div>
       </div>
@@ -190,16 +190,16 @@ export const TablesView = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <TableIcon size={18} />
-              Create new table
+              {t('createNewTable')}
             </DialogTitle>
             <DialogDescription className="pt-1">
-              Define a label and slug for the new table.
+              {t('defineLabelSlug')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="mt-2 flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="create-table-label">Label</Label>
+              <Label htmlFor="create-table-label">{t('label')}</Label>
               <Input
                 id="create-table-label"
                 value={label}
@@ -210,7 +210,7 @@ export const TablesView = () => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="create-table-slug">Slug</Label>
+              <Label htmlFor="create-table-slug">{t('slug')}</Label>
               <Input
                 id="create-table-slug"
                 value={slug}
@@ -220,12 +220,12 @@ export const TablesView = () => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="create-table-description">Description</Label>
+              <Label htmlFor="create-table-description">{t('descriptionLabel')}</Label>
               <Input
                 id="create-table-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional"
+                placeholder={t('optional')}
               />
             </div>
           </div>
@@ -245,7 +245,7 @@ export const TablesView = () => {
               onClick={handleCreate}
               loading={createTableMutation.isPending}
             >
-              Create
+              {t('create')}
             </Button>
           </DialogFooter>
         </DialogContent>

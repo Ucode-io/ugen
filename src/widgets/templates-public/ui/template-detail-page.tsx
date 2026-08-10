@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 
 import { useRouter } from '@/shared/lib/i18n/navigation'
+import { useTranslations } from 'next-intl'
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils/cn'
 import { Footer } from '@/widgets/footer'
@@ -34,10 +35,10 @@ const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? ''
 
 type DeviceId = 'desktop' | 'tablet' | 'mobile'
 
-const DEVICES: { id: DeviceId; label: string; icon: ReactNode }[] = [
-  { id: 'desktop', label: 'Desktop', icon: <Monitor size={14} /> },
-  { id: 'tablet', label: 'Tablet', icon: <Tablet size={14} /> },
-  { id: 'mobile', label: 'Mobile', icon: <Smartphone size={14} /> },
+const DEVICES: { id: DeviceId; icon: ReactNode }[] = [
+  { id: 'desktop', icon: <Monitor size={14} /> },
+  { id: 'tablet', icon: <Tablet size={14} /> },
+  { id: 'mobile', icon: <Smartphone size={14} /> },
 ]
 
 const DEVICE_WIDTHS: Record<DeviceId, string> = {
@@ -60,6 +61,7 @@ interface TemplateDetailPageProps {
 }
 
 export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
+  const t = useTranslations('widgets.templateDetail')
   const router = useRouter()
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -114,12 +116,12 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
   if (!template) {
     return (
       <div className="bg-bg-main flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <p className="text-text-muted">Template not found.</p>
+        <p className="text-text-muted">{t('notFound')}</p>
         <button
           onClick={() => router.push('/templates')}
           className="text-primary text-sm hover:underline"
         >
-          Back to Templates
+          {t('backToTemplates')}
         </button>
       </div>
     )
@@ -172,7 +174,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
             <button
               type="button"
               onClick={handleReload}
-              title="Reload preview"
+              title={t('reload')}
               className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
             >
               <RotateCcw size={14} />
@@ -183,7 +185,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
                 <button
                   type="button"
                   className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 items-center gap-1 rounded-lg px-2 transition-colors"
-                  title={selectedDevice.label}
+                  title={t(selectedDevice.id)}
                 >
                   {selectedDevice.icon}
                   <ChevronDown
@@ -212,7 +214,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
                     )}
                   >
                     {d.icon}
-                    <span>{d.label}</span>
+                    <span>{t(d.id)}</span>
                   </button>
                 ))}
               </PopoverContent>
@@ -221,7 +223,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
             <button
               type="button"
               onClick={() => setIsMaximized((v) => !v)}
-              title={isMaximized ? 'Exit fullscreen' : 'Fullscreen'}
+              title={isMaximized ? t('exitFullscreen') : t('fullscreen')}
               className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
             >
               {isMaximized ? <Minimize size={14} /> : <Maximize size={14} />}
@@ -254,7 +256,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
             />
           ) : (
             <div className="text-text-muted flex h-full items-center justify-center text-sm">
-              No preview available
+              {t('noPreview')}
             </div>
           )}
         </div>
@@ -271,7 +273,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
             className="text-text-muted hover:text-text-main flex shrink-0 items-center gap-1.5 text-sm transition-colors"
           >
             <ArrowLeft size={16} />
-            Back
+            {t('back')}
           </button>
 
           <h1 className="text-text-main flex-1 truncate text-xl font-bold">
@@ -283,7 +285,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
               onClick={handleUseTemplate}
               className="inline-flex h-9 items-center gap-2 rounded-lg bg-blue-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
             >
-              Use Template
+              {t('useTemplate')}
             </button>
           </div>
         </div>
@@ -293,7 +295,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
         {images.length > 0 && (
           <div className="mt-4 mb-8">
             <h2 className="text-text-main mb-3 text-[1rem] font-semibold">
-              Screenshots
+              {t('screenshots')}
             </h2>
             <div className="flex flex-wrap gap-3">
               {images.map((img, i) => (
@@ -307,7 +309,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={img}
-                    alt={`Screenshot ${i + 1}`}
+                    alt={t('screenshot', { index: String(i + 1) })}
                     className="h-full w-full object-cover"
                   />
                 </button>
@@ -328,7 +330,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
                   e.stopPropagation()
                   showPrev()
                 }}
-                aria-label="Previous image"
+                aria-label={t('prevImage')}
                 className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               >
                 <ChevronLeft size={22} />
@@ -338,7 +340,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={images[lightboxIndex]}
-              alt="Screenshot preview"
+              alt={t('screenshotPreview')}
               className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
@@ -350,7 +352,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
                   e.stopPropagation()
                   showNext()
                 }}
-                aria-label="Next image"
+                aria-label={t('nextImage')}
                 className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               >
                 <ChevronRight size={22} />
@@ -370,7 +372,7 @@ export const TemplateDetailPage = ({ id }: TemplateDetailPageProps) => {
         {description && (
           <div className="border-border-subtle bg-bg-card rounded-xl border p-5">
             <h2 className="text-text-main mb-3 text-[1.1rem] font-bold">
-              About this template
+              {t('about')}
             </h2>
             <div
               className="template-description text-text-muted text-[0.875rem] leading-[1.8]"

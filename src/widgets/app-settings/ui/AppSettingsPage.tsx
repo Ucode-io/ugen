@@ -68,6 +68,7 @@ const LanguageRow = ({ item, languageKeys, projectId, updateMutation, languages,
 
 
 export const AppSettingsPage = () => {
+  const t = useTranslations('widgets.appSettings')
   const tWidgets = useTranslations('widgets.appSettings')
   const user = useAuthStore(s => s.user)
   const project = useAuthStore(s => s.project)
@@ -229,7 +230,7 @@ export const AppSettingsPage = () => {
       }
     } else {
       if (current.length <= 1) {
-        toast.error('At least one icon category is required')
+        toast.error(t('iconCategoryRequired'))
         return
       }
       const updated = current.filter(v => v !== val);
@@ -311,7 +312,7 @@ export const AppSettingsPage = () => {
     <div className="flex flex-col w-full animate-in fade-in slide-in-from-bottom-4 duration-700 h-full overflow-hidden">
       <div className="mb-6 shrink-0">
         <h1 className="text-[22px] font-[700] mb-1">{tabs.find(tab => tab.id === activeTab)?.label}</h1>
-        <p className="text-text-muted text-[13px]">Configure your project details and preferences</p>
+        <p className="text-text-muted text-[13px]">{t('configureProject')}</p>
       </div>
 
       <ReusableTabs
@@ -330,18 +331,18 @@ export const AppSettingsPage = () => {
                 {/* Logo & Name Row */}
                 <div className="flex gap-6 items-start">
                   <div className="shrink-0">
-                    <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">Project Logo</label>
+                    <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">{t('projectLogo')}</label>
                     <div
                       onClick={() => projectLogoInputRef.current?.click()}
                       className="w-[86px] h-[86px] rounded-[14px] border-2 border-dashed border-border-subtle flex items-center justify-center cursor-pointer text-text-muted transition-all hover:border-primary hover:bg-primary/5 relative overflow-hidden group shadow-inner"
-                      title="Click to upload"
+                      title={t('clickToUpload')}
                     >
                       {(projectLogoPreview || projectLogoFilename) && !projectLogoError ? (
                         <div className="relative w-full h-full">
                           <img
                             src={projectLogoPreview ?? `${cdnBase}/${projectLogoFilename}`}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            alt="Project Logo"
+                            alt={t('projectLogo')}
                             onError={() => setProjectLogoError(true)}
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -367,17 +368,17 @@ export const AppSettingsPage = () => {
                           const filename = await uploadPhoto(file, projectId)
                           setProjectLogoFilename(filename)
                         } catch (err) {
-                          toast.error('Failed to upload project logo')
+                          toast.error(t('logoUploadFailed'))
                         }
                       }}
                     />
                   </div>
                 </div>
                 <div className="flex-1 space-y-2">
-                  <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">Project Name</label>
+                  <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">{t('projectName')}</label>
                   <Input
                     className="w-full bg-bg-main border-border-subtle h-10 rounded-lg text-[13px] focus:border-primary transition-all shadow-sm"
-                    placeholder="Enter project name"
+                    placeholder={t('enterProjectName')}
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                   />
@@ -390,7 +391,7 @@ export const AppSettingsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {/* Languages & Timezone Row */}
                 <div className="flex flex-col">
-                  <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">Project Languages</label>
+                  <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">{t('projectLanguages')}</label>
                   <MultiSelect
                     options={projectLanguages.map((lang: any) => ({ label: `${lang.name} (${lang.short_name})`, value: lang.id }))}
                     selected={projectLanguage.map(l => l.id)}
@@ -406,7 +407,7 @@ export const AppSettingsPage = () => {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">Timezone</label>
+                  <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">{t('timezone')}</label>
                   <Select value={projectTimezone} onValueChange={(val) => setProjectTimezone(val)}>
                     <SelectTrigger className="w-full bg-bg-main border-border-subtle h-10 rounded-lg text-[13px] focus:border-primary transition-all shadow-sm">
                       <SelectValue placeholder={isLoadingProjTime || isLoadingFullProject ? 'Loading...' : 'Select timezone'} />
@@ -423,13 +424,13 @@ export const AppSettingsPage = () => {
               </div>
 
               <div className="flex flex-col">
-                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">Icon Categories</label>
+                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">{t('iconCategories')}</label>
                 <MultiSelect
                   options={iconCollections.map((col: any) => ({ label: `${col.name} (${col.total} icons)`, value: `${col.id}#${col.name}` }))}
                   selected={projectIconCat}
                   onChange={(newSelected: string[]) => {
                     if (newSelected.length === 0) {
-                      toast.error('At least one icon category is required')
+                      toast.error(t('iconCategoryRequired'))
                       return
                     }
                     setProjectIconCat(newSelected);
@@ -454,7 +455,7 @@ export const AppSettingsPage = () => {
                   }
                 }}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 className="h-10 px-6 rounded-lg text-[13px] font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
@@ -492,7 +493,7 @@ export const AppSettingsPage = () => {
                 <Input
                   value={searchQueryI18n}
                   onChange={(e) => setSearchQueryI18n(e.target.value)}
-                  placeholder="Search keys or translations..."
+                  placeholder={t('searchKeys')}
                   className="pl-9 h-8 rounded-lg border-border-subtle bg-bg-sidebar transition-all focus:border-primary focus:bg-bg-card text-[13px] w-full"
                 />
               </div>
@@ -504,7 +505,7 @@ export const AppSettingsPage = () => {
                   onClick={() => setIsAddLanguageModalOpen(true)}
                 >
                   <Languages size={14} className="mr-1.5" />
-                  Add Language
+                  {t('addLanguage')}
                 </Button>
                 <Button
                   size="sm"
@@ -512,7 +513,7 @@ export const AppSettingsPage = () => {
                   onClick={() => setIsAddKeyModalOpen(true)}
                 >
                   <Plus size={14} className="mr-1.5" />
-                  Add Key
+                  {t('addKey')}
                 </Button>
                 <Button
                   variant="outline"
@@ -529,7 +530,7 @@ export const AppSettingsPage = () => {
                   }}
                 >
                   <Download size={14} className="mr-1.5" />
-                  Export
+                  {t('export')}
                 </Button>
               </div>
             </div>
@@ -592,11 +593,11 @@ export const AppSettingsPage = () => {
             <Dialog open={isAddKeyModalOpen} onOpenChange={setIsAddKeyModalOpen}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Add New Translation Key</DialogTitle>
+                  <DialogTitle>{t('addTranslationKey')}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-2">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Category</label>
+                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('category')}</label>
                     <Input
                       value={newKeyData.category}
                       onChange={(e) => setNewKeyData(p => ({ ...p, category: e.target.value }))}
@@ -605,7 +606,7 @@ export const AppSettingsPage = () => {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Key Name</label>
+                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{t('keyName')}</label>
                     <Input
                       value={newKeyData.key}
                       onChange={(e) => setNewKeyData(p => ({ ...p, key: e.target.value }))}
@@ -615,12 +616,12 @@ export const AppSettingsPage = () => {
                   </div>
                 </div>
                 <DialogFooter className="mt-6 gap-2">
-                  <Button variant="outline" onClick={() => setIsAddKeyModalOpen(false)}>Cancel</Button>
+                  <Button variant="outline" onClick={() => setIsAddKeyModalOpen(false)}>{t('cancel')}</Button>
                   <Button className="bg-primary hover:bg-primary/90 text-white" onClick={() => {
                     // Here you would fire a mutation to add the key
-                    toast.success('Key creation logic would go here');
+                    toast.success(t('keyCreationTodo'));
                     setIsAddKeyModalOpen(false);
-                  }}>Create Key</Button>
+                  }}>{t('createKey')}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -629,11 +630,11 @@ export const AppSettingsPage = () => {
             <Dialog open={isAddLanguageModalOpen} onOpenChange={setIsAddLanguageModalOpen}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Manage Project Languages</DialogTitle>
+                  <DialogTitle>{t('manageLanguages')}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-2">
                   <div className="flex flex-col">
-                    <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">Project Languages</label>
+                    <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">{t('projectLanguages')}</label>
                     <MultiSelect
                       optionsContainerClassName="max-w-[400px]"
                       options={projectLanguages.map((lang: any) => ({ label: `${lang.name} (${lang.short_name})`, value: lang.id }))}
@@ -650,7 +651,7 @@ export const AppSettingsPage = () => {
                   </div>
                 </div>
                 <DialogFooter className="mt-6 gap-2">
-                  <Button variant="outline" onClick={() => setIsAddLanguageModalOpen(false)}>Cancel</Button>
+                  <Button variant="outline" onClick={() => setIsAddLanguageModalOpen(false)}>{t('cancel')}</Button>
                   <Button
                     className="bg-primary hover:bg-primary/90 text-white"
                     onClick={() => {
@@ -666,7 +667,7 @@ export const AppSettingsPage = () => {
                     }}
                     disabled={updateProjectSettingsMutation.isPending}
                   >
-                    Save Languages
+                    {t('saveLanguages')}
                   </Button>
                 </DialogFooter>
               </DialogContent>

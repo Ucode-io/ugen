@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Footer } from '@/widgets/footer'
+import { useTranslations } from 'next-intl'
 import { BecomeExpertModal } from './become-expert-modal'
 // import { LandingCtaSection } from '@/widgets/landing-page/ui/landing-cta-section'
 
@@ -148,6 +149,7 @@ const BECOME_CHECKLIST = [
 ]
 
 export const HireExpertPage = () => {
+  const t = useTranslations('widgets.hireExpert')
   const [serviceFilter, setServiceFilter] = useState('')
   const [budgetFilter, setBudgetFilter] = useState('')
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
@@ -181,22 +183,22 @@ export const HireExpertPage = () => {
             className="font-extrabold tracking-[-0.04em] leading-[1.1] text-text-main mb-3"
             style={{ fontSize: 'clamp(1.9rem, 3.5vw, 2.8rem)' }}
           >
-            Hire a{' '}
+            {t('titleLead')}{' '}
             <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              u&#8209;gen expert
+              {t('titleAccent')}
             </em>
           </h1>
           <p className="text-[0.96rem] text-text-muted max-w-[560px] leading-[1.7] mb-2.5">
-            u&#8209;gen Experts provide the expertise and insight to help you build and launch your products faster — from quick consultations to full project delivery.
+            {t('subtitle')}
           </p>
           <p className="text-[0.84rem] text-text-muted/70">
-            Want to become a u&#8209;gen Expert?{' '}
+            {t('becomePrefix')}{' '}
             <button
               type="button"
               onClick={() => setApplyOpen(true)}
               className="text-primary font-semibold no-underline hover:underline bg-transparent border-none cursor-pointer p-0"
             >
-              Apply here →
+              {t('applyHere')}
             </button>
           </p>
         </div>
@@ -212,33 +214,29 @@ export const HireExpertPage = () => {
               onChange={(e) => setServiceFilter(e.target.value)}
               className="appearance-none bg-bg-main border border-border-subtle rounded-lg px-3 py-2 pr-8 text-[0.82rem] font-medium text-text-muted cursor-pointer outline-none hover:border-border-subtle/60 focus:border-primary transition-colors"
             >
-              <option value="">All Services</option>
-              <option value="backend">Backend Development</option>
-              <option value="mobile">Mobile Development</option>
-              <option value="frontend">Frontend Development</option>
-              <option value="design">UI / UX Design</option>
-              <option value="devops">DevOps</option>
-              <option value="qa">QA & Testing</option>
-              <option value="data">Data & AI</option>
+              <option value="">{t('allServices')}</option>
+              {['backend', 'mobile', 'frontend', 'design', 'devops', 'qa', 'data'].map((k) => (
+                <option key={k} value={k}>{t(`filters.${k}`)}</option>
+              ))}
             </select>
             <select
               value={budgetFilter}
               onChange={(e) => setBudgetFilter(e.target.value)}
               className="appearance-none bg-bg-main border border-border-subtle rounded-lg px-3 py-2 pr-8 text-[0.82rem] font-medium text-text-muted cursor-pointer outline-none hover:border-border-subtle/60 focus:border-primary transition-colors"
             >
-              <option value="">Any Budget</option>
-              <option value="small">Under $5K</option>
-              <option value="mid">$5K – $20K</option>
-              <option value="large">$20K+</option>
+              <option value="">{t('anyBudget')}</option>
+              {['small', 'mid', 'large'].map((k) => (
+                <option key={k} value={k}>{t(`filters.${k}`)}</option>
+              ))}
             </select>
             <button
               onClick={reset}
               className="text-[0.82rem] text-text-muted/60 px-2 py-2 bg-transparent border-none cursor-pointer hover:text-text-main transition-colors"
             >
-              Reset all
+              {t('resetAll')}
             </button>
             <span className="ml-auto text-[0.82rem] text-text-muted/60 font-medium">
-              {filtered.length} {filtered.length === 1 ? 'Expert' : 'Experts'}
+              {filtered.length} {filtered.length === 1 ? t('expert') : t('experts')}
             </span>
           </div>
 
@@ -300,7 +298,7 @@ export const HireExpertPage = () => {
                     {/* Services */}
                     <div className="px-5 py-4">
                       <span className="block text-[0.66rem] font-bold uppercase tracking-[0.09em] text-text-muted/60 mb-2.5">
-                        Services
+                        {t('services')}
                       </span>
                       <div className="mb-2.5">
                         <div className="text-[0.82rem] font-semibold text-text-main mb-0.5">{expert.services[0].name}</div>
@@ -317,19 +315,19 @@ export const HireExpertPage = () => {
                     {/* Details */}
                     <div className="px-5 py-3.5 border-t border-border-subtle grid grid-cols-2 gap-x-5 gap-y-3">
                       <div>
-                        <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-0.5">Languages</div>
+                        <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-0.5">{t('languages')}</div>
                         <div className="text-[0.8rem] font-medium text-text-main">{expert.languages}</div>
                       </div>
                       <div>
-                        <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-0.5">Location</div>
+                        <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-0.5">{t('location')}</div>
                         <div className="text-[0.8rem] font-medium text-text-main">{expert.location}</div>
                       </div>
                       <div>
-                        <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-0.5">Budget range</div>
+                        <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-0.5">{t('budgetRange')}</div>
                         <div className="text-[0.8rem] font-medium text-text-main">{expert.budget}</div>
                       </div>
                       <div>
-                        <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-0.5">Hourly rate</div>
+                        <div className="text-[0.66rem] font-bold uppercase tracking-[0.08em] text-text-muted/60 mb-0.5">{t('hourlyRate')}</div>
                         <div className="text-[0.8rem] font-medium text-primary">{expert.rate}</div>
                       </div>
                     </div>
@@ -342,13 +340,13 @@ export const HireExpertPage = () => {
                         rel="noopener noreferrer"
                         className="bg-primary text-white rounded-lg px-4 py-2 text-[0.82rem] font-semibold hover:opacity-80 transition-opacity no-underline"
                       >
-                        Contact
+                        {t('contact')}
                       </a>
                       <button
                         onClick={() => toggleCard(expert.id)}
                         className="flex items-center gap-1 text-[0.78rem] text-text-muted hover:text-text-main bg-transparent border-none cursor-pointer transition-colors"
                       >
-                        {isExpanded ? 'Show less' : 'Show more'}
+                        {isExpanded ? t('showLess') : t('showMore')}
                         <ChevronDown
                           size={14}
                           className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
@@ -362,8 +360,8 @@ export const HireExpertPage = () => {
           ) : (
             <div className="text-center py-16 text-text-muted">
               <div className="text-[2rem] mb-3">🔍</div>
-              <p className="font-semibold text-text-main mb-1.5">No experts found</p>
-              <p className="text-[0.85rem]">Try adjusting or resetting your filters.</p>
+              <p className="font-semibold text-text-main mb-1.5">{t('noneTitle')}</p>
+              <p className="text-[0.85rem]">{t('noneSubtitle')}</p>
             </div>
           )}
         </div>

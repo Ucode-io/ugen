@@ -1,7 +1,6 @@
 'use client'
 import { Link, usePathname } from '@/shared/lib/i18n/navigation'
 import Image from 'next/image'
-import { ThemeSwitcher } from '@/features/theme-switcher'
 import { LangSwitcher } from '@/features/lang-switcher'
 import { useTranslations } from 'next-intl'
 import { useState, useEffect, useRef } from 'react'
@@ -13,15 +12,14 @@ import { ChevronDown } from 'lucide-react'
 
 type ResourceItem = {
   icon: string
-  label: string
-  desc: string
+  key: 'connectors' | 'docs'
   href: string
   external?: boolean
 }
 
 const RESOURCES_DROPDOWN: ResourceItem[] = [
-  { icon: '🔌', label: 'Connectors', desc: '300+ integrations', href: 'https://ucode-2d4e6635.mintlify.app/integrations/integrations-list' },
-  { icon: '📖', label: 'Docs', desc: 'Guides & API reference', href: 'https://ucode-2d4e6635.mintlify.app/' },
+  { icon: '🔌', key: 'connectors', href: 'https://ucode-2d4e6635.mintlify.app/integrations/integrations-list' },
+  { icon: '📖', key: 'docs', href: 'https://ucode-2d4e6635.mintlify.app/' },
 ]
 
 export const Header = () => {
@@ -129,13 +127,13 @@ export const Header = () => {
             href="/"
             className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${pathname === '/' ? 'text-text-main bg-hover-bg' : 'text-text-muted hover:text-text-main hover:bg-hover-bg'}`}
           >
-            Home
+            {tNav('home')}
           </Link>
           <Link
             href="/pricing"
             className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${pathname === '/pricing' ? 'text-text-main bg-hover-bg' : 'text-text-muted hover:text-text-main hover:bg-hover-bg'}`}
           >
-            Pricing
+            {tNav('pricing')}
           </Link>
           <a
             href="https://t.me/ucode_support"
@@ -143,19 +141,19 @@ export const Header = () => {
             rel="noopener noreferrer"
             className="text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg px-3 py-1.5 rounded-lg transition-colors"
           >
-            Community
+            {tNav('community')}
           </a>
           <Link
             href="/templates"
             className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${pathname === '/templates' ? 'text-text-main bg-hover-bg' : 'text-text-muted hover:text-text-main hover:bg-hover-bg'}`}
           >
-            Templates
+            {tNav('templates')}
           </Link>
           <Link
             href="/hire-expert"
             className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${pathname === '/hire-expert' ? 'text-text-main bg-hover-bg' : 'text-text-muted hover:text-text-main hover:bg-hover-bg'}`}
           >
-            Hire an Expert
+            {tNav('hire_expert')}
           </Link>
 
           {/* Resources dropdown */}
@@ -164,7 +162,7 @@ export const Header = () => {
               onClick={() => setResourcesOpen(!resourcesOpen)}
               className="flex items-center gap-1 text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
             >
-              Resources
+              {tNav('resources')}
               <ChevronDown
                 size={13}
                 className={`transition-transform duration-200 ${resourcesOpen ? 'rotate-180' : ''}`}
@@ -176,7 +174,7 @@ export const Header = () => {
                 {RESOURCES_DROPDOWN.map((item) =>
                   item.external ? (
                     <a
-                      key={item.label}
+                      key={item.key}
                       href={item.href}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -187,13 +185,13 @@ export const Header = () => {
                         {item.icon}
                       </div>
                       <div className="flex-1 flex flex-col">
-                        <strong className="block text-[0.82rem] font-semibold text-text-main">{item.label}</strong>
-                        <span className="text-[0.74rem] text-text-muted">{item.desc}</span>
+                        <strong className="block text-[0.82rem] font-semibold text-text-main">{tNav(item.key)}</strong>
+                        <span className="text-[0.74rem] text-text-muted">{tNav(`${item.key}_desc`)}</span>
                       </div>
                     </a>
                   ) : (
                     <Link
-                      key={item.label}
+                      key={item.key}
                       href={item.href as any}
                       onClick={() => setResourcesOpen(false)}
                       className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg hover:bg-hover-bg transition-colors no-underline"
@@ -202,8 +200,8 @@ export const Header = () => {
                         {item.icon}
                       </div>
                       <div className="flex-1 flex flex-col ">
-                        <strong className="block text-[0.82rem] font-semibold text-text-main">{item.label}</strong>
-                        <span className="text-[0.74rem] text-text-muted">{item.desc}</span>
+                        <strong className="block text-[0.82rem] font-semibold text-text-main">{tNav(item.key)}</strong>
+                        <span className="text-[0.74rem] text-text-muted">{tNav(`${item.key}_desc`)}</span>
                       </div>
                     </Link>
                   )
@@ -215,18 +213,14 @@ export const Header = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        {/* <div className="flex items-center gap-2">
-          <ThemeSwitcher />
-          <LangSwitcher />
-        </div> */}
-        {/* <div className="h-4 w-px bg-border-subtle" /> */}
         <div className="flex items-center gap-3">
+          <LangSwitcher />
           {isAuthenticated ? (
             <button
               onClick={() => setActiveView('dashboard')}
               className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 cursor-pointer"
             >
-              Open u&#8209;gen
+              {tNav('open_ugen')}
             </button>
           ) : (
             <>

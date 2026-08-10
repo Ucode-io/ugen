@@ -1037,7 +1037,7 @@ export const PublishPopover = ({
             {publishStatus === "success" && mfUrl && (
               isLiveLoading ? (
                 <div
-                  title="Waiting for live deployment…"
+                  title={t('waitingDeployment')}
                   className="flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-main px-3 py-2 cursor-not-allowed opacity-60 select-none"
                 >
                   <Loader2 size={13} className="text-text-muted shrink-0 animate-spin" />

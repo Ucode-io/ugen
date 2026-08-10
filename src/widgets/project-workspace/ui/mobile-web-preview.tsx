@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { Smartphone, Rocket, X, Link2Off, Download } from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
 import { StyledQr } from "./styled-qr";
+import { useTranslations } from 'next-intl'
 
 interface MobilePreviewPanelProps {
   /** Project URL to encode in the QR code. Empty until the app is published. */
@@ -30,6 +31,7 @@ export const MobilePreviewPanel = ({
   onClose,
   className,
 }: MobilePreviewPanelProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   // Holds the live QR instance so the Download button can export it as a PNG.
   const qrInstanceRef = useRef<QRCodeStyling | null>(null);
 
@@ -52,7 +54,7 @@ export const MobilePreviewPanel = ({
           type="button"
           onClick={onClose}
           className="text-text-muted hover:bg-hover-bg hover:text-text-main absolute top-4 right-4 flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
-          aria-label="Close"
+          aria-label={t('close')}
         >
           <X size={16} />
         </button>
@@ -62,7 +64,7 @@ export const MobilePreviewPanel = ({
       <div className="mb-2 flex items-center gap-2.5">
         <Smartphone className="text-text-main h-5 w-5" />
         <h2 className="text-text-main text-lg font-semibold">
-          Preview on your phone
+          {t('previewOnPhone')}
         </h2>
       </div>
       <p className="text-text-muted mb-6 text-sm leading-relaxed">
@@ -77,7 +79,7 @@ export const MobilePreviewPanel = ({
             href={shareUrl}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Open published app"
+            aria-label={t('openPublishedApp')}
             title={shareUrl}
             className="group hover:ring-primary/30 rounded-xl bg-white p-1 shadow-md ring-1 ring-black/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
           >
@@ -93,7 +95,7 @@ export const MobilePreviewPanel = ({
             style={{ width: QR_SIZE + 8, height: QR_SIZE + 8 }}
           >
             <Link2Off className="h-5 w-5 opacity-50" />
-            Not published yet
+            {t('notPublished')}
           </div>
         )}
         <p className="text-text-muted max-w-60 text-center text-xs leading-relaxed">
@@ -112,7 +114,7 @@ export const MobilePreviewPanel = ({
           className="border-primary/40 text-text-main hover:bg-primary/5 hover:border-primary/60 flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Download size={14} />
-          Download
+          {t('download')}
         </button>
         <button
           type="button"
@@ -120,7 +122,7 @@ export const MobilePreviewPanel = ({
           className="bg-primary hover:bg-primary/90 flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-transparent px-4 py-2 text-sm font-medium text-white transition-colors"
         >
           <Rocket size={14} />
-          Publish
+          {t('publish')}
         </button>
       </div>
     </div>

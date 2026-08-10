@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/ui";
+import { useTranslations } from 'next-intl'
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
@@ -47,6 +48,7 @@ export const AddTemplateDialog = ({
   projectTitle,
   projectUrl,
 }: AddTemplateDialogProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const router = useRouter();
   const queryClient = useQueryClient();
   const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
@@ -194,7 +196,7 @@ export const AddTemplateDialog = ({
         },
       );
       await queryClient.invalidateQueries({ queryKey: ["ugen-templates"] });
-      toast.success("Template added");
+      toast.success(t('templateAdded'));
       router.push("/dashboard/templates");
       setIsOpen(false);
     } catch (e) {
@@ -211,11 +213,11 @@ export const AddTemplateDialog = ({
         <button
           type="button"
           className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-[12px] font-medium transition-all"
-          title="Add to template"
-          aria-label="Add to template"
+          title={t('addToTemplate')}
+          aria-label={t('addToTemplate')}
         >
           <BookTemplate size={14} className="text-primary/70" />
-          <span className="hidden sm:inline">Add template</span>
+          <span className="hidden sm:inline">{t('addTemplate')}</span>
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-[760px] gap-0 overflow-hidden p-0">
@@ -223,10 +225,10 @@ export const AddTemplateDialog = ({
           <DialogHeader>
             <DialogTitle className="text-text-main flex items-center gap-2">
               <BookTemplate size={16} className="text-primary" />
-              Add to templates
+              {t('addToTemplates')}
             </DialogTitle>
             <DialogDescription className="text-text-muted text-xs">
-              Create a reusable template from this workspace.
+              {t('createReusableTemplate')}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -236,7 +238,7 @@ export const AddTemplateDialog = ({
           <div className="flex gap-5">
             <div className="flex shrink-0 flex-col" style={{ width: 280 }}>
               <span className="text-text-muted mb-2 block text-[11px] font-semibold tracking-wider uppercase">
-                Preview image
+                {t('previewImage')}
               </span>
               <input
                 ref={fileInputRef}
@@ -261,7 +263,7 @@ export const AddTemplateDialog = ({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewUrl}
-                    alt="Template preview"
+                    alt={t('templatePreview')}
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
@@ -270,14 +272,14 @@ export const AddTemplateDialog = ({
                       onClick={() => fileInputRef.current?.click()}
                       className="rounded-lg bg-white/20 px-3 py-1.5 text-[11px] font-medium text-white backdrop-blur-sm hover:bg-white/30"
                     >
-                      Replace image
+                      {t('replaceImage')}
                     </button>
                     <button
                       type="button"
                       onClick={handleRemovePreview}
                       className="rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-medium text-white/80 hover:bg-white/20"
                     >
-                      Remove
+                      {t('remove')}
                     </button>
                   </div>
                 </div>
@@ -290,7 +292,7 @@ export const AddTemplateDialog = ({
                 >
                   <ImagePlus size={24} className="text-primary/60" />
                   <div className="text-center">
-                    <p className="text-[12px] font-medium">Upload preview</p>
+                    <p className="text-[12px] font-medium">{t('uploadPreview')}</p>
                     <p className="text-text-muted mt-0.5 text-[10px]">
                       PNG · JPG · 5MB
                     </p>
@@ -305,7 +307,7 @@ export const AddTemplateDialog = ({
                   htmlFor="template-name"
                   className="text-text-muted mb-2 block text-[11px] font-semibold tracking-wider uppercase"
                 >
-                  Template name
+                  {t('templateName')}
                 </label>
                 <input
                   id="template-name"
@@ -319,7 +321,7 @@ export const AddTemplateDialog = ({
 
               <div className="flex flex-1 flex-col">
                 <span className="text-text-muted mb-2 block text-[11px] font-semibold tracking-wider uppercase">
-                  Description
+                  {t('descriptionLabel')}
                 </span>
                 <div className="template-quill border-border-subtle bg-bg-main overflow-hidden rounded-lg border">
                   <ReactQuill
@@ -327,7 +329,7 @@ export const AddTemplateDialog = ({
                     value={templateDescription}
                     onChange={setTemplateDescription}
                     modules={QUILL_MODULES}
-                    placeholder="Describe what this template includes…"
+                    placeholder={t('describeTemplate')}
                   />
                 </div>
               </div>
@@ -337,7 +339,7 @@ export const AddTemplateDialog = ({
           {/* Row 2: Screenshots */}
           <div>
             <span className="text-text-muted mb-2 block text-[11px] font-semibold tracking-wider uppercase">
-              Images
+              {t('images')}
             </span>
             <input
               ref={screenshotInputRef}
@@ -356,7 +358,7 @@ export const AddTemplateDialog = ({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={s.localUrl}
-                    alt="Screenshot"
+                    alt={t('screenshot')}
                     className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                   />
                   {s.cdnUrl === null && (
@@ -411,7 +413,7 @@ export const AddTemplateDialog = ({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={lightboxUrl}
-                  alt="Screenshot preview"
+                  alt={t('screenshotPreview')}
                   className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
                   onClick={(e) => e.stopPropagation()}
                 />
@@ -433,7 +435,7 @@ export const AddTemplateDialog = ({
               type="button"
               className="text-text-muted hover:bg-hover-bg hover:text-text-main rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
             >
-              Cancel
+              {t('cancel')}
             </button>
           </DialogClose>
           <button

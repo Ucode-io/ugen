@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, githubApi } from '@/shared/api'
+import { api, githubApi, refreshAuthTokens } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
 
 export interface UserProject {
@@ -71,8 +71,10 @@ export interface SwitchProjectParams {
 }
 
 const refreshIntoProject = async (endpoint: string, params: SwitchProjectParams) => {
-  const { authApi } = await import('@/shared/api')
-  const { data } = await authApi.put(endpoint, params)
+  const data = await refreshAuthTokens(
+    endpoint as '/v2/refresh' | '/v2/refresh-superadmin',
+    params,
+  )
   // normalize: response may be nested under .response or flat
   const inner = data?.data
   return inner?.response ?? inner

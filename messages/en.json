@@ -36,7 +36,14 @@
     "move": "Move",
     "edit": "Edit",
     "delete": "Delete",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "community": "Community",
+    "hire_expert": "Hire an Expert",
+    "open_ugen": "Open u‑gen",
+    "connectors": "Connectors",
+    "connectors_desc": "300+ integrations",
+    "docs": "Docs",
+    "docs_desc": "Guides & API reference"
   },
   "Templates": {
     "title": "Templates",
@@ -139,7 +146,9 @@
         "continue": "Continue with Google",
         "signUp": "Sign up with Google",
         "or": "or"
-      }
+      },
+      "signUp": "Sign up",
+      "signIn": "Sign in"
     },
     "appVisibility": {
       "title": "App Visibility",
@@ -167,7 +176,8 @@
       "selfRecover": "Self Recover",
       "selfRegister": "Self Register",
       "saveChanges": "Save Changes",
-      "createType": "Create Type"
+      "createType": "Create Type",
+      "cancel": "Cancel"
     },
     "inviteUsers": {
       "title": "Invite Users",
@@ -200,6 +210,103 @@
     },
     "themeSwitcher": {
       "ariaLabel": "Toggle theme"
+    },
+    "oauthCallback": {
+      "closeWindow": "Close window",
+      "safelyClose": "You can safely close this tab and return to the app.",
+      "connectedAs": "Successfully connected as",
+      "accountConnected": "Your account is now connected.",
+      "closeAndRetry": "You can close this tab and try again.",
+      "githubFailed": "GitHub connection failed",
+      "goBackRetry": "Go back and retry",
+      "githubConnected": "GitHub connected!",
+      "continueBtn": "Continue"
+    },
+    "fileUpload": {
+      "pdf": "PDF",
+      "download": "Download",
+      "openInNewTab": "Open in new tab",
+      "remove": "Remove",
+      "uploadAsset": "Upload Asset",
+      "cancel": "Cancel",
+      "uploading": "Uploading...",
+      "uploadContent": "Upload Content"
+    },
+    "googleCalendar": {
+      "linked": "Linked",
+      "mapFieldsTitle": "Map fields to Google Calendar",
+      "noTables": "No tables found.",
+      "linkedToCalendar": "Linked to calendar",
+      "allTables": "All tables",
+      "required": "Required",
+      "noFields": "No fields found for this table.",
+      "optional": "Optional",
+      "dateFieldHint": "Works best with a date / date-time field",
+      "close": "Close",
+      "searchTables": "Search tables...",
+      "chooseField": "Choose a field…",
+      "mappingSaved": "Field mapping saved",
+      "mappingFailed": "Failed to save field mapping"
+    },
+    "googleAds": {
+      "back": "Back",
+      "done": "Done",
+      "close": "Close",
+      "noConnections": "No Google Lead Ads connections yet",
+      "connect": "Connect Google Lead Ads",
+      "yourConnections": "Your connections",
+      "newConnection": "New connection",
+      "mapping": "Mapping",
+      "targetTable": "Target table",
+      "formName": "Form name",
+      "fieldMapping": "Field mapping",
+      "mapEachField": "Map each Google form field onto a column of the selected table.",
+      "selectTable": "Select a table to start mapping fields.",
+      "googleField": "Google field",
+      "tableColumn": "Table column",
+      "required": "Required",
+      "addField": "Add field",
+      "noConnectionDetails": "No connection details available.",
+      "connectWebhook": "Connect the webhook in Google Ads",
+      "open": "Open",
+      "leadDelivery": "Lead delivery",
+      "pasteWebhook": "Paste the Webhook URL and Key above.",
+      "comeBackCheck": "Come back here and check the connection below.",
+      "copy": "Copy",
+      "consultationRequest": "Consultation request",
+      "removeField": "Remove field",
+      "webhookUrl": "Webhook URL",
+      "keySecret": "Key (secret)",
+      "connectionCreated": "Connection created",
+      "mappingSaved": "Mapping saved",
+      "connectionRemoved": "Connection removed",
+      "testLeadOk": "Test lead received — the connection works"
+    },
+    "dbDiagram": {
+      "selectDragTables": "Select & drag tables",
+      "panCanvas": "Pan canvas",
+      "autoArrange": "Auto-arrange (dagre)",
+      "notNull": "NOT NULL",
+      "unique": "UNIQUE",
+      "dbDiagram": "DB Diagram",
+      "both": "Both",
+      "tablesOnly": "Tables only",
+      "relationsFocus": "Relations focus",
+      "zoomOut": "Zoom out",
+      "zoomIn": "Zoom in",
+      "fitToScreen": "Fit to screen",
+      "loadDiagramFailed": "Failed to load diagram",
+      "noTablesToVisualise": "No tables to visualise",
+      "regenerateFromApi": "Regenerate from API schema",
+      "autoLayout": "Auto layout"
+    },
+    "pendingJoin": {
+      "joinProject": "Join Project",
+      "pendingInvite": "You have a pending project invitation",
+      "joined": "Joined successfully!",
+      "continueBtn": "Continue",
+      "invited": "You've been invited!",
+      "dismiss": "Dismiss"
     }
   },
   "databaseStudio": {
@@ -354,6 +461,19 @@
     "dateRangePicker": {
       "placeholder": "Pick a date range",
       "clear": "Clear"
+    },
+    "common": {
+      "noItemsFound": "No items found.",
+      "close": "Close",
+      "noEdges": "No edges provided",
+      "hoverNodeHint": "Hover a node to highlight its connections",
+      "noPreviewAvailable": "No preview available",
+      "loadFunctionFailed": "Failed to load function. Please try again.",
+      "login": "Login",
+      "password": "Password",
+      "register": "Register",
+      "enterLogin": "Enter your login",
+      "enterPassword": "Enter your password"
     }
   },
   "widgets": {
@@ -366,7 +486,26 @@
       "openUgen": "Open ugen"
     },
     "footer": {
-      "copyright": "© {year} Ucode UI. All rights reserved."
+      "tagline": "The AI-powered platform that turns ideas into ready products in 15 minutes.",
+      "product": "Product",
+      "resources": "Resources",
+      "company": "Company",
+      "pricing": "Pricing",
+      "templates": "Templates",
+      "connectors": "Connectors",
+      "community": "Community",
+      "docs": "Docs",
+      "hireExpert": "Hire an Expert",
+      "blog": "Blog",
+      "careers": "Careers",
+      "privacyPolicy": "Privacy policy",
+      "userAgreement": "User Agreement",
+      "cancelPolicy": "Cancellation Policy",
+      "companyInfo": "Company Info",
+      "copyright": "© {year} UCODE — All rights reserved.",
+      "businessDetails": "Legal entity: {legalName} — Address: {address} TIN: {tin}.",
+      "terms": "Terms",
+      "cancellation": "Cancellation"
     },
     "common": {
       "save": "Save",
@@ -409,71 +548,149 @@
       "untitledProject": "Untitled Project",
       "loading": "Loading...",
       "personal": "Personal",
-      "noRecentProjects": "No recent projects"
+      "noRecentProjects": "No recent projects",
+      "currentBalance": "Current balance",
+      "fundsAvailable": "Funds available for project usage and upcoming charges.",
+      "topUpBalance": "Top up balance",
+      "invoiceOverview": "Invoice overview",
+      "planDetails": "Plan details and next billing period.",
+      "upgrade": "Upgrade",
+      "extraUsage": "Extra usage",
+      "companyTokenPack": "Company token pack balance and AI plan usage.",
+      "packBalance": "Pack balance",
+      "tokenPacks": "Token packs",
+      "purchaseFromBalance": "Purchase from the current project balance.",
+      "tokenPacksUnavailable": "Token packs unavailable",
+      "retry": "Retry",
+      "noTokenPacks": "No token packs available",
+      "transactions": "Transactions",
+      "amount": "Amount",
+      "type": "Type",
+      "date": "Date",
+      "status": "Status",
+      "noTransactions": "No transactions found",
+      "billingActivityHint": "Your billing activity will appear here.",
+      "dailyPlan": "Daily plan",
+      "monthlyPlan": "Monthly plan",
+      "addFunds": "Add funds to your account",
+      "noPaymentCards": "No payment cards yet",
+      "addCardFirst": "Add a payment card first to top up your balance.",
+      "addCard": "Add card",
+      "chooseCard": "Choose card for top up",
+      "cardNumber": "Card number",
+      "expiry": "Expiry",
+      "action": "Action",
+      "deleteCardConfirm": "Delete this card?",
+      "expiryDate": "Expiry date (MM/YY)",
+      "verificationCode": "Verification code",
+      "mmYy": "MM/YY",
+      "topUpSuccess": "Transaction successfully created!",
+      "cardRemoved": "Card removed",
+      "cardAdded": "The card is successfully added!",
+      "upgradeYourPlan": "Upgrade your plan",
+      "balance": "Balance",
+      "topUpToRestore": "Top up to restore",
+      "temporary": "Temporary",
+      "restore": "Restore",
+      "current": "Current",
+      "scheduled": "Scheduled",
+      "feature": "Feature",
+      "enterprise": "Enterprise",
+      "custom": "Custom",
+      "downgradeCanceled": "Downgrade canceled",
+      "planUpdated": "Plan updated successfully",
+      "daily": "Daily",
+      "monthly": "Monthly",
+      "projectsLabel": "Projects",
+      "usersLabel": "Users",
+      "buildersLabel": "Builders",
+      "freePlanLabel": "Free plan",
+      "upgradeUnlock": "Upgrade to unlock the full workspace.",
+      "upgradePlan": "Upgrade plan",
+      "freePlanHint": "You're on the Free plan — upgrade anytime",
+      "returnSuperAdmin": "Return to super admin",
+      "logo": "Logo",
+      "dismiss": "Dismiss"
     },
     "landingPage": {
-      "aiBasedPlatform": "AI-Based Platform",
-      "heroTitle": "Build fast.\nScale Easy.",
-      "heroSubtitle": "Backend as a Service for your Digital Business. Every Ucode project is powered by an AI-based low-code platform that generates frontend and backend easily and quickly.",
-      "databases": {
-        "title": "Database and Analytics",
-        "description": "Every Ucode project is a dedicated PostgreSQL or MongoDB database, trusted by millions of developers.",
-        "list": {
-          "manageData": "Easy manage your Data",
-          "scalable": "PostgreSQL and MongoDB are the world's most scalable databases",
-          "lowcode": "Connect and manage your data with our Lowcode solution"
-        },
-        "postgresql": "PostgreSQL",
-        "mongodb": "MongoDB",
-        "clickhouse": "ClickHouse",
-        "relational": "Relational Engine",
-        "document": "Document Store",
-        "analytics": "Analytics Engine",
-        "ready": "Ready"
-      },
-      "edgeFunctions": {
-        "title": "Edge Functions",
-        "description": "Customize functions and easily author, deploy, and monitor serverless functions without managing servers or hosting. Easily write custom code.",
-        "platforms": {
-          "mobile": "Mobile",
-          "web": "Web",
-          "backend": "Backend",
-          "microfrontend": "Microfrontend"
-        }
-      },
-      "features": {
-        "title": "Everything you need",
-        "subtitle": "A complete suite of tools to ship your project in days, not months.",
-        "list": {
-          "storage": {
-            "title": "Storage",
-            "description": "Store, organize, and serve large files, from videos to images. (Minio, Amazon S3, R3)"
+      "hero": {
+        "badge": "AI-powered development platform",
+        "titleLead": "Build your own product",
+        "titleAccent": "in 15 minutes",
+        "subtitle": "Create apps and websites with AI — no engineering degree required.",
+        "placeholder": "Ask u-gen to build your app…",
+        "build": "Build",
+        "chips": {
+          "sales": {
+            "label": "💼 Sales dashboard",
+            "text": "A SaaS dashboard for tracking sales"
           },
-          "dataApi": {
-            "title": "Data APIs",
-            "description": "Instant ready-to-use Restful APIs. Connect existing services instantly."
+          "booking": {
+            "label": "📅 Booking app",
+            "text": "A booking app with Stripe payments"
           },
-          "auth": {
-            "title": "Authentication",
-            "description": "Invite and easily manage your users with Built-in powerful permission and access management."
+          "hr": {
+            "label": "🎉 HR onboarding",
+            "text": "An employee onboarding portal"
           },
-          "role": {
-            "title": "Role & Access",
-            "description": "Comprehensive Role Management, Access Management, and User Management built-in."
+          "landing": {
+            "label": "📣 Landing page",
+            "text": "A landing page with email capture"
+          },
+          "inventory": {
+            "label": "📦 Inventory tool",
+            "text": "An inventory management system"
           }
         }
       },
-      "integrations": {
-        "title": "Integrations",
-        "description": "Find an Integration. Connect with your favorite tools seamlessly.",
-        "viewAll": "View All Integrations",
-        "categories": {
-          "databases": "Databases",
-          "storage": "File Storage",
-          "apis": "API’s",
-          "versionControl": "Version control",
-          "maps": "Maps",
-          "customFunctions": "Custom functions"
+      "trusted": {
+        "title": "Trusted by growing companies"
+      },
+      "howItWorks": {
+        "badge": "How it works",
+        "titleLead": "Three steps to your",
+        "titleAccent": "live product",
+        "subtitle": "No DevOps. No boilerplate. No waiting weeks for a prototype.",
+        "steps": {
+          "describe": {
+            "title": "Describe your idea",
+            "desc": "Write what you need in plain English — no technical knowledge required. Be as detailed or as brief as you like.",
+            "tag": "Natural language"
+          },
+          "generate": {
+            "title": "AI builds it for you",
+            "desc": "Our AI generates your complete app — database schema, REST API, and a polished frontend — in minutes.",
+            "tag": "Instant generation"
+          },
+          "deploy": {
+            "title": "Deploy & share",
+            "desc": "One-click deployment. Share your live URL with teammates, clients, or the world immediately.",
+            "tag": "One-click deploy"
+          }
+        }
+      },
+      "templates": {
+        "badge": "Templates",
+        "titleLead": "Discover",
+        "titleAccent": "templates",
+        "subtitle": "Start from a production-ready template and customize in minutes.",
+        "browseAll": "Browse all →"
+      },
+      "stats": {
+        "projects": {
+          "value": "12,000+",
+          "label": "Projects built",
+          "sub": "by founders & teams"
+        },
+        "uptime": {
+          "value": "99.9%",
+          "label": "Platform uptime",
+          "sub": "across all regions"
+        },
+        "buildTime": {
+          "value": "< 15 min",
+          "label": "Average build time",
+          "sub": "from idea to live app"
         }
       }
     },
@@ -501,7 +718,34 @@
       "refreshSyncHint": "Try refreshing or syncing your translations.",
       "environmentManagement": "Environment Management",
       "envDescription": "Configure and switch between project environments.",
-      "unknownDevice": "Unknown Device"
+      "unknownDevice": "Unknown Device",
+      "personalInformation": "Personal information",
+      "profileDetailsHint": "Profile details visible across your workspace.",
+      "devicesHint": "Devices and browsers currently signed in.",
+      "newSignIns": "New sign-ins will appear here after verification.",
+      "removeSession": "Remove session",
+      "configureProject": "Configure your project details and preferences",
+      "projectLogo": "Project Logo",
+      "projectName": "Project Name",
+      "projectLanguages": "Project Languages",
+      "timezone": "Timezone",
+      "iconCategories": "Icon Categories",
+      "cancel": "Cancel",
+      "addLanguage": "Add Language",
+      "addKey": "Add Key",
+      "export": "Export",
+      "addTranslationKey": "Add New Translation Key",
+      "category": "Category",
+      "keyName": "Key Name",
+      "createKey": "Create Key",
+      "manageLanguages": "Manage Project Languages",
+      "saveLanguages": "Save Languages",
+      "clickToUpload": "Click to upload",
+      "enterProjectName": "Enter project name",
+      "searchKeys": "Search keys or translations...",
+      "iconCategoryRequired": "At least one icon category is required",
+      "logoUploadFailed": "Failed to upload project logo",
+      "keyCreationTodo": "Key creation logic would go here"
     },
     "chats": {
       "title": "Chats",
@@ -516,7 +760,8 @@
         "name": "Name",
         "project": "Project",
         "updated": "Updated"
-      }
+      },
+      "draft": "Draft"
     },
     "projects": {
       "title": "Projects",
@@ -565,7 +810,8 @@
       "projectDescription": "Project description",
       "projectDescriptionPlaceholder": "Brief description of your project",
       "moveProjectTitle": "Move Project to Folder",
-      "selectFolder": "Select folder"
+      "selectFolder": "Select folder",
+      "folderLabel": "Folder"
     },
     "analytics": {
       "title": "Analytics",
@@ -621,7 +867,31 @@
       "fullQuery": "Full Query",
       "visitorAnalytics": "Visitor Analytics",
       "currentVisitors": "{count} current visitors",
-      "audienceBreakdown": "Audience Breakdown"
+      "audienceBreakdown": "Audience Breakdown",
+      "analyticsTitle": "Analytics",
+      "analyticsSubtitle": "Monitor project performance, API health, and user activity.",
+      "currentPlan": "Current Plan",
+      "upgradePlan": "Upgrade Plan",
+      "planComparison": "Plan Comparison",
+      "feature": "Feature",
+      "source": "Source",
+      "page": "Page",
+      "country": "Country",
+      "device": "Device",
+      "allClear": "All clear!",
+      "learnInsights": "Learn more about Insights",
+      "highErrorRate": "High Error Rate in Edge Functions",
+      "errorSpike": "We detected a spike in error rates (15%) for Edge Functions in the last hour.",
+      "enableIndexAdvisor": "Enable Index Advisor",
+      "enableAdvisor": "Enable Advisor",
+      "notNow": "Not now",
+      "schedulerStatus": "Scheduler Status",
+      "runningFunctions": "Running Functions",
+      "queuedFunctions": "Queued Functions",
+      "enterprise": "Enterprise",
+      "custom": "Custom",
+      "functionCalls": "Function Calls",
+      "failureRate": "Failure Rate"
     },
     "dashboard": {
       "untitledProject": "Untitled Project",
@@ -633,7 +903,10 @@
       "newProject": "New project",
       "promptPlaceholder": "Ask Ugen to create a dashboard to...",
       "addAttachment": "Add attachment",
-      "plan": "Plan"
+      "plan": "Plan",
+      "whatWillYou": "What will you",
+      "promptPlaceholderLong": "Describe your idea and let AI turn it into a working product",
+      "aiProvider": "AI provider"
     },
     "databaseStudio": {
       "tabs": {
@@ -659,10 +932,7 @@
         "queryError": "Query Error",
         "noResultsYet": "No results yet. Run a query to see data."
       },
-      "dbDiagram": {
-        "header": "Database Diagram",
-        "hint": "Auto-detected relations from FK constraints and slug patterns"
-      },
+      "dbDiagram": "DB Diagram",
       "records": {
         "count": "{count} records",
         "limit": "Limit",
@@ -744,7 +1014,101 @@
       "common": {
         "cancel": "Cancel",
         "delete": "Delete"
-      }
+      },
+      "tableEditor": "Table Editor",
+      "sqlEditor": "SQL Editor",
+      "databaseSize": "Database size",
+      "started": "Started:",
+      "finished": "Finished:",
+      "rowsPerPage": "Rows per page",
+      "logsTitle": "Logs",
+      "logsSubtitle": "Monitor system activity and serverless function executions.",
+      "logType": "Log Type",
+      "activityLogs": "Activity Logs",
+      "functionLogs": "Function Logs",
+      "action": "Action",
+      "timeRange": "Time Range",
+      "collection": "Collection",
+      "statusLabel": "Status",
+      "deleteRecord": "Delete record",
+      "cancelBtn": "Cancel",
+      "editRecord": "Edit record",
+      "updateFieldsHint": "Update fields and save changes",
+      "commaSeparated": "Comma-separated values",
+      "recordUpdated": "Record updated",
+      "recordUpdateFailed": "Failed to update record",
+      "noOptions": "No options found",
+      "actions": "Actions",
+      "autoGen": "Auto-gen",
+      "selectTableRecords": "Select a table to view its records",
+      "saveChanges": "Save changes",
+      "columnsLabel": "Columns",
+      "toggleColumns": "Toggle columns",
+      "deselectAll": "Deselect all",
+      "addField": "Add field",
+      "exportDdl": "Export DDL",
+      "refreshRows": "Refresh rows",
+      "exportJson": "Export all to .json",
+      "exportCsv": "Export all to .csv",
+      "exportXlsx": "Export all to .xlsx",
+      "noActiveFilters": "No active filters. Click Add filter.",
+      "addFilterBtn": "Add filter",
+      "clearFiltersBtn": "Clear filters",
+      "clearValue": "Clear value",
+      "tableView": "Table view",
+      "schemaView": "Schema view",
+      "refresh": "Refresh",
+      "previousPage": "Previous Page",
+      "currentPage": "Current page",
+      "nextPage": "Next Page",
+      "options": "Options",
+      "removeFilter": "Remove filter",
+      "recordAdded": "Record added successfully",
+      "recordAddFailed": "Failed to add record",
+      "clearValueFailed": "Failed to clear value",
+      "noRecordsExport": "No records to export",
+      "exportedJson": "Successfully exported to JSON",
+      "exportedCsv": "Successfully exported to CSV",
+      "exportedXlsx": "Successfully exported to XLSX",
+      "exportFailed": "Failed to export data",
+      "recordNoGuid": "Record has no guid — cannot delete",
+      "recordDeleted": "Record deleted",
+      "recordDeleteFailed": "Failed to delete record",
+      "deleteFieldTitle": "Delete field",
+      "requiredLabel": "Required",
+      "selectTableSchema": "Select a table to view its schema",
+      "noColumnsFound": "No columns found for this table.",
+      "labelPlaceholder": "Label (e.g. Phone Number)",
+      "clearRelation": "Clear relation",
+      "systemFieldHint": "System field — cannot be deleted",
+      "notNull": "NOT NULL",
+      "editField": "Edit field",
+      "labelRequired": "Label is required",
+      "slugRequired": "Slug is required",
+      "selectRelatedTable": "Please select a related table",
+      "addFieldFailed": "Failed to add field",
+      "updateFieldFailed": "Failed to update field",
+      "deleteFieldFailed": "Failed to delete field",
+      "fieldNoId": "Cannot delete: field has no ID",
+      "savedQueries": "Saved Queries",
+      "saveQuery": "Save Query",
+      "saveAsEndpoint": "Save as Custom Endpoint",
+      "nameLabel": "Name",
+      "methodLabel": "Method",
+      "descriptionOptional": "Description (Optional)",
+      "loadIntoEditor": "Load into Editor",
+      "endpointDescPlaceholder": "Description of what this endpoint does...",
+      "createTable": "Create table",
+      "createNewTable": "Create new table",
+      "defineLabelSlug": "Define a label and slug for the new table.",
+      "label": "Label",
+      "slug": "Slug",
+      "descriptionLabel": "Description",
+      "create": "Create",
+      "searchTables": "Search tables...",
+      "optional": "Optional",
+      "tableCreated": "Table created",
+      "tableCreateFailed": "Failed to create table"
     },
     "workspaceChat": {
       "mockMessage": "Hi there! I am your AI assistant for this workspace. How can I help you build your project today? \n\nYou can ask me to write code, debug issues, or plan architecture.",
@@ -836,7 +1200,21 @@
         "stats": "Statistics",
         "relations": "Relations",
         "tech": "Tech stack"
-      }
+      },
+      "resendMessage": "Resend message",
+      "likeMessage": "Like message",
+      "dislikeMessage": "Dislike message",
+      "versionHistory": "Version History",
+      "toggleChatPosition": "Toggle chat position",
+      "reactionFailed": "Could not update your reaction. Please try again.",
+      "upgradeYourPlan": "Upgrade your plan",
+      "dailyTokens": "Daily tokens",
+      "monthlyTokens": "Monthly tokens",
+      "project": "Project",
+      "newFrontend": "New frontend",
+      "noItems": "No items available",
+      "loadItemsFailed": "Failed to load items",
+      "providerChangeFailed": "Failed to change provider"
     },
     "mediaGallery": {
       "failedToLoad": "Failed to load files",
@@ -854,75 +1232,105 @@
       "gridTooltip": "Current: {count} columns. Click to scale.",
       "searchPlaceholder": "Search assets...",
       "deleting": "Deleting...",
-      "deleteCount": "Delete ({count})"
+      "deleteCount": "Delete ({count})",
+      "newFolder": "New Folder",
+      "createFolderHint": "Create a new folder to organize your files.",
+      "cancelBtn": "Cancel",
+      "creating": "Creating...",
+      "create": "Create",
+      "folderNamePlaceholder": "Folder name",
+      "folderNameRequired": "Folder name is required",
+      "parentFolderMissing": "Parent folder is missing",
+      "folderCreated": "Folder created",
+      "uploadNewAssets": "Upload New Assets",
+      "files": "Files",
+      "filesSubtitle": "Manage uploaded files and media assets",
+      "upgradePlan": "Upgrade Plan",
+      "uploadFiles": "Upload Files",
+      "name": "Name",
+      "type": "Type",
+      "size": "Size",
+      "folder": "Folder",
+      "folderUpper": "FOLDER",
+      "fileSize": "File size",
+      "gridView": "Grid View",
+      "listView": "List View"
     },
     "pricing": {
-      "plans": "Pricing Plans",
-      "compareTitle": "Compare our plans <br /> and find yours",
-      "compareSubtitle": "Simple, transparent pricing that grows with you. <br /> Try any plan free for 30 days. No credit card required.",
-      "getStarted": "Get started",
-      "chatSales": "Chat to sales",
-      "popular": "Popular",
-      "compareFeatures": "Compare features in detail",
-      "findPerfect": "Find the perfect combination of services and limits for your project.",
-      "month": "/ mth",
-      "categories": {
-        "general": "General",
-        "servers": "Servers",
-        "support": "Support",
-        "security": "Compliance & Security",
-        "connectivity": "Connectivity"
-      },
-      "cards": {
-        "os": {
-          "title": "Open source",
-          "price": "Free",
-          "description": "Basic features for up to 10 employees with everything you need."
+      "badge": "Pricing",
+      "titleLead": "Simple, transparent",
+      "titleAccent": "pricing",
+      "subtitle": "Start for free and scale as you grow. Per-user pricing — pay only for what you use.",
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "save": "Save 13%",
+      "perMonth": "per user · billed monthly",
+      "perYear": "per user · billed annually",
+      "perForeverFree": "per user · forever free",
+      "perTailored": "tailored to your needs",
+      "unlimited": "Unlimited",
+      "custom": "Custom",
+      "free": "Free",
+      "otherGroup": "Other",
+      "mostPopular": "Most popular",
+      "feature": "Feature",
+      "enterprise": "Enterprise",
+      "compareLead": "Compare",
+      "compareAccent": "plans",
+      "faqLead": "Frequently asked",
+      "faqAccent": "questions",
+      "ctaTitle": "Start building for free",
+      "ctaSubtitle": "No credit card. No engineers needed. Just you and your ideas.",
+      "ctaButton": "Create free account →",
+      "plans": {
+        "free": {
+          "desc": "Perfect for individuals exploring the platform. No credit card required.",
+          "cta": "Get started free"
         },
-        "small": {
-          "title": "Small",
-          "price": "$300",
-          "description": "Advanced features for growing teams and startups."
+        "basic": {
+          "desc": "For small teams building and shipping real products.",
+          "cta": "Start free trial →"
         },
-        "medium": {
-          "title": "Medium",
-          "price": "$600",
-          "description": "Advanced features and reporting, better workflows and automation."
+        "pro": {
+          "desc": "For growing teams with advanced scale and custom requirements.",
+          "cta": "Start free trial →"
         },
         "enterprise": {
-          "title": "Enterprise",
-          "price": "Custom",
-          "description": "Personalised service and enterprise security for large teams."
+          "desc": "For large organisations requiring custom scale, security, and compliance.",
+          "cta": "Contact sales →"
         }
       },
-      "features": {
-        "totalUsers": "Total Users & Roles",
-        "configuration": "Configuration",
-        "apiRequestsMonth": "API Requests / Month",
-        "apiRequestsSecond": "API Requests / Second",
-        "functions": "Functions",
-        "microfrontend": "Microfrontend",
-        "databaseSize": "Database Size",
-        "assetSize": "Asset Size info",
-        "dbServer": "Database Server",
-        "fileServer": "File Server",
-        "functionServer": "Function Server",
-        "microfrontendServer": "Microfrontend Server",
-        "customDomain": "Custom Domain",
-        "failover": "Failover Instance(s)",
-        "communitySupport": "Community Support",
-        "designatedSupport": "Designated Support",
-        "dedicatedDeveloper": "Dedicated Developer",
-        "logRetention": "Log retention",
-        "rbac": "Role Based Acces Control",
-        "menuPermissions": "Menu Permissions",
-        "tablePermissions": "Table Permissions",
-        "fieldPermissions": "Field Permissions",
-        "restApi": "REST API",
-        "assetApi": "Image & Asset API",
-        "webHooks": "Web Hooks",
-        "directDb": "Direct Database Access"
-      }
+      "enterpriseFeatures": {
+        "builders": "Custom Builders",
+        "credits": "Custom credit limit",
+        "projects": "Custom Projects"
+      },
+      "faq": [
+        {
+          "q": "Can I switch plans anytime?",
+          "a": "Yes. Upgrade or downgrade at any time. Upgrades take effect immediately; downgrades apply at the end of your billing period."
+        },
+        {
+          "q": "Can I change my billing period?",
+          "a": "Yes — you can switch between monthly and annual billing at renewal. Switching to annual applies immediately and you're credited for any unused time."
+        },
+        {
+          "q": "Do you offer a free trial on paid plans?",
+          "a": "Starter and Pro plans come with a 14-day free trial — no credit card required. Cancel anytime."
+        },
+        {
+          "q": "What happens when I exceed my limits?",
+          "a": "API requests over limit are charged at $0.001 per request. API requests over the per-second limit are blocked. Extra server functions and microfrontends are $10 and $20 each. Storage overages are $10 per 10 GB."
+        },
+        {
+          "q": "What happens to my apps if I downgrade?",
+          "a": "Your apps remain intact but may become read-only if you exceed the free plan limits. You have 30 days to export your data or upgrade again."
+        },
+        {
+          "q": "What payment methods do you accept?",
+          "a": "We accept all major credit cards (Visa, Mastercard, Amex) and wire transfers for annual enterprise contracts."
+        }
+      ]
     },
     "clientTypeManagement": {
       "loading": "Loading client platforms...",
@@ -985,7 +1393,39 @@
         "view": "View",
         "automaticFilters": "Automatic filters",
         "addFilter": "Add Filter"
-      }
+      },
+      "menuPermissions": "Menu Permissions",
+      "menu": "Menu",
+      "accessPermissions": "Access Permissions",
+      "noMenuPages": "No menu pages found.",
+      "menuUpdateFailed": "Failed to update menu permission",
+      "menuObjects": "Menu Objects",
+      "permissions": "Permissions",
+      "permissionsSubtitle": "Configure menu page permissions per user type and role",
+      "userType": "User type",
+      "addType": "Add Type",
+      "roleLabel": "Role",
+      "noRoles": "No roles yet",
+      "createRoleBtn": "Create Role",
+      "roleNameLabel": "Role Name",
+      "statusLabel": "Status",
+      "cancelBtn": "Cancel",
+      "createUserType": "Create User Type",
+      "typeName": "Type Name",
+      "selectUserType": "Select user type",
+      "selectRoleType": "Select role",
+      "permission": "Permission",
+      "viewPermission": "View Permission",
+      "viewLabel": "View Label",
+      "setting": "Setting",
+      "targetObject": "Target Object",
+      "sourceRelation": "Source Relation",
+      "notInTab": "Not in tab",
+      "readUpper": "READ",
+      "writeUpper": "WRITE",
+      "updateUpper": "UPDATE",
+      "deleteUpper": "DELETE",
+      "publicUpper": "PUBLIC"
     },
     "roleManage": {
       "loading": "Loading roles...",
@@ -1004,14 +1444,931 @@
       "roleName": "Role Name",
       "roleNamePlaceholder": "Manager, Moderator, etc.",
       "clientType": "Client Type",
-      "selectClientType": "Select client type",
+      "selectClientType": "Please select a client type",
       "statusDescription": {
         "active": "Role is active and usable",
         "inactive": "Role is inactive"
       },
       "saving": "Saving...",
       "cancel": "Cancel",
-      "save": "Save Changes"
+      "save": "Save Changes",
+      "nameRequired": "Name is required (min 2 characters)"
+    },
+    "connectors": {
+      "badge": "Connectors",
+      "titleLead": "Connect everything",
+      "titleAccent": "you already use",
+      "subtitle": "300+ pre-built connectors for the world's most popular services. One click to integrate, zero configuration headaches.",
+      "getStarted": "Get started free →",
+      "requestLink": "Request a connector",
+      "requestTitle": "Don't see your tool?",
+      "requestSubtitle": "We add new connectors every week. Request yours and we'll prioritise it.",
+      "requestButton": "Request a connector →",
+      "groups": {
+        "payments": "💳 Payments",
+        "marketing": "📣 Marketing & CRM",
+        "productivity": "🛠️ Productivity",
+        "databases": "🗄️ Databases & Storage",
+        "hr": "👥 HR & People",
+        "devtools": "🔧 Developer Tools"
+      }
+    },
+    "docs": {
+      "badge": "Docs",
+      "titleLead": "Build faster with",
+      "titleAccent": "clear documentation",
+      "subtitle": "Everything you need to get started, connect your tools, and ship your first app in minutes.",
+      "quickStart": "Quick start →",
+      "apiReference": "API reference",
+      "gettingStarted": "Getting started",
+      "stepsLead": "Up and running",
+      "stepsAccent": "in three steps",
+      "step": "Step",
+      "guidesEyebrow": "Guides",
+      "guidesLead": "Learn every",
+      "guidesAccent": "corner of u‑gen",
+      "steps": {
+        "workspace": {
+          "title": "Create your workspace",
+          "desc": "Sign up, choose your plan, and set up your first workspace — takes under two minutes."
+        },
+        "data": {
+          "title": "Connect your data",
+          "desc": "Link a database, API, or spreadsheet. u‑gen auto-generates a schema and UI scaffold."
+        },
+        "publish": {
+          "title": "Build & publish",
+          "desc": "Use the visual editor or AI prompt to build your UI, then publish to your custom domain."
+        }
+      },
+      "guides": {
+        "data": {
+          "title": "Data & databases",
+          "desc": "Connect PostgreSQL, MySQL, MongoDB, Supabase, Airtable and more in one click."
+        },
+        "ui": {
+          "title": "UI components",
+          "desc": "100+ components: tables, forms, charts, kanban boards, calendars, and custom widgets."
+        },
+        "connectors": {
+          "title": "Connectors & APIs",
+          "desc": "Trigger webhooks, call REST endpoints, and build multi-step automations with zero code."
+        },
+        "auth": {
+          "title": "Auth & permissions",
+          "desc": "Set up login, user roles, and row-level security. SSO and OAuth supported."
+        },
+        "publishing": {
+          "title": "Publishing & domains",
+          "desc": "Deploy to a u‑gen subdomain or your own custom domain. One-click SSL included."
+        },
+        "templates": {
+          "title": "Templates",
+          "desc": "Clone a template and customize it. Step-by-step walkthrough for each starter."
+        }
+      }
+    },
+    "templatesPublic": {
+      "badge": "Templates",
+      "titleLead": "Launch faster with",
+      "titleAccent": "ready-made templates",
+      "subtitle": "Production-ready app templates across every category. Clone, customise, and ship in minutes.",
+      "useFree": "Use a template free →",
+      "loadError": "Failed to load templates. Please try again later.",
+      "empty": "No templates available yet.",
+      "ctaTitle": "Find your template and ship today",
+      "ctaSubtitle": "All templates are free to clone on any plan.",
+      "ctaButton": "Get started →"
+    },
+    "templateDetail": {
+      "notFound": "Template not found.",
+      "backToTemplates": "Back to Templates",
+      "back": "Back",
+      "useTemplate": "Use Template",
+      "screenshots": "Screenshots",
+      "screenshot": "Screenshot {index}",
+      "screenshotPreview": "Screenshot preview",
+      "about": "About this template",
+      "noPreview": "No preview available",
+      "reload": "Reload preview",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit fullscreen",
+      "prevImage": "Previous image",
+      "nextImage": "Next image",
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobile"
+    },
+    "hireExpert": {
+      "titleLead": "Hire a",
+      "titleAccent": "u‑gen expert",
+      "subtitle": "u‑gen Experts provide the expertise and insight to help you build and launch your products faster — from quick consultations to full project delivery.",
+      "becomePrefix": "Want to become a u‑gen Expert?",
+      "applyHere": "Apply here →",
+      "allServices": "All Services",
+      "anyBudget": "Any Budget",
+      "resetAll": "Reset all",
+      "expert": "Expert",
+      "experts": "Experts",
+      "services": "Services",
+      "languages": "Languages",
+      "location": "Location",
+      "budgetRange": "Budget range",
+      "hourlyRate": "Hourly rate",
+      "contact": "Contact",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "noneTitle": "No experts found",
+      "noneSubtitle": "Try adjusting or resetting your filters.",
+      "filters": {
+        "backend": "Backend Development",
+        "mobile": "Mobile Development",
+        "frontend": "Frontend Development",
+        "design": "UI / UX Design",
+        "devops": "DevOps",
+        "qa": "QA & Testing",
+        "data": "Data & AI",
+        "small": "Under $5K",
+        "mid": "$5K – $20K",
+        "large": "$20K+"
+      },
+      "modal": {
+        "title": "Become a u-gen Expert",
+        "description": "Tell us about yourself — we'll reach out with next steps.",
+        "fullName": "Full name",
+        "fullNamePlaceholder": "Jane Doe",
+        "companyTeam": "Company / Team",
+        "companyPlaceholder": "Acme Studio",
+        "email": "Email",
+        "emailPlaceholder": "you@example.com",
+        "phone": "Phone / Telegram",
+        "phonePlaceholder": "+998 90 123 45 67",
+        "servicesLabel": "Services you offer",
+        "servicesPlaceholder": "Backend, Mobile, UI/UX…",
+        "portfolio": "Portfolio / Website",
+        "portfolioPlaceholder": "https://…",
+        "message": "Anything else?",
+        "messagePlaceholder": "Tell us about your experience…",
+        "cancel": "Cancel",
+        "submit": "Send application",
+        "success": "Application sent! We'll get back to you soon.",
+        "error": "Failed to submit application"
+      }
+    },
+    "legal": {
+      "eyebrow": "Legal",
+      "effectiveDate": "Effective date: {date}"
+    },
+    "userAgreement": {
+      "title": "User",
+      "accentTitle": "Agreement",
+      "effectiveDate": "July 28, 2026",
+      "intro": "This User Agreement sets the main terms for accessing and using Ugen products, services, workspaces, integrations, and generated applications.",
+      "sections": [
+        {
+          "id": "acceptance",
+          "title": "1. Acceptance of the Agreement",
+          "blocks": [
+            "By creating an account, accessing Ugen, or using any Ugen service, you agree to this User Agreement and any policies referenced by it.",
+            "If you use Ugen on behalf of a company or organization, you confirm that you have authority to bind that organization to this Agreement."
+          ]
+        },
+        {
+          "id": "accounts",
+          "title": "2. Accounts and Security",
+          "blocks": [
+            "You are responsible for keeping account credentials secure and for all activity that occurs under your account or workspace.",
+            "You must provide accurate account and billing information and keep it up to date."
+          ]
+        },
+        {
+          "id": "acceptable-use",
+          "title": "3. Acceptable Use",
+          "blocks": [
+            "You may not use Ugen to violate applicable law, infringe third-party rights, distribute malware, attempt unauthorized access, abuse platform resources, or interfere with the service.",
+            "You are responsible for the projects, content, data, automations, integrations, and applications created or operated through your workspace."
+          ]
+        },
+        {
+          "id": "customer-data",
+          "title": "4. Customer Data and Integrations",
+          "blocks": [
+            "You retain responsibility for data uploaded to or processed through Ugen, including data received from third-party integrations.",
+            "When you connect third-party services, you authorize Ugen to access and process the connected data only as needed to provide the requested product functionality."
+          ]
+        },
+        {
+          "id": "plans-and-payments",
+          "title": "5. Plans, Payments, and Cancellation",
+          "blocks": [
+            "Paid plans, usage limits, billing periods, and prices are shown at checkout or in the billing area. You agree to pay applicable fees and taxes for the plan you select.",
+            "Cancellation is handled according to the Cancellation Policy unless a separate written agreement states otherwise."
+          ]
+        },
+        {
+          "id": "availability",
+          "title": "6. Service Availability and Changes",
+          "blocks": [
+            "We may update, improve, suspend, or discontinue parts of Ugen to maintain security, comply with law, support product development, or protect users and the platform.",
+            "We work to keep the service available, but we do not guarantee uninterrupted or error-free operation."
+          ]
+        },
+        {
+          "id": "liability",
+          "title": "7. Disclaimers and Limitation of Liability",
+          "blocks": [
+            "Ugen is provided on an as-is and as-available basis to the maximum extent permitted by applicable law.",
+            "To the maximum extent permitted by law, UCODE is not liable for indirect, incidental, consequential, special, punitive, or lost-profit damages arising from use of the service."
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "8. Contact",
+          "blocks": [
+            "For questions about this User Agreement, contact {businessEmail}.",
+            "{legalName}, {address}"
+          ]
+        }
+      ]
+    },
+    "cancelPolicy": {
+      "title": "Cancellation",
+      "accentTitle": "Policy",
+      "effectiveDate": "July 28, 2026",
+      "intro": "This Cancellation Policy explains how customers may cancel paid Ugen subscriptions and what happens after cancellation.",
+      "sections": [
+        {
+          "id": "subscriptions-and-renewals",
+          "title": "1. Subscriptions and Renewals",
+          "blocks": [
+            "Ugen subscriptions may renew automatically at the end of the selected billing period unless cancelled before the next renewal date.",
+            "The active plan, billing period, renewal date, and available limits are shown inside the account billing area when billing is enabled for the workspace."
+          ]
+        },
+        {
+          "id": "how-to-cancel",
+          "title": "2. How to Cancel",
+          "blocks": [
+            "A workspace owner or authorized administrator may cancel a paid plan from the billing settings in the Ugen dashboard, where available.",
+            "If cancellation controls are not available in the dashboard, contact {businessEmail} from the email address associated with the workspace and include the workspace or company name."
+          ]
+        },
+        {
+          "id": "effective-date-of-cancellation",
+          "title": "3. Effective Date of Cancellation",
+          "blocks": [
+            "Cancellation usually takes effect at the end of the current paid billing period. Access to paid features may continue until the paid period ends, unless otherwise stated in the applicable order, invoice, or written agreement.",
+            "After cancellation takes effect, the workspace may be moved to a free plan or access to paid features may be limited."
+          ]
+        },
+        {
+          "id": "refunds",
+          "title": "4. Refunds",
+          "blocks": [
+            "Fees already paid are generally non-refundable unless required by applicable law or expressly agreed in writing by UCODE.",
+            "If a charge appears incorrect, contact us as soon as possible so we can review the payment, invoice, and account activity."
+          ]
+        },
+        {
+          "id": "data-after-cancellation",
+          "title": "5. Data After Cancellation",
+          "blocks": [
+            "Cancelling a subscription does not automatically delete workspace data. Users remain responsible for exporting or deleting project data according to the product functionality available to them.",
+            "Some information may be retained as required for billing, security, audit, legal compliance, dispute resolution, or legitimate business records."
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "6. Contact",
+          "blocks": [
+            "Questions about cancellation may be sent to {businessEmail}.",
+            "{legalName}, {address}"
+          ]
+        }
+      ]
+    },
+    "companyInfo": {
+      "title": "Company",
+      "accentTitle": "Info",
+      "intro": "Official business information for UCODE and the Ugen service.",
+      "sections": [
+        {
+          "id": "legal-entity",
+          "title": "1. Legal Entity",
+          "blocks": [
+            "{legalName}",
+            "Taxpayer identification number: {tin}."
+          ]
+        },
+        {
+          "id": "address",
+          "title": "2. Address",
+          "blocks": [
+            "{address}"
+          ]
+        },
+        {
+          "id": "business-phone",
+          "title": "3. Business Phone",
+          "blocks": [
+            "USA: {businessPhoneUS}",
+            "Uzbekistan: {businessPhoneUZ}"
+          ]
+        },
+        {
+          "id": "business-email",
+          "title": "4. Business Email",
+          "blocks": [
+            "{businessEmail}"
+          ]
+        },
+        {
+          "id": "website",
+          "title": "5. Website",
+          "blocks": [
+            "{website}"
+          ]
+        }
+      ]
+    },
+    "privacyPolicy": {
+      "title": "Privacy",
+      "accentTitle": "Policy",
+      "effectiveDate": "July 9, 2026",
+      "intro": "This Privacy Policy explains how “UCODE MCHJ” (“Ucode”, “we”, “us”, or “our”) collects, uses, stores, and protects personal information when you use Ucode, including Google Calendar and Instagram Direct integrations.",
+      "contact": {
+        "title": "10. Contact Us",
+        "intro": "If you have questions about this Privacy Policy or how Ucode handles information, contact us:",
+        "emailLabel": "Email",
+        "addressLabel": "Address",
+        "websiteLabel": "Website"
+      },
+      "sections": [
+        {
+          "id": "information-we-process",
+          "title": "1. Information We Process",
+          "blocks": [
+            "When you use Ucode, we may process account, project, and workspace information required to provide the service.",
+            "If you choose to connect Google Calendar to a Ucode project, Ucode requests permission to create, update, and delete calendar events in the Google Calendar selected for the integration.",
+            "For the Google Calendar integration, Ucode may process only the information required to provide this user-facing integration:"
+          ],
+          "list": [
+            "Google OAuth authorization and refresh tokens;",
+            "the selected Google Calendar identifier;",
+            "event title, description, location, start date, and end date;",
+            "the Google Calendar event identifier;",
+            "synchronization status, timestamps, and error messages."
+          ],
+          "after": [
+            "This information is processed only after you explicitly connect your Google account and configure a Ucode project table for synchronization.",
+            "If you choose to connect Instagram Direct to a Ucode project, Ucode requests the permissions needed to connect your Instagram professional account, receive customer messages, and send replies on your behalf through Meta APIs.",
+            "For the Instagram Direct integration, Ucode may process Instagram OAuth/access tokens, connected Instagram account identifiers, public account metadata such as username, incoming and outgoing Direct message content, attachments shared in messages, sender identifiers available through Meta APIs, timestamps, delivery status, and related conversation metadata.",
+            "When an end-user shares one of your connected Instagram account's own posts in a Direct message, Ucode may read that post's caption or media metadata through the Instagram Graph API so the assistant can answer product or content-related questions. Ucode does not access media owned by other Instagram accounts except content that an end-user sends to your connected account in a message."
+          ]
+        },
+        {
+          "id": "how-we-use-google-user-data",
+          "title": "2. How We Use Integration Data",
+          "blocks": [
+            "Ucode uses Google user data only to provide and improve the user-facing Google Calendar integration requested by the user.",
+            "When a record in a mapped Ucode project table is created, updated, or deleted, Ucode may create, update, or delete the corresponding event in the connected Google Calendar.",
+            "Ucode does not use Google user data for advertising, retargeting, personalized advertising, marketing, profiling, analytics unrelated to the integration, credit decisions, sale to data brokers, or any purpose unrelated to providing or improving the Google Calendar integration.",
+            "Ucode uses Instagram Direct data only to provide and improve the user-facing Instagram messaging integration requested by the user, including connecting the Instagram account, receiving and routing customer messages, displaying conversations in the Ucode dashboard, sending replies on behalf of the connected account, generating AI-assisted replies, and supporting human operator handoff.",
+            "Ucode may use captions or metadata from your connected account's own Instagram posts only when needed to generate a relevant response to an end-user who shared that post in a Direct message.",
+            "Ucode does not use Instagram messaging data for advertising, retargeting, personalized advertising, marketing profiling, sale to data brokers, or any purpose unrelated to providing or improving the Instagram Direct integration."
+          ]
+        },
+        {
+          "id": "google-api-services-user-data-policy",
+          "title": "3. Google API Services User Data Policy",
+          "blocks": [
+            "Ucode's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
+            "Ucode does not sell Google user data. Ucode does not transfer Google user data to third parties except as necessary to provide or improve the user-facing Google Calendar integration, comply with applicable law, protect against security abuse, or with the user's explicit consent."
+          ]
+        },
+        {
+          "id": "meta-instagram-messaging-data",
+          "title": "4. Meta / Instagram Messaging Data",
+          "blocks": [
+            "For Instagram Direct, Ucode acts on behalf of the business or project owner that connects the Instagram professional account. We process Meta and Instagram data only to provide the messaging functionality configured by that account owner.",
+            "Messages are transmitted through Meta APIs to receive messages from end-users and deliver replies from the connected Instagram account. Access tokens are stored only for as long as the integration remains connected and are used solely to provide the integration.",
+            "Authorized members of the relevant Ucode workspace may access Instagram conversation history when needed to operate the integration, review AI responses, or take over a conversation from the assistant.",
+            "Instagram data is not used to train generalized AI models owned by Ucode. Message content may be sent to AI service providers only when necessary to generate a response requested by the connected account owner or the end-user's conversation context."
+          ]
+        },
+        {
+          "id": "storage-and-retention",
+          "title": "5. Storage and Retention",
+          "blocks": [
+            "OAuth credentials are retained only while the Google Calendar integration remains connected to the relevant Ucode project. Event identifiers and synchronization metadata may be retained with the corresponding Ucode project records only as needed to provide the Google Calendar integration.",
+            "When you disconnect the Google Calendar integration or delete the relevant project resource, Ucode stops using the stored authorization credentials for that integration. Events previously created in Google Calendar are not automatically deleted solely because the integration is disconnected.",
+            "Instagram access tokens are retained only while the Instagram Direct integration remains connected to the relevant Ucode project. Instagram message history and synchronization metadata may be retained with the corresponding Ucode project records only as needed to provide the integration, support auditability, and comply with applicable legal obligations.",
+            "When you disconnect the Instagram Direct integration or delete the relevant project resource, Ucode stops using the stored authorization credentials for that integration and no longer receives new messages for that connected account."
+          ]
+        },
+        {
+          "id": "sharing-of-information",
+          "title": "6. Sharing of Information",
+          "blocks": [
+            "We do not sell personal information or Google user data.",
+            "Google user data is shared only when necessary to provide or improve the user-facing Google Calendar integration, comply with applicable law, protect against security abuse, or with the user's explicit consent.",
+            "Instagram messaging data is transmitted through Meta Platforms, Inc. APIs only as necessary to receive messages, deliver replies, verify the connected account, and provide the Instagram Direct integration. This data is processed in accordance with Meta terms and policies.",
+            "Message content, attachments, and relevant conversation context may be shared with AI service providers only to generate AI-assisted replies or perform requested message processing for the connected project.",
+            "Service providers that process information on our behalf are required to protect the information and use it only to provide services to Ucode."
+          ]
+        },
+        {
+          "id": "security",
+          "title": "7. Security",
+          "blocks": [
+            "We use reasonable technical and organizational measures designed to protect information from unauthorized access, loss, misuse, alteration, and disclosure."
+          ]
+        },
+        {
+          "id": "your-choices",
+          "title": "8. Your Choices",
+          "blocks": [
+            "You may disconnect Google Calendar from a Ucode project through the Ucode project resource settings. You may also revoke Ucode's access from your Google Account security settings.",
+            "You may disconnect Instagram Direct from a Ucode project through the Ucode project resource settings. You may also revoke Ucode's access to Instagram or Facebook permissions from your Meta account, Facebook Page, Instagram professional account, or Meta Business Integrations settings.",
+            "You may request deletion of personal information and integration data, including data received through Meta or Instagram integrations, by contacting us using the details below. We will delete or anonymize the relevant data unless retention is required by applicable law or necessary to resolve security, abuse, or billing issues.",
+            "You may contact us to request access to, correction of, or deletion of personal information, subject to applicable law and our legal obligations."
+          ]
+        },
+        {
+          "id": "changes-to-this-policy",
+          "title": "9. Changes to This Policy",
+          "blocks": [
+            "We may update this Privacy Policy from time to time. Ucode will not use Google user data or Instagram messaging data for any purpose other than providing or improving the relevant user-facing integration unless the user is clearly notified, provides consent where required, and the use is permitted by applicable platform policies and law."
+          ]
+        }
+      ]
+    },
+    "projectWorkspace": {
+      "telegramIntegration": "Telegram integration",
+      "openTelegramSetup": "Open Telegram setup",
+      "openTelegramSetupLink": "Open Telegram setup link",
+      "contextLoading": "Project context is still loading",
+      "loadTablesFailed": "Failed to load tables.",
+      "retry": "Retry",
+      "noTables": "No tables found.",
+      "displayName": "Display name",
+      "suggestedUsername": "Suggested username",
+      "selectTableTelegram": "Select a table to start mapping Telegram fields.",
+      "mapFieldsHint": "Map available fields. Unselected fields use default names.",
+      "waitingConnection": "Waiting for connection...",
+      "close": "Close",
+      "createManagedSession": "Create managed session",
+      "instagramIntegration": "Instagram Direct integration",
+      "selectTableInstagram": "Select a table to start mapping Instagram fields.",
+      "completeInstagramAuth": "Complete Instagram authorization in the popup.",
+      "authorizeInstagram": "Authorize Instagram",
+      "fillConnectionParams": "Fill in the connection parameters",
+      "name": "Name",
+      "type": "Type",
+      "environment": "Environment",
+      "cancel": "Cancel",
+      "transcoderPipelines": "Transcoder Pipelines",
+      "status": "Status",
+      "videoKey": "Video Key",
+      "size": "Size",
+      "integrations": "Integrations",
+      "integrationsSubtitle": "Connect third-party services and extend your application",
+      "allCategories": "All Categories",
+      "connected": "Connected",
+      "cloudFileStorage": "Cloud file storage",
+      "driveAuthDone": "Google Drive authorization completed successfully.",
+      "calendarAuthDone": "Google Calendar authorization completed successfully.",
+      "mapFields": "Map fields",
+      "directMessages": "Direct messages",
+      "instagramAuthDone": "Instagram authorization completed successfully.",
+      "configure": "Configure",
+      "sourceControl": "Source Code Version Control",
+      "leadsHint": "Leads from your Google forms flow straight into your project tables.",
+      "manage": "Manage",
+      "available": "Available",
+      "soon": "Soon",
+      "noIntegrationsMatch": "No integrations match your search.",
+      "searchTables": "Search tables...",
+      "supportBot": "Support Bot",
+      "chooseField": "Choose field",
+      "resourceNamePlaceholder": "E.g. Production Database",
+      "selectResourceType": "Select resource type",
+      "email": "Email",
+      "password": "Password",
+      "defaultOtp": "Default OTP",
+      "numberOfOtp": "Number of OTP",
+      "login": "Login",
+      "originator": "Originator",
+      "host": "Host",
+      "port": "Port",
+      "database": "Database",
+      "databaseName": "Database name",
+      "username": "Username",
+      "token": "Token",
+      "url": "URL",
+      "searchIntegrations": "Search integrations...",
+      "telegramLinkCreated": "Telegram setup link created",
+      "telegramConnected": "Telegram connected",
+      "instagramAuthOpened": "Instagram authorization opened",
+      "driveConnected": "Google Drive connected",
+      "driveConnectFailed": "Google Drive connection failed",
+      "calendarConnected": "Google Calendar connected",
+      "calendarConnectFailed": "Google Calendar connection failed",
+      "instagramConnected": "Instagram Direct connected",
+      "instagramConnectFailed": "Instagram Direct connection failed",
+      "editElement": "Edit Element",
+      "color": "Color",
+      "clearBackground": "Clear background",
+      "textContentTitle": "Text Content",
+      "editViaChat": "Edit via chat",
+      "brandFonts": "Brand Fonts",
+      "weight": "Weight",
+      "textStyle": "Text style",
+      "alignment": "Alignment",
+      "case": "Case",
+      "decoration": "Decoration",
+      "opacity": "Opacity",
+      "margin": "Margin",
+      "padding": "Padding",
+      "layout": "Layout",
+      "display": "Display",
+      "direction": "Direction",
+      "wrap": "Wrap",
+      "columns": "Columns",
+      "pickLayout": "Pick a layout",
+      "editEachSide": "Edit each side",
+      "regenerateWithAi": "Regenerate with AI",
+      "editWithAi": "Edit with AI",
+      "uploadNewImage": "Upload a new image",
+      "text": "Text",
+      "background": "Background",
+      "textContent": "Text content",
+      "font": "Font",
+      "search": "Search",
+      "fontSize": "Font size",
+      "sizeLabel": "Size",
+      "spacing": "Spacing",
+      "resetChanges": "Reset changes",
+      "hideElement": "Hide element (reset to restore)",
+      "done": "Done",
+      "method": "Method",
+      "descriptionLabel": "Description",
+      "atomic": "Atomic",
+      "transactionSafe": "Transaction safe",
+      "sourceSql": "Source SQL",
+      "parameters": "Parameters",
+      "newParameter": "New Parameter",
+      "stringType": "String",
+      "numberType": "Number",
+      "booleanType": "Boolean",
+      "dateType": "Date",
+      "noDynamicParams": "No dynamic parameters defined. Use",
+      "schema": "Schema",
+      "editEndpoint": "Edit Endpoint",
+      "executionParameters": "Execution Parameters",
+      "noDynamicParamsQuery": "No dynamic parameters required for this query.",
+      "results": "Results",
+      "executingQuery": "Executing Query...",
+      "executionError": "Execution Error",
+      "dataEmpty": "Data is empty",
+      "runEndpointHint": "Run the endpoint to see results",
+      "newEndpoint": "New Endpoint",
+      "loadingEndpoints": "Loading Endpoints...",
+      "confirmDeletion": "Confirm Deletion",
+      "confirmDeleteEndpoint": "Are you sure you want to delete endpoint",
+      "deleting": "Deleting...",
+      "manageEndpoints": "Manage endpoints, SDK, and API keys",
+      "endpointName": "Endpoint Name",
+      "whatDoesThisDo": "What does this do?",
+      "searchEndpoints": "Search endpoints...",
+      "apiCallsMonth": "API calls / month",
+      "open": "Open",
+      "frontend": "Frontend",
+      "microfrontendSubtitle": "Configure and manage modular micro-frontend components.",
+      "addMicrofrontend": "Add Microfrontend",
+      "noMicrofrontends": "No microfrontends found",
+      "configureFirstMicrofrontend": "Configure your first micro-frontend to enable modular development.",
+      "deleteMicrofrontend": "Delete Microfrontend",
+      "confirmDelete": "Are you sure you want to delete",
+      "newMicrofrontend": "New Microfrontend",
+      "pathUrl": "Path / URL",
+      "resource": "Resource",
+      "repositoryPath": "Repository (Path)",
+      "branch": "Branch",
+      "framework": "Framework",
+      "urlLink": "URL / Link",
+      "logStream": "Log Stream",
+      "streamingLogs": "Streaming logs...",
+      "noLogs": "No logs available",
+      "code": "Code",
+      "searchMicrofrontends": "Search microfrontends...",
+      "microfrontendName": "Microfrontend name",
+      "shortDescription": "Short description",
+      "repositoryPathPlaceholder": "Repository path",
+      "selectTimeFrame": "Select time frame",
+      "runHistory": "Run history",
+      "noRuns": "No runs yet",
+      "agentNotInvoked": "This agent has not been invoked yet.",
+      "output": "Output",
+      "error": "Error",
+      "aiAgents": "AI Agents",
+      "agentsSubtitle": "Create server-side AI assistants that read and write your project data.",
+      "newAgent": "New Agent",
+      "noAgents": "No agents yet",
+      "createAgent": "Create Agent",
+      "configureAgent": "Configure the agent's identity, model, and table permissions.",
+      "model": "Model",
+      "systemPrompt": "System Prompt (instruction)",
+      "deleteAgent": "Delete Agent",
+      "toggleStatus": "Toggle status",
+      "edit": "Edit",
+      "delete": "Delete",
+      "agentNamePlaceholder": "Company Assistant",
+      "selectModel": "Select a model",
+      "oneSentenceHint": "One sentence for your reference",
+      "systemPromptPlaceholder": "You are a helpful assistant. When asked about...",
+      "agentCreated": "Agent created",
+      "agentSaveFailed": "Failed to save agent",
+      "agentUpdated": "Agent updated",
+      "statusUpdateFailed": "Failed to update status",
+      "agentDeleted": "Agent deleted",
+      "functions": "Functions",
+      "functionsSubtitle": "Manage and deploy your serverless functions and workflows.",
+      "addFunction": "Add Function",
+      "noFunctions": "No functions found",
+      "createFirstFunction": "Start by creating your first serverless function.",
+      "deleteFunction": "Delete Function",
+      "newFunction": "New Function",
+      "path": "Path",
+      "selectMethod": "Select method",
+      "searchFunctions": "Search functions...",
+      "functionName": "Function name",
+      "production": "Production",
+      "secrets": "Secrets",
+      "secretsSubtitle": "Manage your environment variables and sensitive information securely.",
+      "addSecret": "Add Secret",
+      "noSecrets": "No secrets yet",
+      "noSecretsVault": "No secrets were found in the vault.",
+      "addVaultSecret": "Add New Vault Secret",
+      "storeSensitiveHint": "Store sensitive information like API keys or credentials.",
+      "value": "Value",
+      "changeValueHint": "Change the value for this environment variable.",
+      "newValue": "New Value",
+      "deleteSecret": "Delete Secret",
+      "envVarName": "ENV_VAR_NAME",
+      "addTemplate": "Add template",
+      "addToTemplates": "Add to templates",
+      "createReusableTemplate": "Create a reusable template from this workspace.",
+      "previewImage": "Preview image",
+      "replaceImage": "Replace image",
+      "remove": "Remove",
+      "uploadPreview": "Upload preview",
+      "templateName": "Template name",
+      "images": "Images",
+      "addToTemplate": "Add to template",
+      "templatePreview": "Template preview",
+      "describeTemplate": "Describe what this template includes…",
+      "screenshot": "Screenshot",
+      "screenshotPreview": "Screenshot preview",
+      "templateAdded": "Template added",
+      "previewSimulation": "Preview simulation",
+      "simulatedPush": "This is a simulated incoming push notification.",
+      "tryAgain": "Try again",
+      "simulateSuccess": "Simulate success",
+      "simulateFailure": "Simulate failure",
+      "uploadDocument": "Upload document",
+      "useCameraSimulation": "Use camera simulation",
+      "previewSimulationResult": "Preview simulation result",
+      "selectedSource": "Selected source",
+      "simulateVerified": "Simulate verified",
+      "simulateFailed": "Simulate failed",
+      "closePreviewSimulation": "Close preview simulation",
+      "dismissPush": "Dismiss simulated push notification",
+      "uploadDocumentPreview": "Upload document for preview simulation",
+      "deleteNote": "Delete note",
+      "typeAnything": "Type anything..",
+      "deleteImage": "Delete image",
+      "selectTool": "Select (drag to select multiple)",
+      "pan": "Pan",
+      "stickyNote": "Sticky note (click the canvas to place)",
+      "fitToScreen": "Fit to screen",
+      "zoomOut": "Zoom out",
+      "zoomIn": "Zoom in",
+      "noteColor": "Note color",
+      "bold": "Bold",
+      "bulletList": "Bullet list",
+      "generatedFrontend": "Generated Frontend",
+      "microfrontends": "Microfrontends",
+      "mobilePreviewError": "Mobile preview reported an error",
+      "fixInChat": "Fix in chat",
+      "canvasBuildFailed": "Canvas build failed",
+      "sharedBundleFailed": "The shared preview bundle could not be built",
+      "singlePage": "Single page",
+      "allPagesCanvas": "All pages (canvas)",
+      "visualEdit": "Visual Edit",
+      "rebuildPreview": "Rebuild preview",
+      "projectPreview": "Project Preview",
+      "refreshPreview": "Refresh preview",
+      "dismissError": "Dismiss error",
+      "mobilePreview": "Mobile preview",
+      "theme": "Theme",
+      "themeSubtitle": "Colors and fonts for your project.",
+      "noCssVars": "No CSS color variables found in src/index.css.",
+      "logo": "Logo",
+      "uploadLogo": "Upload logo",
+      "fontFamily": "Font Family",
+      "noFonts": "No fonts found",
+      "saveApply": "Save & Apply",
+      "searchFonts": "Search fonts...",
+      "buildFailed": "Build failed",
+      "mobileApp": "Mobile app",
+      "preview": "Preview",
+      "mobileCapabilities": "Mobile capabilities",
+      "requested": "Requested",
+      "testOnPhone": "Test on your phone",
+      "nativeBuilds": "Native builds",
+      "androidKitDownloaded": "Android build kit downloaded",
+      "extractThenRun": "Extract it, then run:",
+      "downloadSourceKit": "Download a source kit for building an Android debug APK locally",
+      "nativeBuildSoon": "Native build coming soon",
+      "phone": "Phone",
+      "link": "Link",
+      "changePassword": "Change Password",
+      "inviteLink": "Invite Link",
+      "copied": "Copied!",
+      "copyLink": "Copy link",
+      "action": "Action",
+      "users": "Users",
+      "manageAppUsers": "Manage application users",
+      "upgradePlan": "Upgrade Plan",
+      "addBuilder": "Add Builder",
+      "inviteUser": "Invite User",
+      "builders": "Builders",
+      "searchUsers": "Search users...",
+      "integrationTarget": "Integration Target",
+      "loading": "Loading...",
+      "tables": "Tables",
+      "customQueries": "Custom Queries",
+      "noEndpoints": "No endpoints",
+      "language": "Language",
+      "generatedSdkCode": "Generated SDK Code",
+      "codeCopied": "Code copied to clipboard",
+      "addEnvironment": "Add Environment",
+      "noEnvironmentsFiltered": "No environments matching the current filters.",
+      "resetAllFilters": "Reset all filters",
+      "noEnvironments": "No environments yet",
+      "displayColor": "Display Color",
+      "apiKeys": "API Keys",
+      "apiKeysSubtitle": "Manage API keys and authentication for your applications.",
+      "addApiKey": "Add API Key",
+      "newApiKey": "New API Key",
+      "platform": "Platform",
+      "noLogsPeriod": "No logs available for this period",
+      "noActiveTokens": "No active tokens found",
+      "loadPromptsFailed": "Failed to load system prompts. Please try again.",
+      "noSystemPrompts": "No system prompts are available for this project.",
+      "systemPromptTitle": "System prompt",
+      "systemPromptSubtitle": "Customize the instructions used by AI in this project.",
+      "promptSaved": "System prompt saved",
+      "promptSaveFailed": "Could not save system prompt. It may have changed elsewhere.",
+      "promptReset": "System prompt reset to default",
+      "promptResetFailed": "Could not reset system prompt. It may have changed elsewhere.",
+      "githubIntegration": "GitHub Integration",
+      "active": "Active",
+      "expired": "Expired",
+      "tokenExpired": "Token expired",
+      "reconnectHint": "Reconnect to restore access to your repositories.",
+      "notConnected": "Not connected",
+      "connectGithubHint": "Connect GitHub to manage your repositories.",
+      "versionHistory": "Version history",
+      "selectMicrofrontendHistory": "Select a microfrontend to view its history",
+      "noVersions": "No versions yet",
+      "publishThisVersion": "Publish this version",
+      "revertToVersion": "Revert to this version",
+      "viewCode": "View code",
+      "manageFrontendPages": "Manage frontend pages and server functions",
+      "explorer": "Explorer",
+      "noResults": "No results found.",
+      "format": "Format",
+      "selectFileToEdit": "Select a file to start editing",
+      "searchInFiles": "Search in files...",
+      "loadingCodebase": "Loading codebase...",
+      "saveChanges": "Save changes",
+      "commitMessage": "Commit message",
+      "previewOnPhone": "Preview on your phone",
+      "notPublished": "Not published yet",
+      "download": "Download",
+      "publish": "Publish",
+      "openPublishedApp": "Open published app",
+      "backToStyleEditor": "Back to style editor",
+      "describeChanges": "Describe changes...",
+      "send": "Send",
+      "refreshStatus": "Refresh Status",
+      "noFilesToDownload": "No files to download",
+      "zipFailed": "Failed to build ZIP archive",
+      "openSidebar": "Open sidebar",
+      "waitingDeployment": "Waiting for live deployment…",
+      "unsavedChanges": "Unsaved changes",
+      "discard": "Discard",
+      "save": "Save",
+      "noTablesFoundShort": "No tables found",
+      "currentLabel": "Current"
+    },
+    "tokenPacksAdmin": {
+      "superAdminRequired": "Super admin access required",
+      "tokenPackOnlySuper": "Token pack catalog management is only available for super admins.",
+      "tokenPacks": "Token packs",
+      "tokenPacksSubtitle": "Manage extra AI-token packages shown in the user billing store.",
+      "refresh": "Refresh",
+      "createPack": "Create pack",
+      "loadFailed": "Failed to load token packs",
+      "retry": "Retry",
+      "noPacks": "No token packs found",
+      "name": "Name",
+      "tokens": "Tokens",
+      "price": "Price",
+      "product": "Product",
+      "status": "Status",
+      "created": "Created",
+      "deletePack": "Delete token pack",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "fullReplacementHint": "Updates are sent as full replacements. Keep every field populated.",
+      "totalPacks": "Total packs",
+      "active": "Active",
+      "hidden": "Hidden",
+      "searchPacks": "Search packs...",
+      "editPack": "Edit token pack",
+      "tokenAmount": "Token amount",
+      "cur": "CUR",
+      "productType": "Product type",
+      "visibility": "Visibility",
+      "packUpdated": "Token pack updated",
+      "packCreated": "Token pack created",
+      "packDeleted": "Token pack deleted"
+    },
+    "templatePricingAdmin": {
+      "superAdminRequired": "Super admin access required",
+      "onlySuperAdmins": "Template pricing is only available for super admins.",
+      "templatePricing": "Template pricing",
+      "refresh": "Refresh",
+      "loadFailed": "Failed to load templates",
+      "retry": "Retry",
+      "noTemplates": "No templates found",
+      "template": "Template",
+      "importPrice": "Import price",
+      "perUser": "Per user",
+      "status": "Status",
+      "setPrice": "Set price",
+      "setTemplatePricing": "Set template pricing",
+      "importPriceOneTime": "Import price (one-time)",
+      "pricePerUser": "Price per user",
+      "cancel": "Cancel",
+      "savePrice": "Save price",
+      "totalTemplates": "Total templates",
+      "paid": "Paid",
+      "free": "Free",
+      "searchTemplates": "Search templates...",
+      "cur": "CUR"
+    },
+    "templatesBoard": {
+      "notFound": "Template not found.",
+      "backToTemplates": "Back to Templates",
+      "noDemoUrl": "No demo URL available",
+      "back": "Back",
+      "screenshots": "Screenshots",
+      "about": "About this template",
+      "reloadPreview": "Reload preview",
+      "prevImage": "Previous image",
+      "screenshotPreview": "Screenshot preview",
+      "nextImage": "Next image",
+      "likeTemplate": "Like template",
+      "like": "Like",
+      "dislikeTemplate": "Dislike template",
+      "dislike": "Dislike",
+      "reactionFailed": "Could not save your reaction. Please try again.",
+      "templates": "Templates",
+      "loadFailed": "Failed to load templates. Please try again later.",
+      "empty": "No templates available yet."
+    },
+    "allProjects": {
+      "rowsPerPage": "Rows per page",
+      "noProjects": "No projects found",
+      "title": "Title",
+      "status": "Status",
+      "balance": "Balance",
+      "projectsInCompany": "Projects in company",
+      "created": "Created",
+      "lastActivity": "Last activity",
+      "searchByTitle": "Search by title...",
+      "exportNoFile": "Export failed: no file returned",
+      "exportFailed": "Failed to export projects"
+    },
+    "billingLimit": {
+      "dailyTokens": "Daily tokens",
+      "monthlyTokens": "Monthly tokens",
+      "cancel": "Cancel",
+      "upgradePlan": "Upgrade plan"
     }
   }
 }

@@ -25,6 +25,7 @@ import type {
   DiagramRelation,
   DiagramTable,
 } from "../model/types";
+import { useTranslations } from 'next-intl'
 
 export interface DiagramCanvasHandle {
   zoomIn: () => void;
@@ -184,6 +185,7 @@ const Edge: React.FC<EdgeProps> = ({
 
 export const DiagramCanvas = forwardRef<DiagramCanvasHandle, Props>(
   ({ tables, relations, isLoading, isError }, ref) => {
+    const t = useTranslations('features.dbDiagram');
     const positions = useDiagramStore((s) => s.positions);
     const setPosition = useDiagramStore((s) => s.setPosition);
     const setPositions = useDiagramStore((s) => s.setPositions);
@@ -549,7 +551,7 @@ export const DiagramCanvas = forwardRef<DiagramCanvasHandle, Props>(
       return (
         <div className="text-destructive bg-bg-main flex h-full w-full items-center justify-center gap-2 text-sm">
           <AlertCircle className="h-4 w-4" />
-          Failed to load diagram
+          {t('loadDiagramFailed')}
         </div>
       );
     }
@@ -558,7 +560,7 @@ export const DiagramCanvas = forwardRef<DiagramCanvasHandle, Props>(
       return (
         <div className="text-text-muted bg-bg-main flex h-full w-full flex-col items-center justify-center gap-3">
           <Database size={28} className="opacity-50" />
-          <p className="text-sm">No tables to visualise</p>
+          <p className="text-sm">{t('noTablesToVisualise')}</p>
         </div>
       );
     }

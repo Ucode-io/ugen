@@ -40,6 +40,7 @@ import {
   type TokenPack,
   type TokenPackWritePayload,
 } from "@/entities/billing";
+import { useTranslations } from 'next-intl'
 
 type ProductType = "ugen" | "ucode";
 
@@ -206,6 +207,7 @@ const toWritePayload = (form: TokenPackForm): TokenPackWritePayload => ({
 });
 
 export const TokenPacksAdminPage = () => {
+  const t = useTranslations('widgets.tokenPacksAdmin')
   const user = useAuthStore((state) => state.user);
   const isSuperAdmin = user?.id === SUPER_ADMIN_USER_ID;
 
@@ -283,10 +285,10 @@ export const TokenPacksAdminPage = () => {
           ...payload,
           id: editingPack.id,
         });
-        toast.success("Token pack updated");
+        toast.success(t('packUpdated'));
       } else {
         await createPack.mutateAsync(payload);
-        toast.success("Token pack created");
+        toast.success(t('packCreated'));
       }
       setDialogOpen(false);
     } catch (err) {
@@ -310,7 +312,7 @@ export const TokenPacksAdminPage = () => {
     if (!deleteTarget) return;
     try {
       await deletePack.mutateAsync(deleteTarget.id);
-      toast.success("Token pack deleted");
+      toast.success(t('packDeleted'));
       setDeleteTarget(null);
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to delete token pack"));
@@ -325,10 +327,10 @@ export const TokenPacksAdminPage = () => {
             <AlertTriangle size={22} />
           </div>
           <h1 className="text-text-main text-lg font-semibold">
-            Super admin access required
+            {t('superAdminRequired')}
           </h1>
           <p className="text-text-muted mt-2 text-sm">
-            Token pack catalog management is only available for super admins.
+            {t('tokenPackOnlySuper')}
           </p>
         </div>
       </div>
@@ -345,10 +347,10 @@ export const TokenPacksAdminPage = () => {
             </div>
             <div>
               <h1 className="text-text-main text-2xl font-semibold">
-                Token packs
+                {t('tokenPacks')}
               </h1>
               <p className="text-text-muted mt-0.5 text-sm">
-                Manage extra AI-token packages shown in the user billing store.
+                {t('tokenPacksSubtitle')}
               </p>
             </div>
           </div>
@@ -376,22 +378,22 @@ export const TokenPacksAdminPage = () => {
               size={14}
               className={cn(isFetching && "animate-spin")}
             />
-            Refresh
+            {t('refresh')}
           </button>
           <Button
             onClick={openCreate}
             className="h-9 rounded-lg px-4 text-[13px] font-semibold text-white"
           >
             <Plus size={15} />
-            Create pack
+            {t('createPack')}
           </Button>
         </div>
       </div>
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <SummaryTile label="Total packs" value={packs.length} />
-        <SummaryTile label="Active" value={activeCount} tone="active" />
-        <SummaryTile label="Hidden" value={hiddenCount} tone="hidden" />
+        <SummaryTile label={t('totalPacks')} value={packs.length} />
+        <SummaryTile label={t('active')} value={activeCount} tone="active" />
+        <SummaryTile label={t('hidden')} value={hiddenCount} tone="hidden" />
       </div>
 
       <div className="mb-4">
@@ -400,7 +402,7 @@ export const TokenPacksAdminPage = () => {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search packs..."
+            placeholder={t('searchPacks')}
             className="text-text-main w-full bg-transparent outline-none placeholder:text-text-muted/60"
           />
         </div>
@@ -413,20 +415,20 @@ export const TokenPacksAdminPage = () => {
           <div className="border-border-subtle flex h-64 flex-col items-center justify-center rounded-xl border text-center">
             <AlertTriangle size={28} className="text-text-muted/50" />
             <p className="text-text-main mt-3 text-sm font-semibold">
-              Failed to load token packs
+              {t('loadFailed')}
             </p>
             <button
               type="button"
               onClick={() => refetch()}
               className="text-primary mt-1 text-sm font-semibold hover:underline"
             >
-              Retry
+              {t('retry')}
             </button>
           </div>
         ) : filteredPacks.length === 0 ? (
           <div className="border-border-subtle flex h-64 flex-col items-center justify-center rounded-xl border text-center">
             <Package size={30} className="text-text-muted/40" />
-            <p className="text-text-muted mt-2 text-sm">No token packs found</p>
+            <p className="text-text-muted mt-2 text-sm">{t('noPacks')}</p>
           </div>
         ) : (
           <div className="border-border-subtle flex flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
@@ -434,12 +436,12 @@ export const TokenPacksAdminPage = () => {
               <table className="w-full min-w-[880px]">
                 <thead className="sticky top-0 z-10">
                   <tr className="border-border-subtle bg-bg-sidebar border-b">
-                    <TableHead>Name</TableHead>
-                    <TableHead>Tokens</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead>{t('name')}</TableHead>
+                    <TableHead>{t('tokens')}</TableHead>
+                    <TableHead>{t('price')}</TableHead>
+                    <TableHead>{t('product')}</TableHead>
+                    <TableHead>{t('status')}</TableHead>
+                    <TableHead>{t('created')}</TableHead>
                     <th className="w-px px-4 py-2.5" />
                   </tr>
                 </thead>
@@ -521,7 +523,7 @@ export const TokenPacksAdminPage = () => {
                               type="button"
                               onClick={() => openEdit(pack)}
                               className="border-border-subtle text-text-main hover:bg-hover-bg inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors"
-                              title="Edit token pack"
+                              title={t('editPack')}
                             >
                               <Edit2 size={13} />
                             </button>
@@ -529,7 +531,7 @@ export const TokenPacksAdminPage = () => {
                               type="button"
                               onClick={() => setDeleteTarget(pack)}
                               className="border-border-subtle text-text-muted hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-600 inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors"
-                              title="Delete token pack"
+                              title={t('deletePack')}
                             >
                               <Trash2 size={13} />
                             </button>
@@ -564,7 +566,7 @@ export const TokenPacksAdminPage = () => {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-red-600">Delete token pack</DialogTitle>
+            <DialogTitle className="text-red-600">{t('deletePack')}</DialogTitle>
             <DialogDescription>
               Delete this package from the catalog? Purchased company token
               balances will stay untouched.
@@ -584,14 +586,14 @@ export const TokenPacksAdminPage = () => {
               onClick={() => setDeleteTarget(null)}
               disabled={deletePack.isPending}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
               loading={deletePack.isPending}
               onClick={handleDelete}
             >
-              Delete
+              {t('delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -660,18 +662,20 @@ const TokenPackFormDialog = ({
   isEdit: boolean;
   isSaving: boolean;
   onSave: () => void;
-}) => (
+}) => {
+  const t = useTranslations('widgets.tokenPacksAdmin')
+  return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="max-w-2xl">
       <DialogHeader>
-        <DialogTitle>{isEdit ? "Edit token pack" : "Create token pack"}</DialogTitle>
+        <DialogTitle>{isEdit ? t('editPack') : t('createPack')}</DialogTitle>
         <DialogDescription>
-          Updates are sent as full replacements. Keep every field populated.
+          {t('fullReplacementHint')}
         </DialogDescription>
       </DialogHeader>
 
       <div className="grid gap-4 py-1">
-        <FormField label="Name" error={errors.name}>
+        <FormField label={t('name')} error={errors.name}>
           <Input
             value={form.name}
             onChange={(event) =>
@@ -682,7 +686,7 @@ const TokenPackFormDialog = ({
         </FormField>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Token amount" error={errors.token_amount}>
+          <FormField label={t('tokenAmount')} error={errors.token_amount}>
             <div className="relative">
               <Input
                 type="text"
@@ -703,7 +707,7 @@ const TokenPackFormDialog = ({
               </span>
             </div>
           </FormField>
-          <FormField label="Price" error={errors.price || errors.currency_id}>
+          <FormField label={t('price')} error={errors.price || errors.currency_id}>
             <div className="relative">
               <Input
                 type="text"
@@ -729,7 +733,7 @@ const TokenPackFormDialog = ({
                 }
               >
                 <SelectTrigger className="bg-bg-sidebar/70 hover:bg-bg-sidebar border-border-subtle absolute top-1/2 right-1 h-7 w-[82px] -translate-y-1/2 rounded-md px-2 py-0 text-[11px] font-bold tracking-wider uppercase shadow-none ring-offset-0 transition-colors focus:ring-1 focus:ring-primary [&>div]:gap-1 [&>svg]:h-3.5 [&>svg]:w-3.5">
-                  <SelectValue placeholder="CUR" />
+                  <SelectValue placeholder={t('cur')} />
                 </SelectTrigger>
                 <SelectContent>
                   {CURRENCIES.map((currency) => (
@@ -744,7 +748,7 @@ const TokenPackFormDialog = ({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Product type">
+          <FormField label={t('productType')}>
             <Select
               value={form.product_type}
               onValueChange={(value) =>
@@ -763,18 +767,18 @@ const TokenPackFormDialog = ({
               </SelectContent>
             </Select>
           </FormField>
-          <FormField label="Visibility">
+          <FormField label={t('visibility')}>
             <div className="grid grid-cols-2 gap-2">
               <VisibilityOption
                 active={form.is_active}
-                title="Active"
+                title={t('active')}
                 onClick={() =>
                   setForm((prev) => ({ ...prev, is_active: true }))
                 }
               />
               <VisibilityOption
                 active={!form.is_active}
-                title="Hidden"
+                title={t('hidden')}
                 onClick={() =>
                   setForm((prev) => ({ ...prev, is_active: false }))
                 }
@@ -786,7 +790,7 @@ const TokenPackFormDialog = ({
 
       <DialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-          Cancel
+          {t('cancel')}
         </Button>
         <Button loading={isSaving} onClick={onSave}>
           {isEdit ? "Save changes" : "Create pack"}
@@ -795,6 +799,7 @@ const TokenPackFormDialog = ({
     </DialogContent>
   </Dialog>
 );
+};
 
 const VisibilityOption = ({
   active,

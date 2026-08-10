@@ -67,6 +67,7 @@ import { cn } from '@/shared/lib/utils/cn'
 import { centeredPopupFeatures } from '@/shared/lib/utils/centered-popup'
 import { toast } from 'sonner'
 import { StyledQr } from './styled-qr'
+import { useTranslations } from 'next-intl'
 
 const GOOGLE_DRIVE_TYPE_VALUE = 1001
 const GOOGLE_CALENDAR_TYPE_VALUE = 1002
@@ -1033,6 +1034,7 @@ const TelegramSetupModal = ({
   mockSession?: TelegramManagedSession
   initialResource?: any
 }) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [search, setSearch] = useState('')
   const [selectedTableId, setSelectedTableId] = useState<string>('')
   const [displayName, setDisplayName] = useState('Support Bot')
@@ -1162,7 +1164,7 @@ const TelegramSetupModal = ({
     onSuccess: (session) => {
       setManagedSession(session)
       setIsWaitingForResource(true)
-      toast.success('Telegram setup link created')
+      toast.success(t('telegramLinkCreated'))
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.data || err?.response?.data?.message || err?.message || 'Failed to configure Telegram')
@@ -1185,7 +1187,7 @@ const TelegramSetupModal = ({
         const hasTelegram = resources.some((resource: any) => resource.resource_type === TELEGRAM_TYPE_VALUE)
         if (!cancelled && hasTelegram) {
           setIsWaitingForResource(false)
-          toast.success('Telegram connected')
+          toast.success(t('telegramConnected'))
           onSaved()
           onOpenChange(false)
         }
@@ -1222,7 +1224,7 @@ const TelegramSetupModal = ({
                 className="h-5 w-5 bg-contain bg-center bg-no-repeat"
                 style={{ backgroundImage: "url('/telegram.svg')" }}
               />
-              Telegram integration
+              {t('telegramIntegration')}
             </DialogTitle>
             <DialogDescription>
               Select the chat table, map Telegram fields, then create a managed Telegram session.
@@ -1234,7 +1236,7 @@ const TelegramSetupModal = ({
               const telegramSetupLink = managedSession.createLink || managedSession.startLink
               return (
                 <div className="flex min-h-0 flex-1 flex-col items-center px-6 py-6 text-center">
-                  <h3 className="text-text-main text-base font-semibold">Open Telegram setup</h3>
+                  <h3 className="text-text-main text-base font-semibold">{t('openTelegramSetup')}</h3>
                   <p className="text-text-muted mt-1 max-w-72 text-sm leading-relaxed">
                     Scan the QR code or open Telegram. This window closes automatically after connection.
                   </p>
@@ -1244,7 +1246,7 @@ const TelegramSetupModal = ({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="border-border-subtle mt-5 rounded-xl border bg-white p-2.5 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
-                    aria-label="Open Telegram setup link"
+                    aria-label={t('openTelegramSetupLink')}
                   >
                     <StyledQr value={telegramSetupLink} size={220} />
                   </a>
@@ -1257,7 +1259,7 @@ const TelegramSetupModal = ({
                       className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium shadow transition-all active:scale-[0.98]"
                     >
                       <ExternalLink size={14} />
-                      Open Telegram setup
+                      {t('openTelegramSetup')}
                     </a>
                   </div>
                 </div>
@@ -1267,7 +1269,7 @@ const TelegramSetupModal = ({
             <div className="flex flex-col items-center justify-center gap-3 px-8 py-14 text-center">
               <AlertCircle className="text-amber-500" size={28} />
               <div>
-                <p className="text-text-main text-sm font-semibold">Project context is still loading</p>
+                <p className="text-text-main text-sm font-semibold">{t('contextLoading')}</p>
                 <p className="text-text-muted mt-1 text-sm">
                   Telegram setup needs the main project id and environment id. Try again after the project finishes loading.
                 </p>
@@ -1282,7 +1284,7 @@ const TelegramSetupModal = ({
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search tables..."
+                      placeholder={t('searchTables')}
                       className="placeholder:text-text-muted text-text-main w-full bg-transparent px-2 py-2 text-sm outline-none"
                     />
                   </div>
@@ -1298,14 +1300,14 @@ const TelegramSetupModal = ({
                   ) : isError ? (
                     <div className="text-text-muted flex flex-col items-center gap-3 px-2 py-8 text-center text-sm">
                       <AlertCircle className="text-destructive" size={22} />
-                      <span>Failed to load tables.</span>
+                      <span>{t('loadTablesFailed')}</span>
                       <Button size="sm" variant="outline" onClick={() => refetch()}>
-                        Retry
+                        {t('retry')}
                       </Button>
                     </div>
                   ) : filteredTables.length === 0 ? (
                     <div className="text-text-muted px-2 py-8 text-center text-sm">
-                      No tables found.
+                      {t('noTables')}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1351,16 +1353,16 @@ const TelegramSetupModal = ({
                 <div className="border-border-subtle border-b p-5">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="text-text-main text-sm font-medium">Display name</label>
+                      <label className="text-text-main text-sm font-medium">{t('displayName')}</label>
                       <Input
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Support Bot"
+                        placeholder={t('supportBot')}
                         className="bg-bg-sidebar border-border-subtle"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-text-main text-sm font-medium">Suggested username</label>
+                      <label className="text-text-main text-sm font-medium">{t('suggestedUsername')}</label>
                       <Input
                         value={suggestedUsername}
                         onChange={(e) =>
@@ -1384,7 +1386,7 @@ const TelegramSetupModal = ({
                 {!selectedTable ? (
                   <div className="text-text-muted flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
                     <Database size={28} className="opacity-40" />
-                    <p className="text-sm">Select a table to start mapping Telegram fields.</p>
+                    <p className="text-sm">{t('selectTableTelegram')}</p>
                   </div>
                 ) : (
                   <>
@@ -1397,7 +1399,7 @@ const TelegramSetupModal = ({
                           </span>
                         </div>
                         <p className="text-text-muted mt-0.5 text-xs">
-                          Map available fields. Unselected fields use default names.
+                          {t('mapFieldsHint')}
                         </p>
                       </div>
                       <span className={cn(
@@ -1457,7 +1459,7 @@ const TelegramSetupModal = ({
                                     selected ? 'border-green-500/40' : 'border-amber-500/50',
                                   )}
                                 >
-                                  <SelectValue placeholder="Choose field" />
+                                  <SelectValue placeholder={t('chooseField')} />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-72">
                                   <SelectItem value={TELEGRAM_UNMAPPED_VALUE}>
@@ -1497,14 +1499,14 @@ const TelegramSetupModal = ({
                   {isWaitingForResource ? (
                     <>
                       <Loader2 size={13} className="animate-spin" />
-                      Waiting for connection...
+                      {t('waitingConnection')}
                     </>
                   ) : (
                     'Connected.'
                   )}
                 </p>
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Close
+                  {t('close')}
                 </Button>
               </>
             ) : (
@@ -1518,7 +1520,7 @@ const TelegramSetupModal = ({
                 </p>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" onClick={() => onOpenChange(false)}>
-                    Close
+                    {t('close')}
                   </Button>
                   <Button
                     variant="primary"
@@ -1526,7 +1528,7 @@ const TelegramSetupModal = ({
                     disabled={!canSave}
                     onClick={() => saveTelegramSession()}
                   >
-                    Create managed session
+                    {t('createManagedSession')}
                   </Button>
                 </div>
               </>
@@ -1553,6 +1555,7 @@ const InstagramSetupModal = ({
   openOAuthPopup: () => Window | null
   initialResource?: any
 }) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [search, setSearch] = useState('')
   const [selectedTableId, setSelectedTableId] = useState<string>('')
   const [mappingByTable, setMappingByTable] = useState<Record<string, Partial<Record<InstagramMappingFieldKey, string>>>>({})
@@ -1677,7 +1680,7 @@ const InstagramSetupModal = ({
     },
     onSuccess: () => {
       setIsWaitingForOAuth(true)
-      toast.success('Instagram authorization opened')
+      toast.success(t('instagramAuthOpened'))
     },
     onError: (err: any) => {
       setIsWaitingForOAuth(false)
@@ -1696,7 +1699,7 @@ const InstagramSetupModal = ({
                 className="h-5 w-5 bg-contain bg-center bg-no-repeat"
                 style={{ backgroundImage: "url('/instagram.svg')" }}
               />
-              Instagram Direct integration
+              {t('instagramIntegration')}
             </DialogTitle>
             <DialogDescription>
               Select the conversation table, map Instagram fields, then authorize the Instagram account.
@@ -1707,7 +1710,7 @@ const InstagramSetupModal = ({
             <div className="flex flex-col items-center justify-center gap-3 px-8 py-14 text-center">
               <AlertCircle className="text-amber-500" size={28} />
               <div>
-                <p className="text-text-main text-sm font-semibold">Project context is still loading</p>
+                <p className="text-text-main text-sm font-semibold">{t('contextLoading')}</p>
                 <p className="text-text-muted mt-1 text-sm">
                   Instagram Direct setup needs the main project id. Try again after the project finishes loading.
                 </p>
@@ -1722,7 +1725,7 @@ const InstagramSetupModal = ({
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search tables..."
+                      placeholder={t('searchTables')}
                       className="placeholder:text-text-muted text-text-main w-full bg-transparent px-2 py-2 text-sm outline-none"
                     />
                   </div>
@@ -1738,14 +1741,14 @@ const InstagramSetupModal = ({
                   ) : isError ? (
                     <div className="text-text-muted flex flex-col items-center gap-3 px-2 py-8 text-center text-sm">
                       <AlertCircle className="text-destructive" size={22} />
-                      <span>Failed to load tables.</span>
+                      <span>{t('loadTablesFailed')}</span>
                       <Button size="sm" variant="outline" onClick={() => refetch()}>
-                        Retry
+                        {t('retry')}
                       </Button>
                     </div>
                   ) : filteredTables.length === 0 ? (
                     <div className="text-text-muted px-2 py-8 text-center text-sm">
-                      No tables found.
+                      {t('noTables')}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1791,7 +1794,7 @@ const InstagramSetupModal = ({
                 {!selectedTable ? (
                   <div className="text-text-muted flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
                     <Database size={28} className="opacity-40" />
-                    <p className="text-sm">Select a table to start mapping Instagram fields.</p>
+                    <p className="text-sm">{t('selectTableInstagram')}</p>
                   </div>
                 ) : (
                   <>
@@ -1808,7 +1811,7 @@ const InstagramSetupModal = ({
                           </span>
                         </div>
                         <p className="text-text-muted mt-0.5 text-xs">
-                          Map available fields. Unselected fields use default names.
+                          {t('mapFieldsHint')}
                         </p>
                       </div>
                       <span className={cn(
@@ -1868,7 +1871,7 @@ const InstagramSetupModal = ({
                                     selected ? 'border-green-500/40' : 'border-amber-500/50',
                                   )}
                                 >
-                                  <SelectValue placeholder="Choose field" />
+                                  <SelectValue placeholder={t('chooseField')} />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-72">
                                   <SelectItem value={INSTAGRAM_UNMAPPED_VALUE}>
@@ -1906,7 +1909,7 @@ const InstagramSetupModal = ({
               {isWaitingForOAuth ? (
                 <>
                   <Loader2 size={13} className="animate-spin" />
-                  Complete Instagram authorization in the popup.
+                  {t('completeInstagramAuth')}
                 </>
               ) : !selectedTable ? (
                 'Select a table to continue.'
@@ -1918,7 +1921,7 @@ const InstagramSetupModal = ({
             </p>
             <div className="ml-auto flex items-center gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Close
+                {t('close')}
               </Button>
               <Button
                 variant="primary"
@@ -1926,7 +1929,7 @@ const InstagramSetupModal = ({
                 disabled={!canConnect}
                 onClick={() => connectInstagram(openOAuthPopup())}
               >
-                Authorize Instagram
+                {t('authorizeInstagram')}
               </Button>
             </div>
           </div>
@@ -1939,6 +1942,7 @@ const InstagramSetupModal = ({
 type View = 'grid' | 'detail'
 
 export const ResourcesPage = ({ projectId }: { projectId: string }) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const mainProjectId = useAuthStore((state) => state.ucodeProjectId || '')
   const mainEnvironmentId = useAuthStore((state) => state.projectEnvId || '')
   const projectTitle = useAuthStore((state) => state.project?.title || 'support')
@@ -2212,9 +2216,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
           queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
           queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
-          toast.success('Google Drive connected')
+          toast.success(t('driveConnected'))
         } else {
-          toast.error('Google Drive connection failed')
+          toast.error(t('driveConnectFailed'))
         }
         return
       }
@@ -2224,12 +2228,12 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
           queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
           queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
-          toast.success('Google Calendar connected')
+          toast.success(t('calendarConnected'))
           // Right after a successful connect, prompt the user to pick a table and
           // bind its fields — the field-mapping modal opens immediately.
           setCalendarMappingOpen(true)
         } else {
-          toast.error('Google Calendar connection failed')
+          toast.error(t('calendarConnectFailed'))
         }
         return
       }
@@ -2241,9 +2245,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           queryClient.invalidateQueries({ queryKey: ['resources-v2', projectId] })
           queryClient.invalidateQueries({ queryKey: ['resources-v1', projectId] })
           queryClient.invalidateQueries({ queryKey: ['resources-clickhouse', projectId] })
-          toast.success('Instagram Direct connected')
+          toast.success(t('instagramConnected'))
         } else {
-          toast.error('Instagram Direct connection failed')
+          toast.error(t('instagramConnectFailed'))
         }
         return
       }
@@ -2622,7 +2626,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               <ResourceIcon type={selectedResource.icon} />
               <div>
                 <h1 className="text-xl font-bold text-text-main leading-tight">{isEditMode ? 'Edit' : 'Connect'} {selectedResource.label}</h1>
-                <p className="text-xs text-text-muted">Fill in the connection parameters</p>
+                <p className="text-xs text-text-muted">{t('fillConnectionParams')}</p>
               </div>
             </div>
           </div>
@@ -2658,9 +2662,9 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
             {!isPostgresLike && (
               <>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-text-main">Name</label>
+                  <label className="text-sm font-medium text-text-main">{t('name')}</label>
                   <Input
-                    placeholder="E.g. Production Database"
+                    placeholder={t('resourceNamePlaceholder')}
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     className="bg-bg-sidebar border-border-subtle focus:ring-1 focus:ring-primary/20"
@@ -2668,13 +2672,13 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-text-main">Type</label>
+                  <label className="text-sm font-medium text-text-main">{t('type')}</label>
                   <Select
                     value={formData.type}
                     onValueChange={(v) => setFormData(prev => ({ ...prev, type: v }))}
                   >
                     <SelectTrigger className="bg-bg-sidebar border-border-subtle">
-                      <SelectValue placeholder="Select resource type" />
+                      <SelectValue placeholder={t('selectResourceType')} />
                     </SelectTrigger>
                     <SelectContent>
                       {formResourceCategories.map((category, index) => (
@@ -2697,7 +2701,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-text-main">Environment</label>
+                  <label className="text-sm font-medium text-text-main">{t('environment')}</label>
                   <Select
                     value={formData.environment}
                     onValueChange={(v) => setFormData(prev => ({ ...prev, environment: v }))}
@@ -2721,20 +2725,20 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
             {/* Dynamic Extra Fields */}
             {rType === 7 && (
               <>
-                <ExtraField label="Email" name="settings.smtp.email" placeholder="Email" />
-                <ExtraField label="Password" name="settings.smtp.password" placeholder="Password" type="password" />
-                <ExtraField label="Default OTP" name="settings.smtp.default_otp" placeholder="Default OTP" />
-                <ExtraField label="Number of OTP" name="settings.smtp.number_of_otp" placeholder="Number of OTP" type="number" />
+                <ExtraField label={t('email')} name="settings.smtp.email" placeholder={t('email')} />
+                <ExtraField label={t('password')} name="settings.smtp.password" placeholder={t('password')} type="password" />
+                <ExtraField label={t('defaultOtp')} name="settings.smtp.default_otp" placeholder={t('defaultOtp')} />
+                <ExtraField label={t('numberOfOtp')} name="settings.smtp.number_of_otp" placeholder={t('numberOfOtp')} type="number" />
               </>
             )}
 
             {rType === 6 && (
               <>
-                <ExtraField label="Default OTP" name="settings.sms.default_otp" placeholder="Default OTP" />
-                <ExtraField label="Login" name="settings.sms.login" placeholder="Login" />
-                <ExtraField label="Number of OTP" name="settings.sms.number_of_otp" placeholder="Number of OTP" type="number" />
-                <ExtraField label="Originator" name="settings.sms.originator" placeholder="Originator" />
-                <ExtraField label="Password" name="settings.sms.password" placeholder="Password" type="password" />
+                <ExtraField label={t('defaultOtp')} name="settings.sms.default_otp" placeholder={t('defaultOtp')} />
+                <ExtraField label={t('login')} name="settings.sms.login" placeholder={t('login')} />
+                <ExtraField label={t('numberOfOtp')} name="settings.sms.number_of_otp" placeholder={t('numberOfOtp')} type="number" />
+                <ExtraField label={t('originator')} name="settings.sms.originator" placeholder={t('originator')} />
+                <ExtraField label={t('password')} name="settings.sms.password" placeholder={t('password')} type="password" />
               </>
             )}
 
@@ -2742,16 +2746,16 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               <>
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <ExtraField label="Host" name="settings.postgres.host" placeholder="Host" />
+                    <ExtraField label={t('host')} name="settings.postgres.host" placeholder={t('host')} />
                   </div>
                   <div className="w-28">
-                    <ExtraField label="Port" name="settings.postgres.port" placeholder="Port" />
+                    <ExtraField label={t('port')} name="settings.postgres.port" placeholder={t('port')} />
                   </div>
                 </div>
-                <ExtraField label="Database" name="settings.postgres.database" placeholder="Database name" />
+                <ExtraField label={t('database')} name="settings.postgres.database" placeholder={t('databaseName')} />
                 <div className="grid grid-cols-2 gap-3">
-                  <ExtraField label="Username" name="settings.postgres.username" placeholder="Username" />
-                  <ExtraField label="Password" name="settings.postgres.password" placeholder="Password" type="password" />
+                  <ExtraField label={t('username')} name="settings.postgres.username" placeholder={t('username')} />
+                  <ExtraField label={t('password')} name="settings.postgres.password" placeholder={t('password')} type="password" />
                 </div>
               </>
             )}
@@ -2760,16 +2764,16 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
               <>
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <ExtraField label="Host" name="host" placeholder="Host" disabled={isEditMode} />
+                    <ExtraField label={t('host')} name="host" placeholder={t('host')} disabled={isEditMode} />
                   </div>
                   <div className="w-28">
-                    <ExtraField label="Port" name="port" placeholder="Port" disabled={isEditMode} />
+                    <ExtraField label={t('port')} name="port" placeholder={t('port')} disabled={isEditMode} />
                   </div>
                 </div>
-                <ExtraField label="Database" name="database" placeholder="Database" disabled={isEditMode} />
+                <ExtraField label={t('database')} name="database" placeholder={t('database')} disabled={isEditMode} />
                 <div className="grid grid-cols-2 gap-3">
-                  <ExtraField label="Username" name="username" placeholder="Username" disabled={isEditMode} />
-                  <ExtraField label="Password" name="password" placeholder="Password" type="password" disabled={isEditMode} />
+                  <ExtraField label={t('username')} name="username" placeholder={t('username')} disabled={isEditMode} />
+                  <ExtraField label={t('password')} name="password" placeholder={t('password')} type="password" disabled={isEditMode} />
                 </div>
               </>
             )}
@@ -2785,13 +2789,13 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                 <ExtraField
                   label={`${rType === 5 ? 'GitHub' : 'GitLab'} Username`}
                   name={rType === 5 ? 'settings.github.username' : 'settings.gitlab.username'}
-                  placeholder="Username"
+                  placeholder={t('username')}
                   disabled={true}
                 />
                 <ExtraField
-                  label="Token"
+                  label={t('token')}
                   name={rType === 5 ? 'settings.github.token' : 'settings.gitlab.token'}
-                  placeholder="Token"
+                  placeholder={t('token')}
                   disabled={true}
                 />
               </>
@@ -2799,15 +2803,15 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
             {(rType === 11 || rType === 12) && isEditMode && (
               <>
-                <ExtraField label="URL" name={`settings.${rType === 11 ? 'superset' : 'metabase'}.url`} placeholder="URL" />
-                <ExtraField label="Username" name={`settings.${rType === 11 ? 'superset' : 'metabase'}.username`} placeholder="Username" />
-                <ExtraField label="Password" name={`settings.${rType === 11 ? 'superset' : 'metabase'}.password`} placeholder="Password" type="password" />
+                <ExtraField label={t('url')} name={`settings.${rType === 11 ? 'superset' : 'metabase'}.url`} placeholder={t('url')} />
+                <ExtraField label={t('username')} name={`settings.${rType === 11 ? 'superset' : 'metabase'}.username`} placeholder={t('username')} />
+                <ExtraField label={t('password')} name={`settings.${rType === 11 ? 'superset' : 'metabase'}.password`} placeholder={t('password')} type="password" />
               </>
             )}
 
             <div className="flex justify-end gap-3 pt-4">
               <Button variant="ghost" onClick={() => setView('grid')} className="rounded-xl px-4">
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 disabled={!formData.name || !formData.type || (!isEditMode && !formData.environment) || isSaving}
@@ -2826,16 +2830,16 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
             <div className="bg-bg-sidebar px-4 py-3 border-b border-border-subtle">
               <h3 className="text-xs font-bold text-text-main flex items-center gap-2">
                 <RefreshCw size={12} />
-                Transcoder Pipelines
+                {t('transcoderPipelines')}
               </h3>
             </div>
             <Table>
               <TableHeader>
                 <TableRow className="bg-bg-sidebar/50 border-b-border-subtle">
                   <TableHead className="w-12 text-center text-[10px] uppercase font-bold text-text-muted">№</TableHead>
-                  <TableHead className="text-[10px] uppercase font-bold text-text-muted">Status</TableHead>
-                  <TableHead className="text-[10px] uppercase font-bold text-text-muted">Video Key</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-bold text-text-muted">Size</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-text-muted">{t('status')}</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold text-text-muted">{t('videoKey')}</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold text-text-muted">{t('size')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -2960,8 +2964,8 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
   return (
     <div className="@container space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
       <div>
-        <h1 className="text-2xl font-bold text-text-main tracking-tight">Integrations</h1>
-        <p className="text-text-muted text-sm mt-1">Connect third-party services and extend your application</p>
+        <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('integrations')}</h1>
+        <p className="text-text-muted text-sm mt-1">{t('integrationsSubtitle')}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 py-3 border-b border-border-subtle bg-bg-main sticky top-0 z-10">
@@ -2969,17 +2973,17 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           <Search className="w-4 h-4 text-text-muted mr-2 shrink-0" />
           <input
             className="bg-transparent border-none outline-none text-sm w-full placeholder:text-text-muted text-text-main"
-            placeholder="Search integrations..."
+            placeholder={t('searchIntegrations')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger className="w-full @[480px]:w-45 bg-bg-sidebar border-border-subtle rounded-xl h-10">
-            <SelectValue placeholder="All Categories" />
+            <SelectValue placeholder={t('allCategories')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="All Categories">All Categories</SelectItem>
+            <SelectItem value="All Categories">{t('allCategories')}</SelectItem>
             {resourceCategories.map(cat => (
               <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
             ))}
@@ -2993,7 +2997,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
         {showConnectedSection && (
           <div className="mb-8">
             <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em] mb-3">
-              Connected
+              {t('connected')}
             </div>
             <div className="grid grid-cols-1 @[480px]:grid-cols-2 @[720px]:grid-cols-3 @[1024px]:grid-cols-4 gap-4">
 
@@ -3007,14 +3011,14 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     <ResourceIcon type="google-drive" />
                     <div className="min-w-0 flex-1">
                       <div className="text-text-main truncate text-sm font-bold">Google Drive</div>
-                      <div className="text-text-muted truncate text-[11px]">Cloud file storage</div>
+                      <div className="text-text-muted truncate text-[11px]">{t('cloudFileStorage')}</div>
                     </div>
                     <span className="ml-auto shrink-0 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-green-500 uppercase">
-                      Connected
+                      {t('connected')}
                     </span>
                   </div>
                   <div className="text-text-muted text-xs leading-relaxed">
-                    Google Drive authorization completed successfully.
+                    {t('driveAuthDone')}
                   </div>
                   <Button
                     variant="outline"
@@ -3042,11 +3046,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       <div className="text-text-muted truncate text-[11px]">Calendar &amp; scheduling</div>
                     </div>
                     <span className="ml-auto shrink-0 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-green-500 uppercase">
-                      Connected
+                      {t('connected')}
                     </span>
                   </div>
                   <div className="text-text-muted text-xs leading-relaxed">
-                    Google Calendar authorization completed successfully.
+                    {t('calendarAuthDone')}
                   </div>
                   <div className="mt-auto flex flex-wrap gap-2">
                     <Button
@@ -3056,7 +3060,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       onClick={() => setCalendarMappingOpen(true)}
                     >
                       <SlidersHorizontal size={14} />
-                      Map fields
+                      {t('mapFields')}
                     </Button>
                     <Button
                       variant="outline"
@@ -3082,14 +3086,14 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     <ResourceIcon type="instagram-direct" />
                     <div className="min-w-0 flex-1">
                       <div className="text-text-main truncate text-sm font-bold">Instagram Direct</div>
-                      <div className="text-text-muted truncate text-[11px]">Direct messages</div>
+                      <div className="text-text-muted truncate text-[11px]">{t('directMessages')}</div>
                     </div>
                     <span className="ml-auto shrink-0 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-green-500 uppercase">
-                      Connected
+                      {t('connected')}
                     </span>
                   </div>
                   <div className="text-text-muted text-xs leading-relaxed">
-                    Instagram authorization completed successfully.
+                    {t('instagramAuthDone')}
                   </div>
                   <Button
                     variant="outline"
@@ -3101,7 +3105,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                     }}
                   >
                     <SlidersHorizontal size={14} />
-                    Configure
+                    {t('configure')}
                   </Button>
                 </div>
               )}
@@ -3118,7 +3122,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       <div className="font-bold text-sm text-text-main truncate">GitHub</div>
                       {isGithubConnected && githubStatus.user
                         ? <div className="text-[11px] text-text-muted truncate">@{githubStatus.user.login}</div>
-                        : <div className="text-[11px] text-text-muted">Source Code Version Control</div>
+                        : <div className="text-[11px] text-text-muted">{t('sourceControl')}</div>
                       }
                     </div>
                     <span className={cn(
@@ -3183,7 +3187,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       <div className="font-bold text-sm text-text-main truncate">GitLab</div>
                       {isGitlabConnected && gitlabStatus.user
                         ? <div className="text-[11px] text-text-muted truncate">@{gitlabStatus.user.username}</div>
-                        : <div className="text-[11px] text-text-muted">Source Code Version Control</div>
+                        : <div className="text-[11px] text-text-muted">{t('sourceControl')}</div>
                       }
                     </div>
                     <span className={cn(
@@ -3248,7 +3252,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       <div className="font-bold text-sm text-text-main truncate">Bitbucket</div>
                       {isBitbucketConnected && bitbucketStatus.user
                         ? <div className="text-[11px] text-text-muted truncate">@{bitbucketStatus.user.username}</div>
-                        : <div className="text-[11px] text-text-muted">Source Code Version Control</div>
+                        : <div className="text-[11px] text-text-muted">{t('sourceControl')}</div>
                       }
                     </div>
                     <span className={cn(
@@ -3316,11 +3320,11 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       </div>
                     </div>
                     <span className="ml-auto shrink-0 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-green-500 uppercase">
-                      Connected
+                      {t('connected')}
                     </span>
                   </div>
                   <div className="text-text-muted text-xs leading-relaxed">
-                    Leads from your Google forms flow straight into your project tables.
+                    {t('leadsHint')}
                   </div>
                   <div className="mt-auto flex flex-wrap gap-2">
                     <Button
@@ -3330,7 +3334,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                       onClick={() => openGoogleAdsModal('list')}
                     >
                       <SlidersHorizontal size={14} />
-                      Manage
+                      {t('manage')}
                     </Button>
                     <Button
                       variant="outline"
@@ -3396,7 +3400,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
           <div className="space-y-5">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-semibold text-text-muted uppercase tracking-[0.04em]">
-                Available
+                {t('available')}
               </div>
               <div className="text-text-muted text-xs">
                 {filteredAvailableResources.length} integrations
@@ -3450,7 +3454,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
                               </div>
                               {isSoon && (
                                 <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 ml-auto shrink-0 rounded-md border border-amber-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                                  Soon
+                                  {t('soon')}
                                 </span>
                               )}
                             </div>
@@ -3489,7 +3493,7 @@ export const ResourcesPage = ({ projectId }: { projectId: string }) => {
 
         {filteredAvailableResourceGroups.length === 0 && !showConnectedSection && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="text-text-muted text-sm">No integrations match your search.</div>
+            <div className="text-text-muted text-sm">{t('noIntegrationsMatch')}</div>
           </div>
         )}
       </div>

@@ -37,6 +37,7 @@ import { WorkspaceDataTable } from './workspace-data-table'
 import { cn } from '@/shared/lib/utils/cn'
 import { toast } from 'sonner'
 import { useChatStore } from '@/entities/chat'
+import { useTranslations } from 'next-intl'
 
 // Textarea that grows to fit its content instead of scrolling.
 const AutoResizeTextarea = ({
@@ -174,6 +175,7 @@ interface AgentsPageProps {
 type View = 'list' | 'runs'
 
 export const AgentsPage = ({ projectId }: AgentsPageProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [view, setView] = useState<View>('list')
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const [isFormOpen, setFormOpen] = useState(false)
@@ -211,9 +213,9 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
       queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
       setFormOpen(false)
       setEditingAgent(null)
-      toast.success('Agent created')
+      toast.success(t('agentCreated'))
     },
-    onError: () => toast.error('Failed to save agent'),
+    onError: () => toast.error(t('agentSaveFailed')),
   })
 
   const updateMutation = useMutation({
@@ -223,9 +225,9 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
       queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
       setFormOpen(false)
       setEditingAgent(null)
-      toast.success('Agent updated')
+      toast.success(t('agentUpdated'))
     },
-    onError: () => toast.error('Failed to save agent'),
+    onError: () => toast.error(t('agentSaveFailed')),
   })
 
   // Toggle enabled directly from the table status badge (no modal). Optimistic
@@ -252,7 +254,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(['agents', projectId], ctx.prev)
-      toast.error('Failed to update status')
+      toast.error(t('statusUpdateFailed'))
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['agents', projectId] }),
   })
@@ -263,7 +265,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
       queryClient.invalidateQueries({ queryKey: ['agents', projectId] })
       setDeleteOpen(false)
       setEditingAgent(null)
-      toast.success('Agent deleted')
+      toast.success(t('agentDeleted'))
     },
   })
 
@@ -336,7 +338,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
         cell: ({ row }: any) => (
           <button
             type="button"
-            title="Toggle status"
+            title={t('toggleStatus')}
             onClick={(e) => {
               e.stopPropagation()
               toggleEnabledMutation.mutate({
@@ -368,7 +370,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
                 e.stopPropagation()
                 openEdit(row.original)
               }}
-              title="Edit"
+              title={t('edit')}
             >
               <Edit size={13} />
             </Button>
@@ -381,7 +383,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
                 setEditingAgent(row.original)
                 setDeleteOpen(true)
               }}
-              title="Delete"
+              title={t('delete')}
             >
               <Trash2 size={13} />
             </Button>
@@ -410,7 +412,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
             </div>
             <div>
               <h1 className="text-lg font-bold text-text-main leading-tight">{selectedAgent.name}</h1>
-              <p className="text-xs text-text-muted">Run history</p>
+              <p className="text-xs text-text-muted">{t('runHistory')}</p>
             </div>
           </div>
         </div>
@@ -422,8 +424,8 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
             <div className="bg-primary/5 p-4 rounded-full mb-4">
               <Zap size={28} className="text-primary/40" />
             </div>
-            <h3 className="text-base font-medium text-text-main">No runs yet</h3>
-            <p className="text-text-muted text-sm mt-1 max-w-xs">This agent has not been invoked yet.</p>
+            <h3 className="text-base font-medium text-text-main">{t('noRuns')}</h3>
+            <p className="text-text-muted text-sm mt-1 max-w-xs">{t('agentNotInvoked')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -451,13 +453,13 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
                   <div className="border-t border-border-subtle px-4 py-3 space-y-3">
                     {run.output && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-text-muted mb-1">Output</p>
+                        <p className="text-[10px] font-bold uppercase text-text-muted mb-1">{t('output')}</p>
                         <p className="text-[12px] text-text-main whitespace-pre-wrap">{run.output}</p>
                       </div>
                     )}
                     {run.error && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase text-destructive mb-1">Error</p>
+                        <p className="text-[10px] font-bold uppercase text-destructive mb-1">{t('error')}</p>
                         <p className="text-[12px] text-destructive">{run.error}</p>
                       </div>
                     )}
@@ -499,9 +501,9 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-main tracking-tight">AI Agents</h1>
+          <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('aiAgents')}</h1>
           <p className="text-text-muted text-sm mt-1">
-            Create server-side AI assistants that read and write your project data.
+            {t('agentsSubtitle')}
           </p>
         </div>
         <Button
@@ -509,7 +511,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
           className="bg-primary hover:bg-primary/90 text-white rounded-lg h-8 px-3 text-[13px] font-medium"
         >
           <PlusCircle size={14} className="mr-1.5" />
-          New Agent
+          {t('newAgent')}
         </Button>
       </div>
 
@@ -522,12 +524,12 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
           <div className="bg-primary/5 p-4 rounded-full mb-4">
             <Bot size={32} className="text-primary/40" />
           </div>
-          <h3 className="text-lg font-medium text-text-main">No agents yet</h3>
+          <h3 className="text-lg font-medium text-text-main">{t('noAgents')}</h3>
           <p className="text-text-muted text-sm max-w-xs mt-1">
             Create your first AI agent to automate tasks and answer questions about your data.
           </p>
           <Button onClick={openCreate} className="mt-5 bg-primary text-white rounded-xl px-5">
-            <PlusCircle size={14} className="mr-2" /> Create Agent
+            <PlusCircle size={14} className="mr-2" /> {t('createAgent')}
           </Button>
         </div>
       )}
@@ -538,29 +540,29 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
           <DialogHeader>
             <DialogTitle>{editingAgent ? 'Edit Agent' : 'Create Agent'}</DialogTitle>
             <DialogDescription>
-              Configure the agent's identity, model, and table permissions.
+              {t('configureAgent')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Name</label>
+                <label className="text-sm font-medium">{t('name')}</label>
                 <Input
-                  placeholder="Company Assistant"
+                  placeholder={t('agentNamePlaceholder')}
                   value={form.name}
                   className="rounded-xl border-border-subtle"
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Model</label>
+                <label className="text-sm font-medium">{t('model')}</label>
                 <Select
                   value={form.model}
                   onValueChange={(v) => setForm((p) => ({ ...p, model: v }))}
                 >
                   <SelectTrigger className="rounded-xl border-border-subtle font-mono text-sm">
-                    <SelectValue placeholder="Select a model" />
+                    <SelectValue placeholder={t('selectModel')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-48 overflow-y-auto">
                     {AGENT_MODELS.map((m) => (
@@ -574,9 +576,9 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium">{t('descriptionLabel')}</label>
               <AutoResizeTextarea
-                placeholder="One sentence for your reference"
+                placeholder={t('oneSentenceHint')}
                 value={form.description}
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                 minRows={3}
@@ -585,9 +587,9 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">System Prompt (instruction)</label>
+              <label className="text-sm font-medium">{t('systemPrompt')}</label>
               <AutoResizeTextarea
-                placeholder="You are a helpful assistant. When asked about..."
+                placeholder={t('systemPromptPlaceholder')}
                 value={form.instruction}
                 onChange={(e) => setForm((p) => ({ ...p, instruction: e.target.value }))}
                 minRows={5}
@@ -599,7 +601,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setFormOpen(false)} className="rounded-xl">
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               disabled={!form.name || !form.instruction || isSaving}
@@ -618,7 +620,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
         <DialogContent className="rounded-2xl max-w-md">
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
-              <Trash2 size={18} /> Delete Agent
+              <Trash2 size={18} /> {t('deleteAgent')}
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete{' '}
@@ -628,7 +630,7 @@ export const AgentsPage = ({ projectId }: AgentsPageProps) => {
           </DialogHeader>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setDeleteOpen(false)} className="rounded-xl">
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"

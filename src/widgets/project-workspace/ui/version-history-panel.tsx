@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/shared/lib/utils/cn"
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
 import { useGuardedAction } from "@/widgets/project-workspace/lib/save-flow"
+import { useTranslations } from 'next-intl'
 
 interface CommitFile {
   file_path: string
@@ -68,6 +69,7 @@ const parseCommitFiles = (raw: string): VersionPreviewFile[] => {
 }
 
 export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onReverted }: VersionHistoryPanelProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const apiKey = useAuthStore((s) => s.apiKey)
   const activeCodeSelection = useCodeSelectionStore((s) => s.activeCodeSelection)
   const repoId = activeCodeSelection?.repoId
@@ -183,13 +185,13 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
         >
           <ArrowLeft size={15} />
         </button>
-        <span className="text-[14px] font-semibold text-text-main">Version history</span>
+        <span className="text-[14px] font-semibold text-text-main">{t('versionHistory')}</span>
       </div>
 
       {/* Body */}
       {!repoId ? (
         <div className="flex flex-col items-center justify-center flex-1 px-6 text-center text-text-muted gap-1">
-          <p className="text-sm">Select a microfrontend to view its history</p>
+          <p className="text-sm">{t('selectMicrofrontendHistory')}</p>
         </div>
       ) : isLoading ? (
         <div className="flex items-center justify-center flex-1">
@@ -197,7 +199,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
         </div>
       ) : commits.length === 0 ? (
         <div className="flex flex-col items-center justify-center flex-1 text-text-muted">
-          <p className="text-sm">No versions yet</p>
+          <p className="text-sm">{t('noVersions')}</p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
@@ -235,7 +237,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                   )}
                   {isCurrent && !isLoadingThis && (
                     <span className="text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                      Current
+                      {t('currentLabel')}
                     </span>
                   )}
                   <Popover
@@ -262,7 +264,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors text-left"
                       >
                         <Rocket size={14} />
-                        <span>Publish this version</span>
+                        <span>{t('publishThisVersion')}</span>
                       </button>
                       <button
                         type="button"
@@ -271,7 +273,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors text-left disabled:opacity-50 disabled:pointer-events-none"
                       >
                         <RotateCcw size={14} />
-                        <span>Revert to this version</span>
+                        <span>{t('revertToVersion')}</span>
                         {isCurrent && <Check size={12} className="ml-auto text-primary" />}
                       </button>
                       <button
@@ -280,7 +282,7 @@ export const VersionHistoryPanel = ({ onClose, onSelectCommit, onViewCode, onRev
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors text-left"
                       >
                         <Code size={14} />
-                        <span>View code</span>
+                        <span>{t('viewCode')}</span>
                       </button>
                     </PopoverContent>
                   </Popover>

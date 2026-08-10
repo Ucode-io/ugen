@@ -179,18 +179,18 @@ export const PermissionManage = ({ projectId }: Props) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-text-main mb-1">Permissions</h1>
-        <p className="text-text-muted text-[13px]">Configure menu page permissions per user type and role</p>
+        <h1 className="text-[22px] font-bold text-text-main mb-1">{t('permissions')}</h1>
+        <p className="text-text-muted text-[13px]">{t('permissionsSubtitle')}</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 mb-5">
         <div className="w-[190px] space-y-1.5">
           <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-            User type
+            {t('userType')}
           </label>
           <Select value={selectedClientTypeId} onValueChange={setSelectedClientTypeId}>
             <SelectTrigger className="bg-bg-sidebar border-border-subtle h-8 text-[12px]">
-              <SelectValue placeholder="Select user type" />
+              <SelectValue placeholder={t('selectUserType')} />
             </SelectTrigger>
             <SelectContent>
               {clientTypesData?.map((ct: any) => (
@@ -226,7 +226,7 @@ export const PermissionManage = ({ projectId }: Props) => {
                   }}
                 >
                   <Plus size={13} />
-                  Add Type
+                  {t('addType')}
                 </button>
               </div>
             </SelectContent>
@@ -235,11 +235,11 @@ export const PermissionManage = ({ projectId }: Props) => {
 
         <div className="w-[190px] space-y-1.5">
           <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-            Role
+            {t('roleLabel')}
           </label>
           <Select value={selectedRoleId} onValueChange={setSelectedRoleId} disabled={!selectedClientTypeId}>
             <SelectTrigger className="bg-bg-sidebar border-border-subtle h-8 text-[12px]">
-              <SelectValue placeholder="Select role" />
+              <SelectValue placeholder={t('selectRoleType')} />
             </SelectTrigger>
             <SelectContent>
               {filteredRoles?.map((role: any) => (
@@ -268,7 +268,7 @@ export const PermissionManage = ({ projectId }: Props) => {
                 </SelectItem>
               ))}
               {filteredRoles.length === 0 && (
-                <div className="px-2 py-1.5 text-[12px] text-text-muted italic">No roles yet</div>
+                <div className="px-2 py-1.5 text-[12px] text-text-muted italic">{t('noRoles')}</div>
               )}
               <div className="border-t border-border-subtle/50 mt-1 pt-1 px-1">
                 <button
@@ -281,7 +281,7 @@ export const PermissionManage = ({ projectId }: Props) => {
                   }}
                 >
                   <Plus size={13} />
-                  Create Role
+                  {t('createRoleBtn')}
                 </button>
               </div>
             </SelectContent>
@@ -325,7 +325,7 @@ export const PermissionManage = ({ projectId }: Props) => {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main block ml-1">Role Name</label>
+              <label className="text-sm font-medium text-text-main block ml-1">{t('roleNameLabel')}</label>
               <Input
                 placeholder="e.g. Editor"
                 value={newRoleName}
@@ -335,7 +335,7 @@ export const PermissionManage = ({ projectId }: Props) => {
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-lg bg-bg-sidebar/50 border border-border-subtle">
-              <span className="text-sm font-medium text-text-main">Status</span>
+              <span className="text-sm font-medium text-text-main">{t('statusLabel')}</span>
               <div className="flex items-center gap-2">
                 <span className={cn("text-[10px] font-bold uppercase", roleStatus ? "text-green-500" : "text-text-muted")}>
                   {roleStatus ? "Active" : "Inactive"}
@@ -359,7 +359,7 @@ export const PermissionManage = ({ projectId }: Props) => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsRoleModalOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsRoleModalOpen(false)}>{t('cancelBtn')}</Button>
             <Button
               className="bg-primary hover:bg-primary/90 text-white"
               disabled={!newRoleName.trim() || saveRoleMutation.isPending}
@@ -375,10 +375,10 @@ export const PermissionManage = ({ projectId }: Props) => {
       <Dialog open={isClientTypeModalOpen} onOpenChange={setIsClientTypeModalOpen}>
         <DialogContent className="max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Create User Type</DialogTitle>
+            <DialogTitle>{t('createUserType')}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <label className="text-sm font-medium text-text-main mb-1.5 block">Type Name</label>
+            <label className="text-sm font-medium text-text-main mb-1.5 block">{t('typeName')}</label>
             <Input
               placeholder="e.g. Admin, Customer"
               value={newClientTypeName}
@@ -387,7 +387,7 @@ export const PermissionManage = ({ projectId }: Props) => {
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsClientTypeModalOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsClientTypeModalOpen(false)}>{t('cancelBtn')}</Button>
             <Button
               className="bg-primary hover:bg-primary/90 text-white"
               disabled={!newClientTypeName.trim() || createClientTypeMutation.isPending}

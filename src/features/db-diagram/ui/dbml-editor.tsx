@@ -7,6 +7,7 @@ import { useUIStore } from "@/shared/model/theme/use-ui-store";
 import { cn } from "@/shared/lib/utils/cn";
 import { useDiagramStore } from "../model/store";
 import { DBML_LANGUAGE_ID, registerDbmlLanguage } from "../lib/dbml";
+import { useTranslations } from 'next-intl'
 
 interface Props {
   parseErrorCount: number;
@@ -19,6 +20,7 @@ export const DbmlEditor: React.FC<Props> = ({
   onUserEdit,
   onRegenerate,
 }) => {
+  const t = useTranslations('features.dbDiagram')
   const { theme } = useUIStore();
   const dbml = useDiagramStore((s) => s.dbml);
   const isEditing = useDiagramStore((s) => s.isDbmlEditing);
@@ -64,7 +66,7 @@ export const DbmlEditor: React.FC<Props> = ({
         <div className="ml-auto flex items-center gap-1">
           <button
             onClick={onRegenerate}
-            title="Regenerate from API schema"
+            title={t('regenerateFromApi')}
             className="text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center justify-center rounded p-1 transition-colors"
           >
             <RefreshCw size={13} />

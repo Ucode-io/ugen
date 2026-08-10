@@ -250,6 +250,7 @@ const LookupEditSelect = ({
   onClose?: () => void;
   autoOpen?: boolean;
 }) => {
+  const t = useTranslations('widgets.databaseStudio')
   const relatedTable = getRelatedTable(slug);
   const cacheKey = lookupCacheKey(relatedTable, projectId, clientTypeId);
 
@@ -306,7 +307,7 @@ const LookupEditSelect = ({
           </div>
         ) : options.length === 0 ? (
           <div className="text-text-muted px-3 py-2 text-[12px]">
-            No options found
+            {t('noOptions')}
           </div>
         ) : (
           <div className="max-h-[240px] overflow-y-auto">
@@ -353,6 +354,7 @@ const LookupDisplayCell = ({
   onEdit: () => void;
   onClear?: () => void;
 }) => {
+  const t = useTranslations('widgets.databaseStudio')
   const [options, setOptions] = useState<any[]>([]);
 
   const relatedTable = getRelatedTable(slug);
@@ -390,7 +392,7 @@ const LookupDisplayCell = ({
       {hasValue && onClear && (
         <button
           type="button"
-          title="Clear value"
+          title={t('clearValue')}
           onClick={(e) => {
             e.stopPropagation();
             onClear();
@@ -637,11 +639,11 @@ export const RecordsView = ({
       clearLookupOptionsCache(selectedTable, projectId, ucodeProjectId || "");
       setIsInlineAdding(false);
       setInlineRowData({});
-      toast.success("Record added successfully");
+      toast.success(t('recordAdded'));
       refetch();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add record");
+      toast.error(t('recordAddFailed'));
     }
   };
 
@@ -664,7 +666,7 @@ export const RecordsView = ({
         queryKey: ["db-records", selectedTable, projectId, ucodeProjectId || ""],
       });
     } catch {
-      toast.error("Failed to clear value");
+      toast.error(t('clearValueFailed'));
     }
   };
 
@@ -720,16 +722,16 @@ export const RecordsView = ({
           };
         },
       );
-      toast.success("Record updated");
+      toast.success(t('recordUpdated'));
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update record");
+      toast.error(t('recordUpdateFailed'));
     }
   };
 
   const handleExport = (format: "json" | "csv" | "xlsx") => {
     if (!records.length) {
-      toast.error("No records to export");
+      toast.error(t('noRecordsExport'));
       return;
     }
 
@@ -738,17 +740,17 @@ export const RecordsView = ({
     try {
       if (format === "json") {
         exportToJSON(records, filename);
-        toast.success("Successfully exported to JSON");
+        toast.success(t('exportedJson'));
       } else if (format === "csv") {
         exportToCSV(records, filename);
-        toast.success("Successfully exported to CSV");
+        toast.success(t('exportedCsv'));
       } else if (format === "xlsx") {
         exportToXLSX(records, filename);
-        toast.success("Successfully exported to XLSX");
+        toast.success(t('exportedXlsx'));
       }
     } catch (error) {
       console.error("Export failed:", error);
-      toast.error("Failed to export data");
+      toast.error(t('exportFailed'));
     }
   };
 
@@ -781,7 +783,7 @@ export const RecordsView = ({
       header: () => (
         <div className="flex w-20 items-center justify-center py-1">
           <span className="text-text-main text-[11px] font-bold tracking-wider uppercase">
-            Actions
+            {t('actions')}
           </span>
         </div>
       ),
@@ -797,7 +799,7 @@ export const RecordsView = ({
                 setEditingRecord(row.original);
               }}
               className="text-text-muted hover:text-primary hover:bg-primary/10 flex h-6 w-6 items-center justify-center rounded transition-colors"
-              title="Edit record"
+              title={t('editRecord')}
             >
               <Pencil size={13} />
             </button>
@@ -807,7 +809,7 @@ export const RecordsView = ({
                 setDeleteTarget(row.original);
               }}
               className="text-text-muted hover:text-destructive hover:bg-destructive/10 flex h-6 w-6 items-center justify-center rounded transition-colors"
-              title="Delete record"
+              title={t('deleteRecord')}
             >
               <Trash2 size={13} />
             </button>
@@ -939,7 +941,7 @@ export const RecordsView = ({
             if (isAutoUuid) {
               return (
                 <div className="text-text-muted/40 px-2 text-[11px] italic">
-                  Auto-gen
+                  {t('autoGen')}
                 </div>
               );
             }
@@ -1216,7 +1218,7 @@ export const RecordsView = ({
     return (
       <div className="text-text-muted flex h-full flex-col items-center justify-center">
         <Database size={32} className="mb-4 opacity-50" />
-        <p className="text-sm">Select a table to view its records</p>
+        <p className="text-sm">{t('selectTableRecords')}</p>
       </div>
     );
   }
@@ -1242,7 +1244,7 @@ export const RecordsView = ({
             <button
               id="db-view-tab-records"
               onClick={() => setActiveTab("records")}
-              title="Table view"
+              title={t('tableView')}
               className={cn(
                 "flex items-center justify-center rounded-[4px] p-1 transition-all duration-150",
                 activeTab === "records"
@@ -1255,7 +1257,7 @@ export const RecordsView = ({
             <button
               id="db-view-tab-schema"
               onClick={() => setActiveTab("schema")}
-              title="Schema view"
+              title={t('schemaView')}
               className={cn(
                 "flex items-center justify-center rounded-[4px] p-1 transition-all duration-150",
                 activeTab === "schema"
@@ -1279,7 +1281,7 @@ export const RecordsView = ({
                     loading={addRecordMutation.isPending}
                   >
                     <Save size={14} />
-                    Save changes
+                    {t('saveChanges')}
                   </Button>
                   <Button
                     variant="outline"
@@ -1291,7 +1293,7 @@ export const RecordsView = ({
                     }}
                   >
                     <Ban size={14} />
-                    Cancel
+                    {t('cancelBtn')}
                   </Button>
                 </div>
               ) : (
@@ -1337,7 +1339,7 @@ export const RecordsView = ({
                 <PopoverTrigger asChild>
                   <button className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors">
                     <SlidersHorizontal size={14} />
-                    Columns
+                    {t('columnsLabel')}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -1346,13 +1348,13 @@ export const RecordsView = ({
                 >
                   <div className="border-border-subtle flex items-center justify-between border-b px-3 py-2">
                     <span className="text-text-main text-xs font-medium">
-                      Toggle columns
+                      {t('toggleColumns')}
                     </span>
                     <button
                       onClick={() => setSelectedColumns([])}
                       className="text-text-muted hover:text-text-main text-[11px]"
                     >
-                      Deselect all
+                      {t('deselectAll')}
                     </button>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto p-1">
@@ -1403,7 +1405,7 @@ export const RecordsView = ({
                   : "border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg",
               )}
             >
-              <Plus size={14} /> Add field
+              <Plus size={14} /> {t('addField')}
             </button>
             <button
               onClick={() =>
@@ -1411,12 +1413,12 @@ export const RecordsView = ({
               }
               className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
             >
-              <Download size={14} /> Export DDL
+              <Download size={14} /> {t('exportDdl')}
             </button>
             <button
               onClick={() => refetchSchema()}
               className="border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main rounded-md border p-1.5 shadow-sm transition-colors"
-              title="Refresh"
+              title={t('refresh')}
             >
               <RefreshCw
                 size={14}
@@ -1439,7 +1441,7 @@ export const RecordsView = ({
                 className="border-border-subtle hover:bg-hover-bg hover:text-text-main h-full shrink-0 border-r px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={offset === 0}
                 onClick={() => setOffset(Math.max(0, offset - limit))}
-                title="Previous Page"
+                title={t('previousPage')}
               >
                 <ChevronLeft size={14} />
               </button>
@@ -1451,7 +1453,7 @@ export const RecordsView = ({
                   onBlur={handleLimitBlur}
                   onKeyDown={(e) => e.key === "Enter" && handleLimitBlur()}
                   className="text-text-main focus:text-primary w-8 bg-transparent text-center font-mono transition-colors outline-none"
-                  title="Rows per page"
+                  title={t('rowsPerPage')}
                 />
               </div>
               <div className="border-border-subtle bg-bg-card/50 flex h-full items-center gap-1 border-r px-2">
@@ -1462,14 +1464,14 @@ export const RecordsView = ({
                   onBlur={handlePageBlur}
                   onKeyDown={(e) => e.key === "Enter" && handlePageBlur()}
                   className="text-text-main focus:text-primary w-8 bg-transparent text-center font-mono transition-colors outline-none"
-                  title="Current page"
+                  title={t('currentPage')}
                 />
               </div>
               <button
                 className="hover:bg-hover-bg hover:text-text-main h-full shrink-0 px-2 transition-colors disabled:opacity-50"
                 disabled={!records || records.length < limit}
                 onClick={() => setOffset(offset + limit)}
-                title="Next Page"
+                title={t('nextPage')}
               >
                 <ChevronRight size={14} />
               </button>
@@ -1478,7 +1480,7 @@ export const RecordsView = ({
             <button
               onClick={() => refetch()}
               className="border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main rounded-md border p-1.5 shadow-sm transition-colors"
-              title="Refresh"
+              title={t('refresh')}
             >
               <RefreshCw
                 size={14}
@@ -1490,7 +1492,7 @@ export const RecordsView = ({
               <PopoverTrigger asChild>
                 <button
                   className="border-border-subtle bg-bg-card hover:bg-hover-bg text-text-muted hover:text-text-main rounded-md border p-1.5 shadow-sm transition-colors"
-                  title="Options"
+                  title={t('options')}
                 >
                   <MoreHorizontal size={14} />
                 </button>
@@ -1511,7 +1513,7 @@ export const RecordsView = ({
                         isRecordsLoading && "animate-spin",
                       )}
                     />
-                    Refresh rows
+                    {t('refreshRows')}
                   </button>
                   <div className="bg-border-subtle mx-1 my-1 h-px" />
                   <button
@@ -1522,7 +1524,7 @@ export const RecordsView = ({
                       size={14}
                       className="text-text-muted group-hover:text-primary transition-colors"
                     />
-                    Export all to .json
+                    {t('exportJson')}
                   </button>
                   <button
                     onClick={() => handleExport("csv")}
@@ -1532,7 +1534,7 @@ export const RecordsView = ({
                       size={14}
                       className="text-text-muted group-hover:text-primary transition-colors"
                     />
-                    Export all to .csv
+                    {t('exportCsv')}
                   </button>
                   <button
                     onClick={() => handleExport("xlsx")}
@@ -1542,7 +1544,7 @@ export const RecordsView = ({
                       size={14}
                       className="text-text-muted group-hover:text-primary transition-colors"
                     />
-                    Export all to .xlsx
+                    {t('exportXlsx')}
                   </button>
                 </div>
               </PopoverContent>
@@ -1570,7 +1572,7 @@ export const RecordsView = ({
         >
           {localFilters.length === 0 ? (
             <div className="text-text-muted px-3 py-2 text-xs font-medium">
-              No active filters. Click Add filter.
+              {t('noActiveFilters')}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -1583,7 +1585,7 @@ export const RecordsView = ({
                       )
                     }
                     className="text-text-muted hover:text-destructive bg-bg-card border-border-subtle hover:border-destructive/30 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors"
-                    title="Remove filter"
+                    title={t('removeFilter')}
                   >
                     <X size={12} />
                   </button>
@@ -1666,7 +1668,7 @@ export const RecordsView = ({
                 }}
                 className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
               >
-                <Plus size={12} /> Add filter
+                <Plus size={12} /> {t('addFilterBtn')}
               </button>
               <button
                 onClick={() => {
@@ -1674,7 +1676,7 @@ export const RecordsView = ({
                 }}
                 className="text-text-muted hover:text-destructive text-xs font-medium transition-colors"
               >
-                Clear filters
+                {t('clearFiltersBtn')}
               </button>
             </div>
           </div>
@@ -1740,7 +1742,7 @@ export const RecordsView = ({
           onConfirm={async () => {
             const guid = deleteTarget.guid ?? deleteTarget.id;
             if (!guid) {
-              toast.error("Record has no guid — cannot delete");
+              toast.error(t('recordNoGuid'));
               return;
             }
             try {
@@ -1753,12 +1755,12 @@ export const RecordsView = ({
                 projectId,
                 ucodeProjectId || "",
               );
-              toast.success("Record deleted");
+              toast.success(t('recordDeleted'));
               setDeleteTarget(null);
               refetch();
             } catch (err) {
               console.error(err);
-              toast.error("Failed to delete record");
+              toast.error(t('recordDeleteFailed'));
             }
           }}
         />

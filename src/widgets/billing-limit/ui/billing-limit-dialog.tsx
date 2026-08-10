@@ -14,6 +14,7 @@ import {
 import { useBillingLimitStore } from "@/entities/billing";
 import { UpgradePlanDialog } from "@/widgets/sidebar/ui/components/upgrade-plan-dialog";
 import { getLimitCopy, isTokenLimitCode } from "../lib/copy";
+import { useTranslations } from 'next-intl'
 
 const formatNumber = (n?: number) =>
   typeof n === "number" ? n.toLocaleString() : "—";
@@ -24,6 +25,7 @@ const formatNumber = (n?: number) =>
  * "Upgrade plan" button opens the shared UpgradePlanDialog.
  */
 export const BillingLimitDialog = () => {
+  const t = useTranslations('widgets.billingLimit')
   const open = useBillingLimitStore((s) => s.open);
   const data = useBillingLimitStore((s) => s.data);
   const close = useBillingLimitStore((s) => s.close);
@@ -54,14 +56,14 @@ export const BillingLimitDialog = () => {
             {isTokenLimit && (
               <div className="bg-bg-sidebar border-border-subtle mt-1 w-full rounded-xl border p-3 text-left">
                 <div className="flex items-center justify-between py-1 text-[12px]">
-                  <span className="text-text-muted">Daily tokens</span>
+                  <span className="text-text-muted">{t('dailyTokens')}</span>
                   <span className="text-text-main font-mono font-semibold">
                     {formatNumber(data?.day_used)} /{" "}
                     {formatNumber(data?.day_limit)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-1 text-[12px]">
-                  <span className="text-text-muted">Monthly tokens</span>
+                  <span className="text-text-muted">{t('monthlyTokens')}</span>
                   <span className="text-text-main font-mono font-semibold">
                     {formatNumber(data?.month_used)} /{" "}
                     {formatNumber(data?.month_limit)}
@@ -77,7 +79,7 @@ export const BillingLimitDialog = () => {
               className="border-border-subtle h-10 flex-1 rounded-lg"
               onClick={close}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               className="bg-primary hover:bg-primary/90 h-10 flex-1 rounded-lg text-white"
@@ -86,7 +88,7 @@ export const BillingLimitDialog = () => {
                 setUpgradeOpen(true);
               }}
             >
-              Upgrade plan
+              {t('upgradePlan')}
             </Button>
           </DialogFooter>
         </DialogContent>

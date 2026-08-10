@@ -40,6 +40,7 @@ import {
 import { useTemplateLaunch } from "../model/use-template-launch";
 import { TemplateReactions } from "./template-reactions";
 import { TopUpModal } from "@/widgets/sidebar/ui/components/top-up-modal";
+import { useTranslations } from 'next-intl'
 
 const cdnBase = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
 
@@ -71,6 +72,7 @@ interface Props {
 }
 
 export const TemplateDashboardDetail = ({ id }: Props) => {
+  const t = useTranslations('widgets.templatesBoard')
   const router = useRouter();
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -135,12 +137,12 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
   if (!template) {
     return (
       <div className="bg-bg-main flex h-full flex-col items-center justify-center gap-4">
-        <p className="text-text-muted">Template not found.</p>
+        <p className="text-text-muted">{t('notFound')}</p>
         <button
           onClick={() => router.push("/dashboard/templates")}
           className="text-primary text-sm hover:underline"
         >
-          Back to Templates
+          {t('backToTemplates')}
         </button>
       </div>
     );
@@ -192,7 +194,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
           <button
             type="button"
             onClick={handleReload}
-            title="Reload preview"
+            title={t('reloadPreview')}
             className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
           >
             <RotateCcw size={14} />
@@ -267,7 +269,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
             />
           ) : (
             <div className="text-text-muted flex h-full items-center justify-center text-sm">
-              No demo URL available
+              {t('noDemoUrl')}
             </div>
           )}
         </div>
@@ -285,7 +287,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
             className="text-text-muted hover:text-text-main flex shrink-0 items-center gap-1.5 text-sm transition-colors"
           >
             <ArrowLeft size={16} />
-            Back
+            {t('back')}
           </button>
 
           <h1 className="text-text-main flex-1 truncate text-xl font-bold">
@@ -335,7 +337,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
         {images.length > 0 && (
           <div className="mt-4 mb-8">
             <h2 className="text-text-main mb-3 text-[1rem] font-semibold">
-              Screenshots
+              {t('screenshots')}
             </h2>
             <div className="flex flex-wrap gap-3">
               {images.map((img, i) => (
@@ -371,7 +373,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
                   e.stopPropagation();
                   showPrev();
                 }}
-                aria-label="Previous image"
+                aria-label={t('prevImage')}
                 className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               >
                 <ChevronLeft size={22} />
@@ -381,7 +383,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={images[lightboxIndex]}
-              alt="Screenshot preview"
+              alt={t('screenshotPreview')}
               className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
@@ -393,7 +395,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
                   e.stopPropagation();
                   showNext();
                 }}
-                aria-label="Next image"
+                aria-label={t('nextImage')}
                 className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               >
                 <ChevronRight size={22} />
@@ -414,7 +416,7 @@ export const TemplateDashboardDetail = ({ id }: Props) => {
         {description && (
           <div className="border-border-subtle bg-bg-card rounded-xl border p-5">
             <h2 className="text-text-main mb-3 text-[1.1rem] font-bold">
-              About this template
+              {t('about')}
             </h2>
             <div
               className="template-description text-text-muted text-[0.875rem] leading-[1.8]"

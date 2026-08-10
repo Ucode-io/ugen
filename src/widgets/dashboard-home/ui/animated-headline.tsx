@@ -1,6 +1,7 @@
 'use client'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 // Глаголы, которые «перелистываются» в заголовке (как Chat → Write в Dia).
 const WORDS = ['build', 'ship', 'design', 'launch', 'automate']
@@ -32,6 +33,7 @@ const wordStyle = {
  * Уважает prefers-reduced-motion: тогда слово статично.
  */
 export const AnimatedHeadline = () => {
+  const t = useTranslations('widgets.dashboard')
   const reduce = useReducedMotion()
   const [i, setI] = useState(0)
   const word = WORDS[i]
@@ -60,7 +62,7 @@ export const AnimatedHeadline = () => {
 
   return (
     <h1 className="mb-2 flex flex-wrap items-center justify-center gap-x-[0.28em] text-[2.5rem] font-bold leading-tight tracking-tight text-text-main">
-      <span>What will you</span>
+      <span>{t('whatWillYou')}</span>
 
       <motion.span
         className="relative inline-grid"

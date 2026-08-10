@@ -17,8 +17,10 @@ import {
   type Template,
 } from "../model/templates";
 import { TemplateReactions } from "./template-reactions";
+import { useTranslations } from 'next-intl'
 
 export const TemplatesBoard = () => {
+  const t = useTranslations('widgets.templatesBoard')
   const router = useRouter();
 
   const {
@@ -46,7 +48,7 @@ export const TemplatesBoard = () => {
   return (
     <div className="bg-bg-main h-full overflow-y-auto p-8">
       <div className="mx-auto max-w-300">
-        <h1 className="text-text-main mb-8 text-3xl font-bold">Templates</h1>
+        <h1 className="text-text-main mb-8 text-3xl font-bold">{t('templates')}</h1>
 
         {isLoading ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -61,11 +63,11 @@ export const TemplatesBoard = () => {
           </div>
         ) : isError ? (
           <div className="border-border-subtle bg-bg-card text-text-muted rounded-xl border p-8 text-center">
-            Failed to load templates. Please try again later.
+            {t('loadFailed')}
           </div>
         ) : templates.length === 0 ? (
           <div className="border-border-subtle bg-bg-card text-text-muted rounded-xl border border-dashed p-12 text-center">
-            No templates available yet.
+            {t('empty')}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

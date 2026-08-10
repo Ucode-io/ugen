@@ -183,7 +183,7 @@ export const ChatInput = ({
       toast.success(`Provider changed to ${label}`);
     } catch (err) {
       setChatModel(prev); // revert on failure
-      toast.error("Failed to change provider");
+      toast.error(t('providerChangeFailed'));
       console.error("Failed to update chat model", err);
     } finally {
       setSavingModel(false);
@@ -642,7 +642,7 @@ export const ChatInput = ({
                 <>
                   <div>
                     <div className="text-text-muted flex items-center gap-1 px-2 pt-1.5 pb-0.5 text-[9px] tracking-wider uppercase">
-                      Project
+                      {t('project')}
                     </div>
                     <button
                       type="button"
@@ -654,7 +654,7 @@ export const ChatInput = ({
                           size={10}
                           className="text-primary shrink-0"
                         />
-                        New frontend
+                        {t('newFrontend')}
                       </span>
                       {activeCodeSelection?.kind === "new_project" && (
                         <Check size={10} className="text-primary shrink-0" />
@@ -690,13 +690,13 @@ export const ChatInput = ({
                   {(functionsList?.length ?? 0) === 0 &&
                     (microfrontendsList?.length ?? 0) === 0 && (
                       <div className="text-text-muted px-2 py-3 text-center text-[11px]">
-                        No items available
+                        {t('noItems')}
                       </div>
                     )}
 
                   {(isFunctionsError || isMicrofrontendsError) && (
                     <div className="px-2 py-1.5 text-[11px] text-red-500">
-                      Failed to load items
+                      {t('loadItemsFailed')}
                     </div>
                   )}
                 </>

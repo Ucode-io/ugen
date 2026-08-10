@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import {
   Button,
   Dialog,
@@ -41,6 +42,7 @@ export const BecomeExpertModal = ({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) => {
+  const t = useTranslations('widgets.hireExpert.modal')
   const [form, setForm] = useState<FormState>(EMPTY)
   const [submitting, setSubmitting] = useState(false)
 
@@ -71,12 +73,12 @@ export const BecomeExpertModal = ({
       })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
-        throw new Error(data?.error ?? 'Failed to submit application')
+        throw new Error(data?.error ?? t('error'))
       }
-      toast.success("Application sent! We'll get back to you soon.")
+      toast.success(t('success'))
       onOpenChange(false)
     } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to submit application')
+      toast.error(err?.message ?? t('error'))
     } finally {
       setSubmitting(false)
     }
@@ -94,10 +96,10 @@ export const BecomeExpertModal = ({
           </div>
           <div>
             <DialogTitle className="text-text-main text-[15px] leading-tight font-semibold">
-              Become a u-gen Expert
+              {t('title')}
             </DialogTitle>
             <DialogDescription className="text-text-muted mt-0.5 text-xs">
-              Tell us about yourself — we&apos;ll reach out with next steps.
+              {t('description')}
             </DialogDescription>
           </div>
         </div>
@@ -106,10 +108,10 @@ export const BecomeExpertModal = ({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className={labelClass}>
-                Full name <span className="text-primary">*</span>
+                {t('fullName')} <span className="text-primary">*</span>
               </label>
               <Input
-                placeholder="Jane Doe"
+                placeholder={t('fullNamePlaceholder')}
                 value={form.name}
                 onChange={set('name')}
                 className={fieldClass}
@@ -117,9 +119,9 @@ export const BecomeExpertModal = ({
               />
             </div>
             <div className="space-y-1.5">
-              <label className={labelClass}>Company / Team</label>
+              <label className={labelClass}>{t('companyTeam')}</label>
               <Input
-                placeholder="Acme Studio"
+                placeholder={t('companyPlaceholder')}
                 value={form.company}
                 onChange={set('company')}
                 className={fieldClass}
@@ -131,11 +133,11 @@ export const BecomeExpertModal = ({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className={labelClass}>
-                Email <span className="text-primary">*</span>
+                {t('email')} <span className="text-primary">*</span>
               </label>
               <Input
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t('emailPlaceholder')}
                 value={form.email}
                 onChange={set('email')}
                 className={fieldClass}
@@ -143,9 +145,9 @@ export const BecomeExpertModal = ({
               />
             </div>
             <div className="space-y-1.5">
-              <label className={labelClass}>Phone / Telegram</label>
+              <label className={labelClass}>{t('phone')}</label>
               <Input
-                placeholder="+998 90 123 45 67"
+                placeholder={t('phonePlaceholder')}
                 value={form.phone}
                 onChange={set('phone')}
                 className={fieldClass}
@@ -155,9 +157,9 @@ export const BecomeExpertModal = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className={labelClass}>Services you offer</label>
+            <label className={labelClass}>{t('servicesLabel')}</label>
             <Input
-              placeholder="Backend, Mobile, UI/UX…"
+              placeholder={t('servicesPlaceholder')}
               value={form.services}
               onChange={set('services')}
               className={fieldClass}
@@ -165,9 +167,9 @@ export const BecomeExpertModal = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className={labelClass}>Portfolio / Website</label>
+            <label className={labelClass}>{t('portfolio')}</label>
             <Input
-              placeholder="https://…"
+              placeholder={t('portfolioPlaceholder')}
               value={form.portfolio}
               onChange={set('portfolio')}
               className={fieldClass}
@@ -175,9 +177,9 @@ export const BecomeExpertModal = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className={labelClass}>Anything else?</label>
+            <label className={labelClass}>{t('message')}</label>
             <textarea
-              placeholder="Tell us about your experience…"
+              placeholder={t('messagePlaceholder')}
               value={form.message}
               onChange={set('message')}
               rows={3}
@@ -192,7 +194,7 @@ export const BecomeExpertModal = ({
               onClick={() => onOpenChange(false)}
               className="h-9 rounded-lg px-4 text-[13px]"
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               type="submit"
@@ -200,7 +202,7 @@ export const BecomeExpertModal = ({
               className="bg-primary hover:bg-primary/90 h-9 rounded-lg px-5 text-[13px] font-medium text-white shadow-sm"
             >
               {submitting && <Loader2 size={14} className="mr-2 animate-spin" />}
-              Send application
+              {t('submit')}
             </Button>
           </div>
         </form>

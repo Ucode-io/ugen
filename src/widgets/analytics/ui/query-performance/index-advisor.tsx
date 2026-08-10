@@ -4,8 +4,10 @@ import { Lightbulb, X } from "lucide-react";
 import { useAnalyticsStore } from "@/entities/analytics";
 import { Button } from "@/shared/ui";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslations } from 'next-intl'
 
 export const IndexAdvisor = () => {
+  const t = useTranslations('widgets.analytics')
   const { indexAdvisorVisible, setIndexAdvisorVisible } = useAnalyticsStore();
 
   return (
@@ -30,19 +32,19 @@ export const IndexAdvisor = () => {
           </div>
           <div className="space-y-4">
             <div>
-              <h4 className="font-bold text-text-main text-sm">Enable Index Advisor</h4>
+              <h4 className="font-bold text-text-main text-sm">{t('enableIndexAdvisor')}</h4>
               <p className="text-xs text-text-muted mt-2 leading-relaxed">
                 The Index Advisor analyzes your database's most common and slow queries to suggest potential performance improvements with new indexes.
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button className="w-full text-xs h-9 bg-primary">Enable Advisor</Button>
+              <Button className="w-full text-xs h-9 bg-primary">{t('enableAdvisor')}</Button>
               <Button
                 variant="outline"
                 className="w-full text-xs h-9 bg-bg-card border-border-subtle"
                 onClick={() => setIndexAdvisorVisible(false)}
               >
-                Not now
+                {t('notNow')}
               </Button>
             </div>
           </div>

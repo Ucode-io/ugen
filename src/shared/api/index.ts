@@ -1,2 +1,2 @@
-export { api, authApi, githubApi } from './instance'
+export { api, authApi, githubApi, refreshAuthTokens } from './instance'
 export { getApiErrorMessage, getApiErrorStatus } from './error'

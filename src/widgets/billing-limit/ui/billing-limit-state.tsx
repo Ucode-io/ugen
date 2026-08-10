@@ -7,6 +7,7 @@ import type { PaymentRequiredData } from "@/entities/billing";
 import { cn } from "@/shared/lib/utils/cn";
 import { UpgradePlanDialog } from "@/widgets/sidebar/ui/components/upgrade-plan-dialog";
 import { getLimitCopy, isTokenLimitCode } from "../lib/copy";
+import { useTranslations } from 'next-intl'
 
 interface BillingLimitStateProps {
   data: PaymentRequiredData;
@@ -20,6 +21,7 @@ interface BillingLimitStateProps {
  * shared UpgradePlanDialog.
  */
 export const BillingLimitState = ({ data, className }: BillingLimitStateProps) => {
+  const t = useTranslations('widgets.billingLimit')
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const copy = getLimitCopy(data.code);
   const isTokenLimit = isTokenLimitCode(data.code);
@@ -45,7 +47,7 @@ export const BillingLimitState = ({ data, className }: BillingLimitStateProps) =
         className="bg-primary hover:bg-primary/90 mt-2 h-10 rounded-lg px-6 text-white"
         onClick={() => setUpgradeOpen(true)}
       >
-        Upgrade plan
+        {t('upgradePlan')}
       </Button>
 
       <UpgradePlanDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />

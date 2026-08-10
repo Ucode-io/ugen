@@ -19,6 +19,7 @@ import {
   DialogFooter
 } from '@/shared/ui'
 import { Button } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 
 interface CreateMediaModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface CreateMediaModalProps {
 }
 
 export const CreateMediaModal = ({ isOpen, onClose, onUpload }: CreateMediaModalProps) => {
+  const t = useTranslations('widgets.mediaGallery')
   const [dragActive, setDragActive] = useState(false)
   const [filesToUpload, setFilesToUpload] = useState<File[]>([])
   const [isUploading, setIsUploading] = useState(false)
@@ -80,7 +82,7 @@ export const CreateMediaModal = ({ isOpen, onClose, onUpload }: CreateMediaModal
         <DialogHeader className="mb-4">
           <DialogTitle className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
             <CloudUpload className="w-6 h-6 text-primary" />
-            Upload New Assets
+            {t('uploadNewAssets')}
           </DialogTitle>
           <DialogDescription className="text-[13px] text-text-muted">
             Drag and drop your media files here or click to browse. Supported formats: MP4, OGG, PNG, JPEG, GIF.
@@ -172,7 +174,7 @@ export const CreateMediaModal = ({ isOpen, onClose, onUpload }: CreateMediaModal
             disabled={isUploading}
             className="flex-1 font-semibold hover:bg-white/5"
           >
-            Cancel
+            {t('cancelBtn')}
           </Button>
           <Button
             onClick={handleSubmit}

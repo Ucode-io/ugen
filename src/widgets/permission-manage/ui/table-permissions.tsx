@@ -239,7 +239,7 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId, control, set
                     <Controller name={`tables.${index}.record_permissions.read`} control={control}
                       render={({ field }) => (
                         <CustomPermissionBadge
-                          label="READ"
+                          label={t('readUpper')}
                           checked={field.value as boolean}
                           onChange={field.onChange}
                           hasFilter
@@ -250,22 +250,22 @@ export const TablePermissions = ({ projectId, roleId, clientTypeId, control, set
                   </WorkspaceTableCell>
                   <WorkspaceTableCell className="align-middle px-2 py-1">
                     <Controller name={`tables.${index}.record_permissions.write`} control={control} render={({ field }) => (
-                      <CustomPermissionBadge label="WRITE" checked={field.value as boolean} onChange={field.onChange} />
+                      <CustomPermissionBadge label={t('writeUpper')} checked={field.value as boolean} onChange={field.onChange} />
                     )} />
                   </WorkspaceTableCell>
                   <WorkspaceTableCell className="align-middle px-2 py-1">
                     <Controller name={`tables.${index}.record_permissions.update`} control={control} render={({ field }) => (
-                      <CustomPermissionBadge label="UPDATE" checked={field.value as boolean} onChange={field.onChange} />
+                      <CustomPermissionBadge label={t('updateUpper')} checked={field.value as boolean} onChange={field.onChange} />
                     )} />
                   </WorkspaceTableCell>
                   <WorkspaceTableCell className="align-middle px-2 py-1">
                     <Controller name={`tables.${index}.record_permissions.delete`} control={control} render={({ field }) => (
-                      <CustomPermissionBadge label="DELETE" checked={field.value as boolean} onChange={field.onChange} />
+                      <CustomPermissionBadge label={t('deleteUpper')} checked={field.value as boolean} onChange={field.onChange} />
                     )} />
                   </WorkspaceTableCell>
                   <WorkspaceTableCell className="align-middle px-2 py-1">
                     <Controller name={`tables.${index}.record_permissions.is_public`} control={control} render={({ field }) => (
-                      <CustomPermissionBadge label="PUBLIC" checked={field.value as boolean} onChange={field.onChange} />
+                      <CustomPermissionBadge label={t('publicUpper')} checked={field.value as boolean} onChange={field.onChange} />
                     )} />
                   </WorkspaceTableCell>
 
@@ -434,7 +434,7 @@ const ModalContent = ({
             <WorkspaceTableRow className="transition-none hover:bg-transparent">
               <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
               <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('actionHeader')} Name</WorkspaceTableHead>
-              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">Permission</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('permission')}</WorkspaceTableHead>
             </WorkspaceTableRow>
           </WorkspaceTableHeader>
           <WorkspaceTableBody>
@@ -470,7 +470,7 @@ const ModalContent = ({
             <WorkspaceTableRow className="transition-none hover:bg-transparent">
               <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
               <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('relationHeader')} Source</WorkspaceTableHead>
-              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">View Permission</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('viewPermission')}</WorkspaceTableHead>
             </WorkspaceTableRow>
           </WorkspaceTableHeader>
           <WorkspaceTableBody>
@@ -505,7 +505,7 @@ const ModalContent = ({
           <WorkspaceTableHeader className="bg-bg-card">
             <WorkspaceTableRow className="transition-none hover:bg-transparent">
               <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
-              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">View Label</WorkspaceTableHead>
+              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('viewLabel')}</WorkspaceTableHead>
               <WorkspaceTableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('view')}</WorkspaceTableHead>
               <WorkspaceTableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('update')}</WorkspaceTableHead>
               <WorkspaceTableHead className="w-[80px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('delete')}</WorkspaceTableHead>
@@ -551,8 +551,8 @@ const ModalContent = ({
           <WorkspaceTableHeader className="bg-bg-card">
             <WorkspaceTableRow className="transition-none hover:bg-transparent">
               <WorkspaceTableHead className="w-10 text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">No</WorkspaceTableHead>
-              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">Setting</WorkspaceTableHead>
-              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">Permission</WorkspaceTableHead>
+              <WorkspaceTableHead className="text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('setting')}</WorkspaceTableHead>
+              <WorkspaceTableHead className="w-[120px] text-center text-[10px] uppercase font-bold text-text-muted border border-border-subtle bg-bg-card">{t('permission')}</WorkspaceTableHead>
             </WorkspaceTableRow>
           </WorkspaceTableHeader>
           <WorkspaceTableBody>
@@ -629,7 +629,7 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
         {fields.map((field, idx) => (
           <div key={field.id} className="flex items-center gap-3 bg-bg-sidebar/30 p-4 rounded-2xl border border-border-subtle/40 group hover:border-primary/20 transition-all">
             <div className="flex-1 space-y-1">
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1">Target Object</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1">{t('targetObject')}</label>
               <Controller
                 control={control}
                 name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.custom_field`}
@@ -649,7 +649,7 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
             </div>
 
             <div className="flex-1 space-y-1">
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1">Source Relation</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1">{t('sourceRelation')}</label>
               <Controller
                 control={control}
                 name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.object_field`}
@@ -669,7 +669,7 @@ const FilterRows = ({ tableIndex, filterType, control, relationsData, connection
             </div>
 
             <div className="w-[100px] space-y-1.5 flex flex-col items-center justify-center">
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">Not in tab</label>
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">{t('notInTab')}</label>
               <Controller
                 control={control}
                 name={`tables.${tableIndex}.automatic_filters.${filterType}.${idx}.not_use_in_tab`}

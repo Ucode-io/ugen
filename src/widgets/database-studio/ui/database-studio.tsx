@@ -9,8 +9,10 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/shared/api";
 import { UsageIndicator } from "@/shared/ui";
 import { formatMBSmart, formatMBAsGB } from "@/shared/lib/utils/format-bytes";
+import { useTranslations } from 'next-intl'
 
 export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
+  const t = useTranslations('widgets.databaseStudio')
   const { currentView, setCurrentView } = useDatabaseStore();
 
   const [isPannelOpen, setIsPannelOpen] = useState(true);
@@ -49,7 +51,7 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
               : "text-text-muted hover:text-text-main border-transparent",
           )}
         >
-          <TableIcon size={14} /> Table Editor
+          <TableIcon size={14} /> {t('tableEditor')}
         </button>
         <button
           onClick={() => setCurrentView("db-diagram")}
@@ -60,7 +62,7 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
               : "text-text-muted hover:text-text-main border-transparent",
           )}
         >
-          <Network size={14} /> DB Diagram
+          <Network size={14} /> {t('dbDiagram')}
         </button>
         <button
           onClick={() => setCurrentView("sql-console")}
@@ -71,12 +73,12 @@ export const DatabaseStudio = ({ projectId }: { projectId: string }) => {
               : "text-text-muted hover:text-text-main border-transparent",
           )}
         >
-          <Terminal size={14} /> SQL Editor
+          <Terminal size={14} /> {t('sqlEditor')}
         </button>
         <div className="flex-1"></div>
         <div className="shrink-0">
           <UsageIndicator
-            label="Database size"
+            label={t('databaseSize')}
             value={dbUsed}
             total={dbTotal}
             percentage={dbPercentage}

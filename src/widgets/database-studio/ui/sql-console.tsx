@@ -254,7 +254,7 @@ export const SqlConsole = () => {
           <div className="space-y-1">
             <span className="px-2 py-1.5 text-[11px] font-bold text-text-muted/70 uppercase tracking-widest flex items-center gap-2">
               <Sparkles size={12} />
-              Saved Queries
+              {t('savedQueries')}
             </span>
             {isEndpointsLoading ? (
               <div className="space-y-2 p-2">
@@ -266,7 +266,7 @@ export const SqlConsole = () => {
                 key={endpoint.id}
                 onClick={() => loadEndpointAsScript(endpoint)}
                 className="w-full flex items-center gap-3 px-3 py-1 rounded-md text-sm font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-all group active:scale-[0.98]"
-                title="Load into Editor"
+                title={t('loadIntoEditor')}
               >
                 <span className="bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0">
                   {endpoint.method}
@@ -299,7 +299,7 @@ export const SqlConsole = () => {
               className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-subtle text-xs font-semibold text-text-muted hover:text-text-main hover:bg-hover-bg transition-all active:scale-[0.98]"
             >
               <Settings size={14} className="text-primary/60" />
-              Save Query
+              {t('saveQuery')}
             </button>
             <button
               onClick={handleRun}
@@ -376,11 +376,11 @@ export const SqlConsole = () => {
       <Dialog open={isSaveModalOpen} onOpenChange={setIsSaveModalOpen}>
         <DialogContent className="sm:max-w-md bg-bg-card border-border-subtle">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-text-main">Save as Custom Endpoint</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-text-main">{t('saveAsEndpoint')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-text-muted">Name</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-text-muted">{t('nameLabel')}</label>
               <Input
                 placeholder="e.g. Get Active Users"
                 value={formData.name}
@@ -389,7 +389,7 @@ export const SqlConsole = () => {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-text-muted">Method</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-text-muted">{t('methodLabel')}</label>
               <Select value={formData.method} onValueChange={(v) => setFormData(p => ({ ...p, method: v }))}>
                 <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9">
                   <SelectValue />
@@ -403,9 +403,9 @@ export const SqlConsole = () => {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-text-muted">Description (Optional)</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-text-muted">{t('descriptionOptional')}</label>
               <Input
-                placeholder="Description of what this endpoint does..."
+                placeholder={t('endpointDescPlaceholder')}
                 value={formData.description}
                 onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
                 className="bg-bg-sidebar border-border-subtle h-9"
@@ -413,7 +413,7 @@ export const SqlConsole = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsSaveModalOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsSaveModalOpen(false)}>{t('cancelBtn')}</Button>
             <Button
               onClick={handleSaveEndpoint}
               disabled={createEndpointMutation.isPending || !formData.name}

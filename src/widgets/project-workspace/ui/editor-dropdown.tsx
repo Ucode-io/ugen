@@ -10,6 +10,7 @@ import {
 import { Layers2, Zap, Download, Loader2, Save, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
 import type { CodeEditorTarget } from "@/entities/session";
+import { useTranslations } from 'next-intl'
 
 export type DropdownOption = {
   value: string;
@@ -47,6 +48,7 @@ export const EditorDropdown = ({
   onSave,
   hasDirty = false,
 }: EditorDropdownProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [open, setOpen] = React.useState(false);
 
   const microfrontendOptions = dropdownOptions.filter((o) => o.group === 'microfrontend');
@@ -114,7 +116,7 @@ export const EditorDropdown = ({
             <>
               <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wider text-text-muted">
                 <span className="flex items-center gap-1">
-                  <Layers2 size={10} /> Microfrontends
+                  <Layers2 size={10} /> {t('microfrontends')}
                 </span>
               </div>
               {microfrontendOptions.map(renderOption)}
@@ -125,7 +127,7 @@ export const EditorDropdown = ({
             <>
               <div className="px-2 pt-2 pb-1 text-[10px] uppercase tracking-wider text-text-muted">
                 <span className="flex items-center gap-1">
-                  <Zap size={10} /> Functions
+                  <Zap size={10} /> {t('functions')}
                 </span>
               </div>
               {functionOptions.map(renderOption)}
@@ -146,7 +148,7 @@ export const EditorDropdown = ({
             className="h-7 text-xs gap-1.5 px-2.5"
           >
             <Save size={12} />
-            Save changes
+            {t('saveChanges')}
           </Button>
         )}
         <Button

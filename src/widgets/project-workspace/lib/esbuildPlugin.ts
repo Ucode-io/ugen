@@ -68,7 +68,83 @@ function getLoader(path: string): esbuild.Loader {
   if (path.endsWith(".jsx")) return "jsx";
   if (path.endsWith(".css")) return "css";
   if (path.endsWith(".json")) return "json";
+  if (isBinaryAsset(path)) return "dataurl";
   return "js";
+}
+
+const BINARY_ASSET_RE =
+  /\.(?:avif|bmp|gif|ico|jpe?g|png|webp|mp3|mp4|ogg|wav|webm|woff2?|ttf|otf|pdf)$/i;
+
+function isBinaryAsset(path: string): boolean {
+  return BINARY_ASSET_RE.test(path);
+}
+
+const hasKnownBinarySignature = (path: string, bytes: Uint8Array): boolean => {
+  const ascii = (start: number, length: number) =>
+    String.fromCharCode(...bytes.slice(start, start + length));
+  const lowerPath = path.toLowerCase();
+
+  if (lowerPath.endsWith(".mp3")) {
+    return ascii(0, 3) === "ID3" || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0);
+  }
+  if (lowerPath.endsWith(".wav")) return ascii(0, 4) === "RIFF";
+  if (lowerPath.endsWith(".ogg")) return ascii(0, 4) === "OggS";
+  if (lowerPath.endsWith(".png")) {
+    return bytes[0] === 0x89 && ascii(1, 3) === "PNG";
+  }
+  if (/\.(?:jpg|jpeg)$/i.test(lowerPath)) {
+    return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  if (lowerPath.endsWith(".gif")) return ascii(0, 4) === "GIF8";
+  if (lowerPath.endsWith(".webp")) {
+    return ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP";
+  }
+  if (lowerPath.endsWith(".woff")) return ascii(0, 4) === "wOFF";
+  if (lowerPath.endsWith(".woff2")) return ascii(0, 4) === "wOF2";
+  if (lowerPath.endsWith(".otf")) return ascii(0, 4) === "OTTO";
+  if (lowerPath.endsWith(".ttf")) {
+    return bytes[0] === 0 && bytes[1] === 1 && bytes[2] === 0 && bytes[3] === 0;
+  }
+  if (lowerPath.endsWith(".pdf")) return ascii(0, 4) === "%PDF";
+  if (lowerPath.endsWith(".mp4")) return ascii(4, 4) === "ftyp";
+  if (lowerPath.endsWith(".webm")) {
+    return bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
+  }
+  if (lowerPath.endsWith(".ico")) {
+    return bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 1 && bytes[3] === 0;
+  }
+  // Less distinctive bitmap/container formats still benefit from the dataurl
+  // loader; signature validation is only needed when deciding whether an API
+  // string is base64-encoded.
+  return false;
+};
+
+function decodeBinaryAsset(path: string, raw: string): Uint8Array {
+  // Some Git providers return binary repository files as base64 strings. Decode
+  // only when the result has the expected file signature so ordinary text is
+  // never accidentally treated as base64.
+  const compact = raw.replace(/\s/g, "");
+  if (
+    compact.length >= 8 &&
+    /^[A-Za-z0-9+/]*={0,2}$/.test(compact)
+  ) {
+    try {
+      const padded = compact.padEnd(Math.ceil(compact.length / 4) * 4, "=");
+      const decoded = atob(padded);
+      const bytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+      if (hasKnownBinarySignature(path, bytes)) return bytes;
+    } catch {
+      // Fall through to raw byte conversion.
+    }
+  }
+
+  // Repository APIs that already decoded the blob commonly expose a byte-like
+  // string. Preserve those byte values; use UTF-8 only if the string genuinely
+  // contains wider Unicode code points.
+  if ([...raw].every((char) => char.charCodeAt(0) <= 0xff)) {
+    return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+  }
+  return new TextEncoder().encode(raw);
 }
 
 /**
@@ -161,7 +237,24 @@ export function virtualFsPlugin(
   return {
     name: "virtual-fs",
     setup(build) {
-      const extensions = [".tsx", ".ts", ".jsx", ".js", "", ".css", ".json", ".svg"];
+      const extensions = [
+        ".tsx",
+        ".ts",
+        ".jsx",
+        ".js",
+        "",
+        ".css",
+        ".json",
+        ".svg",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+        ".mp3",
+        ".wav",
+        ".woff",
+        ".woff2",
+      ];
 
       // Wrap onResolve/onLoad so the measurement patch can attribute build time
       // to plugin round-trips vs raw parse. No-op (zero overhead) when no stats
@@ -316,6 +409,20 @@ export function virtualFsPlugin(
         // SVG → React component module (mirrors vite-plugin-svgr `?react`).
         if (fullPath.endsWith(".svg")) {
           return { contents: svgToReactModule(fs[fullPath]), loader: "js" };
+        }
+
+        if (isBinaryAsset(fullPath)) {
+          const raw = fs[fullPath];
+          if (raw.startsWith("data:")) {
+            return {
+              contents: `export default ${JSON.stringify(raw)};`,
+              loader: "js",
+            };
+          }
+          return {
+            contents: decodeBinaryAsset(fullPath, raw),
+            loader: getLoader(fullPath),
+          };
         }
 
         if (fullPath.endsWith(".css")) {

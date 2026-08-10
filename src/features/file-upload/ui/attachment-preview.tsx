@@ -30,6 +30,7 @@ import {
   formatFileSize,
   type FileKind,
 } from '../lib/file-meta'
+import { useTranslations } from 'next-intl'
 
 // Per-kind icon + accent. PDF is special-cased to the bundled brand SVG.
 const KIND_ICON: Record<Exclude<FileKind, 'image' | 'pdf'>, LucideIcon> = {
@@ -86,6 +87,7 @@ const SIZES = {
 
 /** Image thumbnail, PDF brand icon, or a typed accent icon, sized by `size`. */
 const FileThumb = ({ file, size }: { file: UploadedFile; size: AttachmentSize }) => {
+  const t = useTranslations('features.fileUpload')
   const kind = getFileKind(file.name, file.type)
   const s = SIZES[size]
 
@@ -110,7 +112,7 @@ const FileThumb = ({ file, size }: { file: UploadedFile; size: AttachmentSize })
     return (
       <div className={cn('bg-border-subtle/60 flex shrink-0 items-center justify-center rounded-md', s.thumb)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/pdf-icon.svg" alt="PDF" className={s.pdfImg} />
+        <img src="/pdf-icon.svg" alt={t('pdf')} className={s.pdfImg} />
       </div>
     )
   }
@@ -131,6 +133,7 @@ const PreviewDialog = ({
   file: UploadedFile | null
   onClose: () => void
 }) => {
+  const t = useTranslations('features.fileUpload')
   const kind = file ? getFileKind(file.name, file.type) : 'file'
 
   return (
@@ -150,7 +153,7 @@ const PreviewDialog = ({
               href={file.url}
               download={file.name}
               className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-              title="Download"
+              title={t('download')}
             >
               <Download size={16} />
             </a>
@@ -159,7 +162,7 @@ const PreviewDialog = ({
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-              title="Open in new tab"
+              title={t('openInNewTab')}
             >
               <ExternalLink size={16} />
             </a>
@@ -196,6 +199,7 @@ export interface AttachmentPreviewsProps {
  * Images and PDFs open in an in-app lightbox; other types open in a new tab.
  */
 export const AttachmentPreviews = ({ files, onRemove, className, size = 'md' }: AttachmentPreviewsProps) => {
+  const t = useTranslations('features.fileUpload')
   const [preview, setPreview] = useState<UploadedFile | null>(null)
   const s = SIZES[size]
 
@@ -247,7 +251,7 @@ export const AttachmentPreviews = ({ files, onRemove, className, size = 'md' }: 
                 e.stopPropagation()
                 onRemove(file.id)
               }}
-              title="Remove"
+              title={t('remove')}
               className="absolute -top-1.5 -right-1.5 z-10 rounded-full bg-red-500 p-0.5 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus:opacity-100"
             >
               <X size={10} strokeWidth={3} />

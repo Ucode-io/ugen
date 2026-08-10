@@ -3,6 +3,7 @@
 import { Sparkles } from "lucide-react";
 import { useFreePlan } from "@/entities/billing";
 import { cn } from "@/shared/lib/utils/cn";
+import { useTranslations } from 'next-intl'
 
 interface UpgradePlanCardProps {
   /** Opens the upgrade dialog. The card is presentational and owns no dialog. */
@@ -19,6 +20,7 @@ const PERKS = ["More projects", "More builders", "Higher credit limit"];
  * sidebar can reuse its single UpgradePlanDialog instance.
  */
 export const UpgradePlanCard = ({ onUpgrade, className }: UpgradePlanCardProps) => {
+  const t = useTranslations('widgets.sidebar')
   const { canUpgrade } = useFreePlan();
 
   if (!canUpgrade) return null;
@@ -38,11 +40,11 @@ export const UpgradePlanCard = ({ onUpgrade, className }: UpgradePlanCardProps) 
           <span className="bg-primary/15 text-primary flex h-5 w-5 items-center justify-center rounded-md">
             <Sparkles size={12} />
           </span>
-          <span className="text-text-main text-xs font-semibold">Free plan</span>
+          <span className="text-text-main text-xs font-semibold">{t('freePlanLabel')}</span>
         </div>
 
         <p className="text-text-muted mt-1.5 text-[11px] leading-snug">
-          Upgrade to unlock the full workspace.
+          {t('upgradeUnlock')}
         </p>
 
         <ul className="mt-2 space-y-1">
@@ -65,7 +67,7 @@ export const UpgradePlanCard = ({ onUpgrade, className }: UpgradePlanCardProps) 
           {/* Sweeping sheen on hover */}
           <span className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
           <Sparkles size={13} className="relative shrink-0" />
-          <span className="relative">Upgrade plan</span>
+          <span className="relative">{t('upgradePlan')}</span>
         </button>
       </div>
     </div>

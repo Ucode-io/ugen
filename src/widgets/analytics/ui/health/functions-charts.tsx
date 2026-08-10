@@ -4,6 +4,7 @@ import * as React from "react";
 import dynamic from 'next/dynamic';
 import { useHealthMetrics, useAnalyticsStore } from "@/features/analytics";
 import { Skeleton } from "@/shared/ui";
+import { useTranslations } from 'next-intl'
 
 // Use dynamic import for chart to avoid hydration issues with Recharts in Next.js 15
 const AnalyticsChart = dynamic(() => import("@/entities/analytics/ui/analytics-chart").then(mod => mod.AnalyticsChart), { 
@@ -12,6 +13,7 @@ const AnalyticsChart = dynamic(() => import("@/entities/analytics/ui/analytics-c
 });
 
 export const FunctionsCharts = () => {
+  const t = useTranslations('widgets.analytics')
   const { activePeriod } = useAnalyticsStore();
   const { data: metrics, isLoading } = useHealthMetrics(activePeriod);
 
@@ -28,21 +30,21 @@ export const FunctionsCharts = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <AnalyticsChart
-        title="Function Calls"
+        title={t('functionCalls')}
         tooltip="Number of function calls by time"
         data={metrics.functions.calls}
         lines={[{ key: 'value', color: 'var(--color-primary)', name: 'Calls' }]}
         height={200}
       />
       <AnalyticsChart
-        title="Failure Rate"
+        title={t('failureRate')}
         tooltip="Percentage of errors by time"
         data={metrics.functions.failureRate}
         lines={[{ key: 'value', color: 'var(--color-destructive)', name: 'Errors %' }]}
         height={200}
       />
       <AnalyticsChart
-        title="Cache Hit Rate"
+        title={t('cacheHitRate')}
         tooltip="Percentage of cache hits by time"
         data={metrics.functions.cacheHitRate}
         lines={[{ key: 'value', color: 'var(--color-accent)', name: 'Cache Hit %' }]}

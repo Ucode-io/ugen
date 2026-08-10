@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { ChevronLeft, Loader2, PenLine, ArrowLeftRight, Globe, Plus, SquarePen, RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, authApi } from '@/shared/api'
+import { api, refreshAuthTokens } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
 import { Button } from '@/shared/ui'
 import { Input } from '@/shared/ui'
@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/utils/cn'
 import { ColumnDef } from '@tanstack/react-table'
 import { WorkspaceDataTable } from './workspace-data-table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 
 interface Environment {
   id: string
@@ -36,6 +37,7 @@ interface EnvironmentPageProps {
 
 
 export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
   const [selectedEnv, setSelectedEnv] = useState<Environment | null>(null)
@@ -183,25 +185,23 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
   const switchMutation = useMutation({
     mutationFn: async (envId: string) => {
       setSwitchingId(envId)
-      const { data } = await authApi.put('/v2/refresh', {
-        refresh_token: refreshToken,
-        env_id: envId,
-        project_id: projectId,
-        for_env: true,
-      }, {
-        params: { for_env: true, 'project-id': projectId }
-      })
+      const data = await refreshAuthTokens(
+        '/v2/refresh',
+        {
+          refresh_token: refreshToken,
+          env_id: envId,
+          project_id: projectId,
+          for_env: true,
+        },
+        {
+          params: { for_env: true, 'project-id': projectId },
+        },
+      )
       return data
     },
-    onSuccess: (data) => {
-      const tokenData = data.data?.token || data.data?.response?.token || data.data || data.response?.token || data
-      if (tokenData?.access_token) {
-        useAuthStore.setState({
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token || refreshToken
-        })
-        console.log('Environment switched successfully')
-      }
+    onSuccess: () => {
+      // refreshAuthTokens persists the rotated pair before releasing its lock.
+      console.log('Environment switched successfully')
     },
     onSettled: () => {
       setSwitchingId(null)
@@ -320,7 +320,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
             className="bg-primary hover:bg-primary/90 text-white fill-white rounded-lg px-4 h-9 text-[13px] font-medium shadow-sm transition-all"
           >
             <Plus size={16} className="mr-1.5" />
-            Add Environment
+            {t('addEnvironment')}
           </Button>
         </div>
 
@@ -333,8 +333,8 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
 
         {displayedEnvironments.length === 0 && environments.length > 0 && (
           <div className="w-full py-12 text-center bg-bg-sidebar/30 rounded-xl border border-dashed border-border-subtle">
-            <p className="text-text-muted text-[13px]">No environments matching the current filters.</p>
-            <Button variant="ghost" className="mt-2 text-xs text-primary" onClick={() => { setFilterId(null); setSearchQuery(''); }}>Reset all filters</Button>
+            <p className="text-text-muted text-[13px]">{t('noEnvironmentsFiltered')}</p>
+            <Button variant="ghost" className="mt-2 text-xs text-primary" onClick={() => { setFilterId(null); setSearchQuery(''); }}>{t('resetAllFilters')}</Button>
           </div>
         )}
 
@@ -343,7 +343,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
             <div className="bg-primary/5 p-4 rounded-full mb-4">
               <Globe size={32} className="text-primary/40" />
             </div>
-            <h3 className="text-lg font-medium text-text-main">No environments yet</h3>
+            <h3 className="text-lg font-medium text-text-main">{t('noEnvironments')}</h3>
             <p className="text-text-muted text-sm max-w-xs mt-1">Create your first environment to start managing your project deployments.</p>
           </div>
         )}
@@ -364,7 +364,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
           ) : (
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Name</label>
+                <label className="text-sm font-medium text-text-main">{t('name')}</label>
                 <Input
                   placeholder="e.g. Production"
                   value={formData.name}
@@ -374,9 +374,9 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Description</label>
+                <label className="text-sm font-medium text-text-main">{t('descriptionLabel')}</label>
                 <Input
-                  placeholder="Short description"
+                  placeholder={t('shortDescription')}
                   value={formData.description}
                   onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
                   className="bg-bg-sidebar border-border-subtle focus:ring-1 focus:ring-primary/20"
@@ -384,7 +384,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-text-main">Display Color</label>
+                <label className="text-sm font-medium text-text-main">{t('displayColor')}</label>
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded-xl border border-border-subtle cursor-pointer overflow-hidden relative shrink-0"
@@ -412,7 +412,7 @@ export const EnvironmentPage = ({ projectId }: EnvironmentPageProps) => {
               variant="ghost"
               onClick={() => setIsModalOpen(false)}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               disabled={!formData.name || createMutation.isPending || updateMutation.isPending}

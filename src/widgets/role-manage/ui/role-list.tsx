@@ -294,7 +294,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                 className="bg-bg-sidebar border-border-subtle focus:border-primary/50"
               />
               {errors.name && (
-                <p className="text-[10px] text-destructive font-medium ml-1">Name is required (min 2 characters)</p>
+                <p className="text-[10px] text-destructive font-medium ml-1">{t('nameRequired')}</p>
               )}
             </div>
 
@@ -317,7 +317,7 @@ export const RoleList = ({ projectId }: { projectId: string }) => {
                   </SelectContent>
                 </Select>
                 {errors.client_type_id && (
-                  <p className="text-[10px] text-destructive font-medium ml-1">Please select a client type</p>
+                  <p className="text-[10px] text-destructive font-medium ml-1">{t('selectClientType')}</p>
                 )}
               </div>
             ) : (

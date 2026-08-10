@@ -59,7 +59,7 @@ export const AuthModal = ({ isOpen, onOpenChange, defaultTab = 'login' }: AuthMo
                 <p className="text-sm text-text-muted">
                   Don&apos;t have an account?{' '}
                   <button onClick={toggleAuthType} className="text-primary hover:underline font-medium">
-                    Sign up
+                    {t('signUp')}
                   </button>
                 </p>
               </div>
@@ -77,7 +77,7 @@ export const AuthModal = ({ isOpen, onOpenChange, defaultTab = 'login' }: AuthMo
                 <p className="text-sm text-text-muted">
                   Already have an account?{' '}
                   <button onClick={toggleAuthType} className="text-primary hover:underline font-medium">
-                    Sign in
+                    {t('signIn')}
                   </button>
                 </p>
               </div>

@@ -5,8 +5,10 @@ import { BreakdownItem } from "@/entities/analytics";
 import { Skeleton } from "@/shared/ui";
 import { Monitor, Smartphone, Tablet, Globe, Link2, FileText, LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
+import { useTranslations } from 'next-intl'
 
 export const VisitorsBreakdownGrid = () => {
+  const t = useTranslations('widgets.analytics')
   const { activePeriod } = useAnalyticsStore();
   const { data: breakdown, isLoading } = useVisitorBreakdown(activePeriod);
 
@@ -24,10 +26,10 @@ export const VisitorsBreakdownGrid = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <BreakdownTable title="Source" items={breakdown.sources} icon={Link2} />
-      <BreakdownTable title="Page" items={breakdown.pages} icon={FileText} />
-      <BreakdownTable title="Country" items={breakdown.countries} icon={Globe} />
-      <BreakdownTable title="Device" items={breakdown.devices} icon={Monitor} />
+      <BreakdownTable title={t('source')} items={breakdown.sources} icon={Link2} />
+      <BreakdownTable title={t('page')} items={breakdown.pages} icon={FileText} />
+      <BreakdownTable title={t('country')} items={breakdown.countries} icon={Globe} />
+      <BreakdownTable title={t('device')} items={breakdown.devices} icon={Monitor} />
     </div>
   );
 };
@@ -39,6 +41,7 @@ interface BreakdownTableProps {
 }
 
 const BreakdownTable = ({ title, items, icon: MainIcon }: BreakdownTableProps) => {
+  const t = useTranslations('widgets.analytics')
   const maxVal = Math.max(...items.map((i) => i.value));
   const deviceIcons: Record<string, LucideIcon> = {
     'Desktop': Monitor,
@@ -53,7 +56,7 @@ const BreakdownTable = ({ title, items, icon: MainIcon }: BreakdownTableProps) =
           {MainIcon && <MainIcon className="w-4 h-4 text-text-muted" />}
           {title}
         </h4>
-        <span className="text-xs text-text-muted font-bold uppercase tracking-wider">Visitors</span>
+        <span className="text-xs text-text-muted font-bold uppercase tracking-wider">{t('visitors')}</span>
       </div>
       <div className="flex-1 space-y-4">
         {items.map((item) => {

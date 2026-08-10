@@ -7,6 +7,7 @@ import {
   PopoverTrigger,
 } from '@/shared/ui/popover';
 import { cn } from '@/shared/lib/utils/cn';
+import { useTranslations } from 'next-intl'
 
 export interface Option {
   label: string;
@@ -34,6 +35,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   maxSelections,
   optionsContainerClassName,
 }) => {
+  const t = useTranslations('shared.common')
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -107,7 +109,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
           <div className={cn("max-h-[250px] overflow-y-auto p-1 py-1.5", optionsContainerClassName)}>
             {filteredOptions.length === 0 ? (
               <div className="px-2 py-3 text-center text-[12px] text-text-muted">
-                No items found.
+                {t('noItemsFound')}
               </div>
             ) : (
               filteredOptions.map((opt) => {

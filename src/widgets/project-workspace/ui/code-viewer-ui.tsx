@@ -13,6 +13,7 @@ import {
   Maximize2,
   Minimize2
 } from "lucide-react";
+import { useTranslations } from 'next-intl'
 
 export const getFileIcon = (fileName: string) => {
   if (fileName.endsWith(".js") || fileName.endsWith(".jsx"))
@@ -106,6 +107,7 @@ export const CodeSidebar = ({
   onResultClick,
   maxHeight,
 }: CodeSidebarProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
 
   const renderTree = (nodes: TreeNode[], level = 0) => {
     return (
@@ -176,7 +178,7 @@ export const CodeSidebar = ({
               : "text-text-muted hover:text-text-main"
               }`}
           >
-            <Files size={14} /> Explorer
+            <Files size={14} /> {t('explorer')}
           </button>
           <button
             onClick={() => onSidebarModeChange("search")}
@@ -185,7 +187,7 @@ export const CodeSidebar = ({
               : "text-text-muted hover:text-text-main"
               }`}
           >
-            <Search size={14} /> Search
+            <Search size={14} /> {t('search')}
           </button>
         </div>
       )}
@@ -205,7 +207,7 @@ export const CodeSidebar = ({
               <input
                 type="text"
                 autoFocus
-                placeholder="Search in files..."
+                placeholder={t('searchInFiles')}
                 value={searchQuery}
                 onChange={(e) => onSearchQueryChange?.(e.target.value)}
                 className="bg-bg-main border-border-subtle focus:border-primary text-text-main placeholder:text-text-muted w-full rounded-md border py-1.5 pr-3 pl-8 transition-colors outline-none"
@@ -273,7 +275,7 @@ export const CodeSidebar = ({
             ))}
             {searchQuery && searchResults.length === 0 && (
               <div className="text-text-muted mt-4 text-center">
-                No results found.
+                {t('noResults')}
               </div>
             )}
           </div>
@@ -353,6 +355,7 @@ export const CodeActionBar = ({
   isFullscreen,
   rightAction,
 }: CodeActionBarProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   if (!activeFile) return null;
 
   return (
@@ -369,7 +372,7 @@ export const CodeActionBar = ({
             className="text-text-muted hover:text-text-main hover:bg-hover-bg flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors"
           >
             <Paintbrush size={14} />
-            <span>Format</span>
+            <span>{t('format')}</span>
           </button>
         )}
         {toggleFullscreen && (
@@ -387,9 +390,12 @@ export const CodeActionBar = ({
   );
 };
 
-export const CodeEmptyState = () => (
-  <div className="text-text-muted flex h-full flex-col items-center justify-center gap-4 opacity-50">
-    <Code2 size={48} strokeWidth={1} />
-    <p>Select a file to start editing</p>
-  </div>
-);
+export const CodeEmptyState = () => {
+  const t = useTranslations('widgets.projectWorkspace')
+  return (
+    <div className="text-text-muted flex h-full flex-col items-center justify-center gap-4 opacity-50">
+      <Code2 size={48} strokeWidth={1} />
+      <p>{t('selectFileToEdit')}</p>
+    </div>
+  );
+};

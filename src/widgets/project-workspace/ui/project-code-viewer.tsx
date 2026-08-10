@@ -24,6 +24,7 @@ import type { DropdownOption } from "./editor-dropdown";
 import { getDirtyKey, useDirtyFilesStore } from "@/entities/project/model/dirty-files-store";
 import { useGuardedAction, requestSave } from "../lib/save-flow";
 import { cn } from "@/shared/lib/utils/cn";
+import { useTranslations } from 'next-intl'
 
 // Internal/system function hidden from the editor dropdown — mirrors the same
 // exclusion applied to the functions list in functions-page.tsx.
@@ -43,6 +44,7 @@ export const ProjectCodeViewer = ({
   isChatCollapsed?: boolean;
   chatPosition?: 'left' | 'right';
 }) => {
+  const t = useTranslations('widgets.projectWorkspace')
   // ── Files store ────────────────────────────────────────────────────────────
   const files = useFilesStore((state) => state.files);
   const activeFile = useFilesStore((state) => state.activeFile);
@@ -627,7 +629,7 @@ export const ProjectCodeViewer = ({
       : files.map((f) => ({ path: f.path, content: f.content ?? "" }));
 
     if (sourceFiles.length === 0) {
-      toast.error("No files to download");
+      toast.error(t('noFilesToDownload'));
       return;
     }
 
@@ -654,7 +656,7 @@ export const ProjectCodeViewer = ({
       toast.success(`Downloaded ${archiveName}.zip`);
     } catch (err) {
       console.error("[ImportZIP] Failed to build archive:", err);
-      toast.error("Failed to build ZIP archive");
+      toast.error(t('zipFailed'));
     } finally {
       setIsImporting(false);
     }

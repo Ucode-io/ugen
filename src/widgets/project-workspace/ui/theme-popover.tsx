@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
+import { useTranslations } from 'next-intl'
 
 export const FONT_FAMILIES = [
   "Inter",
@@ -100,6 +101,7 @@ export const ThemePopover = ({
   onCancel,
   onSave,
 }: ThemePopoverProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [fontSearch, setFontSearch] = useState("");
   const [fontDropdownOpen, setFontDropdownOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
@@ -145,7 +147,7 @@ export const ThemePopover = ({
       <PopoverTrigger asChild>
         <button
           type="button"
-          title="Theme"
+          title={t('theme')}
           className={cn(
             "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
             open
@@ -159,9 +161,9 @@ export const ThemePopover = ({
       <PopoverContent align="start" sideOffset={8} className="w-72 p-0">
         {/* Header */}
         <div className="border-border-subtle border-b px-4 pt-4 pb-3">
-          <h3 className="text-text-main text-sm font-semibold">Theme</h3>
+          <h3 className="text-text-main text-sm font-semibold">{t('theme')}</h3>
           <p className="text-text-muted mt-0.5 text-[11px]">
-            Colors and fonts for your project.
+            {t('themeSubtitle')}
           </p>
         </div>
 
@@ -169,7 +171,7 @@ export const ThemePopover = ({
           {/* Colors — each group is a collapsible accordion */}
           {colorGroups.length === 0 && (
             <p className="text-text-muted text-[12px]">
-              No CSS color variables found in src/index.css.
+              {t('noCssVars')}
             </p>
           )}
           {colorGroups.map((group) => {
@@ -237,14 +239,14 @@ export const ThemePopover = ({
           {/* Logo */}
           <div className="space-y-2 pt-2">
             <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
-              Logo
+              {t('logo')}
             </p>
             <div className="flex items-center gap-2">
               {themeSettings.logoUrl ? (
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <img
                     src={themeSettings.logoUrl}
-                    alt="Logo"
+                    alt={t('logo')}
                     className="border-border-subtle h-7 w-auto max-w-20 rounded border object-contain"
                   />
                   <button
@@ -254,7 +256,7 @@ export const ThemePopover = ({
                     }
                     className="text-text-muted ml-auto shrink-0 text-[11px] transition-colors hover:text-red-500"
                   >
-                    Remove
+                    {t('remove')}
                   </button>
                 </div>
               ) : (
@@ -264,7 +266,7 @@ export const ThemePopover = ({
                   className="border-border-subtle hover:border-primary/50 hover:bg-primary/5 text-text-muted hover:text-primary flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-1.5 text-[12px] transition-colors"
                 >
                   <Upload size={12} />
-                  Upload logo
+                  {t('uploadLogo')}
                 </button>
               )}
               <input
@@ -291,7 +293,7 @@ export const ThemePopover = ({
           {/* Font Family */}
           <div className="space-y-2">
             <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
-              Font Family
+              {t('fontFamily')}
             </p>
             <button
               type="button"
@@ -317,14 +319,14 @@ export const ThemePopover = ({
                     type="text"
                     value={fontSearch}
                     onChange={(e) => setFontSearch(e.target.value)}
-                    placeholder="Search fonts..."
+                    placeholder={t('searchFonts')}
                     className="text-text-main placeholder:text-text-muted flex-1 bg-transparent text-[12px] outline-none"
                   />
                 </div>
                 <div className="max-h-36 overflow-y-auto">
                   {filteredFonts.length === 0 ? (
                     <p className="text-text-muted px-3 py-2 text-[12px]">
-                      No fonts found
+                      {t('noFonts')}
                     </p>
                   ) : (
                     filteredFonts.map((f) => (
@@ -360,14 +362,14 @@ export const ThemePopover = ({
             onClick={onCancel}
             className="text-text-muted hover:text-text-main hover:bg-hover-bg rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"
             onClick={onSave}
             className="bg-primary hover:bg-primary/90 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white transition-colors"
           >
-            Save & Apply
+            {t('saveApply')}
           </button>
         </div>
       </PopoverContent>

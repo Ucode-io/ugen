@@ -47,6 +47,7 @@ import {
   type GoogleAdsFieldMapping,
   type GoogleAdsIntegration,
 } from "../api";
+import { useTranslations } from 'next-intl'
 
 type View = "list" | "editor" | "keys";
 
@@ -137,6 +138,7 @@ export const GoogleAdsSetupModal = ({
   initialMode = "list",
   onChanged,
 }: GoogleAdsSetupModalProps) => {
+  const t = useTranslations('features.googleAds')
   const [view, setView] = useState<View>("list");
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -312,7 +314,7 @@ export const GoogleAdsSetupModal = ({
       setKeyResult(result);
       setKeysTableSlug(tableSlug);
       setView("keys");
-      toast.success("Connection created");
+      toast.success(t('connectionCreated'));
       integrationQuery.refetch();
       onChanged?.();
     },
@@ -327,7 +329,7 @@ export const GoogleAdsSetupModal = ({
         buildPayload(tableSlug, formName, formId, rows),
       ),
     onSuccess: () => {
-      toast.success("Mapping saved");
+      toast.success(t('mappingSaved'));
       setView("list");
       integrationQuery.refetch();
       onChanged?.();
@@ -339,7 +341,7 @@ export const GoogleAdsSetupModal = ({
   const disconnectMutation = useMutation({
     mutationFn: (id: string) => googleAdsIntegrationApi.disconnect(id),
     onSuccess: () => {
-      toast.success("Connection removed");
+      toast.success(t('connectionRemoved'));
       integrationQuery.refetch();
       onChanged?.();
     },
@@ -367,7 +369,7 @@ export const GoogleAdsSetupModal = ({
       const hasNew = [...guids].some((g) => !baselineGuidsRef.current.has(g));
       if (hasNew) {
         setVerifyState("success");
-        toast.success("Test lead received — the connection works");
+        toast.success(t('testLeadOk'));
         return;
       }
       if (attempt < 4) await new Promise((r) => setTimeout(r, 2000));
@@ -460,7 +462,7 @@ export const GoogleAdsSetupModal = ({
                   className="gap-2"
                 >
                   <ArrowLeft size={14} />
-                  Back
+                  {t('back')}
                 </Button>
                 <Button
                   variant="primary"
@@ -480,7 +482,7 @@ export const GoogleAdsSetupModal = ({
                   After sending test data in Google Ads, hit “Check connection”.
                 </p>
                 <Button variant="outline" onClick={() => setView("list")}>
-                  Done
+                  {t('done')}
                 </Button>
               </>
             ) : (
@@ -491,7 +493,7 @@ export const GoogleAdsSetupModal = ({
                     : "No connections yet."}
                 </p>
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Close
+                  {t('close')}
                 </Button>
               </>
             )}
@@ -522,6 +524,7 @@ const ListView = ({
   onDisconnect,
   disconnectingId,
 }: ListViewProps) => {
+  const t = useTranslations('features.googleAds')
   if (loading) {
     return (
       <div className="flex flex-col gap-3 p-5">
@@ -544,7 +547,7 @@ const ListView = ({
         </div>
         <div>
           <p className="text-text-main text-sm font-semibold">
-            No Google Lead Ads connections yet
+            {t('noConnections')}
           </p>
           <p className="text-text-muted mx-auto mt-1 max-w-80 text-sm leading-relaxed">
             Create a connection to get a webhook URL and key to paste into your
@@ -553,7 +556,7 @@ const ListView = ({
         </div>
         <Button variant="primary" onClick={onCreate} className="gap-2">
           <Plus size={15} />
-          Connect Google Lead Ads
+          {t('connect')}
         </Button>
       </div>
     );
@@ -563,11 +566,11 @@ const ListView = ({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-border-subtle flex items-center justify-between border-b px-5 py-3">
         <span className="text-text-muted text-xs font-semibold tracking-wide uppercase">
-          Your connections
+          {t('yourConnections')}
         </span>
         <Button size="sm" variant="primary" onClick={onCreate} className="gap-1.5">
           <Plus size={14} />
-          New connection
+          {t('newConnection')}
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto p-5">
@@ -632,7 +635,7 @@ const ListView = ({
                     onClick={() => onEdit(integ)}
                   >
                     <SlidersHorizontal size={13} />
-                    Mapping
+                    {t('mapping')}
                   </Button>
                   <Button
                     size="sm"
@@ -695,12 +698,14 @@ const EditorView = ({
   setRow,
   addRow,
   removeRow,
-}: EditorViewProps) => (
+}: EditorViewProps) => {
+  const t = useTranslations('features.googleAds')
+  return (
   <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
     {/* Target table + form details */}
     <div className="border-border-subtle grid gap-4 border-b p-5 md:grid-cols-3">
       <div className="space-y-1.5">
-        <label className="text-text-main text-sm font-medium">Target table</label>
+        <label className="text-text-main text-sm font-medium">{t('targetTable')}</label>
         <Select value={tableSlug} onValueChange={onTableChange}>
           <SelectTrigger className="bg-bg-sidebar border-border-subtle">
             <SelectValue
@@ -718,12 +723,12 @@ const EditorView = ({
       </div>
       <div className="space-y-1.5">
         <label className="text-text-main text-sm font-medium">
-          Form name <span className="text-text-muted font-normal">(optional)</span>
+          {t('formName')} <span className="text-text-muted font-normal">(optional)</span>
         </label>
         <Input
           value={formName}
           onChange={(e) => onFormNameChange(e.target.value)}
-          placeholder="Consultation request"
+          placeholder={t('consultationRequest')}
           className="bg-bg-sidebar border-border-subtle"
         />
       </div>
@@ -745,9 +750,9 @@ const EditorView = ({
     <div className="flex-1 p-5">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <p className="text-text-main text-sm font-semibold">Field mapping</p>
+          <p className="text-text-main text-sm font-semibold">{t('fieldMapping')}</p>
           <p className="text-text-muted mt-0.5 text-xs">
-            Map each Google form field onto a column of the selected table.
+            {t('mapEachField')}
           </p>
         </div>
       </div>
@@ -755,15 +760,15 @@ const EditorView = ({
       {!tableSlug ? (
         <div className="text-text-muted flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-subtle px-6 py-10 text-center">
           <Database size={24} className="opacity-40" />
-          <p className="text-sm">Select a table to start mapping fields.</p>
+          <p className="text-sm">{t('selectTable')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {/* Column labels */}
           <div className="text-text-muted hidden grid-cols-[1fr_1fr_auto_auto] items-center gap-3 px-1 text-[11px] font-semibold tracking-wide uppercase sm:grid">
-            <span>Google field</span>
-            <span>Table column</span>
-            <span className="px-1">Required</span>
+            <span>{t('googleField')}</span>
+            <span>{t('tableColumn')}</span>
+            <span className="px-1">{t('required')}</span>
             <span className="w-7" />
           </div>
 
@@ -783,7 +788,7 @@ const EditorView = ({
                   }
                 >
                   <SelectTrigger className="bg-bg-sidebar border-border-subtle h-9 text-sm">
-                    <SelectValue placeholder="Google field" />
+                    <SelectValue placeholder={t('googleField')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-64">
                     {columns.map((c) => (
@@ -848,7 +853,7 @@ const EditorView = ({
                     setRow(row.id, { required: checked })
                   }
                 />
-                <span className="text-text-muted text-xs sm:hidden">Required</span>
+                <span className="text-text-muted text-xs sm:hidden">{t('required')}</span>
               </div>
 
               {/* Remove */}
@@ -858,7 +863,7 @@ const EditorView = ({
                 className="text-text-muted hover:text-destructive h-8 w-8 shrink-0"
                 onClick={() => removeRow(row.id)}
                 disabled={rows.length <= 1}
-                aria-label="Remove field"
+                aria-label={t('removeField')}
               >
                 <Trash2 size={14} />
               </Button>
@@ -871,13 +876,14 @@ const EditorView = ({
             className="border-border-subtle text-text-muted hover:border-primary/40 hover:text-primary mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-dashed py-2 text-sm font-medium transition-colors"
           >
             <Plus size={14} />
-            Add field
+            {t('addField')}
           </button>
         </div>
       )}
     </div>
   </div>
-);
+  );
+};
 
 // ── Key + webhook + setup instructions + verify (Screen 2, step 2) ──────────
 interface KeysViewProps {
@@ -888,10 +894,11 @@ interface KeysViewProps {
 }
 
 const KeysView = ({ result, onCopy, verifyState, onVerify }: KeysViewProps) => {
+  const t = useTranslations('features.googleAds')
   if (!result) {
     return (
       <div className="text-text-muted flex flex-1 items-center justify-center px-6 py-12 text-sm">
-        No connection details available.
+        {t('noConnectionDetails')}
       </div>
     );
   }
@@ -899,14 +906,14 @@ const KeysView = ({ result, onCopy, verifyState, onVerify }: KeysViewProps) => {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4">
       <CopyField
-        label="Webhook URL"
+        label={t('webhookUrl')}
         value={result.webhook_url}
         emptyHint="Webhook URL will appear once the server is configured — contact an admin."
         onCopy={() => onCopy(result.webhook_url, "Webhook URL")}
       />
       <div className="h-3" />
       <CopyField
-        label="Key (secret)"
+        label={t('keySecret')}
         value={result.google_key}
         secret
         emptyHint="No key returned."
@@ -917,24 +924,24 @@ const KeysView = ({ result, onCopy, verifyState, onVerify }: KeysViewProps) => {
       <div className="border-border-subtle bg-bg-sidebar/40 mt-4 rounded-xl border p-4">
         <p className="text-text-main flex items-center gap-2 text-sm font-semibold">
           <ExternalLink size={14} />
-          Connect the webhook in Google Ads
+          {t('connectWebhook')}
         </p>
         <ol className="text-text-muted mt-2 list-decimal space-y-1 pl-5 text-[13px] leading-relaxed">
           <li>
-            Open <span className="text-text-main font-medium">Google Ads</span> →
+            {t('open')} <span className="text-text-main font-medium">Google Ads</span> →
             your campaign with a lead form.
           </li>
           <li>
-            Edit the form → <span className="text-text-main font-medium">Lead delivery</span>{" "}
+            Edit the form → <span className="text-text-main font-medium">{t('leadDelivery')}</span>{" "}
             → enable webhook integration.
           </li>
-          <li>Paste the Webhook URL and Key above.</li>
+          <li>{t('pasteWebhook')}</li>
           <li>
             Click{" "}
             <span className="text-text-main font-medium">“Send test data”</span>,
             then save.
           </li>
-          <li>Come back here and check the connection below.</li>
+          <li>{t('comeBackCheck')}</li>
         </ol>
         <p className="text-text-muted/80 mt-2 text-[11px]">
           The key is a secret — don&apos;t publish it.
@@ -1008,6 +1015,7 @@ interface CopyFieldProps {
 }
 
 const CopyField = ({ label, value, secret, emptyHint, onCopy }: CopyFieldProps) => {
+  const t = useTranslations('features.googleAds')
   const [revealed, setRevealed] = useState(false);
   const display = !value
     ? ""
@@ -1038,7 +1046,7 @@ const CopyField = ({ label, value, secret, emptyHint, onCopy }: CopyFieldProps) 
             onClick={onCopy}
           >
             <Copy size={12} />
-            Copy
+            {t('copy')}
           </Button>
         </div>
       ) : (

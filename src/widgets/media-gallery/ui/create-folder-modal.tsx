@@ -14,6 +14,7 @@ import {
 } from '@/shared/ui'
 import { useCreateMenuFolder } from '@/entities/menu'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 interface CreateFolderModalProps {
   isOpen: boolean
@@ -28,6 +29,7 @@ export const CreateFolderModal = ({
   parentId,
   onSuccess,
 }: CreateFolderModalProps) => {
+  const t = useTranslations('widgets.mediaGallery')
   const [name, setName] = useState('')
   const { mutate: createFolder, isPending } = useCreateMenuFolder()
 
@@ -39,18 +41,18 @@ export const CreateFolderModal = ({
     e?.preventDefault()
     const label = name.trim()
     if (!label) {
-      toast.error('Folder name is required')
+      toast.error(t('folderNameRequired'))
       return
     }
     if (!parentId) {
-      toast.error('Parent folder is missing')
+      toast.error(t('parentFolderMissing'))
       return
     }
     createFolder(
       { label, parent_id: parentId },
       {
         onSuccess: () => {
-          toast.success('Folder created')
+          toast.success(t('folderCreated'))
           onSuccess?.()
           onClose()
         },
@@ -67,10 +69,10 @@ export const CreateFolderModal = ({
         <DialogHeader className="mb-4">
           <DialogTitle className="text-text-main flex items-center gap-2 text-lg font-bold tracking-tight">
             <FolderPlus className="text-primary h-5 w-5" />
-            New Folder
+            {t('newFolder')}
           </DialogTitle>
           <DialogDescription className="text-text-muted text-[13px]">
-            Create a new folder to organize your files.
+            {t('createFolderHint')}
           </DialogDescription>
         </DialogHeader>
 
@@ -79,7 +81,7 @@ export const CreateFolderModal = ({
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Folder name"
+            placeholder={t('folderNamePlaceholder')}
             disabled={isPending}
           />
 
@@ -91,7 +93,7 @@ export const CreateFolderModal = ({
               disabled={isPending}
               className="flex-1"
             >
-              Cancel
+              {t('cancelBtn')}
             </Button>
             <Button
               type="submit"
@@ -101,12 +103,12 @@ export const CreateFolderModal = ({
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  {t('creating')}
                 </>
               ) : (
                 <>
                   <FolderPlus className="mr-2 h-4 w-4" />
-                  Create
+                  {t('create')}
                 </>
               )}
             </Button>

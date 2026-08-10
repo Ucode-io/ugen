@@ -2,6 +2,7 @@ import { Link as LinkIcon, Loader2, Folder } from "lucide-react"
 import { Link } from "@/shared/lib/i18n/navigation"
 import { ProjectCardActions } from "./project-card-actions"
 import { FolderCardActions } from "./folder-card-actions"
+import { useTranslations } from 'next-intl'
 
 interface ProjectsGridProps {
   projects: any[]
@@ -13,6 +14,7 @@ interface ProjectsGridProps {
 }
 
 export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant = "projects", onProjectClick, switchingProjectId }: ProjectsGridProps) => {
+  const t = useTranslations('widgets.projects')
   return (
     <div className={
       variant === "dashboard" ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
@@ -26,7 +28,7 @@ export const ProjectsGrid = ({ projects, folders = [], readOnly = false, variant
             <div className="mt-2 flex items-start gap-2">
               <div className="flex-1 min-w-0">
                 <h3 className="truncate text-[13px] font-medium text-text-main">{folder.name}</h3>
-                <p className="text-[11px] text-text-muted mt-0.5">Folder</p>
+                <p className="text-[11px] text-text-muted mt-0.5">{t('folderLabel')}</p>
               </div>
             </div>
           </Link>

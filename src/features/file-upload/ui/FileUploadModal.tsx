@@ -13,6 +13,7 @@ import {
 } from '@/shared/ui'
 import { Button } from '@/shared/ui'
 import { useFileUpload } from '../model/use-file-upload'
+import { useTranslations } from 'next-intl'
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface FileUploadModalProps {
 }
 
 export const FileUploadModal = ({ isOpen, onClose, folderName, onSuccess }: FileUploadModalProps) => {
+  const t = useTranslations('features.fileUpload')
   const [dragActive, setDragActive] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
@@ -74,7 +76,7 @@ export const FileUploadModal = ({ isOpen, onClose, folderName, onSuccess }: File
         <DialogHeader className="mb-4">
           <DialogTitle className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
             <CloudUpload className="w-6 h-6 text-primary" />
-            Upload Asset
+            {t('uploadAsset')}
           </DialogTitle>
           <DialogDescription className="text-[13px] text-text-muted">
             Upload file to {folderName} folder. Drag & drop or click to browse.
@@ -159,7 +161,7 @@ export const FileUploadModal = ({ isOpen, onClose, folderName, onSuccess }: File
             disabled={isLoading}
             className="flex-1 font-semibold"
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -169,12 +171,12 @@ export const FileUploadModal = ({ isOpen, onClose, folderName, onSuccess }: File
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Uploading...
+                {t('uploading')}
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4 mr-2" />
-                Upload Content
+                {t('uploadContent')}
               </>
             )}
           </Button>

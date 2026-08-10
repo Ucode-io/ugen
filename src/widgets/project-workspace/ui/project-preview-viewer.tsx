@@ -14,6 +14,10 @@ import { useShallow } from "zustand/react/shallow";
 import { useChatStore } from "@/entities/chat";
 import { buildProjectFromFiles, ensureEsbuild } from "../lib/bundler";
 import {
+  hasPreviewEntryFile,
+  mergePreviewFileSets,
+} from "../lib/preview-file-paths";
+import {
   generatePreviewHtml,
   PREVIEW_RUNTIME_VERSION,
 } from "../lib/preview-html";
@@ -494,6 +498,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
 import { WorkspaceLoader } from "./workspace-loader";
+import { useTranslations } from 'next-intl'
 
 interface PreviewRuntimeError {
   message: string;
@@ -582,17 +587,6 @@ const getLanguageByPath = (path: string) => {
   }
 };
 
-// The preview entry (`/__entry.tsx`) always does `import App from "/src/App"`.
-// The bundler prefixes `src/` to any non-root file, so the entry is satisfied by
-// a file at `src/App.{tsx,jsx,ts,js}` (or a bare `App.{tsx,jsx,ts,js}`).
-const PREVIEW_ENTRY_RE = /^src\/App\.(tsx|jsx|ts|js)$/;
-const hasPreviewEntryFile = (files: { path: string }[]): boolean =>
-  files.some((f) => {
-    let p = f.path.startsWith("/") ? f.path.slice(1) : f.path;
-    if (p !== "package.json" && !p.startsWith("src/")) p = "src/" + p;
-    return PREVIEW_ENTRY_RE.test(p);
-  });
-
 export const ProjectPreviewViewer = ({
   device = `desktop`,
   isMaximized = false,
@@ -605,6 +599,7 @@ export const ProjectPreviewViewer = ({
   chatPosition = "left",
   isVersionHistory = false,
 }: ProjectPreviewViewerProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const { isInspectMode, addSelectedElement, setInspectMode } =
     useVisualEditorStore(
       useShallow((s) => ({
@@ -783,8 +778,8 @@ export const ProjectPreviewViewer = ({
 
   // Files priority for the preview iframe:
   // 1. versionPreviewFiles (browsing version history)
-  // 2. If a microfrontend is selected → its activeCodeFiles only — never fall back to
-  //    storeFiles, otherwise we'd build the wrong code in the gap before MF codebase loads.
+  // 2. If a microfrontend is selected → project_files as the complete/template
+  //    base, with activeCodeFiles overriding matching repository paths.
   // 3. Otherwise (frontend / no selection) → storeFiles
   // Dirty overlay (microfrontend only) is applied on top so the preview always
   // reflects unsaved edits from the code editor or theme/style toolbars.
@@ -802,11 +797,21 @@ export const ProjectPreviewViewer = ({
         language: getLanguageByPath(f.path),
       }));
     } else if (isMicrofrontend) {
-      base = (activeCodeFiles ?? []).map((f: CodeSelectionFile) => ({
-        path: f.path,
-        content: f.content,
-        language: getLanguageByPath(f.path),
-      }));
+      const selectedFiles = (activeCodeFiles ?? []).map(
+        (f: CodeSelectionFile) => ({
+          path: f.path,
+          content: f.content,
+          language: getLanguageByPath(f.path),
+        }),
+      );
+      // The project snapshot contains template/static files while the selected
+      // repository response can be partial or temporarily empty. Use the
+      // snapshot as a base and let the selected codebase override matching
+      // paths. This also keeps a transient /codebase failure from discarding a
+      // perfectly buildable src/App already loaded from mcp_project.
+      base = hasPreviewEntryFile(storeFiles)
+        ? mergePreviewFileSets(storeFiles, selectedFiles)
+        : selectedFiles;
     } else {
       base = storeFiles;
     }
@@ -854,6 +859,74 @@ export const ProjectPreviewViewer = ({
     mobileProject,
     mobileProjectId,
     projectId,
+  ]);
+
+  // A transient /codebase failure is represented as [] (null means the request
+  // is still in flight). Retry it here because the chat auto-select intentionally
+  // resolves failures to [] to avoid an infinite loader; without recovery the
+  // old safety-valve build generated /__entry.tsx and failed on /src/App.
+  const codebaseRecoveryKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !isMicrofrontend ||
+      activeCodeFiles === null ||
+      hasPreviewEntryFile(activeCodeFiles) ||
+      hasPreviewEntryFile(storeFiles) ||
+      !activeCodeSelection?.id ||
+      !apiKey
+    ) {
+      return;
+    }
+
+    const recoveryKey = `${projectId}:${activeCodeSelection.id}`;
+    if (codebaseRecoveryKeyRef.current === recoveryKey) return;
+    codebaseRecoveryKeyRef.current = recoveryKey;
+    let cancelled = false;
+
+    const recover = async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, 700 * attempt),
+          );
+        }
+        try {
+          const { data } = await api.get(
+            `/v2/function/${activeCodeSelection.id}/codebase`,
+            {
+              params: { "project-id": projectId },
+              headers: {
+                Authorization: "API-KEY",
+                "x-api-key": apiKey,
+              },
+            },
+          );
+          const recovered = (data?.data?.files ?? []) as CodeSelectionFile[];
+          if (cancelled) return;
+          if (hasPreviewEntryFile(recovered)) {
+            setActiveCodeSelection(activeCodeSelection, recovered);
+            return;
+          }
+        } catch (err) {
+          if (attempt === 2) {
+            console.error("[preview] codebase recovery failed", err);
+          }
+        }
+      }
+    };
+
+    void recover();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeCodeFiles,
+    activeCodeSelection,
+    apiKey,
+    isMicrofrontend,
+    projectId,
+    setActiveCodeSelection,
+    storeFiles,
   ]);
 
   const handlePickMicrofrontend = (mf: {
@@ -1501,16 +1574,39 @@ export const ProjectPreviewViewer = ({
   }, [flushVisualEditQueue]);
 
   const runCode = async (opts?: { force?: boolean }) => {
-    // Mobile preview can render the published app without a local source entry.
-    // Never send that incomplete source bundle to esbuild: its generated entry
-    // imports `/src/App`, so doing so can only produce a misleading build error.
-    if (isMobile && !hasPreviewEntryFile(files)) {
+    // Never send an incomplete source bundle to esbuild. Its fallback entry
+    // imports `/src/App`, so a build without App can only produce the misleading
+    // virtual:/__entry.tsx error instead of explaining that the codebase request
+    // did not provide a runnable application.
+    if (!hasPreviewEntryFile(files)) {
       setIsLoading(false);
-      setRuntimeError((current) =>
-        current?.isBuildError && current.message.includes("/src/App")
-          ? null
-          : current,
-      );
+      if (isMobile) {
+        // Mobile preview can still render its published URL without local source.
+        setRuntimeError((current) =>
+          current?.isBuildError && current.message.includes("/src/App")
+            ? null
+            : current,
+        );
+      } else {
+        const loadedPaths = files
+          .slice(0, 12)
+          .map((file) => file.path)
+          .join(", ");
+        const message =
+          "Preview source is incomplete: src/App.tsx (or App.jsx/App.ts/App.js) " +
+          `was not returned by the project/codebase API. Loaded ${files.length} files` +
+          (loadedPaths ? `: ${loadedPaths}` : ".");
+        console.error("[preview] source incomplete", {
+          projectId,
+          selection: activeCodeSelection,
+          paths: files.map((file) => file.path),
+        });
+        setRuntimeError({
+          message,
+          stack: null,
+          isBuildError: true,
+        });
+      }
       return;
     }
     if (isBuilding.current) return;
@@ -2421,7 +2517,7 @@ export const ProjectPreviewViewer = ({
             <button
               type="button"
               onClick={() => setViewMode("single")}
-              title="Single page"
+              title={t('singlePage')}
               className={cn(
                 "flex h-5 w-6 items-center justify-center rounded transition-colors",
                 viewMode === "single"
@@ -2434,7 +2530,7 @@ export const ProjectPreviewViewer = ({
             <button
               type="button"
               onClick={() => setViewMode("canvas")}
-              title="All pages (canvas)"
+              title={t('allPagesCanvas')}
               className={cn(
                 "flex h-5 w-6 items-center justify-center rounded transition-colors",
                 viewMode === "canvas"
@@ -2450,7 +2546,7 @@ export const ProjectPreviewViewer = ({
           <button
             type="button"
             onClick={() => setInspectMode(!isInspectMode)}
-            title="Visual Edit"
+            title={t('visualEdit')}
             className={cn(
               "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
               isInspectMode
@@ -2494,7 +2590,7 @@ export const ProjectPreviewViewer = ({
             type="button"
             onClick={handleRefresh}
             disabled={isLoading}
-            title="Rebuild preview"
+            title={t('rebuildPreview')}
             className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 w-7 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
           >
             <RotateCcw size={13} className={cn(isLoading && "animate-spin")} />
@@ -2596,7 +2692,7 @@ export const ProjectPreviewViewer = ({
         ref={iframeRef}
         className="w-full flex-1 border-none bg-white"
         srcDoc={srcDoc}
-        title="Project Preview"
+        title={t('projectPreview')}
         sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
         onLoad={() => {
           // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
@@ -2762,12 +2858,12 @@ export const ProjectPreviewViewer = ({
                     className="text-text-main bg-bg-card border-border-subtle hover:border-primary/40 hover:bg-primary/5 flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors"
                   >
                     <Sparkles size={14} className="text-primary shrink-0" />
-                    <span className="font-medium">Generated Frontend</span>
+                    <span className="font-medium">{t('generatedFrontend')}</span>
                   </button>
                   {microfrontendsList.length > 0 && (
                     <>
                       <p className="text-text-muted flex items-center gap-1 px-1 pt-2 text-[10px] tracking-wider uppercase">
-                        <Layers2 size={9} /> Microfrontends
+                        <Layers2 size={9} /> {t('microfrontends')}
                       </p>
                       {microfrontendsList.map((mf) => (
                         <button
@@ -2824,7 +2920,7 @@ export const ProjectPreviewViewer = ({
               <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-text-main text-xs font-medium">
-                  Mobile preview reported an error
+                  {t('mobilePreviewError')}
                 </p>
                 <p
                   className="text-text-muted truncate text-[11px]"
@@ -2836,7 +2932,7 @@ export const ProjectPreviewViewer = ({
               <button
                 type="button"
                 onClick={handleRefresh}
-                title="Refresh preview"
+                title={t('refreshPreview')}
                 className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
               >
                 <RotateCcw size={13} />
@@ -2846,12 +2942,12 @@ export const ProjectPreviewViewer = ({
                 onClick={handleFixInChat}
                 className="bg-primary hover:bg-primary/90 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors"
               >
-                Fix in chat
+                {t('fixInChat')}
               </button>
               <button
                 type="button"
                 onClick={() => setRuntimeError(null)}
-                title="Dismiss error"
+                title={t('dismissError')}
                 className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
               >
                 <X size={13} />
@@ -2875,7 +2971,7 @@ export const ProjectPreviewViewer = ({
                   ) : mobilePreviewUrl ? (
                     <iframe
                       src={mobilePreviewUrl}
-                      title="Mobile preview"
+                      title={t('mobilePreview')}
                       className="h-full w-full flex-1 border-none bg-white"
                       sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
                     />
@@ -2975,10 +3071,10 @@ export const ProjectPreviewViewer = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-text-main text-base font-semibold">
-                          Canvas build failed
+                          {t('canvasBuildFailed')}
                         </h3>
                         <p className="text-text-muted mt-0.5 text-xs">
-                          The shared preview bundle could not be built
+                          {t('sharedBundleFailed')}
                         </p>
                       </div>
                     </div>

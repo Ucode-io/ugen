@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { useTypewriter } from "@/shared/hooks/useTypewriter";
 import { formatAIContent } from "@/shared/lib/utils/formatAiContent";
 import { Check, Copy, RotateCcw, ThumbsDown, ThumbsUp } from "lucide-react";
+import { useTranslations } from 'next-intl'
 
 // Hoisted to module scope: these never depend on props, but were previously
 // recreated inline on every render. The parent re-renders on every SSE tick
@@ -145,6 +146,7 @@ export const ChatMessageBubble = ({
   likeCount = 0,
   dislikeCount = 0,
 }: ChatMessageProps) => {
+  const t = useTranslations('widgets.workspaceChat')
   const isAI = role === 'ai' || role === 'assistant';
   const replacedContent = content.replace(/\\n/g, '\n');
   const [copied, setCopied] = useState(false);
@@ -204,8 +206,8 @@ export const ChatMessageBubble = ({
           type="button"
           onClick={onResend}
           disabled={resendDisabled}
-          title="Resend message"
-          aria-label="Resend message"
+          title={t('resendMessage')}
+          aria-label={t('resendMessage')}
           className="hover:bg-hover-bg hover:text-text-main flex h-7 w-7 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-40"
         >
           <RotateCcw size={14} />
@@ -219,8 +221,8 @@ export const ChatMessageBubble = ({
             type="button"
             onClick={() => toggleFeedback("like")}
             disabled={reactionDisabled}
-            title="Like message"
-            aria-label="Like message"
+            title={t('likeMessage')}
+            aria-label={t('likeMessage')}
             aria-pressed={feedback === "like"}
             className={`hover:bg-hover-bg flex h-7 min-w-7 items-center justify-center gap-1 rounded-md px-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               feedback === "like" ? "bg-primary/10 text-primary" : "hover:text-text-main"
@@ -233,8 +235,8 @@ export const ChatMessageBubble = ({
             type="button"
             onClick={() => toggleFeedback("dislike")}
             disabled={reactionDisabled}
-            title="Dislike message"
-            aria-label="Dislike message"
+            title={t('dislikeMessage')}
+            aria-label={t('dislikeMessage')}
             aria-pressed={feedback === "dislike"}
             className={`hover:bg-hover-bg flex h-7 min-w-7 items-center justify-center gap-1 rounded-md px-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               feedback === "dislike" ? "bg-destructive/10 text-destructive" : "hover:text-text-main"
