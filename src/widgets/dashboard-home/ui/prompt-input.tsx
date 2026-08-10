@@ -170,7 +170,7 @@ export const PromptInput = () => {
       <div className="text-center">
         <AnimatedHeadline />
         <p className="text-text-muted text-base">
-          Describe your idea and let AI turn it into a working product
+          {t('promptPlaceholderLong')}
         </p>
       </div>
 
@@ -223,7 +223,7 @@ export const PromptInput = () => {
                   type="button"
                   disabled={isProcessing}
                   className="flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors disabled:opacity-50"
-                  title="AI provider"
+                  title={t('aiProvider')}
                 >
                   <Sparkles size={14} className="text-primary shrink-0" />
                   <span>{currentProviderName}</span>

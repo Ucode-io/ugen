@@ -11,6 +11,7 @@ import {
 } from "./code-viewer-ui";
 import { useUIStore } from "@/shared/model/theme/use-ui-store";
 import { useDirtyFilesStore } from "@/entities/project/model/dirty-files-store";
+import { useTranslations } from 'next-intl'
 
 export interface CodebaseFile {
   path: string;
@@ -66,6 +67,7 @@ export function CodebaseEditor({
   className,
   dirtyKey,
 }: CodebaseEditorProps) {
+  const t = useTranslations('widgets.projectWorkspace')
   const [openedFiles, setOpenedFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
@@ -145,7 +147,7 @@ export function CodebaseEditor({
       >
         <div className="flex flex-col items-center gap-3 text-text-muted">
           <Loader2 className="animate-spin" size={24} />
-          <span className="text-xs">Loading codebase...</span>
+          <span className="text-xs">{t('loadingCodebase')}</span>
         </div>
       </div>
     );

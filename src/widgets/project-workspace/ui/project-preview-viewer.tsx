@@ -498,6 +498,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
 import { WorkspaceLoader } from "./workspace-loader";
+import { useTranslations } from 'next-intl'
 
 interface PreviewRuntimeError {
   message: string;
@@ -598,6 +599,7 @@ export const ProjectPreviewViewer = ({
   chatPosition = "left",
   isVersionHistory = false,
 }: ProjectPreviewViewerProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const { isInspectMode, addSelectedElement, setInspectMode } =
     useVisualEditorStore(
       useShallow((s) => ({
@@ -2515,7 +2517,7 @@ export const ProjectPreviewViewer = ({
             <button
               type="button"
               onClick={() => setViewMode("single")}
-              title="Single page"
+              title={t('singlePage')}
               className={cn(
                 "flex h-5 w-6 items-center justify-center rounded transition-colors",
                 viewMode === "single"
@@ -2528,7 +2530,7 @@ export const ProjectPreviewViewer = ({
             <button
               type="button"
               onClick={() => setViewMode("canvas")}
-              title="All pages (canvas)"
+              title={t('allPagesCanvas')}
               className={cn(
                 "flex h-5 w-6 items-center justify-center rounded transition-colors",
                 viewMode === "canvas"
@@ -2544,7 +2546,7 @@ export const ProjectPreviewViewer = ({
           <button
             type="button"
             onClick={() => setInspectMode(!isInspectMode)}
-            title="Visual Edit"
+            title={t('visualEdit')}
             className={cn(
               "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
               isInspectMode
@@ -2588,7 +2590,7 @@ export const ProjectPreviewViewer = ({
             type="button"
             onClick={handleRefresh}
             disabled={isLoading}
-            title="Rebuild preview"
+            title={t('rebuildPreview')}
             className="text-text-muted hover:bg-hover-bg hover:text-text-main flex h-7 w-7 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
           >
             <RotateCcw size={13} className={cn(isLoading && "animate-spin")} />
@@ -2690,7 +2692,7 @@ export const ProjectPreviewViewer = ({
         ref={iframeRef}
         className="w-full flex-1 border-none bg-white"
         srcDoc={srcDoc}
-        title="Project Preview"
+        title={t('projectPreview')}
         sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
         onLoad={() => {
           // Fresh document — drop any leftover inline overrides so the bundle's CSS values show.
@@ -2856,12 +2858,12 @@ export const ProjectPreviewViewer = ({
                     className="text-text-main bg-bg-card border-border-subtle hover:border-primary/40 hover:bg-primary/5 flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors"
                   >
                     <Sparkles size={14} className="text-primary shrink-0" />
-                    <span className="font-medium">Generated Frontend</span>
+                    <span className="font-medium">{t('generatedFrontend')}</span>
                   </button>
                   {microfrontendsList.length > 0 && (
                     <>
                       <p className="text-text-muted flex items-center gap-1 px-1 pt-2 text-[10px] tracking-wider uppercase">
-                        <Layers2 size={9} /> Microfrontends
+                        <Layers2 size={9} /> {t('microfrontends')}
                       </p>
                       {microfrontendsList.map((mf) => (
                         <button
@@ -2918,7 +2920,7 @@ export const ProjectPreviewViewer = ({
               <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-text-main text-xs font-medium">
-                  Mobile preview reported an error
+                  {t('mobilePreviewError')}
                 </p>
                 <p
                   className="text-text-muted truncate text-[11px]"
@@ -2930,7 +2932,7 @@ export const ProjectPreviewViewer = ({
               <button
                 type="button"
                 onClick={handleRefresh}
-                title="Refresh preview"
+                title={t('refreshPreview')}
                 className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
               >
                 <RotateCcw size={13} />
@@ -2940,12 +2942,12 @@ export const ProjectPreviewViewer = ({
                 onClick={handleFixInChat}
                 className="bg-primary hover:bg-primary/90 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors"
               >
-                Fix in chat
+                {t('fixInChat')}
               </button>
               <button
                 type="button"
                 onClick={() => setRuntimeError(null)}
-                title="Dismiss error"
+                title={t('dismissError')}
                 className="text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
               >
                 <X size={13} />
@@ -2969,7 +2971,7 @@ export const ProjectPreviewViewer = ({
                   ) : mobilePreviewUrl ? (
                     <iframe
                       src={mobilePreviewUrl}
-                      title="Mobile preview"
+                      title={t('mobilePreview')}
                       className="h-full w-full flex-1 border-none bg-white"
                       sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
                     />
@@ -3069,10 +3071,10 @@ export const ProjectPreviewViewer = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-text-main text-base font-semibold">
-                          Canvas build failed
+                          {t('canvasBuildFailed')}
                         </h3>
                         <p className="text-text-muted mt-0.5 text-xs">
-                          The shared preview bundle could not be built
+                          {t('sharedBundleFailed')}
                         </p>
                       </div>
                     </div>

@@ -37,6 +37,7 @@ import {
 } from '@/shared/ui'
 import { WorkspaceDataTable } from './workspace-data-table'
 import { cn } from '@/shared/lib/utils/cn'
+import { useTranslations } from 'next-intl'
 
 interface ClientPlatform {
   id: string
@@ -87,6 +88,7 @@ type View = 'list' | 'create' | 'detail'
 
 
 export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [view, setView] = useState<View>('list')
 
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null)
@@ -284,8 +286,8 @@ export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
         <div className="flex items-center justify-between">
           {!hideHeader && (
             <div>
-              <h1 className="text-2xl font-bold text-text-main tracking-tight">API Keys</h1>
-              <p className="text-text-muted text-sm mt-1">Manage API keys and authentication for your applications.</p>
+              <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('apiKeys')}</h1>
+              <p className="text-text-muted text-sm mt-1">{t('apiKeysSubtitle')}</p>
             </div>
           )}
           <div className="flex items-center gap-3 ml-auto">
@@ -302,7 +304,7 @@ export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
               className="bg-primary hover:bg-primary/90 text-white rounded-lg h-8 px-3 text-[13px] font-medium"
             >
               <PlusCircle size={14} className="mr-1.5" />
-              Add API Key
+              {t('addApiKey')}
             </Button>
           </div>
         </div>
@@ -339,13 +341,13 @@ export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
           >
             <ChevronLeft size={16} />
           </Button>
-          <h1 className="text-xl font-bold text-text-main leading-tight">New API Key</h1>
+          <h1 className="text-xl font-bold text-text-main leading-tight">{t('newApiKey')}</h1>
         </div>
 
         <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 max-w-lg shadow-sm">
           <div className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Name</label>
+              <label className="text-sm font-medium text-text-main">{t('name')}</label>
               <Input
                 placeholder="e.g. Mobile App Key"
                 value={createForm.name}
@@ -355,7 +357,7 @@ export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-text-main">Platform</label>
+              <label className="text-sm font-medium text-text-main">{t('platform')}</label>
               <Select
                 value={createForm.platformId}
                 onValueChange={(v) => setCreateForm(prev => ({ ...prev, platformId: v }))}
@@ -380,7 +382,7 @@ export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
                 onClick={() => setView('list')}
                 className="rounded-xl px-4"
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 disabled={!createForm.name || !createForm.platformId || createMutation.isPending}
@@ -486,7 +488,7 @@ export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
               ) : logs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <ScrollText size={32} className="text-text-muted/30 mb-3" />
-                  <p className="text-text-muted text-sm">No logs available for this period</p>
+                  <p className="text-text-muted text-sm">{t('noLogsPeriod')}</p>
                 </div>
               ) : (
                 <WorkspaceDataTable
@@ -510,7 +512,7 @@ export const ApiKeysPage = ({ projectId, hideHeader }: ApiKeysPageProps) => {
               ) : tokens.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <KeyRound size={32} className="text-text-muted/30 mb-3" />
-                  <p className="text-text-muted text-sm">No active tokens found</p>
+                  <p className="text-text-muted text-sm">{t('noActiveTokens')}</p>
                 </div>
               ) : (
                 <WorkspaceDataTable

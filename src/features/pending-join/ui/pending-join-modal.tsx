@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2, X } from "lucide-react";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/entities/session";
+import { useTranslations } from 'next-intl'
 
 const inviteApi = axios.create({
   baseURL: "https://auth-api.ucode.run",
@@ -21,6 +22,7 @@ interface PendingInvite {
 }
 
 export const PendingJoinModal = () => {
+  const t = useTranslations('features.pendingJoin')
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
@@ -102,9 +104,9 @@ export const PendingJoinModal = () => {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
         <Dialog.Content className="border-border-subtle bg-bg-card fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-8 shadow-2xl">
-          <Dialog.Title className="sr-only">Join Project</Dialog.Title>
+          <Dialog.Title className="sr-only">{t('joinProject')}</Dialog.Title>
           <Dialog.Description className="sr-only">
-            You have a pending project invitation
+            {t('pendingInvite')}
           </Dialog.Description>
 
           {!joinSuccess && (
@@ -122,7 +124,7 @@ export const PendingJoinModal = () => {
             <div className="flex flex-col items-center gap-3 py-4 text-center">
               <CheckCircle2 size={40} className="text-primary" />
               <h2 className="text-text-main text-lg font-semibold">
-                Joined successfully!
+                {t('joined')}
               </h2>
               <p className="text-text-muted text-sm">
                 You have joined{" "}
@@ -135,14 +137,14 @@ export const PendingJoinModal = () => {
                 onClick={handleClose}
                 className="bg-primary hover:bg-primary-hover mt-2 rounded-lg px-6 py-2 text-sm font-semibold text-white transition-colors"
               >
-                Continue
+                {t('continueBtn')}
               </button>
             </div>
           ) : (
             <>
               <div className="mb-6 space-y-2">
                 <h2 className="text-text-main text-xl font-semibold">
-                  You've been invited!
+                  {t('invited')}
                 </h2>
                 <p className="text-text-muted text-sm leading-relaxed">
                   Join{" "}
@@ -172,7 +174,7 @@ export const PendingJoinModal = () => {
                   onClick={handleClose}
                   className="border-border-subtle text-text-muted hover:bg-bg-sidebar flex-1 rounded-lg border py-2.5 text-sm font-medium transition-colors"
                 >
-                  Dismiss
+                  {t('dismiss')}
                 </button>
                 <button
                   onClick={handleJoin}

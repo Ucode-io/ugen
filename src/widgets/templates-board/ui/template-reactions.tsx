@@ -12,6 +12,7 @@ import {
   deleteTemplateReaction,
   type ReactionType,
 } from '../model/templates'
+import { useTranslations } from 'next-intl'
 
 interface TemplateReactionsProps {
   templateId: string
@@ -44,6 +45,7 @@ export const TemplateReactions = ({
   initialDislikeCount = 0,
   className,
 }: TemplateReactionsProps) => {
+  const t = useTranslations('widgets.templatesBoard')
   const [reaction, setReaction] = useState<ReactionType | null>(initialReaction)
   const [likeCount, setLikeCount] = useState(initialLikeCount)
   const [dislikeCount, setDislikeCount] = useState(initialDislikeCount)
@@ -85,7 +87,7 @@ export const TemplateReactions = ({
           setReaction(prev.reaction)
           setLikeCount(prev.likeCount)
           setDislikeCount(prev.dislikeCount)
-          toast.error('Could not save your reaction. Please try again.')
+          toast.error(t('reactionFailed'))
         },
       },
     )
@@ -106,8 +108,8 @@ export const TemplateReactions = ({
         onClick={() => react('like')}
         disabled={isPending}
         aria-pressed={liked}
-        aria-label="Like template"
-        title="Like"
+        aria-label={t('likeTemplate')}
+        title={t('like')}
         className={cn(
           'flex h-9 items-center gap-1.5 rounded-l-full pr-3 pl-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed',
           liked
@@ -126,8 +128,8 @@ export const TemplateReactions = ({
         onClick={() => react('dislike')}
         disabled={isPending}
         aria-pressed={disliked}
-        aria-label="Dislike template"
-        title="Dislike"
+        aria-label={t('dislikeTemplate')}
+        title={t('dislike')}
         className={cn(
           'flex h-9 items-center gap-1.5 rounded-r-full pr-3.5 pl-3 text-sm font-medium transition-colors disabled:cursor-not-allowed',
           disliked

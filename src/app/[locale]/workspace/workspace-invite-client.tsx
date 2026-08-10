@@ -7,6 +7,7 @@ import { api } from "@/shared/api";
 import { useAuthStore } from "@/entities/session";
 import { useRouter } from "@/shared/lib/i18n/navigation";
 import { logIsUgen } from "@/shared/lib/is-ugen-log";
+import { useTranslations } from 'next-intl'
 
 const ugenAuthApi = axios.create({
   baseURL: "https://auth-api.ucode.run",
@@ -14,6 +15,7 @@ const ugenAuthApi = axios.create({
 });
 
 export const WorkspaceInviteClient = () => {
+  const t = useTranslations('shared.common')
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthenticated, setAuth, setLanguages } = useAuthStore();
@@ -135,14 +137,14 @@ export const WorkspaceInviteClient = () => {
           )}
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-text-main">Login</label>
+            <label className="text-sm font-medium text-text-main">{t('login')}</label>
             <div className="relative">
               <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
                 type="text"
-                placeholder="Enter your login"
+                placeholder={t('enterLogin')}
                 className="focus:border-primary focus:ring-primary border-border-subtle bg-bg-sidebar text-text-main w-full rounded-lg border py-2 pl-9 pr-3 text-sm outline-none transition-all focus:ring-1"
                 required
               />
@@ -150,14 +152,14 @@ export const WorkspaceInviteClient = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-text-main">Password</label>
+            <label className="text-sm font-medium text-text-main">{t('password')}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
-                placeholder="Enter your password"
+                placeholder={t('enterPassword')}
                 className="focus:border-primary focus:ring-primary border-border-subtle bg-bg-sidebar text-text-main w-full rounded-lg border py-2 pl-9 pr-3 text-sm outline-none transition-all focus:ring-1"
                 required
               />
@@ -181,7 +183,7 @@ export const WorkspaceInviteClient = () => {
               onClick={handleRegisterClick}
               className="text-primary font-medium hover:underline"
             >
-              Register
+              {t('register')}
             </button>
           </p>
         </div>

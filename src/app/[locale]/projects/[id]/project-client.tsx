@@ -519,7 +519,7 @@ export const ProjectWorkspaceClient = ({
       );
     } catch (err) {
       console.error("Failed to load function for AI edit", err);
-      toast.error("Failed to load function. Please try again.");
+      toast.error(t('loadFunctionFailed'));
     }
   };
 
@@ -798,7 +798,7 @@ export const ProjectWorkspaceClient = ({
                 />
               ) : (
                 <div className="text-text-muted flex flex-1 items-center justify-center">
-                  <p className="text-sm font-medium">No preview available</p>
+                  <p className="text-sm font-medium">{t('noPreviewAvailable')}</p>
                 </div>
               )}
             </>

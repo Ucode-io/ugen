@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import { Footer } from '@/widgets/footer'
 import { LandingHeroSection } from './landing-hero-section'
 import { TemplatesSection } from './templates-section'
@@ -48,53 +49,33 @@ const TRUSTED_COMPANIES = [
 
 /* ── How It Works ── */
 const STEPS = [
-  {
-    n: '01',
-    icon: '✏️',
-    title: 'Describe your idea',
-    desc: 'Write what you need in plain English — no technical knowledge required. Be as detailed or as brief as you like.',
-    tag: 'Natural language',
-  },
-  {
-    n: '02',
-    icon: '⚡',
-    title: 'AI builds it for you',
-    desc: 'Our AI generates your complete app — database schema, REST API, and a polished frontend — in minutes.',
-    tag: 'Instant generation',
-  },
-  {
-    n: '03',
-    icon: '🚀',
-    title: 'Deploy & share',
-    desc: 'One-click deployment. Share your live URL with teammates, clients, or the world immediately.',
-    tag: 'One-click deploy',
-  },
+  { n: '01', icon: '✏️', key: 'describe' },
+  { n: '02', icon: '⚡', key: 'generate' },
+  { n: '03', icon: '🚀', key: 'deploy' },
 ]
 
 /* ── Stats ── */
-const STATS = [
-  { n: '12,000+', label: 'Projects built', sub: 'by founders & teams' },
-  { n: '99.9%', label: 'Platform uptime', sub: 'across all regions' },
-  { n: '< 15 min', label: 'Average build time', sub: 'from idea to live app' },
-]
+const STATS = ['projects', 'uptime', 'buildTime']
 
 /* ── How it works section ── */
-const HowItWorksSection = () => (
+const HowItWorksSection = () => {
+  const t = useTranslations('widgets.landingPage.howItWorks')
+  return (
   <section className="py-20 px-6">
     <div className="max-w-[1100px] mx-auto">
       <div className="text-center mb-12">
         <span className="inline-flex items-center bg-bg-card border border-border-subtle rounded-full px-[11px] py-[3px] text-[0.67rem] font-semibold uppercase tracking-[0.08em] text-text-muted mb-3">
-          How it works
+          {t('badge')}
         </span>
         <h2 className="font-extrabold tracking-[-0.04em] leading-[1.12] text-text-main mb-3.5"
           style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}>
-          Three steps to your{' '}
+          {t('titleLead')}{' '}
           <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            live product
+            {t('titleAccent')}
           </em>
         </h2>
         <p className="text-[0.95rem] text-text-muted max-w-[560px] mx-auto leading-[1.75]">
-          No DevOps. No boilerplate. No waiting weeks for a prototype.
+          {t('subtitle')}
         </p>
       </div>
 
@@ -112,24 +93,27 @@ const HowItWorksSection = () => (
             <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg mb-[18px] border border-border-subtle bg-bg-card">
               {step.icon}
             </div>
-            <h3 className="text-[0.95rem] font-bold text-text-main mb-2">{step.title}</h3>
-            <p className="text-[0.85rem] text-text-muted leading-[1.7] mb-4">{step.desc}</p>
+            <h3 className="text-[0.95rem] font-bold text-text-main mb-2">{t(`steps.${step.key}.title`)}</h3>
+            <p className="text-[0.85rem] text-text-muted leading-[1.7] mb-4">{t(`steps.${step.key}.desc`)}</p>
             <span className="text-[0.7rem] font-bold uppercase tracking-[0.05em] text-primary">
-              {step.tag}
+              {t(`steps.${step.key}.tag`)}
             </span>
           </div>
         ))}
       </div>
     </div>
   </section>
-)
+  )
+}
 
 /* ── Trusted section ── */
-const TrustedSection = () => (
+const TrustedSection = () => {
+  const t = useTranslations('widgets.landingPage.trusted')
+  return (
   <div className="py-14 px-6 border-b border-border-subtle bg-bg-card">
     <div className="max-w-[1100px] mx-auto">
       <p className="text-center text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-text-muted/60 mb-8">
-        Trusted by growing companies
+        {t('title')}
       </p>
       <div className="flex items-center justify-center gap-4 flex-wrap">
         {TRUSTED_COMPANIES.map((company) => (
@@ -146,30 +130,34 @@ const TrustedSection = () => (
       </div>
     </div>
   </div>
-)
+  )
+}
 
 /* ── Stats section ── */
-const StatsSection = () => (
+const StatsSection = () => {
+  const t = useTranslations('widgets.landingPage.stats')
+  return (
   <section className="py-20 px-6 bg-bg-card border-b border-border-subtle">
     <div className="max-w-[1100px] mx-auto">
       <div className="grid md:grid-cols-3 border border-border-subtle rounded-[10px] overflow-hidden">
         {STATS.map((stat, i) => (
           <div
-            key={stat.label}
+            key={stat}
             className={`bg-bg-main py-12 px-9 text-center ${i < STATS.length - 1 ? 'border-b md:border-b-0 md:border-r border-border-subtle' : ''}`}
           >
             <div className="font-black tracking-[-0.05em] text-text-main mb-[7px]"
               style={{ fontSize: 'clamp(2.2rem, 4vw, 3.4rem)' }}>
-              {stat.n}
+              {t(`${stat}.value`)}
             </div>
-            <div className="text-[0.88rem] font-semibold text-text-muted">{stat.label}</div>
-            <div className="text-[0.75rem] text-text-muted/60 mt-1">{stat.sub}</div>
+            <div className="text-[0.88rem] font-semibold text-text-muted">{t(`${stat}.label`)}</div>
+            <div className="text-[0.75rem] text-text-muted/60 mt-1">{t(`${stat}.sub`)}</div>
           </div>
         ))}
       </div>
     </div>
   </section>
-)
+  )
+}
 
 export const LandingPage = () => {
   return (

@@ -4,6 +4,7 @@ import React from "react";
 import { Map, Maximize2, Minus, Plus } from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
 import { useDiagramStore } from "../model/store";
+import { useTranslations } from 'next-intl'
 
 interface Props {
   zoom: number;
@@ -35,22 +36,23 @@ export const CanvasControls: React.FC<Props> = ({
   onZoomOut,
   onFit,
 }) => {
+  const t = useTranslations('features.dbDiagram')
   const showMinimap = useDiagramStore((s) => s.showMinimap);
   const toggleMinimap = useDiagramStore((s) => s.toggleMinimap);
 
   return (
     <div className="bg-bg-card/95 border-border-subtle pointer-events-auto flex items-center gap-0.5 rounded-md border p-0.5 shadow-sm backdrop-blur">
-      <IconBtn onClick={onZoomOut} title="Zoom out">
+      <IconBtn onClick={onZoomOut} title={t('zoomOut')}>
         <Minus size={13} />
       </IconBtn>
       <span className="text-text-muted min-w-[42px] text-center font-mono text-[11px] tabular-nums">
         {Math.round(zoom * 100)}%
       </span>
-      <IconBtn onClick={onZoomIn} title="Zoom in">
+      <IconBtn onClick={onZoomIn} title={t('zoomIn')}>
         <Plus size={13} />
       </IconBtn>
       <span className="bg-border-subtle/70 mx-0.5 h-4 w-px" />
-      <IconBtn onClick={onFit} title="Fit to screen">
+      <IconBtn onClick={onFit} title={t('fitToScreen')}>
         <Maximize2 size={12} />
       </IconBtn>
       <IconBtn

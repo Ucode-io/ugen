@@ -8,79 +8,36 @@ import { Footer } from '@/widgets/footer'
 import { api } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
 import { cn } from '@/shared/lib/utils/cn'
+import { useTranslations } from 'next-intl'
 // import { LandingCtaSection } from '@/widgets/landing-page/ui/landing-cta-section'
 
 /* ── Billing data ── */
 const PERIODS = [
-  { key: 'month',   label: 'Monthly',  save: null,        multiplier: 1,    per: 'per user · billed monthly' },
-  { key: 'year',    label: 'Annual',   save: 'Save 13%', multiplier: 0.87, per: 'per user · billed annually' },
+  { key: 'month', labelKey: 'monthly', save: false, multiplier: 1,    perKey: 'perMonth' },
+  { key: 'year',  labelKey: 'annual',  save: true,  multiplier: 0.87, perKey: 'perYear' },
 ] as const
 type Period = typeof PERIODS[number]['key']
 
 type PlanMeta = {
   key: string
   fareName: string | null
-  desc: string
-  cta: string
   featured: boolean
-  badge?: string
   href?: string
-  perFreeText?: string
 }
 
 const PLAN_META: PlanMeta[] = [
-  {
-    key: 'free',
-    fareName: 'free',
-    desc: 'Perfect for individuals exploring the platform. No credit card required.',
-    cta: 'Get started free',
-    featured: false,
-    perFreeText: 'per user · forever free',
-  },
-  {
-    key: 'basic',
-    fareName: 'basic',
-    desc: 'For small teams building and shipping real products.',
-    cta: 'Start free trial →',
-    featured: false,
-  },
-  {
-    key: 'pro',
-    fareName: 'pro',
-    desc: 'For growing teams with advanced scale and custom requirements.',
-    cta: 'Start free trial →',
-    featured: true,
-    badge: 'Most popular',
-  },
+  { key: 'free', fareName: 'free', featured: false },
+  { key: 'basic', fareName: 'basic', featured: false },
+  { key: 'pro', fareName: 'pro', featured: true },
   {
     key: 'enterprise',
     fareName: null,
-    desc: 'For large organisations requiring custom scale, security, and compliance.',
-    cta: 'Contact sales →',
     href: 'https://calendar.app.google/zUXHa2dh3N3Cv2dp6',
     featured: false,
   },
 ]
 
-const formatFareValue = (value: string | undefined) => {
-  if (!value || value === '-1') return 'Unlimited'
-  if (value === '0') return '—'
-  const num = Number(value)
-  if (!isNaN(num)) {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-  }
-  return value
-}
-
-/* ── FAQ ── */
-const FAQ = [
-  { q: 'Can I switch plans anytime?', a: 'Yes. Upgrade or downgrade at any time. Upgrades take effect immediately; downgrades apply at the end of your billing period.' },
-  { q: 'Can I change my billing period?', a: 'Yes — you can switch between monthly and annual billing at renewal. Switching to annual applies immediately and you\'re credited for any unused time.' },
-  { q: 'Do you offer a free trial on paid plans?', a: 'Starter and Pro plans come with a 14-day free trial — no credit card required. Cancel anytime.' },
-  { q: 'What happens when I exceed my limits?', a: 'API requests over limit are charged at $0.001 per request. API requests over the per-second limit are blocked. Extra server functions and microfrontends are $10 and $20 each. Storage overages are $10 per 10 GB.' },
-  { q: 'What happens to my apps if I downgrade?', a: 'Your apps remain intact but may become read-only if you exceed the free plan limits. You have 30 days to export your data or upgrade again.' },
-  { q: 'What payment methods do you accept?', a: 'We accept all major credit cards (Visa, Mastercard, Amex) and wire transfers for annual enterprise contracts.' },
-]
+const FAQ_COUNT = 6
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
@@ -103,7 +60,18 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export const PricingPage = () => {
+  const t = useTranslations('widgets.pricing')
   const [period, setPeriod] = useState<Period>('month')
+
+  const formatFareValue = (value: string | undefined) => {
+    if (!value || value === '-1') return t('unlimited')
+    if (value === '0') return '—'
+    const num = Number(value)
+    if (!isNaN(num)) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    }
+    return value
+  }
   const fareId = useAuthStore((state) => state.project?.fare_id)
 
   const { data: fareData } = useQuery({
@@ -138,7 +106,7 @@ export const PricingPage = () => {
   const groupIndexMap = new Map<string, number>()
   featureRows.forEach((featureItem) => {
     const groupKey = featureItem.group?.id || OTHER_GROUP_KEY
-    const groupName = featureItem.group?.name || 'Other'
+    const groupName = featureItem.group?.name || t('otherGroup')
     let idx = groupIndexMap.get(groupKey)
     if (idx === undefined) {
       idx = groupedFeatureRows.length
@@ -182,15 +150,15 @@ export const PricingPage = () => {
       <div className="bg-bg-card border-b border-border-subtle px-6 text-center"
         style={{ paddingTop: '80px', paddingBottom: '52px' }}>
         <span className="inline-block bg-bg-main border border-border-subtle rounded-full text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-text-muted px-3 py-1 mb-[18px]">
-          Pricing
+          {t('badge')}
         </span>
         <h1 className="font-extrabold tracking-[-0.04em] leading-[1.1] text-text-main mb-4 max-w-[700px] mx-auto"
           style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)' }}>
-          Simple, transparent{' '}
-          <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">pricing</em>
+          {t('titleLead')}{' '}
+          <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{t('titleAccent')}</em>
         </h1>
         <p className="text-[1rem] text-text-muted max-w-[500px] mx-auto leading-[1.7] mb-7">
-          Start for free and scale as you grow. Per-user pricing — pay only for what you use.
+          {t('subtitle')}
         </p>
 
         {/* Billing toggle */}
@@ -213,10 +181,10 @@ export const PricingPage = () => {
                 'relative z-10 flex items-center gap-1.5 whitespace-nowrap',
                 period === p.key ? 'text-text-main font-semibold' : 'text-text-muted',
               )}>
-                {p.label}
+                {t(p.labelKey)}
                 {p.save && (
                   <span className="rounded-full bg-green-600 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-[0.02em] text-white">
-                    {p.save}
+                    {t('save')}
                   </span>
                 )}
               </span>
@@ -237,22 +205,22 @@ export const PricingPage = () => {
               const isFree = fare ? Number(fare.price) <= 0 : plan.fareName === 'free'
 
               const displayName = fare?.name ?? plan.key.charAt(0).toUpperCase() + plan.key.slice(1)
-              const displayPrice = isEnterprise ? 'Custom' : fare ? formatPeriodPrice(Number(fare.price) || 0) : '--'
+              const displayPrice = isEnterprise ? t('custom') : fare ? formatPeriodPrice(Number(fare.price) || 0) : '--'
               const numericPrice =
                 !isEnterprise && fare
                   ? Math.round((Number(fare.price) || 0) * currentPeriod.multiplier)
                   : null
               const displayPer = isEnterprise
-                ? 'tailored to your needs'
+                ? t('perTailored')
                 : isFree
-                  ? (plan.perFreeText ?? 'forever free')
-                  : currentPeriod.per
+                  ? t('perForeverFree')
+                  : t(currentPeriod.perKey)
               const features = fare ? buildFeatures(fare) : []
               const featuresDisplay =
                 features.length > 0
                   ? features
                   : isEnterprise
-                    ? ['Custom Builders', 'Custom credit limit', 'Custom Projects']
+                    ? [t('enterpriseFeatures.builders'), t('enterpriseFeatures.credits'), t('enterpriseFeatures.projects')]
                     : []
 
               return (
@@ -267,14 +235,14 @@ export const PricingPage = () => {
                 >
                   {/* ── Card Header ── */}
                   <div className={cn('relative border-b border-border-subtle/50 p-5', plan.featured && 'bg-primary/8')}>
-                    {plan.featured && plan.badge && (
+                    {plan.featured && (
                       <div className="absolute top-3 right-3 rounded-md bg-primary px-2 py-0.5 text-[0.62rem] font-bold tracking-[0.07em] whitespace-nowrap text-white uppercase">
-                        {plan.badge}
+                        {t('mostPopular')}
                       </div>
                     )}
 
                     <div className="text-text-main pr-16 font-medium text-base">{displayName}</div>
-                    <p className="text-text-muted mt-0.5 text-[0.75rem]">{plan.desc}</p>
+                    <p className="text-text-muted mt-0.5 text-[0.75rem]">{t(`plans.${plan.key}.desc`)}</p>
 
                     <div className="mt-5 mb-1 flex items-end gap-1">
                       {numericPrice !== null ? (
@@ -318,7 +286,7 @@ export const PricingPage = () => {
                             : 'bg-hover-bg border-border-subtle text-text-muted hover:text-text-main',
                         )}
                       >
-                        {plan.cta}
+                        {t(`plans.${plan.key}.cta`)}
                       </a>
                     ) : (
                       <button
@@ -331,7 +299,7 @@ export const PricingPage = () => {
                             : 'bg-primary border-primary text-white hover:opacity-85',
                         )}
                       >
-                        {plan.cta}
+                        {t(`plans.${plan.key}.cta`)}
                       </button>
                     )}
                   </div>
@@ -345,13 +313,13 @@ export const PricingPage = () => {
             <div style={{ marginTop: '72px', overflowX: 'auto' }}>
               <h2 className="font-extrabold tracking-[-0.04em] text-text-main text-center mb-8"
                 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}>
-                Compare{' '}
-                <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">plans</em>
+                {t('compareLead')}{' '}
+                <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{t('compareAccent')}</em>
               </h2>
               <table className="w-full table-fixed border-collapse text-[0.86rem]" style={{ minWidth: '820px' }}>
                 <thead>
                   <tr className="border-b-2 border-border-subtle">
-                    <th className="w-[12%] py-3 px-3.5 text-left font-semibold text-text-muted text-[0.86rem]">Feature</th>
+                    <th className="w-[12%] py-3 px-3.5 text-left font-semibold text-text-muted text-[0.86rem]">{t('feature')}</th>
                     {fares.map((fare) => {
                       const isCurrent = fare.id === fareId
                       const isRecommended = String(fare.name || '').toLowerCase() === 'pro'
@@ -368,14 +336,14 @@ export const PricingPage = () => {
                         >
                           <div>{fare.name}{isCurrent && ' ✓'}</div>
                           <div className={`mt-0.5 text-[11px] font-normal normal-case ${isRecommended ? 'text-primary/70' : 'text-text-muted'}`}>
-                            {fare.price > 0 ? `$${fare.price}/mo` : 'Free'}
+                            {fare.price > 0 ? `$${fare.price}/mo` : t('free')}
                           </div>
                         </th>
                       )
                     })}
                     <th className="w-[22%] py-3 px-3.5 font-bold relative text-text-main">
-                      <div>Enterprise</div>
-                      <div className="mt-0.5 text-[11px] font-normal normal-case text-text-muted">Custom</div>
+                      <div>{t('enterprise')}</div>
+                      <div className="mt-0.5 text-[11px] font-normal normal-case text-text-muted">{t('custom')}</div>
                     </th>
                   </tr>
                 </thead>
@@ -416,7 +384,7 @@ export const PricingPage = () => {
                                   </td>
                                 )
                               })}
-                              <td className="py-3 px-3.5 text-center text-text-muted">Custom</td>
+                              <td className="py-3 px-3.5 text-center text-text-muted">{t('custom')}</td>
                             </tr>
                           )
                         })}
@@ -432,11 +400,11 @@ export const PricingPage = () => {
           <div style={{ marginTop: '72px', maxWidth: '680px', marginLeft: 'auto', marginRight: 'auto' }}>
             <h2 className="font-extrabold tracking-[-0.04em] text-text-main text-center mb-8"
               style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}>
-              Frequently asked{' '}
-              <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">questions</em>
+              {t('faqLead')}{' '}
+              <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{t('faqAccent')}</em>
             </h2>
-            {FAQ.map((item) => (
-              <FaqItem key={item.q} q={item.q} a={item.a} />
+            {Array.from({ length: FAQ_COUNT }).map((_, i) => (
+              <FaqItem key={i} q={t(`faq.${i}.q`)} a={t(`faq.${i}.a`)} />
             ))}
           </div>
         </div>
@@ -446,14 +414,14 @@ export const PricingPage = () => {
       <div className="bg-bg-card border-t border-b border-border-subtle py-20 px-6 text-center">
         <h2 className="font-extrabold tracking-[-0.04em] text-text-main mb-3"
           style={{ fontSize: 'clamp(1.6rem, 3vw, 2.6rem)' }}>
-          Start building for free
+          {t('ctaTitle')}
         </h2>
-        <p className="text-[0.95rem] text-text-muted mb-7">No credit card. No engineers needed. Just you and your ideas.</p>
+        <p className="text-[0.95rem] text-text-muted mb-7">{t('ctaSubtitle')}</p>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))}
           className="inline-block bg-primary text-white text-[0.95rem] font-semibold px-7 py-3 rounded-lg hover:opacity-85 transition-all cursor-pointer border-none"
         >
-          Create free account →
+          {t('ctaButton')}
         </button>
       </div>
 

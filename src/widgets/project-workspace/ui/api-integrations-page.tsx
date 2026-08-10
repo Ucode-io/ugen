@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/entities/session'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
 import { UsageIndicator } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 
 interface ApiIntegrationsPageProps {
   projectId: string
@@ -35,6 +36,7 @@ const LANGUAGES = [
 ]
 
 export const ApiIntegrationsPage = ({ projectId }: ApiIntegrationsPageProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const { data: tables = [], isLoading: isLoadingTables } = useTables()
   const { data: endpoints = [], isLoading: isLoadingEndpoints } = useQuery({
     queryKey: ['custom-endpoints-list'],
@@ -568,7 +570,7 @@ struct ApiClient {
   const handleCopy = () => {
     navigator.clipboard.writeText(activeCode)
     setIsCopied(true)
-    toast.success('Code copied to clipboard')
+    toast.success(t('codeCopied'))
     setTimeout(() => setIsCopied(false), 2000)
   }
 
@@ -592,7 +594,7 @@ struct ApiClient {
       <div className="flex flex-row gap-4 items-end">
         <div className="flex flex-col gap-1.5 w-[200px]">
           <Label className="text-[10px] font-bold text-text-muted/80 uppercase tracking-widest ml-1">
-            Integration Target
+            {t('integrationTarget')}
           </Label>
           <Select value={selectedItem} onValueChange={setSelectedItem}>
             <SelectTrigger className="h-8 bg-bg-card border-border-subtle rounded-lg text-xs">
@@ -600,13 +602,13 @@ struct ApiClient {
             </SelectTrigger>
             <SelectContent className="max-h-[300px] rounded-lg border-border-subtle shadow-xl w-[200px]">
               {(isLoadingTables || isLoadingEndpoints) ? (
-                <SelectItem value="__loading__" disabled className="text-xs">Loading...</SelectItem>
+                <SelectItem value="__loading__" disabled className="text-xs">{t('loading')}</SelectItem>
               ) : (
                 <>
                   <SelectGroup>
-                    <SelectLabel className="text-[10px]">Tables</SelectLabel>
+                    <SelectLabel className="text-[10px]">{t('tables')}</SelectLabel>
                     {tables.length === 0 ? (
-                      <SelectItem value="__empty_tables__" disabled className="text-xs">No tables found</SelectItem>
+                      <SelectItem value="__empty_tables__" disabled className="text-xs">{t('noTablesFoundShort')}</SelectItem>
                     ) : (
                       tables.map((t: any) => (
                         <SelectItem key={`table:${t.slug}`} value={`table:${t.slug}`} className="text-xs px-2">
@@ -616,9 +618,9 @@ struct ApiClient {
                     )}
                   </SelectGroup>
                   <SelectGroup>
-                    <SelectLabel className="text-[10px]">Custom Queries</SelectLabel>
+                    <SelectLabel className="text-[10px]">{t('customQueries')}</SelectLabel>
                     {endpoints.length === 0 ? (
-                      <SelectItem value="__empty_endpoints__" disabled className="text-xs">No endpoints</SelectItem>
+                      <SelectItem value="__empty_endpoints__" disabled className="text-xs">{t('noEndpoints')}</SelectItem>
                     ) : (
                       endpoints.map((e: any) => (
                         <SelectItem key={`endpoint:${e.id}`} value={`endpoint:${e.id}`} className="text-xs px-2">
@@ -635,7 +637,7 @@ struct ApiClient {
 
         <div className="flex flex-col gap-1.5 w-[160px]">
           <Label className="text-[10px] font-bold text-text-muted/80 uppercase tracking-widest ml-1">
-            Language
+            {t('language')}
           </Label>
           <Select value={activeTab} onValueChange={setActiveTab}>
             <SelectTrigger className="h-8 bg-bg-card border-border-subtle rounded-lg text-xs">
@@ -657,7 +659,7 @@ struct ApiClient {
         {/* Card header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-subtle bg-bg-sidebar/40">
           <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-            Generated SDK Code
+            {t('generatedSdkCode')}
           </span>
           <Button
             variant="ghost"

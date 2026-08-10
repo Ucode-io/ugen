@@ -37,6 +37,7 @@ import {
   formatUsd,
 } from "@/entities/billing";
 import { TopUpModal, formatAmount } from "./top-up-modal";
+import { useTranslations } from 'next-intl'
 
 /* ── Billing periods ── */
 const PERIODS = [
@@ -199,6 +200,7 @@ export const UpgradePlanDialog = ({
   open,
   onOpenChange,
 }: UpgradePlanDialogProps) => {
+  const t = useTranslations('widgets.sidebar')
   const [period, setPeriod] = useState<Period>("month");
   const [compareOpen, setCompareOpen] = useState(false);
   const [pendingFareId, setPendingFareId] = useState<string | null>(null);
@@ -278,9 +280,9 @@ export const UpgradePlanDialog = ({
       });
       queryClient.invalidateQueries({ queryKey: ["pricing-company-stats"] });
       if (isCancelDowngrade) {
-        toast.success("Downgrade canceled");
+        toast.success(t('downgradeCanceled'));
       } else {
-        toast.success("Plan updated successfully");
+        toast.success(t('planUpdated'));
         onOpenChange(false);
       }
     },
@@ -455,7 +457,7 @@ export const UpgradePlanDialog = ({
             <DialogHeader>
               <DialogTitle className="text-text-main flex items-center gap-2 text-[1.05rem]">
                 <Sparkles size={18} className="text-primary" />
-                Upgrade your plan
+                {t('upgradeYourPlan')}
               </DialogTitle>
               <DialogDescription className="text-text-muted text-[12px]">
                 Choose the plan that fits your team. Per-user pricing — pay only
@@ -503,7 +505,7 @@ export const UpgradePlanDialog = ({
               {/* Current balance -- USD first, UZS as the secondary value */}
               <div className="border-border-subtle bg-bg-card text-text-muted inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px]">
                 <Wallet size={14} className="text-primary" />
-                <span className="font-medium">Balance</span>
+                <span className="font-medium">{t('balance')}</span>
                 {balanceUsd != null ? (
                   <>
                     <span className="text-text-main font-semibold whitespace-nowrap">
@@ -582,7 +584,7 @@ export const UpgradePlanDialog = ({
                 }}
                 className="shrink-0 rounded-lg bg-yellow-600 px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-85"
               >
-                Top up to restore
+                {t('topUpToRestore')}
               </button>
             </div>
           )}
@@ -709,7 +711,7 @@ export const UpgradePlanDialog = ({
                             exit={{ opacity: 0, scale: 0.8 }}
                             initial={{ opacity: 0, scale: 0.8 }}
                           >
-                            Temporary
+                            {t('temporary')}
                           </motion.div>
                         ) : isRestorePlan ? (
                           <motion.div
@@ -720,7 +722,7 @@ export const UpgradePlanDialog = ({
                             initial={{ opacity: 0, scale: 0.8 }}
                           >
                             <RotateCcw size={9} />
-                            Restore
+                            {t('restore')}
                           </motion.div>
                         ) : isCurrent ? (
                           <motion.div
@@ -730,7 +732,7 @@ export const UpgradePlanDialog = ({
                             exit={{ opacity: 0, scale: 0.8 }}
                             initial={{ opacity: 0, scale: 0.8 }}
                           >
-                            Current
+                            {t('current')}
                           </motion.div>
                         ) : isScheduled ? (
                           <motion.div
@@ -740,7 +742,7 @@ export const UpgradePlanDialog = ({
                             exit={{ opacity: 0, scale: 0.8 }}
                             initial={{ opacity: 0, scale: 0.8 }}
                           >
-                            Scheduled
+                            {t('scheduled')}
                           </motion.div>
                         ) : plan.featured && plan.badge ? (
                           <motion.div
@@ -901,7 +903,7 @@ export const UpgradePlanDialog = ({
                     <thead>
                       <tr className="border-border-subtle border-b-2">
                         <th className="text-text-muted w-[16%] px-3 py-2.5 text-left text-[0.8rem] font-semibold">
-                          Feature
+                          {t('feature')}
                         </th>
                         {fares.map((fare) => {
                           const isCurrent = fare.id === fareId;
@@ -933,9 +935,9 @@ export const UpgradePlanDialog = ({
                           );
                         })}
                         <th className="text-text-main relative w-[21%] px-3 py-2.5 font-bold">
-                          <div>Enterprise</div>
+                          <div>{t('enterprise')}</div>
                           <div className="text-text-muted mt-0.5 text-[11px] font-normal normal-case">
-                            Custom
+                            {t('custom')}
                           </div>
                         </th>
                       </tr>
@@ -991,7 +993,7 @@ export const UpgradePlanDialog = ({
                                     );
                                   })}
                                   <td className="text-text-muted px-3 py-2.5 text-center">
-                                    Custom
+                                    {t('custom')}
                                   </td>
                                 </tr>
                               );

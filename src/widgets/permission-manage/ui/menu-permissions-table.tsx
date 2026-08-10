@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { DataLoadingState } from '@/shared/ui'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 type PermField = 'read' | 'write' | 'update' | 'delete'
 const PERM_FIELDS: PermField[] = ['read', 'write', 'update', 'delete']
@@ -100,6 +101,7 @@ export const MenuPermissionsTable = ({
   existingPermissions,
   isLoading
 }: MenuPermissionsTableProps) => {
+  const t = useTranslations('widgets.permissionManage')
   const queryClient = useQueryClient()
   const [isScrolled, setIsScrolled] = useState(false)
 
@@ -294,7 +296,7 @@ export const MenuPermissionsTable = ({
       } catch (error) {
         // Roll back the optimistic change.
         commitRows((prev) => prev.map((r) => (r.uid === uid ? { ...r, [field]: prevValue } : r)))
-        toast.error('Failed to update menu permission')
+        toast.error(t('menuUpdateFailed'))
         console.error('Menu permission update error:', error)
       } finally {
         markPending(current.nav_path, false)
@@ -308,7 +310,7 @@ export const MenuPermissionsTable = ({
     <div className="w-full relative flex flex-col space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex items-center gap-2">
         <ShieldCheck className="w-5 h-5 text-primary" />
-        <span className="text-sm font-bold text-text-main uppercase tracking-tight">Menu Permissions</span>
+        <span className="text-sm font-bold text-text-main uppercase tracking-tight">{t('menuPermissions')}</span>
       </div>
 
       <WorkspaceTableWrapper className="border border-border-subtle/50 shadow-sm overflow-hidden rounded-[10px] max-w-[1100px]">
@@ -323,11 +325,11 @@ export const MenuPermissionsTable = ({
                     isScrolled && 'border-r-2'
                   )}
                 >
-                  <span className="text-[12px] tracking-tight font-medium uppercase text-text-muted">Menu</span>
+                  <span className="text-[12px] tracking-tight font-medium uppercase text-text-muted">{t('menu')}</span>
                 </WorkspaceTableHead>
                 <WorkspaceTableHead colSpan={4} className="text-center border border-border-subtle border-t-0 bg-bg-card">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60">
-                    Access Permissions
+                    {t('accessPermissions')}
                   </span>
                 </WorkspaceTableHead>
               </WorkspaceTableRow>
@@ -383,7 +385,7 @@ export const MenuPermissionsTable = ({
               {rows.length === 0 && (
                 <WorkspaceTableRow>
                   <WorkspaceTableCell colSpan={5} className="py-10 text-center text-text-muted text-[13px]">
-                    No menu pages found.
+                    {t('noMenuPages')}
                   </WorkspaceTableCell>
                 </WorkspaceTableRow>
               )}

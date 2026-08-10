@@ -186,12 +186,12 @@ const LogAccordionItem = ({ item, isExpanded, onToggle, type }: any) => {
                   <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{t('logs.details.time')}</p>
                   <div className="text-[12.5px] leading-relaxed">
                     <div className="flex items-center gap-2">
-                      <span className="w-16 text-text-muted">Started:</span>
+                      <span className="w-16 text-text-muted">{t('started')}</span>
                       <span className="text-text-main font-medium">{new Date(item.date || item.started_at).toLocaleString()}</span>
                     </div>
                     {(item.completed_at || (item.date && item.duration)) && (
                       <div className="flex items-center gap-2">
-                        <span className="w-16 text-text-muted">Finished:</span>
+                        <span className="w-16 text-text-muted">{t('finished')}</span>
                         <span className="text-text-main font-medium">
                           {item.completed_at ? new Date(item.completed_at).toLocaleString() : new Date(new Date(item.date).getTime() + (item.duration || 0)).toLocaleString()}
                         </span>
@@ -246,7 +246,8 @@ const LogAccordionItem = ({ item, isExpanded, onToggle, type }: any) => {
   )
 }
 
-const TablePaginationFooter = ({ page, setPage, limit, setLimit, totalCount, t }: any) => {
+const TablePaginationFooter = ({ page, setPage, limit, setLimit, totalCount }: any) => {
+  const t = useTranslations('widgets.databaseStudio')
   const totalPages = Math.ceil(totalCount / limit)
   if (totalCount === 0) return null
 
@@ -291,7 +292,7 @@ const TablePaginationFooter = ({ page, setPage, limit, setLimit, totalCount, t }
     <div className="flex flex-col sm:flex-row items-center justify-between gap-y-4 sm:gap-x-6 px-4 py-3 border-t border-border-subtle bg-bg-card/40 backdrop-blur-md shrink-0">
       <div className="flex flex-col sm:flex-row items-center gap-y-3 sm:gap-x-6 w-full sm:w-auto">
         <div className="flex items-center gap-x-2 w-full sm:w-auto justify-center sm:justify-start">
-          <p className="text-[13px] font-medium text-text-muted whitespace-nowrap">Rows per page</p>
+          <p className="text-[13px] font-medium text-text-muted whitespace-nowrap">{t('rowsPerPage')}</p>
           <Select value={limit.toString()} onValueChange={(value) => setLimit(Number(value))}>
             <SelectTrigger className="h-8 w-[70px] bg-bg-card border-border-subtle">
               <SelectValue placeholder={limit.toString()} />
@@ -467,8 +468,8 @@ export const LogsView = () => {
     <div className="flex flex-col gap-4 w-full h-full animate-in fade-in duration-500 min-h-0">
       <div className="flex items-center justify-between mb-2 shrink-0">
         <div>
-          <h1 className="text-[22px] font-bold text-text-main mb-1">Logs</h1>
-          <p className="text-text-muted text-[13px]">Monitor system activity and serverless function executions.</p>
+          <h1 className="text-[22px] font-bold text-text-main mb-1">{t('logsTitle')}</h1>
+          <p className="text-text-muted text-[13px]">{t('logsSubtitle')}</p>
         </div>
 
       </div>
@@ -476,20 +477,20 @@ export const LogsView = () => {
       <div className="ai-card overflow-hidden flex flex-col flex-1 min-h-[400px]">
         <div className="flex flex-wrap gap-3 p-4 border-b border-border-subtle bg-bg-card/30 items-end shrink-0">
           <div className="space-y-1.5 w-[180px] flex-none">
-            <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Log Type</label>
+            <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('logType')}</label>
             <Select value={logType} onValueChange={(v) => handleLogTypeChange(v as 'activity' | 'function')}>
               <SelectTrigger className="bg-bg-card border-border-subtle h-9 text-[13px] rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-bg-card border-border-subtle">
-                <SelectItem value="activity">Activity Logs</SelectItem>
-                <SelectItem value="function">Function Logs</SelectItem>
+                <SelectItem value="activity">{t('activityLogs')}</SelectItem>
+                <SelectItem value="function">{t('functionLogs')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1.5 w-[240px] flex-none">
-            <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Action</label>
+            <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('action')}</label>
             <Select
               value={logType === 'activity' ? activityAction : functionAction}
               onValueChange={handleActionChange}
@@ -517,7 +518,7 @@ export const LogsView = () => {
           {source === 'activity' && (
             <>
               <div className="space-y-1.5 flex-none">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Time Range</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('timeRange')}</label>
                 <DatePickerWithRange
                   date={dateRange}
                   setDate={(range) => {
@@ -527,7 +528,7 @@ export const LogsView = () => {
                 />
               </div>
               <div className="space-y-1.5 flex-1 min-w-[200px]">
-                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Collection</label>
+                <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('collection')}</label>
                 <div className="relative group">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-primary transition-colors" />
                   <input
@@ -546,7 +547,7 @@ export const LogsView = () => {
 
           {source === 'function' && (
             <div className="space-y-1.5 w-[140px] flex-none">
-              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Status</label>
+              <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">{t('statusLabel')}</label>
               <Select
                 value={status || 'all'}
                 onValueChange={(val) => {
@@ -599,7 +600,6 @@ export const LogsView = () => {
           limit={limit}
           setLimit={setLimit}
           totalCount={totalCount}
-          t={t}
         />
       </div>
     </div>

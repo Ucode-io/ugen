@@ -6,8 +6,10 @@ import { useShallow } from 'zustand/react/shallow'
 import { SUPER_ADMIN_USER_ID } from '@/shared/config'
 import { ArrowLeft } from 'lucide-react'
 import { cn } from '@/shared/lib/utils/cn'
+import { useTranslations } from 'next-intl'
 
 export const SuperAdminReturnButton = ({ className }: { className?: string }) => {
+  const t = useTranslations('widgets.sidebar')
   const { user, project, superAdminOrigin, endSuperAdminImpersonation } = useAuthStore(
     useShallow((s) => ({
       user: s.user,
@@ -32,7 +34,7 @@ export const SuperAdminReturnButton = ({ className }: { className?: string }) =>
   return (
     <button
       onClick={handleReturn}
-      title="Return to super admin"
+      title={t('returnSuperAdmin')}
       className={cn(
         'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
         className,
@@ -40,7 +42,7 @@ export const SuperAdminReturnButton = ({ className }: { className?: string }) =>
     >
       <ArrowLeft size={16} strokeWidth={2.5} className="shrink-0" />
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold leading-tight">Return to super admin</span>
+        <span className="block text-sm font-semibold leading-tight">{t('returnSuperAdmin')}</span>
         {project?.title && (
           <span className="text-primary/70 block truncate text-[11px] leading-tight">
             Viewing: {project.title}

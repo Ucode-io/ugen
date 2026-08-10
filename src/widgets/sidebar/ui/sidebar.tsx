@@ -94,7 +94,7 @@ export const Sidebar = ({ className, hideLogo, isHidden, onProfilePopupChange, o
               <Link href="/" className="flex shrink-0 items-center">
                 <Image
                   src="/logo.svg"
-                  alt="Logo"
+                  alt={t('logo')}
                   width={80}
                   height={24}
                   className="h-5 w-auto"

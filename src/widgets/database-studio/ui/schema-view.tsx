@@ -24,6 +24,7 @@ import { Skeleton } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils/cn";
 import { useAuthStore } from "@/entities/session";
 import { toast } from "sonner";
+import { useTranslations } from 'next-intl'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Protected fields — cannot be deleted
@@ -148,6 +149,7 @@ const DeleteConfirmDialog = ({
   onConfirm,
   onCancel,
 }: DeleteConfirmDialogProps) => {
+  const t = useTranslations('widgets.databaseStudio')
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
@@ -172,7 +174,7 @@ const DeleteConfirmDialog = ({
           </div>
           <div className="pt-0.5">
             <h3 className="text-text-main text-[15px] leading-tight font-semibold">
-              Delete field
+              {t('deleteFieldTitle')}
             </h3>
             <p className="text-text-muted mt-1.5 text-[13px] leading-relaxed">
               Are you sure you want to delete{" "}
@@ -188,7 +190,7 @@ const DeleteConfirmDialog = ({
             onClick={onCancel}
             className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
           >
-            Cancel
+            {t('cancelBtn')}
           </button>
           <button
             onClick={onConfirm}
@@ -267,6 +269,7 @@ const FieldForm = ({
   onSubmit,
   submitLabel,
 }: FieldFormProps) => {
+  const t = useTranslations('widgets.databaseStudio')
   const [label, setLabel] = useState(initial?.label ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(!!initial);
@@ -284,15 +287,15 @@ const FieldForm = ({
 
   const handleSubmit = () => {
     if (!label.trim()) {
-      toast.error("Label is required");
+      toast.error(t('labelRequired'));
       return;
     }
     if (!slug.trim()) {
-      toast.error("Slug is required");
+      toast.error(t('slugRequired'));
       return;
     }
     if (type === "relation" && !relationTable) {
-      toast.error("Please select a related table");
+      toast.error(t('selectRelatedTable'));
       return;
     }
     onSubmit({
@@ -324,7 +327,7 @@ const FieldForm = ({
         autoFocus
         type="text"
         disabled={!!initial}
-        placeholder="Label (e.g. Phone Number)"
+        placeholder={t('labelPlaceholder')}
         value={label}
         onChange={(e) => handleLabelChange(e.target.value)}
         className={cn(
@@ -407,7 +410,7 @@ const FieldForm = ({
             <button
               type="button"
               onClick={() => setRelationTable("")}
-              title="Clear relation"
+              title={t('clearRelation')}
               className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded border transition-colors"
             >
               <X size={12} />
@@ -424,7 +427,7 @@ const FieldForm = ({
           onChange={(e) => setRequired(e.target.checked)}
           className="accent-primary"
         />
-        Required
+        {t('requiredLabel')}
       </label>
 
       {/* Actions */}
@@ -475,6 +478,7 @@ const FieldRow = ({
   onUpdate,
   onDelete,
 }: FieldRowProps) => {
+  const t = useTranslations('widgets.databaseStudio')
   const constraints = col.constraints ?? [];
   const hasDefault =
     col.default !== null && col.default !== undefined && col.default !== "";
@@ -511,7 +515,7 @@ const FieldRow = ({
           {col.name}
         </span>
         {isProtected && (
-          <span title="System field — cannot be deleted">
+          <span title={t('systemFieldHint')}>
             <ShieldOff size={10} className="text-text-muted/40 shrink-0" />
           </span>
         )}
@@ -544,7 +548,7 @@ const FieldRow = ({
             (c) =>
               c.label.toUpperCase().includes("NOT NULL") ||
               c.label.toUpperCase() === "NN",
-          ) && <ConstraintBadge label="NOT NULL" />}
+          ) && <ConstraintBadge label={t('notNull')} />}
         {hasDefault && (
           <ConstraintBadge
             label={`DEFAULT ${col.default}`}
@@ -558,7 +562,7 @@ const FieldRow = ({
         <button
           onClick={onEdit}
           className="border-border-subtle bg-bg-main text-text-muted hover:text-text-main hover:bg-hover-bg flex h-7 w-7 items-center justify-center rounded border transition-colors"
-          title="Edit field"
+          title={t('editField')}
         >
           <Pencil size={11} />
         </button>
@@ -566,7 +570,7 @@ const FieldRow = ({
         {isProtected ? (
           <button
             disabled
-            title="System field — cannot be deleted"
+            title={t('systemFieldHint')}
             className="border-border-subtle/40 bg-bg-main text-text-muted/30 flex h-7 w-7 cursor-not-allowed items-center justify-center rounded border"
           >
             <Trash2 size={11} />
@@ -575,7 +579,7 @@ const FieldRow = ({
           <button
             onClick={onDelete}
             className="border-border-subtle bg-bg-main text-text-muted hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 flex h-7 w-7 items-center justify-center rounded border transition-colors"
-            title="Delete field"
+            title={t('deleteFieldTitle')}
           >
             <Trash2 size={11} />
           </button>
@@ -598,6 +602,7 @@ export const SchemaView = ({
   isAddingField,
   setIsAddingField,
 }: SchemaViewProps) => {
+  const t = useTranslations('widgets.databaseStudio')
   const { selectedTable } = useDatabaseStore();
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId);
 
@@ -669,7 +674,7 @@ export const SchemaView = ({
       if (payload.type === "relation") {
         const tableTo = payload.attributes?.relation_table;
         if (typeof tableTo !== "string" || !tableTo) {
-          toast.error("Please select a related table");
+          toast.error(t('selectRelatedTable'));
           return;
         }
         await addRelationMutation.mutateAsync({
@@ -693,7 +698,7 @@ export const SchemaView = ({
       toast.success(`Field "${payload.label}" added`);
       setIsAddingField(false);
     } catch {
-      toast.error("Failed to add field");
+      toast.error(t('addFieldFailed'));
     }
   };
 
@@ -708,7 +713,7 @@ export const SchemaView = ({
       toast.success(`Field "${payload.label}" updated`);
       setEditingName(null);
     } catch {
-      toast.error("Failed to update field");
+      toast.error(t('updateFieldFailed'));
     }
   };
 
@@ -723,7 +728,7 @@ export const SchemaView = ({
       toast.success(`Field "${deleteTarget.name}" deleted`);
       setDeleteTarget(null);
     } catch {
-      toast.error("Failed to delete field");
+      toast.error(t('deleteFieldFailed'));
     }
   };
 
@@ -733,7 +738,7 @@ export const SchemaView = ({
       return;
     }
     if (!col.id) {
-      toast.error("Cannot delete: field has no ID");
+      toast.error(t('fieldNoId'));
       return;
     }
     setDeleteTarget({ id: col.id, name: col.name });
@@ -742,7 +747,7 @@ export const SchemaView = ({
   if (!selectedTable) {
     return (
       <div className="text-text-muted flex flex-1 items-center justify-center text-sm">
-        Select a table to view its schema
+        {t('selectTableSchema')}
       </div>
     );
   }
@@ -753,7 +758,7 @@ export const SchemaView = ({
         {/* ── Fields list ── */}
         <div className="flex-1 overflow-y-auto">
           <div className="text-text-muted/50 bg-bg-card border-border-subtle sticky top-0 z-10 border-b px-4 py-[10px] text-[10px] font-semibold tracking-[0.6px] uppercase">
-            Columns
+            {t('columnsLabel')}
           </div>
 
           {/* Add field form */}
@@ -789,7 +794,7 @@ export const SchemaView = ({
             </>
           ) : columns.length === 0 ? (
             <div className="text-text-muted/50 px-4 py-10 text-center text-sm">
-              No columns found for this table.
+              {t('noColumnsFound')}
             </div>
           ) : (
             columns.map((col, i) => (

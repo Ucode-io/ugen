@@ -27,6 +27,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/ui/tabs"
 import { useClientTypes, useRoles, useBuilderRoles, useCreateUser, useCreateBuilder, useUpdateUser } from "../api/users"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuthStore } from "@/entities/session"
+import { useTranslations } from 'next-intl'
 
 const getInviteSchema = (isEdit: boolean, changePassword: boolean, isBuilder: boolean = false) => z.object({
   clientType: isBuilder ? z.string().optional() : z.string().min(1, "Required"),
@@ -91,6 +92,7 @@ export const InviteUserModal = ({
   initialData,
   isBuilder = false,
 }: InviteUserModalProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const isEdit = !!initialData
   // The builder flow authenticates as the platform user, so it must use the
   // auth project_id from the session store (not the selected ucode project).
@@ -421,10 +423,10 @@ export const InviteUserModal = ({
                 )}
 
                 <TabsList className="flex flex-1 h-8 p-1 rounded-lg bg-bg-sidebar">
-                  <TabsTrigger value="login" className="flex-1 h-6 text-[11px] px-1">Login</TabsTrigger>
-                  <TabsTrigger value="phone" className="flex-1 h-6 text-[11px] px-1">Phone</TabsTrigger>
-                  <TabsTrigger value="email" className="flex-1 h-6 text-[11px] px-1">Email</TabsTrigger>
-                  {!isEdit && !isBuilder && <TabsTrigger value="link" className="flex-1 h-6 text-[11px] px-1">Link</TabsTrigger>}
+                  <TabsTrigger value="login" className="flex-1 h-6 text-[11px] px-1">{t('login')}</TabsTrigger>
+                  <TabsTrigger value="phone" className="flex-1 h-6 text-[11px] px-1">{t('phone')}</TabsTrigger>
+                  <TabsTrigger value="email" className="flex-1 h-6 text-[11px] px-1">{t('email')}</TabsTrigger>
+                  {!isEdit && !isBuilder && <TabsTrigger value="link" className="flex-1 h-6 text-[11px] px-1">{t('link')}</TabsTrigger>}
                 </TabsList>
               </div>
 
@@ -433,7 +435,7 @@ export const InviteUserModal = ({
                   <Input
                     {...register("login")}
                     type="text"
-                    placeholder="Login"
+                    placeholder={t('login')}
                     className="bg-bg-sidebar"
                   />
                   {errors.login && <p className="text-xs text-destructive">{errors.login.message}</p>}
@@ -446,7 +448,7 @@ export const InviteUserModal = ({
                       onClick={() => setChangePassword(!changePassword)}
                       className="text-[12px] font-semibold text-primary hover:underline hover:text-primary-hover"
                     >
-                      Change Password
+                      {t('changePassword')}
                     </button>
                   </div>
                 )}
@@ -471,7 +473,7 @@ export const InviteUserModal = ({
                     control={control}
                     render={({ field }) => (
                       <PhoneInputReusable
-                        placeholder="Phone"
+                        placeholder={t('phone')}
                         value={field.value || ""}
                         onChange={field.onChange}
                         error={!!errors.phone}
@@ -487,7 +489,7 @@ export const InviteUserModal = ({
                   <Input
                     {...register("email")}
                     type="email"
-                    placeholder="Email"
+                    placeholder={t('email')}
                     className="bg-bg-sidebar"
                   />
                   {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
@@ -498,7 +500,7 @@ export const InviteUserModal = ({
                 <TabsContent value="link" className="space-y-4 outline-none pb-1">
                   <div className="p-3 rounded-lg bg-bg-sidebar border border-border-subtle space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-semibold text-text-muted uppercase">Invite Link</span>
+                      <span className="text-[12px] font-semibold text-text-muted uppercase">{t('inviteLink')}</span>
                       <button
                         type="button"
                         onClick={copyToClipboard}
@@ -507,12 +509,12 @@ export const InviteUserModal = ({
                         {isCopied ? (
                           <>
                             <Check size={14} />
-                            Copied!
+                            {t('copied')}
                           </>
                         ) : (
                           <>
                             <Copy size={14} />
-                            Copy link
+                            {t('copyLink')}
                           </>
                         )}
                       </button>
@@ -528,7 +530,7 @@ export const InviteUserModal = ({
 
           <div className="p-4 pt-2 bg-bg-sidebar/40 flex justify-end gap-3">
             <Button variant="ghost" type="button" onClick={() => onOpenChange(false)} disabled={isLoading}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={isLoading} className="w-[120px]">
               {activeTab === 'link' && !isEdit && !isBuilder

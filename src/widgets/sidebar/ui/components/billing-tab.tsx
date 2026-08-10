@@ -38,6 +38,7 @@ import {
 } from "@/entities/billing";
 import { UpgradePlanDialog } from "./upgrade-plan-dialog";
 import { TopUpModal, formatAmount, pickErrorMessage } from "./top-up-modal";
+import { useTranslations } from 'next-intl'
 
 const formatTransactionDate = (value?: string) => {
   if (!value) return "—";
@@ -189,6 +190,7 @@ const InvoiceSummaryCard = ({
   onTopUp: () => void;
   onUpgrade: () => void;
 }) => {
+  const t = useTranslations('widgets.sidebar')
   const meta = [
     {
       icon: Sparkles,
@@ -223,7 +225,7 @@ const InvoiceSummaryCard = ({
           <div className="bg-primary/10 absolute -top-10 -right-10 h-28 w-28 rounded-full blur-2xl" />
           <div className="relative flex items-center justify-between gap-3">
             <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
-              Current balance
+              {t('currentBalance')}
             </p>
             <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-lg">
               <Wallet size={15} />
@@ -246,7 +248,7 @@ const InvoiceSummaryCard = ({
             </p>
           )}
           <p className="text-text-muted relative mt-2 text-[11px]">
-            Funds available for project usage and upcoming charges.
+            {t('fundsAvailable')}
           </p>
 
           <Button
@@ -254,7 +256,7 @@ const InvoiceSummaryCard = ({
             className="relative mt-4 h-9 w-full rounded-lg px-4 text-[13px] font-semibold text-white shadow-sm"
           >
             <Plus size={15} />
-            Top up balance
+            {t('topUpBalance')}
           </Button>
         </div>
 
@@ -263,10 +265,10 @@ const InvoiceSummaryCard = ({
           <div className="mb-2 flex items-start justify-between gap-2">
             <div>
               <h3 className="text-text-main text-[15px] font-semibold">
-                Invoice overview
+                {t('invoiceOverview')}
               </h3>
               <p className="text-text-muted mt-1 text-[12px]">
-                Plan details and next billing period.
+                {t('planDetails')}
               </p>
             </div>
             <button
@@ -275,7 +277,7 @@ const InvoiceSummaryCard = ({
               className="bg-primary hover:bg-primary/90 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold text-white shadow-sm transition-colors"
             >
               <ArrowUpRight size={14} />
-              Upgrade
+              {t('upgrade')}
             </button>
           </div>
 
@@ -321,6 +323,7 @@ const ExtraUsageCard = ({
   projectId: string | null;
   onTopUp: () => void;
 }) => {
+  const t = useTranslations('widgets.sidebar')
   const {
     data: packs = [],
     isLoading: packsLoading,
@@ -393,10 +396,10 @@ const ExtraUsageCard = ({
           </div>
           <div className="min-w-0">
             <h3 className="text-text-main text-[13px] leading-tight font-semibold">
-              Extra usage
+              {t('extraUsage')}
             </h3>
             <p className="text-text-muted mt-0.5 truncate text-[11px]">
-              Company token pack balance and AI plan usage.
+              {t('companyTokenPack')}
             </p>
           </div>
         </div>
@@ -421,7 +424,7 @@ const ExtraUsageCard = ({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-text-muted text-[11px] font-semibold tracking-wider uppercase">
-                Pack balance
+                {t('packBalance')}
               </p>
               {balanceLoading || statsLoading ? (
                 <Skeleton className="mt-2 h-8 w-36" />
@@ -452,12 +455,12 @@ const ExtraUsageCard = ({
 
           <div className="mt-4 space-y-3">
             <PlanTokenMeter
-              label="Daily plan"
+              label={t('dailyPlan')}
               period={daily}
               isLoading={statsLoading}
             />
             <PlanTokenMeter
-              label="Monthly plan"
+              label={t('monthlyPlan')}
               period={monthly}
               isLoading={statsLoading}
             />
@@ -483,10 +486,10 @@ const ExtraUsageCard = ({
           <div className="mb-2 flex items-center justify-between gap-2">
             <div>
               <h4 className="text-text-main text-[13px] font-semibold">
-                Token packs
+                {t('tokenPacks')}
               </h4>
               <p className="text-text-muted mt-0.5 text-[11px]">
-                Purchase from the current project balance.
+                {t('purchaseFromBalance')}
               </p>
             </div>
           </div>
@@ -501,21 +504,21 @@ const ExtraUsageCard = ({
             <div className="border-border-subtle bg-bg-sidebar/50 flex min-h-[126px] flex-col items-center justify-center rounded-xl border px-4 text-center">
               <AlertTriangle size={18} className="text-text-muted/70" />
               <p className="text-text-main mt-2 text-[13px] font-semibold">
-                Token packs unavailable
+                {t('tokenPacksUnavailable')}
               </p>
               <button
                 type="button"
                 onClick={() => refetchPacks()}
                 className="text-primary mt-1 text-[12px] font-semibold hover:underline"
               >
-                Retry
+                {t('retry')}
               </button>
             </div>
           ) : packs.length === 0 ? (
             <div className="border-border-subtle bg-bg-sidebar/50 flex min-h-[126px] flex-col items-center justify-center rounded-xl border px-4 text-center">
               <Package size={18} className="text-text-muted/70" />
               <p className="text-text-main mt-2 text-[13px] font-semibold">
-                No token packs available
+                {t('noTokenPacks')}
               </p>
             </div>
           ) : (
@@ -630,6 +633,7 @@ const TransactionsTable = ({
   transactions: BillingTransaction[];
   isLoading: boolean;
 }) => {
+  const t = useTranslations('widgets.sidebar')
   const list = transactions ?? [];
   const { data: usdRate } = useUsdRate();
 
@@ -642,7 +646,7 @@ const TransactionsTable = ({
           </div>
           <div>
             <h3 className="text-text-main text-[13px] leading-tight font-semibold">
-              Transactions
+              {t('transactions')}
             </h3>
           </div>
         </div>
@@ -654,10 +658,10 @@ const TransactionsTable = ({
       </div>
       <div className="overflow-x-auto">
         <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid min-w-[680px] shrink-0 grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-3 border-b px-5 py-3 text-[11px] font-semibold tracking-wider uppercase">
-          <span>Amount</span>
-          <span>Type</span>
-          <span>Date</span>
-          <span>Status</span>
+          <span>{t('amount')}</span>
+          <span>{t('type')}</span>
+          <span>{t('date')}</span>
+          <span>{t('status')}</span>
           <span />
         </div>
 
@@ -673,10 +677,10 @@ const TransactionsTable = ({
               <Inbox size={18} className="text-text-muted/70" />
             </div>
             <p className="text-text-main text-sm font-semibold">
-              No transactions found
+              {t('noTransactions')}
             </p>
             <p className="text-text-muted mt-1 text-xs">
-              Your billing activity will appear here.
+              {t('billingActivityHint')}
             </p>
           </div>
         ) : (

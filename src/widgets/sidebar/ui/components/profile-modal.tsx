@@ -389,8 +389,8 @@ const PersonalInformationCard = ({
 }) => (
   <Section
     icon={UserCog}
-    title="Personal information"
-    description="Profile details visible across your workspace."
+    title={t('personalInformation')}
+    description={t('profileDetailsHint')}
     action={
       <button
         type="button"
@@ -490,7 +490,7 @@ const SessionsCard = ({
   <Section
     icon={Activity}
     title={t("loginSessions")}
-    description="Devices and browsers currently signed in."
+    description={t('devicesHint')}
     action={
       sessions.length > 0 ? (
         <span className="border-border-subtle text-text-muted rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
@@ -515,7 +515,7 @@ const SessionsCard = ({
           {t("noSessions")}
         </p>
         <p className="text-text-muted mt-1 text-[11px]">
-          New sign-ins will appear here after verification.
+          {t('newSignIns')}
         </p>
       </div>
     ) : (
@@ -552,7 +552,7 @@ const SessionsCard = ({
                 disabled={deletingId === session.id}
                 onClick={() => onDelete(session.id)}
                 className="text-text-muted hover:text-destructive hover:bg-destructive/10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50"
-                title="Remove session"
+                title={t('removeSession')}
               >
                 {deletingId === session.id ? (
                   <Loader2 size={14} className="animate-spin" />

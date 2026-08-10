@@ -7,6 +7,7 @@ import { useRouter } from '@/shared/lib/i18n/navigation'
 import { api } from '@/shared/api'
 import { ChevronLeft } from 'lucide-react'
 import { useGuardedAction } from '@/widgets/project-workspace/lib/save-flow'
+import { useTranslations } from 'next-intl'
 
 function TokenBar({ label, item, color }: { label: string; item: any; color: string }) {
   const current = item?.current || 0
@@ -43,6 +44,7 @@ export const LogoPopover = ({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) => {
+  const t = useTranslations('widgets.workspaceChat')
   const router = useRouter()
   const project = useAuthStore((state) => state.project)
   const workspaceName = project?.title || 'Workspace'
@@ -94,7 +96,7 @@ export const LogoPopover = ({
         <div className="px-4 py-4 flex flex-col gap-4">
           <div className="bg-bg-sidebar border border-border-subtle rounded-xl p-4 flex flex-col gap-4">
             <TokenBar
-              label="Daily tokens"
+              label={t('dailyTokens')}
               item={dailyTokens}
               color="bg-pink-500"
             />
@@ -102,7 +104,7 @@ export const LogoPopover = ({
             <div className="h-px bg-border-subtle" />
 
             <TokenBar
-              label="Monthly tokens"
+              label={t('monthlyTokens')}
               item={monthlyTokens}
               color="bg-orange-500"
             />
@@ -110,7 +112,7 @@ export const LogoPopover = ({
 
           {/* Upgrade */}
           <button className="text-primary text-sm font-semibold text-left hover:text-primary/80 transition-colors">
-            Upgrade your plan
+            {t('upgradeYourPlan')}
           </button>
         </div>
       </PopoverContent>

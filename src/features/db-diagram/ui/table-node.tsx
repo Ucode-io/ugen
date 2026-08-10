@@ -11,6 +11,7 @@ import {
   shortenType,
   typePillClass,
 } from "../lib/constants";
+import { useTranslations } from 'next-intl'
 
 interface Props {
   label: string;
@@ -43,6 +44,7 @@ export const TableNode: React.FC<Props> = ({
   onColumnLeave,
   onTableClick,
 }) => {
+  const t = useTranslations('features.dbDiagram')
   return (
     <div
       data-slug={slug}
@@ -149,7 +151,7 @@ export const TableNode: React.FC<Props> = ({
               {isNotNull && (
                 <span
                   className="shrink-0 rounded border border-rose-500/20 bg-rose-500/10 px-1 py-px text-[9px] font-bold tracking-wide text-rose-500 dark:text-rose-400"
-                  title="NOT NULL"
+                  title={t('notNull')}
                 >
                   NN
                 </span>
@@ -157,7 +159,7 @@ export const TableNode: React.FC<Props> = ({
               {isUnique && !isPK && (
                 <span
                   className="shrink-0 rounded border border-purple-500/20 bg-purple-500/10 px-1 py-px text-[9px] font-bold tracking-wide text-purple-500 dark:text-purple-400"
-                  title="UNIQUE"
+                  title={t('unique')}
                 >
                   UQ
                 </span>

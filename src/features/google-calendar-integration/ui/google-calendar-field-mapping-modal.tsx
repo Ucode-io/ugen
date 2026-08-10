@@ -41,6 +41,7 @@ import {
   type GoogleCalendarEventField,
   type GoogleCalendarFieldBinding,
 } from "../api";
+import { useTranslations } from 'next-intl'
 
 interface CalendarFieldDef {
   key: GoogleCalendarEventField;
@@ -129,6 +130,7 @@ export const GoogleCalendarFieldMappingModal = ({
   open,
   onOpenChange,
 }: GoogleCalendarFieldMappingModalProps) => {
+  const t = useTranslations('features.googleCalendar')
   const projectId = useAuthStore((s) => s.ucodeProjectId) || "";
   const queryClient = useQueryClient();
 
@@ -246,10 +248,10 @@ export const GoogleCalendarFieldMappingModal = ({
       queryClient.invalidateQueries({
         queryKey: ["google-calendar-mapping", projectId],
       });
-      toast.success("Field mapping saved");
+      toast.success(t('mappingSaved'));
       onOpenChange(false);
     } catch {
-      toast.error("Failed to save field mapping");
+      toast.error(t('mappingFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -295,7 +297,7 @@ export const GoogleCalendarFieldMappingModal = ({
         {isLinked ? (
           <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-green-600 dark:text-green-400">
             <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-            Linked
+            {t('linked')}
           </span>
         ) : count > 0 ? (
           <span className="ml-auto shrink-0 rounded-full bg-green-500/15 px-1.5 text-[10px] font-semibold text-green-500">
@@ -314,7 +316,7 @@ export const GoogleCalendarFieldMappingModal = ({
           <DialogHeader className="border-border-subtle space-y-1 border-b px-5 py-4 text-left">
             <DialogTitle className="flex items-center gap-2">
               <CalendarDays size={18} className="text-[#4285f4]" />
-              Map fields to Google Calendar
+              {t('mapFieldsTitle')}
             </DialogTitle>
             <DialogDescription>
               Pick a table, then choose which of its fields fills each Google
@@ -330,7 +332,7 @@ export const GoogleCalendarFieldMappingModal = ({
                 <div className="bg-bg-main border-border-subtle focus-within:border-primary/60 flex items-center rounded-md border px-2 transition-colors">
                   <Search size={13} className="text-text-muted shrink-0" />
                   <input
-                    placeholder="Search tables..."
+                    placeholder={t('searchTables')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="placeholder:text-text-muted w-full bg-transparent px-2 py-1.5 text-[12px] outline-none"
@@ -346,14 +348,14 @@ export const GoogleCalendarFieldMappingModal = ({
                   </div>
                 ) : tables.length === 0 ? (
                   <div className="text-text-muted px-2 py-6 text-center text-[12px]">
-                    No tables found.
+                    {t('noTables')}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
                     {hasLinkedInList && (
                       <div className="flex flex-col gap-1">
                         <p className="text-text-muted/70 px-1.5 text-[10px] font-semibold tracking-wide uppercase">
-                          Linked to calendar
+                          {t('linkedToCalendar')}
                         </p>
                         <div className="flex flex-col gap-0.5">
                           {tables
@@ -365,7 +367,7 @@ export const GoogleCalendarFieldMappingModal = ({
                     <div className="flex flex-col gap-1">
                       {hasLinkedInList && (
                         <p className="text-text-muted/70 px-1.5 text-[10px] font-semibold tracking-wide uppercase">
-                          All tables
+                          {t('allTables')}
                         </p>
                       )}
                       <div className="flex flex-col gap-0.5">
@@ -405,7 +407,7 @@ export const GoogleCalendarFieldMappingModal = ({
                         {selectedTable === linkedSlug && (
                           <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-green-600 dark:text-green-400">
                             <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                            Linked
+                            {t('linked')}
                           </span>
                         )}
                       </div>
@@ -436,7 +438,7 @@ export const GoogleCalendarFieldMappingModal = ({
                     <div className="bg-bg-sidebar/40 border-border-subtle text-text-muted border-b px-5 py-2 text-[12px]">
                       Choose which field fills each property.{" "}
                       <span className="font-medium text-amber-600 dark:text-amber-400">
-                        Required
+                        {t('required')}
                       </span>{" "}
                       properties must be mapped before saving.
                     </div>
@@ -451,7 +453,7 @@ export const GoogleCalendarFieldMappingModal = ({
                       </div>
                     ) : columns.length === 0 ? (
                       <div className="text-text-muted px-4 py-10 text-center text-[13px]">
-                        No fields found for this table.
+                        {t('noFields')}
                       </div>
                     ) : (
                       CALENDAR_FIELDS.map((f) => {
@@ -493,11 +495,11 @@ export const GoogleCalendarFieldMappingModal = ({
                                   </span>
                                   {f.required ? (
                                     <span className="rounded-full bg-amber-500/15 px-1.5 py-px text-[10px] font-semibold tracking-wide text-amber-600 uppercase dark:text-amber-400">
-                                      Required
+                                      {t('required')}
                                     </span>
                                   ) : (
                                     <span className="text-text-muted/60 text-[10px] font-medium tracking-wide uppercase">
-                                      Optional
+                                      {t('optional')}
                                     </span>
                                   )}
                                 </div>
@@ -525,7 +527,7 @@ export const GoogleCalendarFieldMappingModal = ({
                                         : "",
                                   )}
                                 >
-                                  <SelectValue placeholder="Choose a field…" />
+                                  <SelectValue placeholder={t('chooseField')} />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-64">
                                   <SelectItem value={NONE_VALUE}>
@@ -553,7 +555,7 @@ export const GoogleCalendarFieldMappingModal = ({
                               {showDateHint && (
                                 <p className="mt-1 flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
                                   <TriangleAlert size={11} className="shrink-0" />
-                                  Works best with a date / date-time field
+                                  {t('dateFieldHint')}
                                 </p>
                               )}
                             </div>
@@ -584,7 +586,7 @@ export const GoogleCalendarFieldMappingModal = ({
             </p>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Close
+                {t('close')}
               </Button>
               <Button
                 variant="primary"

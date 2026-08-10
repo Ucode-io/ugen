@@ -12,6 +12,7 @@ import {
   buildFileTree,
 } from "./code-viewer-ui";
 import { useUIStore } from "@/shared/model/theme/use-ui-store";
+import { useTranslations } from 'next-intl'
 
 interface GitlabEditorProps {
   path: string;   // "my-fidani_warehouse"
@@ -31,6 +32,7 @@ interface FileNode {
 }
 
 export function GitlabCodeEditor({ path, branch, name, type, repoId, onPublish, className }: GitlabEditorProps) {
+  const t = useTranslations('widgets.projectWorkspace')
   const [files, setFiles] = useState<FileNode[]>([]);
   const [openedFiles, setOpenedFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -211,7 +213,7 @@ export function GitlabCodeEditor({ path, branch, name, type, repoId, onPublish, 
           isFullscreen={isFullscreen}
           rightAction={
             <div className="flex items-center gap-2">
-              {loading && <span className="text-text-muted animate-pulse text-xs">Loading...</span>}
+              {loading && <span className="text-text-muted animate-pulse text-xs">{t('loading')}</span>}
               {Object.keys(editedFiles).length > 0 && (
                 <Button 
                    size="sm" 

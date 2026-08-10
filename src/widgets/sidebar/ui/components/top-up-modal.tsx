@@ -38,6 +38,7 @@ import {
   type CardBrand,
   type ProjectCard,
 } from "@/entities/billing";
+import { useTranslations } from 'next-intl'
 
 export const formatAmount = (value: number | undefined | null) =>
   new Intl.NumberFormat("ru-RU").format(Number(value ?? 0));
@@ -82,6 +83,7 @@ export const TopUpModal = ({
   /** Fired after a successful top-up, before the modal closes. */
   onSuccess?: () => void;
 }) => {
+  const t = useTranslations('widgets.sidebar')
   // The user enters USD; we charge the converted UZS amount via the API.
   const [amountUsd, setAmountUsd] = useState("");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -136,7 +138,7 @@ export const TopUpModal = ({
         project_card_id: selectedCard.id,
         amount: amountUzs,
       });
-      toast.success("Transaction successfully created!");
+      toast.success(t('topUpSuccess'));
       onSuccess?.();
       onOpenChange(false);
     } catch (err: any) {
@@ -160,10 +162,10 @@ export const TopUpModal = ({
             </div>
             <div>
               <DialogTitle className="text-text-main text-[15px] leading-tight font-semibold">
-                Top up balance
+                {t('topUpBalance')}
               </DialogTitle>
               <DialogDescription className="text-text-muted mt-0.5 text-xs">
-                Add funds to your account
+                {t('addFunds')}
               </DialogDescription>
             </div>
           </div>
@@ -182,24 +184,24 @@ export const TopUpModal = ({
                 <CreditCard size={24} />
               </div>
               <h4 className="text-text-main text-[15px] font-semibold">
-                No payment cards yet
+                {t('noPaymentCards')}
               </h4>
               <p className="text-text-muted mt-1.5 max-w-xs text-[12px] leading-relaxed">
-                Add a payment card first to top up your balance.
+                {t('addCardFirst')}
               </p>
               <Button
                 onClick={() => setAddCardOpen(true)}
                 className="bg-primary hover:bg-primary/90 mt-5 h-9 rounded-lg px-5 text-[13px] font-semibold text-white shadow-sm"
               >
                 <Plus size={15} />
-                Add card
+                {t('addCard')}
               </Button>
             </div>
           ) : (
             <div className="space-y-5 p-6">
               <div className="space-y-1.5">
                 <label className="text-text-muted text-[12px] font-medium">
-                  Amount
+                  {t('amount')}
                 </label>
                 <div className="relative">
                   <span className="text-text-muted absolute top-1/2 left-3 -translate-y-1/2 text-[14px] font-semibold">
@@ -237,7 +239,7 @@ export const TopUpModal = ({
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <label className="text-text-muted text-[12px] font-medium">
-                    Choose card for top up
+                    {t('chooseCard')}
                   </label>
                   <button
                     type="button"
@@ -245,16 +247,16 @@ export const TopUpModal = ({
                     className="text-primary flex items-center gap-1.5 text-[12px] font-semibold hover:underline"
                   >
                     <CreditCard size={13} />
-                    Add card
+                    {t('addCard')}
                   </button>
                 </div>
 
                 <div className="bg-bg-card border-border-subtle overflow-hidden rounded-xl border">
                   <div className="bg-bg-sidebar/60 border-border-subtle text-text-muted grid grid-cols-[80px_1fr_100px_60px] gap-3 border-b px-4 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
-                    <span>Type</span>
-                    <span>Card number</span>
-                    <span>Expiry</span>
-                    <span className="text-right">Action</span>
+                    <span>{t('type')}</span>
+                    <span>{t('cardNumber')}</span>
+                    <span>{t('expiry')}</span>
+                    <span className="text-right">{t('action')}</span>
                   </div>
 
                   {cards.map((card) => {
@@ -325,7 +327,7 @@ export const TopUpModal = ({
               onClick={() => onOpenChange(false)}
               className="h-9 rounded-lg px-4 text-[13px]"
             >
-              Cancel
+              {t('cancel')}
             </Button>
             {!cardsLoading && cards.length > 0 && (
               <Button
@@ -360,7 +362,7 @@ export const TopUpModal = ({
               <Trash2 size={20} />
             </div>
             <DialogTitle className="text-text-main text-[15px] font-semibold">
-              Delete this card?
+              {t('deleteCardConfirm')}
             </DialogTitle>
             <DialogDescription className="text-text-muted mt-1.5 text-[12px] leading-relaxed">
               Are you sure you want to remove{" "}
@@ -377,7 +379,7 @@ export const TopUpModal = ({
               onClick={() => setCardToDelete(null)}
               className="h-9 rounded-lg px-4 text-[13px]"
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               disabled={deletingCard}
@@ -388,7 +390,7 @@ export const TopUpModal = ({
                   if (selectedCardId === cardToDelete.id) {
                     setSelectedCardId(null);
                   }
-                  toast.success("Card removed");
+                  toast.success(t('cardRemoved'));
                   setCardToDelete(null);
                 } catch (err: any) {
                   toast.error(pickErrorMessage(err, "Failed to delete card"));
@@ -417,6 +419,7 @@ const AddCardModal = ({
   projectId: string | null;
   onAdded: (card: { id: string }) => void;
 }) => {
+  const t = useTranslations('widgets.sidebar')
   const [number, setNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [otp, setOtp] = useState("");
@@ -496,7 +499,7 @@ const AddCardModal = ({
     if (!projectCardId || code.length < 6) return;
     try {
       await confirmOtp({ code, project_card_id: projectCardId });
-      toast.success("The card is successfully added!");
+      toast.success(t('cardAdded'));
       onAdded({ id: projectCardId });
       onOpenChange(false);
     } catch (err: any) {
@@ -513,7 +516,7 @@ const AddCardModal = ({
           </div>
           <div>
             <DialogTitle className="text-text-main text-[15px] leading-tight font-semibold">
-              Add card
+              {t('addCard')}
             </DialogTitle>
             <DialogDescription className="text-text-muted mt-0.5 text-xs">
               {stage === "card"
@@ -545,7 +548,7 @@ const AddCardModal = ({
             )}
             <div className="space-y-1.5">
               <label className="text-text-muted text-[12px] font-medium">
-                Card number
+                {t('cardNumber')}
               </label>
               <Input
                 placeholder="1234 5678 9012 3456"
@@ -565,11 +568,11 @@ const AddCardModal = ({
             </div>
             <div className="space-y-1.5">
               <label className="text-text-muted block text-[12px] font-medium">
-                Expiry date (MM/YY)
+                {t('expiryDate')}
               </label>
               <Input
                 ref={expiryRef}
-                placeholder="MM/YY"
+                placeholder={t('mmYy')}
                 value={expiry}
                 onChange={(e) => {
                   setVerifyError(null);
@@ -584,7 +587,7 @@ const AddCardModal = ({
         ) : (
           <div className="space-y-3 p-6">
             <label className="text-text-muted block text-[12px] font-medium">
-              Verification code
+              {t('verificationCode')}
             </label>
             <OtpInput
               value={otp}
@@ -607,7 +610,7 @@ const AddCardModal = ({
             onClick={() => onOpenChange(false)}
             className="h-9 rounded-lg px-4 text-[13px]"
           >
-            Cancel
+            {t('cancel')}
           </Button>
           {stage === "card" ? (
             <Button

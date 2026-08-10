@@ -17,6 +17,7 @@ import {
   WorkspaceTableHead,
   WorkspaceTableCell,
 } from '@/widgets/project-workspace/ui/workspace-table'
+import { useTranslations } from 'next-intl'
 
 /**
  * Dashboard variant of the usage-limits view.
@@ -25,6 +26,7 @@ import {
  * Keep these two split — they consume different API shapes.
  */
 export const DashboardUsageLimitsTab = ({ pricingData, fareData, currentFareData }: any) => {
+  const t = useTranslations('widgets.analytics')
   const d = pricingData?.data || {};
   const fares: any[] = fareData?.data?.fares || [];
   const currentFare = currentFareData?.data?.fares?.[0];
@@ -100,7 +102,7 @@ export const DashboardUsageLimitsTab = ({ pricingData, fareData, currentFareData
       <div className="bg-primary/10 border-primary/30 flex items-center justify-between rounded-xl border px-5 py-4">
         <div>
           <div className="text-primary mb-0.5 text-[11px] font-bold tracking-wide uppercase">
-            Current Plan
+            {t('currentPlan')}
           </div>
           <div className="text-text-main text-lg font-bold">
             {currentFare?.name || "—"}{" "}
@@ -114,7 +116,7 @@ export const DashboardUsageLimitsTab = ({ pricingData, fareData, currentFareData
           </div>
         </div>
         <Button className="shrink-0 gap-2" onClick={() => setUpgradeOpen(true)}>
-          <ArrowUp size={16} /> Upgrade Plan
+          <ArrowUp size={16} /> {t('upgradePlan')}
         </Button>
       </div>{" "}
       {/* Usage meters */}
@@ -237,14 +239,14 @@ export const DashboardUsageLimitsTab = ({ pricingData, fareData, currentFareData
       {fares.length > 0 && (
         <div>
           <div className="text-text-main mb-3 ml-1 text-sm font-semibold">
-            Plan Comparison
+            {t('planComparison')}
           </div>
           <WorkspaceTableWrapper>
             <WorkspaceTable>
               <WorkspaceTableHeader>
                 <WorkspaceTableRow>
                   <WorkspaceTableHead className="w-1/4">
-                    Feature
+                    {t('feature')}
                   </WorkspaceTableHead>
                   {fares.map((fare) => {
                     const isCurrent = fare.id === fareId;
@@ -268,9 +270,9 @@ export const DashboardUsageLimitsTab = ({ pricingData, fareData, currentFareData
                     );
                   })}
                   <WorkspaceTableHead className="text-center">
-                    <div className="font-bold">Enterprise</div>
+                    <div className="font-bold">{t('enterprise')}</div>
                     <div className="text-text-muted mt-0.5 text-[11px] font-normal normal-case">
-                      Custom
+                      {t('custom')}
                     </div>
                   </WorkspaceTableHead>
                 </WorkspaceTableRow>
@@ -318,7 +320,7 @@ export const DashboardUsageLimitsTab = ({ pricingData, fareData, currentFareData
                               );
                             })}
                             <WorkspaceTableCell className="text-text-muted text-center">
-                              Custom
+                              {t('custom')}
                             </WorkspaceTableCell>
                           </WorkspaceTableRow>
                         );

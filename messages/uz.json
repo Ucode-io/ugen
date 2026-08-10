@@ -36,7 +36,14 @@
     "move": "Ko'chirish",
     "edit": "Tahrirlash",
     "delete": "O'chirish",
-    "deleting": "O'chirilmoqda..."
+    "deleting": "O'chirilmoqda...",
+    "community": "Hamjamiyat",
+    "hire_expert": "Ekspert yollash",
+    "open_ugen": "u‑gen'ni ochish",
+    "connectors": "Konnektorlar",
+    "connectors_desc": "300+ integratsiya",
+    "docs": "Hujjatlar",
+    "docs_desc": "Qo'llanmalar va API ma'lumotnomasi"
   },
   "Templates": {
     "title": "Shablonlar",
@@ -139,7 +146,9 @@
         "continue": "Google bilan davom etish",
         "signUp": "Google bilan roʻyxatdan oʻtish",
         "or": "yoki"
-      }
+      },
+      "signUp": "Ro'yxatdan o'tish",
+      "signIn": "Kirish"
     },
     "appVisibility": {
       "title": "Ilova ko'rinishi",
@@ -167,7 +176,8 @@
       "selfRecover": "O'zini tiklash",
       "selfRegister": "O'zini ro'yxatdan o'tkazish",
       "saveChanges": "O'zgarishlarni saqlash",
-      "createType": "Tur yaratish"
+      "createType": "Tur yaratish",
+      "cancel": "Bekor qilish"
     },
     "inviteUsers": {
       "title": "Foydalanuvchilarni taklif qilish",
@@ -200,6 +210,103 @@
     },
     "themeSwitcher": {
       "ariaLabel": "Mavzuni o'zgartirish"
+    },
+    "oauthCallback": {
+      "closeWindow": "Oynani yopish",
+      "safelyClose": "Ushbu yorliqni yopib, ilovaga qaytishingiz mumkin.",
+      "connectedAs": "Muvaffaqiyatli ulandi:",
+      "accountConnected": "Akkauntingiz ulandi.",
+      "closeAndRetry": "Ushbu yorliqni yopib, qayta urinib ko'rishingiz mumkin.",
+      "githubFailed": "GitHub'ni ulab bo'lmadi",
+      "goBackRetry": "Orqaga qaytib qayta urinish",
+      "githubConnected": "GitHub ulandi!",
+      "continueBtn": "Davom etish"
+    },
+    "fileUpload": {
+      "pdf": "PDF",
+      "download": "Yuklab olish",
+      "openInNewTab": "Yangi yorliqda ochish",
+      "remove": "O'chirish",
+      "uploadAsset": "Fayl yuklash",
+      "cancel": "Bekor qilish",
+      "uploading": "Yuklanmoqda...",
+      "uploadContent": "Kontent yuklash"
+    },
+    "googleCalendar": {
+      "linked": "Bog'langan",
+      "mapFieldsTitle": "Maydonlarni Google Calendar bilan bog'lash",
+      "noTables": "Jadvallar topilmadi.",
+      "linkedToCalendar": "Kalendarga bog'langan",
+      "allTables": "Barcha jadvallar",
+      "required": "Majburiy",
+      "noFields": "Ushbu jadval uchun maydonlar topilmadi.",
+      "optional": "Ixtiyoriy",
+      "dateFieldHint": "Sana / sana-vaqt maydoni bilan eng yaxshi ishlaydi",
+      "close": "Yopish",
+      "searchTables": "Jadvallarni qidirish...",
+      "chooseField": "Maydonni tanlang…",
+      "mappingSaved": "Maydon bog'lanishi saqlandi",
+      "mappingFailed": "Maydon bog'lanishini saqlab bo'lmadi"
+    },
+    "googleAds": {
+      "back": "Orqaga",
+      "done": "Tayyor",
+      "close": "Yopish",
+      "noConnections": "Hozircha Google Lead Ads ulanishlari yo'q",
+      "connect": "Google Lead Ads'ni ulash",
+      "yourConnections": "Ulanishlaringiz",
+      "newConnection": "Yangi ulanish",
+      "mapping": "Bog'lanish",
+      "targetTable": "Maqsadli jadval",
+      "formName": "Forma nomi",
+      "fieldMapping": "Maydonlarni bog'lash",
+      "mapEachField": "Har bir Google forma maydonini tanlangan jadval ustuniga bog'lang.",
+      "selectTable": "Maydonlarni bog'lashni boshlash uchun jadvalni tanlang.",
+      "googleField": "Google maydoni",
+      "tableColumn": "Jadval ustuni",
+      "required": "Majburiy",
+      "addField": "Maydon qo'shish",
+      "noConnectionDetails": "Ulanish tafsilotlari mavjud emas.",
+      "connectWebhook": "Google Ads'da webhook'ni ulang",
+      "open": "Ochish",
+      "leadDelivery": "Lidlarni yetkazish",
+      "pasteWebhook": "Yuqoridagi Webhook URL va kalitni joylashtiring.",
+      "comeBackCheck": "Bu yerga qaytib, quyidagi ulanishni tekshiring.",
+      "copy": "Nusxalash",
+      "consultationRequest": "Konsultatsiya so'rovi",
+      "removeField": "Maydonni olib tashlash",
+      "webhookUrl": "Webhook URL",
+      "keySecret": "Kalit (maxfiy)",
+      "connectionCreated": "Ulanish yaratildi",
+      "mappingSaved": "Bog'lanish saqlandi",
+      "connectionRemoved": "Ulanish o'chirildi",
+      "testLeadOk": "Sinov lidi qabul qilindi — ulanish ishlaydi"
+    },
+    "dbDiagram": {
+      "selectDragTables": "Jadvallarni tanlash va surish",
+      "panCanvas": "Kanvasni siljitish",
+      "autoArrange": "Avto-joylashtirish (dagre)",
+      "notNull": "NOT NULL",
+      "unique": "UNIQUE",
+      "dbDiagram": "MB diagrammasi",
+      "both": "Ikkalasi",
+      "tablesOnly": "Faqat jadvallar",
+      "relationsFocus": "Bog'lanishlarga urg'u",
+      "zoomOut": "Uzoqlashtirish",
+      "zoomIn": "Yaqinlashtirish",
+      "fitToScreen": "Ekranga moslash",
+      "loadDiagramFailed": "Diagrammani yuklab bo'lmadi",
+      "noTablesToVisualise": "Ko'rsatish uchun jadvallar yo'q",
+      "regenerateFromApi": "API sxemasidan qayta yaratish",
+      "autoLayout": "Avto joylashuv"
+    },
+    "pendingJoin": {
+      "joinProject": "Loyihaga qo'shilish",
+      "pendingInvite": "Sizda loyihaga taklif bor",
+      "joined": "Muvaffaqiyatli qo'shildingiz!",
+      "continueBtn": "Davom etish",
+      "invited": "Sizni taklif qilishdi!",
+      "dismiss": "Yopish"
     }
   },
   "databaseStudio": {
@@ -354,6 +461,19 @@
     "dateRangePicker": {
       "placeholder": "Sana oralig'ini tanlang",
       "clear": "Tozalash"
+    },
+    "common": {
+      "noItemsFound": "Hech narsa topilmadi.",
+      "close": "Yopish",
+      "noEdges": "Bog'lanishlar berilmagan",
+      "hoverNodeHint": "Bog'lanishlarini ajratib ko'rsatish uchun tugunga olib boring",
+      "noPreviewAvailable": "Ko'rinish mavjud emas",
+      "loadFunctionFailed": "Funksiyani yuklab bo'lmadi. Qayta urinib ko'ring.",
+      "login": "Login",
+      "password": "Parol",
+      "register": "Ro'yxatdan o'tish",
+      "enterLogin": "Loginingizni kiriting",
+      "enterPassword": "Parolingizni kiriting"
     }
   },
   "widgets": {
@@ -366,7 +486,26 @@
       "openUgen": "ugen'ni ochish"
     },
     "footer": {
-      "copyright": "© {year} Ucode UI. Barcha huquqlar himoyalangan."
+      "tagline": "G'oyalarni 15 daqiqada tayyor mahsulotga aylantiruvchi SI platformasi.",
+      "product": "Mahsulot",
+      "resources": "Resurslar",
+      "company": "Kompaniya",
+      "pricing": "Narxlar",
+      "templates": "Shablonlar",
+      "connectors": "Konnektorlar",
+      "community": "Hamjamiyat",
+      "docs": "Hujjatlar",
+      "hireExpert": "Ekspert yollash",
+      "blog": "Blog",
+      "careers": "Vakansiyalar",
+      "privacyPolicy": "Maxfiylik siyosati",
+      "userAgreement": "Foydalanuvchi shartnomasi",
+      "cancelPolicy": "Bekor qilish siyosati",
+      "companyInfo": "Kompaniya haqida",
+      "copyright": "© {year} UCODE — Barcha huquqlar himoyalangan.",
+      "businessDetails": "Yuridik shaxs: {legalName} — Manzil: {address} STIR: {tin}.",
+      "terms": "Shartlar",
+      "cancellation": "Bekor qilish"
     },
     "common": {
       "save": "Saqlash",
@@ -409,71 +548,149 @@
       "untitledProject": "Nomsiz loyiha",
       "loading": "Yuklanmoqda...",
       "personal": "Shaxsiy",
-      "noRecentProjects": "Yaqinda ochilgan loyihalar yo'q"
+      "noRecentProjects": "Yaqinda ochilgan loyihalar yo'q",
+      "currentBalance": "Joriy balans",
+      "fundsAvailable": "Loyiha ishlashi va kutilayotgan to'lovlar uchun mavjud mablag'.",
+      "topUpBalance": "Balansni to'ldirish",
+      "invoiceOverview": "Hisob-faktura sharhi",
+      "planDetails": "Tarif tafsilotlari va keyingi to'lov davri.",
+      "upgrade": "Tarifni oshirish",
+      "extraUsage": "Qo'shimcha sarf",
+      "companyTokenPack": "Kompaniya token paketlari balansi va SI tarifidan foydalanish.",
+      "packBalance": "Paket balansi",
+      "tokenPacks": "Token paketlar",
+      "purchaseFromBalance": "Joriy loyiha balansidan sotib olish.",
+      "tokenPacksUnavailable": "Token paketlar mavjud emas",
+      "retry": "Qayta urinish",
+      "noTokenPacks": "Mavjud token paketlar yo'q",
+      "transactions": "Tranzaksiyalar",
+      "amount": "Summa",
+      "type": "Turi",
+      "date": "Sana",
+      "status": "Holat",
+      "noTransactions": "Tranzaksiyalar topilmadi",
+      "billingActivityHint": "To'lovlar tarixi shu yerda ko'rinadi.",
+      "dailyPlan": "Kunlik limit",
+      "monthlyPlan": "Oylik limit",
+      "addFunds": "Hisobingizni to'ldiring",
+      "noPaymentCards": "Hozircha kartalar yo'q",
+      "addCardFirst": "Balansni to'ldirish uchun avval karta qo'shing.",
+      "addCard": "Karta qo'shish",
+      "chooseCard": "To'ldirish uchun kartani tanlang",
+      "cardNumber": "Karta raqami",
+      "expiry": "Amal qilish muddati",
+      "action": "Amal",
+      "deleteCardConfirm": "Ushbu karta o'chirilsinmi?",
+      "expiryDate": "Amal qilish muddati (OO/YY)",
+      "verificationCode": "Tasdiqlash kodi",
+      "mmYy": "OO/YY",
+      "topUpSuccess": "Tranzaksiya muvaffaqiyatli yaratildi!",
+      "cardRemoved": "Karta o'chirildi",
+      "cardAdded": "Karta muvaffaqiyatli qo'shildi!",
+      "upgradeYourPlan": "Tarifingizni oshiring",
+      "balance": "Balans",
+      "topUpToRestore": "Tiklash uchun to'ldiring",
+      "temporary": "Vaqtinchalik",
+      "restore": "Tiklash",
+      "current": "Joriy",
+      "scheduled": "Rejalashtirilgan",
+      "feature": "Imkoniyat",
+      "enterprise": "Enterprise",
+      "custom": "Individual",
+      "downgradeCanceled": "Tarifni pasaytirish bekor qilindi",
+      "planUpdated": "Tarif muvaffaqiyatli yangilandi",
+      "daily": "Kunlik",
+      "monthly": "Oylik",
+      "projectsLabel": "Loyihalar",
+      "usersLabel": "Foydalanuvchilar",
+      "buildersLabel": "Builderlar",
+      "freePlanLabel": "Bepul tarif",
+      "upgradeUnlock": "To'liq imkoniyatlar uchun tarifni oshiring.",
+      "upgradePlan": "Tarifni oshirish",
+      "freePlanHint": "Siz bepul tarifdasiz — istalgan vaqtda oshirishingiz mumkin",
+      "returnSuperAdmin": "Super adminga qaytish",
+      "logo": "Logotip",
+      "dismiss": "Yopish"
     },
     "landingPage": {
-      "aiBasedPlatform": "Sun'iy intellektga asoslangan platforma",
-      "heroTitle": "Tezkor yarating.\nOson kengaytiring.",
-      "heroSubtitle": "Raqamli biznesingiz uchun Backend as a Service. Har bir Ucode loyihasi frontend va backendni oson va tez yaratadigan sun'iy intellektga asoslangan low-code platformasida ishlaydi.",
-      "databases": {
-        "title": "Ma'lumotlar bazasi va tahlil",
-        "description": "Har bir Ucode loyihasi millionlab dasturchilar ishonadigan PostgreSQL yoki MongoDB ma'lumotlar bazasidir.",
-        "list": {
-          "manageData": "Ma'lumotlaringizni oson boshqaring",
-          "scalable": "PostgreSQL va MongoDB - dunyodagi eng kengaytiriladigan ma'lumotlar bazalari",
-          "lowcode": "Lowcode yechimimiz bilan ma'lumotlaringizni ulang va boshqaring"
-        },
-        "postgresql": "PostgreSQL",
-        "mongodb": "MongoDB",
-        "clickhouse": "ClickHouse",
-        "relational": "Relyatsion dvigatel",
-        "document": "Hujjatlar ombori",
-        "analytics": "Tahlil dvigateli",
-        "ready": "Tayyor"
-      },
-      "edgeFunctions": {
-        "title": "Edge funksiyalar",
-        "description": "Funksiyalarni sozlang va serverlarni yoki xostingni boshqarmasdan serverless funksiyalarni osongina yarating, joylashtiring va kuzatib boring. Shaxsiy kodni osongina yozing.",
-        "platforms": {
-          "mobile": "Mobil",
-          "web": "Veb",
-          "backend": "Backend",
-          "microfrontend": "Mikrofrontend"
-        }
-      },
-      "features": {
-        "title": "Sizga kerak bo'lgan hamma narsa",
-        "subtitle": "Loyihangizni oylar emas, balki bir necha kun ichida ishga tushirish uchun to'liq vositalar to'plami.",
-        "list": {
-          "storage": {
-            "title": "Ombor",
-            "description": "Katta fayllarni, videolardan tortib rasmlargacha saqlang, tartiblang va taqdim eting. (Minio, Amazon S3, R3)"
+      "hero": {
+        "badge": "SI asosidagi ishlab chiqish platformasi",
+        "titleLead": "O'z mahsulotingizni yarating",
+        "titleAccent": "15 daqiqada",
+        "subtitle": "Sun'iy intellekt yordamida ilova va saytlar yarating — muhandislik diplomi shart emas.",
+        "placeholder": "u-gen'ga qanday ilova kerakligini yozing…",
+        "build": "Yig'ish",
+        "chips": {
+          "sales": {
+            "label": "💼 Savdo dashbordi",
+            "text": "Savdoni kuzatish uchun SaaS dashbord"
           },
-          "dataApi": {
-            "title": "Data API'lari",
-            "description": "Muzokaralarsiz foydalanishga tayyor Restful API'lar. Mavjud xizmatlarni darhol ulang."
+          "booking": {
+            "label": "📅 Bron qilish ilovasi",
+            "text": "Stripe to'lovlari bilan bron qilish ilovasi"
           },
-          "auth": {
-            "title": "Autentifikatsiya",
-            "description": "O'rnatilgan kuchli ruxsatnomalar va kirishni boshqarish bilan foydalanuvchilaringizni taklif qiling va osongina boshqaring."
+          "hr": {
+            "label": "🎉 Xodimlar onboardingi",
+            "text": "Yangi xodimlarni moslashtirish portali"
           },
-          "role": {
-            "title": "Rollar va kirish",
-            "description": "Keng qamrovli rollarni boshqarish, kirishni boshqarish va foydalanuvchilarni boshqarish o'rnatilgan."
+          "landing": {
+            "label": "📣 Landing sahifa",
+            "text": "Email yig'uvchi landing sahifa"
+          },
+          "inventory": {
+            "label": "📦 Ombor hisobi",
+            "text": "Ombor zaxiralarini boshqarish tizimi"
           }
         }
       },
-      "integrations": {
-        "title": "Integratsiyalar",
-        "description": "Integratsiyani toping. Sevimli vositalaringiz bilan uzluksiz bog'laning.",
-        "viewAll": "Barcha integratsiyalarni ko'rish",
-        "categories": {
-          "databases": "Ma'lumotlar bazalari",
-          "storage": "Fayl ombori",
-          "apis": "API'lar",
-          "versionControl": "Versiyalarni boshqarish",
-          "maps": "Xaritalar",
-          "customFunctions": "Maxsus funksiyalar"
+      "trusted": {
+        "title": "O'sib borayotgan kompaniyalar bizga ishonadi"
+      },
+      "howItWorks": {
+        "badge": "Bu qanday ishlaydi",
+        "titleLead": "Tayyor mahsulotgacha",
+        "titleAccent": "uch qadam",
+        "subtitle": "DevOps yo'q. Shablon kod yo'q. Prototipni haftalab kutish yo'q.",
+        "steps": {
+          "describe": {
+            "title": "G'oyangizni tasvirlang",
+            "desc": "Nima kerakligini oddiy tilda yozing — texnik bilim talab qilinmaydi. Batafsil yoki qisqa — o'zingizga qulay tarzda.",
+            "tag": "Oddiy til"
+          },
+          "generate": {
+            "title": "SI buni siz uchun quradi",
+            "desc": "Bizning SI to'liq ilovani — ma'lumotlar bazasi sxemasi, REST API va pishiq interfeysni — bir necha daqiqada yaratadi.",
+            "tag": "Bir zumda generatsiya"
+          },
+          "deploy": {
+            "title": "Joylashtiring va ulashing",
+            "desc": "Bir bosishda deploy. Havolani jamoangiz, mijozlaringiz yoki butun dunyo bilan darhol ulashing.",
+            "tag": "Bir bosishda deploy"
+          }
+        }
+      },
+      "templates": {
+        "badge": "Shablonlar",
+        "titleLead": "Shablonlarni",
+        "titleAccent": "kashf eting",
+        "subtitle": "Tayyor shablondan boshlang va bir necha daqiqada moslashtiring.",
+        "browseAll": "Barchasini ko'rish →"
+      },
+      "stats": {
+        "projects": {
+          "value": "12 000+",
+          "label": "Yaratilgan loyihalar",
+          "sub": "asoschilar va jamoalar tomonidan"
+        },
+        "uptime": {
+          "value": "99.9%",
+          "label": "Platforma uptime'i",
+          "sub": "barcha regionlarda"
+        },
+        "buildTime": {
+          "value": "< 15 daq",
+          "label": "O'rtacha yig'ish vaqti",
+          "sub": "g'oyadan tayyor ilovagacha"
         }
       }
     },
@@ -501,7 +718,34 @@
       "refreshSyncHint": "Tarjimalaringizni yangilab yoki sinxronlashtirib ko'ring.",
       "environmentManagement": "Muhitni boshqarish",
       "envDescription": "Loyiha muhitlarini sozlang va ular orasida almashing.",
-      "unknownDevice": "Noma'lum qurilma"
+      "unknownDevice": "Noma'lum qurilma",
+      "personalInformation": "Shaxsiy ma'lumotlar",
+      "profileDetailsHint": "Ish maydoningizda ko'rinadigan profil ma'lumotlari.",
+      "devicesHint": "Hozir tizimga kirgan qurilmalar va brauzerlar.",
+      "newSignIns": "Yangi kirishlar tasdiqlangandan so'ng shu yerda ko'rinadi.",
+      "removeSession": "Sessiyani tugatish",
+      "configureProject": "Loyihangiz tafsilotlari va sozlamalarini belgilang",
+      "projectLogo": "Loyiha logotipi",
+      "projectName": "Loyiha nomi",
+      "projectLanguages": "Loyiha tillari",
+      "timezone": "Vaqt mintaqasi",
+      "iconCategories": "Ikonka toifalari",
+      "cancel": "Bekor qilish",
+      "addLanguage": "Til qo'shish",
+      "addKey": "Kalit qo'shish",
+      "export": "Eksport",
+      "addTranslationKey": "Yangi tarjima kaliti qo'shish",
+      "category": "Toifa",
+      "keyName": "Kalit nomi",
+      "createKey": "Kalit yaratish",
+      "manageLanguages": "Loyiha tillarini boshqarish",
+      "saveLanguages": "Tillarni saqlash",
+      "clickToUpload": "Yuklash uchun bosing",
+      "enterProjectName": "Loyiha nomini kiriting",
+      "searchKeys": "Kalit yoki tarjimalarni qidirish...",
+      "iconCategoryRequired": "Kamida bitta ikonka toifasi kerak",
+      "logoUploadFailed": "Loyiha logotipini yuklab bo'lmadi",
+      "keyCreationTodo": "Kalit yaratish mantiqi shu yerda bo'ladi"
     },
     "chats": {
       "title": "Suhbatlar",
@@ -516,7 +760,8 @@
         "name": "Nomi",
         "project": "Loyiha",
         "updated": "Yangilangan"
-      }
+      },
+      "draft": "Qoralama"
     },
     "projects": {
       "title": "Loyihalar",
@@ -565,7 +810,8 @@
       "projectDescription": "Loyiha tavsifi",
       "projectDescriptionPlaceholder": "Loyihangiz haqida qisqacha ma'lumot",
       "moveProjectTitle": "Loyihani papkaga ko'chirish",
-      "selectFolder": "Papkani tanlang"
+      "selectFolder": "Papkani tanlang",
+      "folderLabel": "Jild"
     },
     "analytics": {
       "title": "Analitika",
@@ -621,7 +867,31 @@
       "fullQuery": "To'liq so'rov",
       "visitorAnalytics": "Tashrif buyuruvchilar analitikasi",
       "currentVisitors": "{count} nafar tashrif buyuruvchi",
-      "audienceBreakdown": "Auditoriya tahlili"
+      "audienceBreakdown": "Auditoriya tahlili",
+      "analyticsTitle": "Analitika",
+      "analyticsSubtitle": "Loyiha samaradorligi, API holati va foydalanuvchi faolligini kuzating.",
+      "currentPlan": "Joriy tarif",
+      "upgradePlan": "Tarifni oshirish",
+      "planComparison": "Tariflarni solishtirish",
+      "feature": "Imkoniyat",
+      "source": "Manba",
+      "page": "Sahifa",
+      "country": "Mamlakat",
+      "device": "Qurilma",
+      "allClear": "Hammasi joyida!",
+      "learnInsights": "Insights haqida batafsil",
+      "highErrorRate": "Edge Functions'da yuqori xatolik darajasi",
+      "errorSpike": "Oxirgi bir soatda Edge Functions uchun xatolik darajasi (15%) keskin oshgani aniqlandi.",
+      "enableIndexAdvisor": "Index Advisor'ni yoqish",
+      "enableAdvisor": "Maslahatchini yoqish",
+      "notNow": "Hozir emas",
+      "schedulerStatus": "Rejalashtiruvchi holati",
+      "runningFunctions": "Bajarilmoqda",
+      "queuedFunctions": "Navbatda",
+      "enterprise": "Enterprise",
+      "custom": "Individual",
+      "functionCalls": "Funksiya chaqiruvlari",
+      "failureRate": "Xatolik ulushi"
     },
     "dashboard": {
       "untitledProject": "Nomsiz loyiha",
@@ -633,7 +903,10 @@
       "newProject": "Yangi loyiha",
       "promptPlaceholder": "Ugenga dashbord yaratishni buyuring...",
       "addAttachment": "Fayl biriktirish",
-      "plan": "Reja"
+      "plan": "Reja",
+      "whatWillYou": "Siz nima",
+      "promptPlaceholderLong": "G'oyangizni tasvirlang — SI uni ishlaydigan mahsulotga aylantiradi",
+      "aiProvider": "SI provayderi"
     },
     "databaseStudio": {
       "tabs": {
@@ -642,8 +915,8 @@
         "advanced": "Kengaytirilgan"
       },
       "placeholders": {
-        "securityComing_soon": "Xavfsizlikni boshqarish yaqinda faollashadi.",
-        "advancedComing_soon": "Kengaytirilgan sozlamalar yaqinda faollashadi."
+        "advancedComingSoon": "Kengaytirilgan sozlamalar yaqinda faollashadi.",
+        "securityComingSoon": "Xavfsizlikni boshqarish yaqinda faollashadi."
       },
       "title": "Database Studio",
       "sqlConsole": {
@@ -659,10 +932,7 @@
         "queryError": "So'rovda xato",
         "noResultsYet": "Hozircha natija yo'q. Ma'lumotlarni ko'rish uchun so'rovni ishga tushiring."
       },
-      "dbDiagram": {
-        "header": "Bazaviy diagramma",
-        "hint": "Aloqalar FK va slug shakllaridan avtomatik aniqlanadi"
-      },
+      "dbDiagram": "MB diagrammasi",
       "records": {
         "count": "Yozuvlar: {count}",
         "limit": "Limit",
@@ -744,7 +1014,101 @@
       "common": {
         "cancel": "Bekor qilish",
         "delete": "O'chirish"
-      }
+      },
+      "tableEditor": "Jadval muharriri",
+      "sqlEditor": "SQL muharriri",
+      "databaseSize": "Ma'lumotlar bazasi hajmi",
+      "started": "Boshlandi:",
+      "finished": "Tugadi:",
+      "rowsPerPage": "Sahifadagi qatorlar",
+      "logsTitle": "Loglar",
+      "logsSubtitle": "Tizim faoliyati va serverless funksiyalar bajarilishini kuzating.",
+      "logType": "Log turi",
+      "activityLogs": "Faoliyat loglari",
+      "functionLogs": "Funksiya loglari",
+      "action": "Amal",
+      "timeRange": "Davr",
+      "collection": "Kolleksiya",
+      "statusLabel": "Holat",
+      "deleteRecord": "Yozuvni o'chirish",
+      "cancelBtn": "Bekor qilish",
+      "editRecord": "Yozuvni tahrirlash",
+      "updateFieldsHint": "Maydonlarni yangilang va o'zgarishlarni saqlang",
+      "commaSeparated": "Vergul bilan ajratilgan qiymatlar",
+      "recordUpdated": "Yozuv yangilandi",
+      "recordUpdateFailed": "Yozuvni yangilab bo'lmadi",
+      "noOptions": "Variantlar topilmadi",
+      "actions": "Amallar",
+      "autoGen": "Avto-generatsiya",
+      "selectTableRecords": "Yozuvlarini ko'rish uchun jadvalni tanlang",
+      "saveChanges": "O'zgarishlarni saqlash",
+      "columnsLabel": "Ustunlar",
+      "toggleColumns": "Ustunlarni almashtirish",
+      "deselectAll": "Tanlovni bekor qilish",
+      "addField": "Maydon qo'shish",
+      "exportDdl": "DDL eksporti",
+      "refreshRows": "Qatorlarni yangilash",
+      "exportJson": "Hammasini .json ga eksport",
+      "exportCsv": "Hammasini .csv ga eksport",
+      "exportXlsx": "Hammasini .xlsx ga eksport",
+      "noActiveFilters": "Faol filtrlar yo'q. «Filtr qo'shish» ni bosing.",
+      "addFilterBtn": "Filtr qo'shish",
+      "clearFiltersBtn": "Filtrlarni tozalash",
+      "clearValue": "Qiymatni tozalash",
+      "tableView": "Jadval ko'rinishi",
+      "schemaView": "Sxema ko'rinishi",
+      "refresh": "Yangilash",
+      "previousPage": "Oldingi sahifa",
+      "currentPage": "Joriy sahifa",
+      "nextPage": "Keyingi sahifa",
+      "options": "Variantlar",
+      "removeFilter": "Filtrni olib tashlash",
+      "recordAdded": "Yozuv muvaffaqiyatli qo'shildi",
+      "recordAddFailed": "Yozuvni qo'shib bo'lmadi",
+      "clearValueFailed": "Qiymatni tozalab bo'lmadi",
+      "noRecordsExport": "Eksport uchun yozuvlar yo'q",
+      "exportedJson": "JSON ga muvaffaqiyatli eksport qilindi",
+      "exportedCsv": "CSV ga muvaffaqiyatli eksport qilindi",
+      "exportedXlsx": "XLSX ga muvaffaqiyatli eksport qilindi",
+      "exportFailed": "Ma'lumotlarni eksport qilib bo'lmadi",
+      "recordNoGuid": "Yozuvda guid yo'q — o'chirib bo'lmaydi",
+      "recordDeleted": "Yozuv o'chirildi",
+      "recordDeleteFailed": "Yozuvni o'chirib bo'lmadi",
+      "deleteFieldTitle": "Maydonni o'chirish",
+      "requiredLabel": "Majburiy",
+      "selectTableSchema": "Sxemasini ko'rish uchun jadvalni tanlang",
+      "noColumnsFound": "Ushbu jadval uchun ustunlar topilmadi.",
+      "labelPlaceholder": "Nom (masalan, Telefon raqami)",
+      "clearRelation": "Bog'lanishni tozalash",
+      "systemFieldHint": "Tizim maydoni — o'chirib bo'lmaydi",
+      "notNull": "NOT NULL",
+      "editField": "Maydonni tahrirlash",
+      "labelRequired": "Nom majburiy",
+      "slugRequired": "Slug majburiy",
+      "selectRelatedTable": "Bog'liq jadvalni tanlang",
+      "addFieldFailed": "Maydon qo'shib bo'lmadi",
+      "updateFieldFailed": "Maydonni yangilab bo'lmadi",
+      "deleteFieldFailed": "Maydonni o'chirib bo'lmadi",
+      "fieldNoId": "O'chirib bo'lmaydi: maydonda ID yo'q",
+      "savedQueries": "Saqlangan so'rovlar",
+      "saveQuery": "So'rovni saqlash",
+      "saveAsEndpoint": "Maxsus endpoint sifatida saqlash",
+      "nameLabel": "Nomi",
+      "methodLabel": "Metod",
+      "descriptionOptional": "Tavsif (ixtiyoriy)",
+      "loadIntoEditor": "Muharrirga yuklash",
+      "endpointDescPlaceholder": "Ushbu endpoint nima qilishi haqida tavsif...",
+      "createTable": "Jadval yaratish",
+      "createNewTable": "Yangi jadval yaratish",
+      "defineLabelSlug": "Yangi jadval uchun nom va slug belgilang.",
+      "label": "Nom",
+      "slug": "Slug",
+      "descriptionLabel": "Tavsif",
+      "create": "Yaratish",
+      "searchTables": "Jadvallarni qidirish...",
+      "optional": "Ixtiyoriy",
+      "tableCreated": "Jadval yaratildi",
+      "tableCreateFailed": "Jadval yaratib bo'lmadi"
     },
     "workspaceChat": {
       "mockMessage": "Salom! Men sizning ushbu ish joyidagi sun'iy intellekt yordamchingizman. Bugun loyihangizni qurishda sizga qanday yordam bera olaman? \n\nSiz mendan kod yozishni, xatolarni tuzatishni yoki arxitekturani rejalashtirishni so'rashingiz mumkin.",
@@ -836,7 +1200,21 @@
         "stats": "Statistika",
         "relations": "Bogʻlanishlar",
         "tech": "Texnologiyalar"
-      }
+      },
+      "resendMessage": "Qayta yuborish",
+      "likeMessage": "Yoqdi",
+      "dislikeMessage": "Yoqmadi",
+      "versionHistory": "Versiyalar tarixi",
+      "toggleChatPosition": "Chat joylashuvini almashtirish",
+      "reactionFailed": "Reaksiyangizni yangilab bo'lmadi. Qayta urinib ko'ring.",
+      "upgradeYourPlan": "Tarifingizni oshiring",
+      "dailyTokens": "Kunlik tokenlar",
+      "monthlyTokens": "Oylik tokenlar",
+      "project": "Loyiha",
+      "newFrontend": "Yangi frontend",
+      "noItems": "Elementlar yo'q",
+      "loadItemsFailed": "Elementlarni yuklab bo'lmadi",
+      "providerChangeFailed": "Provayderni almashtirib bo'lmadi"
     },
     "mediaGallery": {
       "failedToLoad": "Fayllarni yuklashda xatolik",
@@ -854,75 +1232,105 @@
       "gridTooltip": "Hozirgi: {count} ta ustun. Masshtabni o'zgartirish uchun bosing.",
       "searchPlaceholder": "Aktivlarni qidirish...",
       "deleting": "O'chirilmoqda...",
-      "deleteCount": "O'chirish ({count})"
+      "deleteCount": "O'chirish ({count})",
+      "newFolder": "Yangi jild",
+      "createFolderHint": "Fayllaringizni tartibga solish uchun yangi jild yarating.",
+      "cancelBtn": "Bekor qilish",
+      "creating": "Yaratilmoqda...",
+      "create": "Yaratish",
+      "folderNamePlaceholder": "Jild nomi",
+      "folderNameRequired": "Jild nomi kerak",
+      "parentFolderMissing": "Ota jild ko'rsatilmagan",
+      "folderCreated": "Jild yaratildi",
+      "uploadNewAssets": "Yangi fayllarni yuklash",
+      "files": "Fayllar",
+      "filesSubtitle": "Yuklangan fayllar va media resurslarni boshqaring",
+      "upgradePlan": "Tarifni oshirish",
+      "uploadFiles": "Fayllarni yuklash",
+      "name": "Nomi",
+      "type": "Turi",
+      "size": "Hajmi",
+      "folder": "Jild",
+      "folderUpper": "JILD",
+      "fileSize": "Fayl hajmi",
+      "gridView": "Katak",
+      "listView": "Ro'yxat"
     },
     "pricing": {
-      "plans": "Tarif rejalari",
-      "compareTitle": "Tariflarimizni solishtiring <br /> va o'zingiznikini toping",
-      "compareSubtitle": "Siz bilan birga o'sadigan oddiy va shaffof narxlar. <br /> Har qanday tarifni 30 kun davomida bepul sinab ko'ring. Kredit karta talab qilinmaydi.",
-      "getStarted": "Boshlash",
-      "chatSales": "Sotuv bo'limi bilan bog'lanish",
-      "popular": "Ommabop",
-      "compareFeatures": "Xususiyatlarni batafsil solishtirish",
-      "findPerfect": "Loyihangiz uchun xizmatlar va cheklovlarning mukammal kombinatsiyasini toping.",
-      "month": "/ oy",
-      "categories": {
-        "general": "Umumiy",
-        "servers": "Serverlar",
-        "support": "Yordam",
-        "security": "Xavfsizlik",
-        "connectivity": "Ulanish"
-      },
-      "cards": {
-        "os": {
-          "title": "Open source",
-          "price": "Bepul",
-          "description": "10 tagacha xodim uchun barcha zaruriy funksiyalar bilan."
+      "badge": "Narxlar",
+      "titleLead": "Oddiy va shaffof",
+      "titleAccent": "narxlar",
+      "subtitle": "Bepul boshlang va o'sishingiz bilan kengaytiring. Foydalanuvchi uchun to'lov — faqat ishlatganingiz uchun to'laysiz.",
+      "monthly": "Oylik",
+      "annual": "Yillik",
+      "save": "13% tejang",
+      "perMonth": "foydalanuvchi uchun · oylik to'lov",
+      "perYear": "foydalanuvchi uchun · yillik to'lov",
+      "perForeverFree": "foydalanuvchi uchun · abadiy bepul",
+      "perTailored": "ehtiyojingizga moslashtiriladi",
+      "unlimited": "Cheksiz",
+      "custom": "Individual",
+      "free": "Bepul",
+      "otherGroup": "Boshqa",
+      "mostPopular": "Eng ommabop",
+      "feature": "Imkoniyat",
+      "enterprise": "Enterprise",
+      "compareLead": "Tariflarni",
+      "compareAccent": "solishtiring",
+      "faqLead": "Ko'p beriladigan",
+      "faqAccent": "savollar",
+      "ctaTitle": "Bepul yaratishni boshlang",
+      "ctaSubtitle": "Kartasiz. Dasturchilarsiz. Faqat siz va g'oyalaringiz.",
+      "ctaButton": "Bepul akkaunt yaratish →",
+      "plans": {
+        "free": {
+          "desc": "Platforma bilan tanishayotganlar uchun ideal. Karta talab qilinmaydi.",
+          "cta": "Bepul boshlash"
         },
-        "small": {
-          "title": "Small",
-          "price": "$300",
-          "description": "Rivojlanayotgan jamoalar va startaplar uchun kengaytirilgan funksiyalar."
+        "basic": {
+          "desc": "Haqiqiy mahsulot yaratayotgan kichik jamoalar uchun.",
+          "cta": "Sinov davrini boshlash →"
         },
-        "medium": {
-          "title": "Medium",
-          "price": "$600",
-          "description": "Kengaytirilgan funksiyalar va hisobotlar, yaxshilangan ish jarayonlari va avtomatlashtirish."
+        "pro": {
+          "desc": "Kengayib borayotgan jamoalar va maxsus talablar uchun.",
+          "cta": "Sinov davrini boshlash →"
         },
         "enterprise": {
-          "title": "Enterprise",
-          "price": "Maxsus",
-          "description": "Yirik jamoalar uchun shaxsiylashtirilgan xizmat va korporativ xavfsizlik."
+          "desc": "Masshtab, xavfsizlik va muvofiqlik talab qiladigan yirik tashkilotlar uchun.",
+          "cta": "Savdo bo'limi bilan bog'lanish →"
         }
       },
-      "features": {
-        "totalUsers": "Jami foydalanuvchilar va rollar",
-        "configuration": "Konfiguratsiya",
-        "apiRequestsMonth": "Oylik API so'rovlar",
-        "apiRequestsSecond": "Soniyalik API so'rovlar",
-        "functions": "Funksiyalar",
-        "microfrontend": "Mikrofrontendlarni",
-        "databaseSize": "Ma'lumotlar bazasi hajmi",
-        "assetSize": "Aktivlar hajmi",
-        "dbServer": "Ma'lumotlar bazasi serveri",
-        "fileServer": "Fayl serveri",
-        "functionServer": "Funksiyalar serveri",
-        "microfrontendServer": "Mikrofrontendlarni serveri",
-        "customDomain": "Shaxsiy domen",
-        "failover": "Zaxira nusxalari",
-        "communitySupport": "Hamjamiyat yordami",
-        "designatedSupport": "Maxsus yordam",
-        "dedicatedDeveloper": "Shaxsiy dasturchi",
-        "logRetention": "Loglarni saqlash",
-        "rbac": "Rollar asosida kirishni boshqarish",
-        "menuPermissions": "Menyu ruxsatlari",
-        "tablePermissions": "Jadval ruxsatlari",
-        "fieldPermissions": "Maydon ruxsatlari",
-        "restApi": "REST API",
-        "assetApi": "Rasm va aktivlar API",
-        "webHooks": "Veb-huklar",
-        "directDb": "Ma'lumotlar bazasiga to'g'ridan-to'g'ri kirish"
-      }
+      "enterpriseFeatures": {
+        "builders": "Individual builderlar soni",
+        "credits": "Individual kredit limiti",
+        "projects": "Individual loyihalar soni"
+      },
+      "faq": [
+        {
+          "q": "Tarifni istalgan vaqtda o'zgartira olamanmi?",
+          "a": "Ha. Tarifni istalgan vaqtda oshirish yoki pasaytirish mumkin. Oshirish darhol, pasaytirish esa to'langan davr oxirida kuchga kiradi."
+        },
+        {
+          "q": "To'lov davrini o'zgartira olamanmi?",
+          "a": "Ha — yangilash paytida oylik va yillik to'lov o'rtasida almashishingiz mumkin. Yillikka o'tish darhol amal qiladi va ishlatilmagan vaqt hisobga olinadi."
+        },
+        {
+          "q": "Pullik tariflarda bepul sinov davri bormi?",
+          "a": "Starter va Pro tariflari 14 kunlik bepul sinov bilan keladi — karta shart emas. Istalgan vaqtda bekor qilish mumkin."
+        },
+        {
+          "q": "Limitdan oshib ketsam nima bo'ladi?",
+          "a": "Limitdan ortiq API so'rovlari har biri $0.001 dan hisoblanadi. Sekundiga limitdan oshgan so'rovlar bloklanadi. Qo'shimcha server funksiyalari va mikrofrontendlar — $10 va $20 dan. Xotira oshib ketsa — har 10 GB uchun $10."
+        },
+        {
+          "q": "Tarifni pasaytirsam ilovalarimga nima bo'ladi?",
+          "a": "Ilovalaringiz saqlanadi, lekin bepul tarif limitlaridan oshsangiz, faqat o'qish rejimiga o'tishi mumkin. Ma'lumotlarni eksport qilish yoki tarifni qayta oshirish uchun 30 kun bor."
+        },
+        {
+          "q": "Qanday to'lov usullarini qabul qilasiz?",
+          "a": "Barcha asosiy kartalar (Visa, Mastercard, Amex), shuningdek yillik enterprise shartnomalar uchun bank o'tkazmalarini qabul qilamiz."
+        }
+      ]
     },
     "clientTypeManagement": {
       "loading": "Mijoz platformalari yuklanmoqda...",
@@ -985,7 +1393,39 @@
         "view": "Ko'rinish",
         "automaticFilters": "Avtomatik filtrlar",
         "addFilter": "Filtr qo'shish"
-      }
+      },
+      "menuPermissions": "Menyu ruxsatlari",
+      "menu": "Menyu",
+      "accessPermissions": "Kirish ruxsatlari",
+      "noMenuPages": "Menyu sahifalari topilmadi.",
+      "menuUpdateFailed": "Menyu ruxsatini yangilab bo'lmadi",
+      "menuObjects": "Menyu obyektlari",
+      "permissions": "Ruxsatlar",
+      "permissionsSubtitle": "Har bir foydalanuvchi turi va roli uchun menyu sahifalari ruxsatlarini sozlang",
+      "userType": "Foydalanuvchi turi",
+      "addType": "Tur qo'shish",
+      "roleLabel": "Rol",
+      "noRoles": "Hozircha rollar yo'q",
+      "createRoleBtn": "Rol yaratish",
+      "roleNameLabel": "Rol nomi",
+      "statusLabel": "Holat",
+      "cancelBtn": "Bekor qilish",
+      "createUserType": "Foydalanuvchi turini yaratish",
+      "typeName": "Tur nomi",
+      "selectUserType": "Foydalanuvchi turini tanlang",
+      "selectRoleType": "Rolni tanlang",
+      "permission": "Ruxsat",
+      "viewPermission": "Ko'rish ruxsati",
+      "viewLabel": "Ko'rinish nomi",
+      "setting": "Sozlama",
+      "targetObject": "Maqsadli obyekt",
+      "sourceRelation": "Manba bog'lanishi",
+      "notInTab": "Tabda emas",
+      "readUpper": "O'QISH",
+      "writeUpper": "YOZISH",
+      "updateUpper": "YANGILASH",
+      "deleteUpper": "O'CHIRISH",
+      "publicUpper": "OMMAVIY"
     },
     "roleManage": {
       "loading": "Rollarni yuklash...",
@@ -1011,7 +1451,924 @@
       },
       "saving": "Saqlanmoqda...",
       "cancel": "Bekor qilish",
-      "save": "O'zgarishlarni saqlash"
+      "save": "O'zgarishlarni saqlash",
+      "nameRequired": "Nom kerak (kamida 2 belgi)"
+    },
+    "connectors": {
+      "badge": "Konnektorlar",
+      "titleLead": "Siz allaqachon ishlatayotgan",
+      "titleAccent": "hamma narsani ulang",
+      "subtitle": "Dunyoning eng mashhur servislari uchun 300+ tayyor konnektor. Bir bosishda integratsiya, sozlash bilan ovoragarchiliksiz.",
+      "getStarted": "Bepul boshlash →",
+      "requestLink": "Konnektor so'rash",
+      "requestTitle": "O'z vositangizni topmadingizmi?",
+      "requestSubtitle": "Biz har hafta yangi konnektorlar qo'shamiz. So'rov qoldiring — ustuvor qilamiz.",
+      "requestButton": "Konnektor so'rash →",
+      "groups": {
+        "payments": "💳 To'lovlar",
+        "marketing": "📣 Marketing va CRM",
+        "productivity": "🛠️ Samaradorlik",
+        "databases": "🗄️ Ma'lumotlar bazasi va saqlash",
+        "hr": "👥 HR va xodimlar",
+        "devtools": "🔧 Dasturchi vositalari"
+      }
+    },
+    "docs": {
+      "badge": "Hujjatlar",
+      "titleLead": "Tushunarli hujjatlar bilan",
+      "titleAccent": "tezroq yarating",
+      "subtitle": "Boshlash, vositalaringizni ulash va birinchi ilovangizni bir necha daqiqada chiqarish uchun kerak bo'lgan hamma narsa.",
+      "quickStart": "Tezkor start →",
+      "apiReference": "API ma'lumotnomasi",
+      "gettingStarted": "Ishni boshlash",
+      "stepsLead": "Uch qadamda",
+      "stepsAccent": "ishga tushiring",
+      "step": "Qadam",
+      "guidesEyebrow": "Qo'llanmalar",
+      "guidesLead": "u‑gen'ning har bir",
+      "guidesAccent": "burchagini o'rganing",
+      "steps": {
+        "workspace": {
+          "title": "Ish maydonini yarating",
+          "desc": "Ro'yxatdan o'ting, tarifni tanlang va birinchi ish maydonini sozlang — ikki daqiqadan kam vaqt oladi."
+        },
+        "data": {
+          "title": "Ma'lumotlaringizni ulang",
+          "desc": "Ma'lumotlar bazasi, API yoki jadvalni ulang. u‑gen sxema va interfeys karkasini avtomatik yaratadi."
+        },
+        "publish": {
+          "title": "Yig'ing va chop eting",
+          "desc": "Vizual muharrir yoki SI so'rovi bilan interfeysni yig'ing, so'ng o'z domeningizda chop eting."
+        }
+      },
+      "guides": {
+        "data": {
+          "title": "Ma'lumotlar va bazalar",
+          "desc": "PostgreSQL, MySQL, MongoDB, Supabase, Airtable va boshqalarni bir bosishda ulang."
+        },
+        "ui": {
+          "title": "UI komponentlar",
+          "desc": "100+ komponent: jadvallar, formalar, grafiklar, kanban doskalar, kalendarlar va maxsus vidjetlar."
+        },
+        "connectors": {
+          "title": "Konnektorlar va API",
+          "desc": "Webhook'larni ishga tushiring, REST endpointlarni chaqiring va kodsiz ko'p bosqichli avtomatlashtirish quring."
+        },
+        "auth": {
+          "title": "Autentifikatsiya va huquqlar",
+          "desc": "Kirish, foydalanuvchi rollari va qator darajasidagi xavfsizlikni sozlang. SSO va OAuth qo'llab-quvvatlanadi."
+        },
+        "publishing": {
+          "title": "Chop etish va domenlar",
+          "desc": "u‑gen subdomeni yoki o'z domeningizga joylashtiring. Bir bosishda SSL."
+        },
+        "templates": {
+          "title": "Shablonlar",
+          "desc": "Shablonni klonlang va moslang. Har bir starter uchun bosqichma-bosqich qo'llanma bor."
+        }
+      }
+    },
+    "templatesPublic": {
+      "badge": "Shablonlar",
+      "titleLead": "Tayyor shablonlar bilan",
+      "titleAccent": "tezroq ishga tushiring",
+      "subtitle": "Barcha yo'nalishlarda ishlab chiqarishga tayyor ilova shablonlari. Klonlang, moslang va bir necha daqiqada chiqaring.",
+      "useFree": "Shablondan bepul foydalanish →",
+      "loadError": "Shablonlarni yuklab bo'lmadi. Keyinroq urinib ko'ring.",
+      "empty": "Hozircha shablonlar yo'q.",
+      "ctaTitle": "O'z shabloningizni toping va bugun ishga tushiring",
+      "ctaSubtitle": "Barcha shablonlarni istalgan tarifda bepul klonlash mumkin.",
+      "ctaButton": "Boshlash →"
+    },
+    "templateDetail": {
+      "notFound": "Shablon topilmadi.",
+      "backToTemplates": "Shablonlarga qaytish",
+      "back": "Orqaga",
+      "useTemplate": "Shablondan foydalanish",
+      "screenshots": "Skrinshotlar",
+      "screenshot": "Skrinshot {index}",
+      "screenshotPreview": "Skrinshotni ko'rish",
+      "about": "Ushbu shablon haqida",
+      "noPreview": "Ko'rib chiqish mavjud emas",
+      "reload": "Ko'rinishni yangilash",
+      "fullscreen": "To'liq ekran",
+      "exitFullscreen": "To'liq ekrandan chiqish",
+      "prevImage": "Oldingi rasm",
+      "nextImage": "Keyingi rasm",
+      "desktop": "Desktop",
+      "tablet": "Planshet",
+      "mobile": "Mobil"
+    },
+    "hireExpert": {
+      "titleLead": "u‑gen eksperti",
+      "titleAccent": "yollang",
+      "subtitle": "u‑gen ekspertlari mahsulotingizni tezroq yaratish va ishga tushirishga yordam beradi — qisqa maslahatdan to'liq loyiha yetkazib berishgacha.",
+      "becomePrefix": "u‑gen eksperti bo'lishni xohlaysizmi?",
+      "applyHere": "Ariza qoldirish →",
+      "allServices": "Barcha xizmatlar",
+      "anyBudget": "Har qanday byudjet",
+      "resetAll": "Hammasini tozalash",
+      "expert": "Ekspert",
+      "experts": "Ekspert",
+      "services": "Xizmatlar",
+      "languages": "Tillar",
+      "location": "Joylashuv",
+      "budgetRange": "Byudjet oralig'i",
+      "hourlyRate": "Soatlik stavka",
+      "contact": "Bog'lanish",
+      "showMore": "Ko'proq",
+      "showLess": "Yopish",
+      "noneTitle": "Ekspertlar topilmadi",
+      "noneSubtitle": "Filtrlarni o'zgartiring yoki tozalab ko'ring.",
+      "filters": {
+        "backend": "Backend dasturlash",
+        "mobile": "Mobil dasturlash",
+        "frontend": "Frontend dasturlash",
+        "design": "UI / UX dizayn",
+        "devops": "DevOps",
+        "qa": "QA va testlash",
+        "data": "Ma'lumotlar va SI",
+        "small": "$5K gacha",
+        "mid": "$5K – $20K",
+        "large": "$20K dan yuqori"
+      },
+      "modal": {
+        "title": "u-gen eksperti bo'ling",
+        "description": "O'zingiz haqingizda gapiring — keyingi qadamlar bo'yicha bog'lanamiz.",
+        "fullName": "To'liq ism",
+        "fullNamePlaceholder": "Ism Familiya",
+        "companyTeam": "Kompaniya / jamoa",
+        "companyPlaceholder": "Acme Studio",
+        "email": "Email",
+        "emailPlaceholder": "you@example.com",
+        "phone": "Telefon / Telegram",
+        "phonePlaceholder": "+998 90 123 45 67",
+        "servicesLabel": "Qanday xizmatlar ko'rsatasiz",
+        "servicesPlaceholder": "Backend, mobil, UI/UX…",
+        "portfolio": "Portfolio / sayt",
+        "portfolioPlaceholder": "https://…",
+        "message": "Yana biror narsa?",
+        "messagePlaceholder": "Tajribangiz haqida yozing…",
+        "cancel": "Bekor qilish",
+        "submit": "Arizani yuborish",
+        "success": "Ariza yuborildi! Tez orada bog'lanamiz.",
+        "error": "Arizani yuborib bo'lmadi"
+      }
+    },
+    "legal": {
+      "eyebrow": "Huquqiy ma'lumot",
+      "effectiveDate": "Kuchga kirish sanasi: {date}"
+    },
+    "userAgreement": {
+      "title": "Foydalanuvchi",
+      "accentTitle": "shartnomasi",
+      "effectiveDate": "2026-yil 28-iyul",
+      "intro": "Ushbu Foydalanuvchi shartnomasi Ugen mahsulotlari, xizmatlari, ish maydonlari, integratsiyalari va yaratilgan ilovalaridan foydalanishning asosiy shartlarini belgilaydi.",
+      "sections": [
+        {
+          "id": "acceptance",
+          "title": "1. Shartnomani qabul qilish",
+          "blocks": [
+            "Akkaunt yaratish, Ugen'ga kirish yoki istalgan Ugen xizmatidan foydalanish orqali siz ushbu Foydalanuvchi shartnomasiga va unda havola qilingan siyosatlarga rozilik bildirasiz.",
+            "Agar siz Ugen'dan kompaniya yoki tashkilot nomidan foydalansangiz, ushbu Shartnomani o'sha tashkilot nomidan qabul qilish vakolatiga ega ekanligingizni tasdiqlaysiz."
+          ]
+        },
+        {
+          "id": "accounts",
+          "title": "2. Akkauntlar va xavfsizlik",
+          "blocks": [
+            "Akkaunt ma'lumotlarining xavfsizligi va akkauntingiz yoki ish maydoningizda amalga oshirilgan barcha harakatlar uchun siz javobgarsiz.",
+            "Siz akkaunt va to'lov ma'lumotlarini to'g'ri kiritishingiz va ularni dolzarb holatda saqlashingiz shart."
+          ]
+        },
+        {
+          "id": "acceptable-use",
+          "title": "3. Maqbul foydalanish",
+          "blocks": [
+            "Ugen'dan amaldagi qonunchilikni buzish, uchinchi shaxslar huquqlarini buzish, zararli dastur tarqatish, ruxsatsiz kirishga urinish, platforma resurslarini suiiste'mol qilish yoki xizmatga xalaqit berish uchun foydalanish taqiqlanadi.",
+            "Ish maydoningizda yaratilgan yoki boshqariladigan loyihalar, kontent, ma'lumotlar, avtomatlashtirishlar, integratsiyalar va ilovalar uchun siz javobgarsiz."
+          ]
+        },
+        {
+          "id": "customer-data",
+          "title": "4. Mijoz ma'lumotlari va integratsiyalar",
+          "blocks": [
+            "Ugen'ga yuklangan yoki u orqali qayta ishlangan ma'lumotlar, jumladan uchinchi tomon integratsiyalaridan olingan ma'lumotlar uchun javobgarlik sizda qoladi.",
+            "Uchinchi tomon xizmatlarini ulaganingizda, siz Ugen'ga ulangan ma'lumotlarga faqat so'ralgan funksionallikni ta'minlash uchun zarur bo'lgan darajada kirish va ularni qayta ishlashga ruxsat berasiz."
+          ]
+        },
+        {
+          "id": "plans-and-payments",
+          "title": "5. Tariflar, to'lovlar va bekor qilish",
+          "blocks": [
+            "Pullik tariflar, foydalanish limitlari, to'lov davrlari va narxlar to'lov sahifasida yoki billing bo'limida ko'rsatiladi. Siz tanlangan tarif bo'yicha tegishli to'lovlar va soliqlarni to'lashga rozilik bildirasiz.",
+            "Bekor qilish, agar alohida yozma shartnomada boshqacha ko'rsatilmagan bo'lsa, Bekor qilish siyosatiga muvofiq amalga oshiriladi."
+          ]
+        },
+        {
+          "id": "availability",
+          "title": "6. Xizmat mavjudligi va o'zgarishlar",
+          "blocks": [
+            "Biz xavfsizlikni ta'minlash, qonunchilikka rioya qilish, mahsulotni rivojlantirish yoki foydalanuvchilar va platformani himoya qilish maqsadida Ugen'ning ayrim qismlarini yangilashimiz, takomillashtirishimiz, to'xtatib turishimiz yoki to'xtatishimiz mumkin.",
+            "Biz xizmat mavjudligini ta'minlashga harakat qilamiz, biroq uzluksiz va xatosiz ishlashini kafolatlamaymiz."
+          ]
+        },
+        {
+          "id": "liability",
+          "title": "7. Kafolatlardan voz kechish va javobgarlikni cheklash",
+          "blocks": [
+            "Ugen amaldagi qonunchilik ruxsat bergan maksimal darajada \"qanday bo'lsa shundayligicha\" va \"mavjud bo'lganicha\" taqdim etiladi.",
+            "Qonun ruxsat bergan maksimal darajada UCODE xizmatdan foydalanish natijasida yuzaga kelgan bilvosita, tasodifiy, oqibatli, maxsus, jarima zararlari yoki boy berilgan foyda uchun javobgar emas."
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "8. Aloqa",
+          "blocks": [
+            "Ushbu Foydalanuvchi shartnomasi bo'yicha savollar uchun {businessEmail} manziliga yozing.",
+            "{legalName}, {address}"
+          ]
+        }
+      ]
+    },
+    "cancelPolicy": {
+      "title": "Bekor qilish",
+      "accentTitle": "siyosati",
+      "effectiveDate": "2026-yil 28-iyul",
+      "intro": "Ushbu Bekor qilish siyosati mijozlar Ugen pullik obunalarini qanday bekor qilishi va bekor qilingandan keyin nima bo'lishini tushuntiradi.",
+      "sections": [
+        {
+          "id": "subscriptions-and-renewals",
+          "title": "1. Obunalar va yangilanish",
+          "blocks": [
+            "Ugen obunalari, keyingi yangilanish sanasidan oldin bekor qilinmasa, tanlangan to'lov davri oxirida avtomatik yangilanishi mumkin.",
+            "Amaldagi tarif, to'lov davri, yangilanish sanasi va mavjud limitlar, agar ish maydoni uchun billing yoqilgan bo'lsa, akkauntning billing bo'limida ko'rsatiladi."
+          ]
+        },
+        {
+          "id": "how-to-cancel",
+          "title": "2. Qanday bekor qilinadi",
+          "blocks": [
+            "Ish maydoni egasi yoki vakolatli administrator, mavjud bo'lgan hollarda, Ugen boshqaruv panelidagi billing sozlamalari orqali pullik tarifni bekor qilishi mumkin.",
+            "Agar bekor qilish tugmalari panelda mavjud bo'lmasa, ish maydoniga bog'langan email manzilidan {businessEmail} ga yozing va ish maydoni yoki kompaniya nomini ko'rsating."
+          ]
+        },
+        {
+          "id": "effective-date-of-cancellation",
+          "title": "3. Bekor qilish kuchga kirish sanasi",
+          "blocks": [
+            "Bekor qilish odatda joriy to'langan davr oxirida kuchga kiradi. Tegishli buyurtma, hisob-faktura yoki yozma shartnomada boshqacha ko'rsatilmagan bo'lsa, pullik funksiyalarga kirish to'langan davr tugagunicha saqlanishi mumkin.",
+            "Bekor qilish kuchga kirgach, ish maydoni bepul tarifga o'tkazilishi yoki pullik funksiyalarga kirish cheklanishi mumkin."
+          ]
+        },
+        {
+          "id": "refunds",
+          "title": "4. Qaytarishlar",
+          "blocks": [
+            "To'langan to'lovlar, amaldagi qonunchilik talab qilmasa yoki UCODE yozma ravishda aniq rozilik bermasa, odatda qaytarilmaydi.",
+            "Agar to'lov noto'g'ri ko'rinsa, to'lov, hisob-faktura va akkaunt faoliyatini tekshirishimiz uchun imkon qadar tezroq biz bilan bog'laning."
+          ]
+        },
+        {
+          "id": "data-after-cancellation",
+          "title": "5. Bekor qilingandan keyingi ma'lumotlar",
+          "blocks": [
+            "Obunani bekor qilish ish maydoni ma'lumotlarini avtomatik o'chirmaydi. Foydalanuvchilar mahsulotda mavjud imkoniyatlar orqali loyiha ma'lumotlarini eksport qilish yoki o'chirish uchun javobgar bo'lib qoladi.",
+            "Ba'zi ma'lumotlar billing, xavfsizlik, audit, qonunchilikka rioya qilish, nizolarni hal qilish yoki asosli biznes hujjatlarini yuritish uchun zarur bo'lgan darajada saqlanishi mumkin."
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "6. Aloqa",
+          "blocks": [
+            "Bekor qilish bo'yicha savollarni {businessEmail} manziliga yuborish mumkin.",
+            "{legalName}, {address}"
+          ]
+        }
+      ]
+    },
+    "companyInfo": {
+      "title": "Kompaniya",
+      "accentTitle": "haqida",
+      "intro": "UCODE kompaniyasi va Ugen xizmati haqida rasmiy ma'lumotlar.",
+      "sections": [
+        {
+          "id": "legal-entity",
+          "title": "1. Yuridik shaxs",
+          "blocks": [
+            "{legalName}",
+            "Soliq to'lovchi identifikatsiya raqami (STIR): {tin}."
+          ]
+        },
+        {
+          "id": "address",
+          "title": "2. Manzil",
+          "blocks": [
+            "{address}"
+          ]
+        },
+        {
+          "id": "business-phone",
+          "title": "3. Ish telefoni",
+          "blocks": [
+            "AQSH: {businessPhoneUS}",
+            "O'zbekiston: {businessPhoneUZ}"
+          ]
+        },
+        {
+          "id": "business-email",
+          "title": "4. Ish email manzili",
+          "blocks": [
+            "{businessEmail}"
+          ]
+        },
+        {
+          "id": "website",
+          "title": "5. Veb-sayt",
+          "blocks": [
+            "{website}"
+          ]
+        }
+      ]
+    },
+    "privacyPolicy": {
+      "title": "Maxfiylik",
+      "accentTitle": "siyosati",
+      "effectiveDate": "2026-yil 9-iyul",
+      "intro": "Ushbu Maxfiylik siyosati «UCODE MCHJ» («Ucode», «biz», «bizning») Ucode'dan, jumladan Google Calendar va Instagram Direct integratsiyalaridan foydalanganingizda shaxsiy ma'lumotlarni qanday to'plashi, ishlatishi, saqlashi va himoya qilishini tushuntiradi.",
+      "contact": {
+        "title": "10. Biz bilan bog'lanish",
+        "intro": "Ushbu Maxfiylik siyosati yoki Ucode ma'lumotlar bilan qanday ishlashi bo'yicha savollaringiz bo'lsa, biz bilan bog'laning:",
+        "emailLabel": "Email",
+        "addressLabel": "Manzil",
+        "websiteLabel": "Veb-sayt"
+      },
+      "sections": [
+        {
+          "id": "information-we-process",
+          "title": "1. Biz qayta ishlaydigan ma'lumotlar",
+          "blocks": [
+            "Ucode'dan foydalanganingizda biz xizmatni ta'minlash uchun zarur bo'lgan akkaunt, loyiha va ish maydoni ma'lumotlarini qayta ishlashimiz mumkin.",
+            "Agar Google Calendar'ni Ucode loyihasiga ulashni tanlasangiz, Ucode integratsiya uchun tanlangan Google kalendarida tadbirlar yaratish, o'zgartirish va o'chirish ruxsatini so'raydi.",
+            "Google Calendar integratsiyasi uchun Ucode faqat ushbu foydalanuvchi integratsiyasini ta'minlash uchun zarur ma'lumotlarni qayta ishlashi mumkin:"
+          ],
+          "list": [
+            "Google OAuth avtorizatsiya va yangilash tokenlari;",
+            "tanlangan Google kalendari identifikatori;",
+            "tadbir nomi, tavsifi, joyi, boshlanish va tugash sanasi;",
+            "Google Calendar tadbiri identifikatori;",
+            "sinxronizatsiya holati, vaqt belgilari va xato xabarlari."
+          ],
+          "after": [
+            "Bu ma'lumotlar faqat siz Google akkauntingizni aniq ulaganingizdan va sinxronizatsiya uchun Ucode loyiha jadvalini sozlaganingizdan keyin qayta ishlanadi.",
+            "Agar Instagram Direct'ni Ucode loyihasiga ulashni tanlasangiz, Ucode Instagram professional akkauntingizni ulash, mijoz xabarlarini qabul qilish va Meta API'lari orqali sizning nomingizdan javob yuborish uchun zarur ruxsatlarni so'raydi.",
+            "Instagram Direct integratsiyasi uchun Ucode Instagram OAuth/kirish tokenlari, ulangan Instagram akkaunt identifikatorlari, foydalanuvchi nomi kabi ochiq akkaunt metama'lumotlari, kiruvchi va chiquvchi Direct xabarlari mazmuni, xabarlardagi ilovalar, Meta API'lari orqali mavjud jo'natuvchi identifikatorlari, vaqt belgilari, yetkazib berish holati va tegishli suhbat metama'lumotlarini qayta ishlashi mumkin.",
+            "Oxirgi foydalanuvchi Direct xabarida sizning ulangan Instagram akkauntingizning o'z postini ulashganda, Ucode assistent mahsulot yoki kontent bo'yicha savollarga javob bera olishi uchun Instagram Graph API orqali o'sha post sarlavhasi yoki media metama'lumotlarini o'qishi mumkin. Ucode boshqa Instagram akkauntlariga tegishli mediaga, oxirgi foydalanuvchi ulangan akkauntingizga xabarda yuborgan kontentdan tashqari, kirmaydi."
+          ]
+        },
+        {
+          "id": "how-we-use-google-user-data",
+          "title": "2. Integratsiya ma'lumotlaridan qanday foydalanamiz",
+          "blocks": [
+            "Ucode Google foydalanuvchi ma'lumotlaridan faqat foydalanuvchi so'ragan Google Calendar integratsiyasini ta'minlash va yaxshilash uchun foydalanadi.",
+            "Bog'langan Ucode loyiha jadvalidagi yozuv yaratilganda, o'zgartirilganda yoki o'chirilganda, Ucode ulangan Google kalendarida tegishli tadbirni yaratishi, o'zgartirishi yoki o'chirishi mumkin.",
+            "Ucode Google foydalanuvchi ma'lumotlaridan reklama, retargeting, shaxsiylashtirilgan reklama, marketing, profillash, integratsiyaga aloqador bo'lmagan analitika, kredit qarorlari, ma'lumot brokerlariga sotish yoki Google Calendar integratsiyasini ta'minlash va yaxshilashga aloqasi bo'lmagan boshqa maqsadlarda foydalanmaydi.",
+            "Ucode Instagram Direct ma'lumotlaridan faqat foydalanuvchi so'ragan Instagram xabar almashish integratsiyasini ta'minlash va yaxshilash uchun foydalanadi, jumladan Instagram akkauntini ulash, mijoz xabarlarini qabul qilish va yo'naltirish, suhbatlarni Ucode panelida ko'rsatish, ulangan akkaunt nomidan javob yuborish, SI yordamidagi javoblarni yaratish va jonli operatorga topshirishni qo'llab-quvvatlash.",
+            "Ucode ulangan akkauntingizning Instagram postlari sarlavhalari yoki metama'lumotlaridan faqat o'sha postni Direct xabarida ulashgan foydalanuvchiga tegishli javob yaratish uchun zarur bo'lganda foydalanishi mumkin.",
+            "Ucode Instagram xabar ma'lumotlaridan reklama, retargeting, shaxsiylashtirilgan reklama, marketing profillash, ma'lumot brokerlariga sotish yoki Instagram Direct integratsiyasini ta'minlash va yaxshilashga aloqasi bo'lmagan boshqa maqsadlarda foydalanmaydi."
+          ]
+        },
+        {
+          "id": "google-api-services-user-data-policy",
+          "title": "3. Google API Services User Data siyosati",
+          "blocks": [
+            "Ucode'ning Google API'laridan olingan ma'lumotlardan foydalanishi va uzatishi Google API Services User Data Policy talablariga, jumladan Limited Use talablariga muvofiqdir.",
+            "Ucode Google foydalanuvchi ma'lumotlarini sotmaydi. Ucode Google foydalanuvchi ma'lumotlarini uchinchi shaxslarga, foydalanuvchi Google Calendar integratsiyasini ta'minlash yoki yaxshilash, amaldagi qonunchilikka rioya qilish, xavfsizlik suiiste'molidan himoyalanish uchun zarur hollar yoki foydalanuvchining aniq roziligi bilan bo'lgan hollardan tashqari, uzatmaydi."
+          ]
+        },
+        {
+          "id": "meta-instagram-messaging-data",
+          "title": "4. Meta / Instagram xabar ma'lumotlari",
+          "blocks": [
+            "Instagram Direct bo'yicha Ucode Instagram professional akkauntini ulagan biznes yoki loyiha egasi nomidan ish yuritadi. Biz Meta va Instagram ma'lumotlarini faqat o'sha akkaunt egasi sozlagan xabar almashish funksionalligini ta'minlash uchun qayta ishlaymiz.",
+            "Xabarlar oxirgi foydalanuvchilardan xabar olish va ulangan Instagram akkauntidan javob yetkazish uchun Meta API'lari orqali uzatiladi. Kirish tokenlari faqat integratsiya ulangan holatda saqlanadi va faqat integratsiyani ta'minlash uchun ishlatiladi.",
+            "Tegishli Ucode ish maydonining vakolatli a'zolari integratsiyani boshqarish, SI javoblarini tekshirish yoki suhbatni assistentdan o'z zimmasiga olish uchun zarur bo'lganda Instagram suhbat tarixiga kirishi mumkin.",
+            "Instagram ma'lumotlari Ucode'ga tegishli umumiy SI modellarini o'qitish uchun ishlatilmaydi. Xabar mazmuni SI xizmat provayderlariga faqat ulangan akkaunt egasi so'ragan javobni yoki oxirgi foydalanuvchi suhbati kontekstini shakllantirish uchun zarur bo'lganda yuborilishi mumkin."
+          ]
+        },
+        {
+          "id": "storage-and-retention",
+          "title": "5. Saqlash va saqlash muddatlari",
+          "blocks": [
+            "OAuth ma'lumotlari faqat Google Calendar integratsiyasi tegishli Ucode loyihasiga ulangan holatda saqlanadi. Tadbir identifikatorlari va sinxronizatsiya metama'lumotlari tegishli Ucode loyiha yozuvlari bilan faqat Google Calendar integratsiyasini ta'minlash uchun zarur darajada saqlanishi mumkin.",
+            "Google Calendar integratsiyasini uzganingizda yoki tegishli loyiha resursini o'chirganingizda, Ucode o'sha integratsiya uchun saqlangan avtorizatsiya ma'lumotlaridan foydalanishni to'xtatadi. Google Calendar'da avval yaratilgan tadbirlar integratsiya uzilgani sababli avtomatik o'chirilmaydi.",
+            "Instagram kirish tokenlari faqat Instagram Direct integratsiyasi tegishli Ucode loyihasiga ulangan holatda saqlanadi. Instagram xabarlar tarixi va sinxronizatsiya metama'lumotlari tegishli Ucode loyiha yozuvlari bilan faqat integratsiyani ta'minlash, auditni qo'llab-quvvatlash va amaldagi huquqiy majburiyatlarga rioya qilish uchun zarur darajada saqlanishi mumkin.",
+            "Instagram Direct integratsiyasini uzganingizda yoki tegishli loyiha resursini o'chirganingizda, Ucode o'sha integratsiya uchun saqlangan avtorizatsiya ma'lumotlaridan foydalanishni to'xtatadi va o'sha ulangan akkaunt uchun yangi xabarlarni qabul qilmaydi."
+          ]
+        },
+        {
+          "id": "sharing-of-information",
+          "title": "6. Ma'lumotlarni ulashish",
+          "blocks": [
+            "Biz shaxsiy ma'lumotlarni va Google foydalanuvchi ma'lumotlarini sotmaymiz.",
+            "Google foydalanuvchi ma'lumotlari faqat Google Calendar integratsiyasini ta'minlash yoki yaxshilash, amaldagi qonunchilikka rioya qilish, xavfsizlik suiiste'molidan himoyalanish uchun zarur bo'lganda yoki foydalanuvchining aniq roziligi bilan ulashiladi.",
+            "Instagram xabar ma'lumotlari Meta Platforms, Inc. API'lari orqali faqat xabarlarni qabul qilish, javoblarni yetkazish, ulangan akkauntni tekshirish va Instagram Direct integratsiyasini ta'minlash uchun zarur darajada uzatiladi. Bu ma'lumotlar Meta shartlari va siyosatlariga muvofiq qayta ishlanadi.",
+            "Xabar mazmuni, ilovalar va tegishli suhbat konteksti SI xizmat provayderlariga faqat SI yordamidagi javoblarni yaratish yoki ulangan loyiha uchun so'ralgan xabar qayta ishlashni bajarish maqsadida ulashilishi mumkin.",
+            "Bizning nomimizdan ma'lumotlarni qayta ishlaydigan xizmat provayderlari ma'lumotlarni himoya qilishi va ulardan faqat Ucode'ga xizmat ko'rsatish uchun foydalanishi shart."
+          ]
+        },
+        {
+          "id": "security",
+          "title": "7. Xavfsizlik",
+          "blocks": [
+            "Biz ma'lumotlarni ruxsatsiz kirish, yo'qotish, noto'g'ri foydalanish, o'zgartirish va oshkor qilishdan himoya qilishga qaratilgan oqilona texnik va tashkiliy choralarni qo'llaymiz."
+          ]
+        },
+        {
+          "id": "your-choices",
+          "title": "8. Sizning imkoniyatlaringiz",
+          "blocks": [
+            "Google Calendar'ni Ucode loyihasidan Ucode loyiha resurslari sozlamalari orqali uzishingiz mumkin. Shuningdek, Google akkauntingiz xavfsizlik sozlamalaridan Ucode kirish huquqini bekor qilishingiz mumkin.",
+            "Instagram Direct'ni Ucode loyihasidan Ucode loyiha resurslari sozlamalari orqali uzishingiz mumkin. Shuningdek, Meta akkauntingiz, Facebook sahifangiz, Instagram professional akkauntingiz yoki Meta Business Integrations sozlamalaridan Ucode'ning Instagram yoki Facebook ruxsatlarini bekor qilishingiz mumkin.",
+            "Quyidagi kontaktlar orqali biz bilan bog'lanib, shaxsiy ma'lumotlar va integratsiya ma'lumotlarini, jumladan Meta yoki Instagram integratsiyalari orqali olingan ma'lumotlarni o'chirishni so'rashingiz mumkin. Agar saqlash amaldagi qonunchilik talabi bo'lmasa yoki xavfsizlik, suiiste'mol yoxud to'lov masalalarini hal qilish uchun zarur bo'lmasa, biz tegishli ma'lumotlarni o'chiramiz yoki anonimlashtiramiz.",
+            "Amaldagi qonunchilik va huquqiy majburiyatlarimiz doirasida shaxsiy ma'lumotlarga kirish, ularni tuzatish yoki o'chirishni so'rash uchun biz bilan bog'lanishingiz mumkin."
+          ]
+        },
+        {
+          "id": "changes-to-this-policy",
+          "title": "9. Ushbu siyosatga o'zgartirishlar",
+          "blocks": [
+            "Biz ushbu Maxfiylik siyosatini vaqti-vaqti bilan yangilashimiz mumkin. Ucode Google foydalanuvchi ma'lumotlari yoki Instagram xabar ma'lumotlaridan tegishli foydalanuvchi integratsiyasini ta'minlash yoki yaxshilashdan boshqa maqsadda, foydalanuvchi aniq xabardor qilinmasa, kerakli hollarda rozilik bermasa va bunday foydalanish amaldagi platforma siyosatlari va qonunchilik tomonidan ruxsat etilmasa, foydalanmaydi."
+          ]
+        }
+      ]
+    },
+    "projectWorkspace": {
+      "telegramIntegration": "Telegram integratsiyasi",
+      "openTelegramSetup": "Telegram sozlamasini ochish",
+      "openTelegramSetupLink": "Telegram sozlash havolasini ochish",
+      "contextLoading": "Loyiha konteksti hali yuklanmoqda",
+      "loadTablesFailed": "Jadvallarni yuklab bo'lmadi.",
+      "retry": "Qayta urinish",
+      "noTables": "Jadvallar topilmadi.",
+      "displayName": "Ko'rsatiladigan nom",
+      "suggestedUsername": "Tavsiya etilgan foydalanuvchi nomi",
+      "selectTableTelegram": "Telegram maydonlarini bog'lashni boshlash uchun jadvalni tanlang.",
+      "mapFieldsHint": "Mavjud maydonlarni bog'lang. Tanlanmaganlari uchun standart nomlar ishlatiladi.",
+      "waitingConnection": "Ulanish kutilmoqda...",
+      "close": "Yopish",
+      "createManagedSession": "Boshqariladigan sessiya yaratish",
+      "instagramIntegration": "Instagram Direct integratsiyasi",
+      "selectTableInstagram": "Instagram maydonlarini bog'lashni boshlash uchun jadvalni tanlang.",
+      "completeInstagramAuth": "Qalqib chiquvchi oynada Instagram avtorizatsiyasini yakunlang.",
+      "authorizeInstagram": "Instagram'ni avtorizatsiya qilish",
+      "fillConnectionParams": "Ulanish parametrlarini to'ldiring",
+      "name": "Nomi",
+      "type": "Turi",
+      "environment": "Muhit",
+      "cancel": "Bekor qilish",
+      "transcoderPipelines": "Transkoder pipeline'lari",
+      "status": "Holat",
+      "videoKey": "Video kaliti",
+      "size": "Hajmi",
+      "integrations": "Integratsiyalar",
+      "integrationsSubtitle": "Uchinchi tomon xizmatlarini ulang va ilovangizni kengaytiring",
+      "allCategories": "Barcha toifalar",
+      "connected": "Ulangan",
+      "cloudFileStorage": "Bulutli fayl saqlash",
+      "driveAuthDone": "Google Drive avtorizatsiyasi muvaffaqiyatli yakunlandi.",
+      "calendarAuthDone": "Google Calendar avtorizatsiyasi muvaffaqiyatli yakunlandi.",
+      "mapFields": "Maydonlarni bog'lash",
+      "directMessages": "Shaxsiy xabarlar",
+      "instagramAuthDone": "Instagram avtorizatsiyasi muvaffaqiyatli yakunlandi.",
+      "configure": "Sozlash",
+      "sourceControl": "Manba kodi versiyalarini boshqarish",
+      "leadsHint": "Google formalaringizdan lidlar to'g'ridan-to'g'ri loyiha jadvallariga tushadi.",
+      "manage": "Boshqarish",
+      "available": "Mavjud",
+      "soon": "Tez orada",
+      "noIntegrationsMatch": "So'rovingizga mos integratsiyalar topilmadi.",
+      "searchTables": "Jadvallarni qidirish...",
+      "supportBot": "Qo'llab-quvvatlash boti",
+      "chooseField": "Maydonni tanlang",
+      "resourceNamePlaceholder": "Masalan, Production Database",
+      "selectResourceType": "Resurs turini tanlang",
+      "email": "Email",
+      "password": "Parol",
+      "defaultOtp": "Standart OTP",
+      "numberOfOtp": "OTP soni",
+      "login": "Login",
+      "originator": "Jo'natuvchi",
+      "host": "Host",
+      "port": "Port",
+      "database": "Ma'lumotlar bazasi",
+      "databaseName": "Ma'lumotlar bazasi nomi",
+      "username": "Foydalanuvchi nomi",
+      "token": "Token",
+      "url": "URL",
+      "searchIntegrations": "Integratsiyalarni qidirish...",
+      "telegramLinkCreated": "Telegram sozlash havolasi yaratildi",
+      "telegramConnected": "Telegram ulandi",
+      "instagramAuthOpened": "Instagram avtorizatsiyasi ochildi",
+      "driveConnected": "Google Drive ulandi",
+      "driveConnectFailed": "Google Drive'ni ulab bo'lmadi",
+      "calendarConnected": "Google Calendar ulandi",
+      "calendarConnectFailed": "Google Calendar'ni ulab bo'lmadi",
+      "instagramConnected": "Instagram Direct ulandi",
+      "instagramConnectFailed": "Instagram Direct'ni ulab bo'lmadi",
+      "editElement": "Elementni tahrirlash",
+      "color": "Rang",
+      "clearBackground": "Fonni olib tashlash",
+      "textContentTitle": "Matn mazmuni",
+      "editViaChat": "Chat orqali tahrirlash",
+      "brandFonts": "Brend shriftlari",
+      "weight": "Qalinlik",
+      "textStyle": "Matn uslubi",
+      "alignment": "Tekislash",
+      "case": "Registr",
+      "decoration": "Bezak",
+      "opacity": "Shaffoflik",
+      "margin": "Tashqi otstup",
+      "padding": "Ichki otstup",
+      "layout": "Joylashuv",
+      "display": "Ko'rinish",
+      "direction": "Yo'nalish",
+      "wrap": "O'tkazish",
+      "columns": "Ustunlar",
+      "pickLayout": "Joylashuvni tanlang",
+      "editEachSide": "Har bir tomon uchun alohida",
+      "regenerateWithAi": "SI bilan qayta yaratish",
+      "editWithAi": "SI bilan tahrirlash",
+      "uploadNewImage": "Yangi rasm yuklash",
+      "text": "Matn",
+      "background": "Fon",
+      "textContent": "Matn mazmuni",
+      "font": "Shrift",
+      "search": "Qidiruv",
+      "fontSize": "Shrift o'lchami",
+      "sizeLabel": "O'lcham",
+      "spacing": "Oraliq",
+      "resetChanges": "O'zgarishlarni tiklash",
+      "hideElement": "Elementni yashirish (tiklash qaytaradi)",
+      "done": "Tayyor",
+      "method": "Metod",
+      "descriptionLabel": "Tavsif",
+      "atomic": "Atomar",
+      "transactionSafe": "Tranzaksiya uchun xavfsiz",
+      "sourceSql": "Manba SQL",
+      "parameters": "Parametrlar",
+      "newParameter": "Yangi parametr",
+      "stringType": "Satr",
+      "numberType": "Son",
+      "booleanType": "Mantiqiy",
+      "dateType": "Sana",
+      "noDynamicParams": "Dinamik parametrlar belgilanmagan. Foydalaning",
+      "schema": "Sxema",
+      "editEndpoint": "Endpointni tahrirlash",
+      "executionParameters": "Bajarish parametrlari",
+      "noDynamicParamsQuery": "Ushbu so'rov uchun dinamik parametrlar kerak emas.",
+      "results": "Natijalar",
+      "executingQuery": "So'rov bajarilmoqda...",
+      "executionError": "Bajarish xatosi",
+      "dataEmpty": "Ma'lumot yo'q",
+      "runEndpointHint": "Natijalarni ko'rish uchun endpointni ishga tushiring",
+      "newEndpoint": "Yangi endpoint",
+      "loadingEndpoints": "Endpointlar yuklanmoqda...",
+      "confirmDeletion": "O'chirishni tasdiqlang",
+      "confirmDeleteEndpoint": "Ushbu endpointni o'chirmoqchimisiz",
+      "deleting": "O'chirilmoqda...",
+      "manageEndpoints": "Endpointlar, SDK va API kalitlarini boshqarish",
+      "endpointName": "Endpoint nomi",
+      "whatDoesThisDo": "U nima qiladi?",
+      "searchEndpoints": "Endpointlarni qidirish...",
+      "apiCallsMonth": "API so'rovlari / oyiga",
+      "open": "Ochish",
+      "frontend": "Frontend",
+      "microfrontendSubtitle": "Modulli mikrofrontend komponentlarini sozlang va boshqaring.",
+      "addMicrofrontend": "Mikrofrontend qo'shish",
+      "noMicrofrontends": "Mikrofrontendlar topilmadi",
+      "configureFirstMicrofrontend": "Modulli ishlab chiqishni yoqish uchun birinchi mikrofrontendni sozlang.",
+      "deleteMicrofrontend": "Mikrofrontendni o'chirish",
+      "confirmDelete": "Rostdan ham o'chirmoqchimisiz",
+      "newMicrofrontend": "Yangi mikrofrontend",
+      "pathUrl": "Yo'l / URL",
+      "resource": "Resurs",
+      "repositoryPath": "Repozitoriy (yo'l)",
+      "branch": "Branch",
+      "framework": "Framework",
+      "urlLink": "URL / havola",
+      "logStream": "Loglar oqimi",
+      "streamingLogs": "Loglar uzatilmoqda...",
+      "noLogs": "Loglar mavjud emas",
+      "code": "Kod",
+      "searchMicrofrontends": "Mikrofrontendlarni qidirish...",
+      "microfrontendName": "Mikrofrontend nomi",
+      "shortDescription": "Qisqa tavsif",
+      "repositoryPathPlaceholder": "Repozitoriy yo'li",
+      "selectTimeFrame": "Davrni tanlang",
+      "runHistory": "Ishga tushirishlar tarixi",
+      "noRuns": "Hozircha ishga tushirilmagan",
+      "agentNotInvoked": "Bu agent hali chaqirilmagan.",
+      "output": "Natija",
+      "error": "Xato",
+      "aiAgents": "SI agentlari",
+      "agentsSubtitle": "Loyiha ma'lumotlaringizni o'qiydigan va yozadigan server tomonidagi SI assistentlarini yarating.",
+      "newAgent": "Yangi agent",
+      "noAgents": "Hozircha agentlar yo'q",
+      "createAgent": "Agent yaratish",
+      "configureAgent": "Agentning shaxsi, modeli va jadval ruxsatlarini sozlang.",
+      "model": "Model",
+      "systemPrompt": "Tizim prompti (ko'rsatma)",
+      "deleteAgent": "Agentni o'chirish",
+      "toggleStatus": "Holatni almashtirish",
+      "edit": "Tahrirlash",
+      "delete": "O'chirish",
+      "agentNamePlaceholder": "Kompaniya assistenti",
+      "selectModel": "Modelni tanlang",
+      "oneSentenceHint": "O'zingiz uchun bitta jumla",
+      "systemPromptPlaceholder": "Siz foydali assistentsiz. Quyidagi haqida so'ralganda...",
+      "agentCreated": "Agent yaratildi",
+      "agentSaveFailed": "Agentni saqlab bo'lmadi",
+      "agentUpdated": "Agent yangilandi",
+      "statusUpdateFailed": "Holatni yangilab bo'lmadi",
+      "agentDeleted": "Agent o'chirildi",
+      "functions": "Funksiyalar",
+      "functionsSubtitle": "Serverless funksiyalar va workflow'laringizni boshqaring va joylashtiring.",
+      "addFunction": "Funksiya qo'shish",
+      "noFunctions": "Funksiyalar topilmadi",
+      "createFirstFunction": "Birinchi serverless funksiyangizni yaratishdan boshlang.",
+      "deleteFunction": "Funksiyani o'chirish",
+      "newFunction": "Yangi funksiya",
+      "path": "Yo'l",
+      "selectMethod": "Metodni tanlang",
+      "searchFunctions": "Funksiyalarni qidirish...",
+      "functionName": "Funksiya nomi",
+      "production": "Production",
+      "secrets": "Maxfiy kalitlar",
+      "secretsSubtitle": "Muhit o'zgaruvchilari va maxfiy ma'lumotlarni xavfsiz boshqaring.",
+      "addSecret": "Maxfiy kalit qo'shish",
+      "noSecrets": "Hozircha maxfiy kalitlar yo'q",
+      "noSecretsVault": "Omborda maxfiy kalitlar topilmadi.",
+      "addVaultSecret": "Omborga yangi maxfiy kalit qo'shish",
+      "storeSensitiveHint": "API kalitlari yoki hisob ma'lumotlari kabi maxfiy ma'lumotlarni saqlang.",
+      "value": "Qiymat",
+      "changeValueHint": "Ushbu muhit o'zgaruvchisi qiymatini o'zgartiring.",
+      "newValue": "Yangi qiymat",
+      "deleteSecret": "Maxfiy kalitni o'chirish",
+      "envVarName": "ENV_VAR_NOMI",
+      "addTemplate": "Shablon qo'shish",
+      "addToTemplates": "Shablonlarga qo'shish",
+      "createReusableTemplate": "Ushbu ish maydonidan qayta ishlatiladigan shablon yarating.",
+      "previewImage": "Ko'rinish rasmi",
+      "replaceImage": "Rasmni almashtirish",
+      "remove": "O'chirish",
+      "uploadPreview": "Ko'rinish yuklash",
+      "templateName": "Shablon nomi",
+      "images": "Rasmlar",
+      "addToTemplate": "Shablonga qo'shish",
+      "templatePreview": "Shablon ko'rinishi",
+      "describeTemplate": "Ushbu shablonga nimalar kirishini tasvirlang…",
+      "screenshot": "Skrinshot",
+      "screenshotPreview": "Skrinshotni ko'rish",
+      "templateAdded": "Shablon qo'shildi",
+      "previewSimulation": "Ko'rinish simulyatsiyasi",
+      "simulatedPush": "Bu simulyatsiya qilingan kiruvchi push bildirishnoma.",
+      "tryAgain": "Qayta urinish",
+      "simulateSuccess": "Muvaffaqiyatni simulyatsiya qilish",
+      "simulateFailure": "Xatoni simulyatsiya qilish",
+      "uploadDocument": "Hujjat yuklash",
+      "useCameraSimulation": "Kamera simulyatsiyasidan foydalanish",
+      "previewSimulationResult": "Simulyatsiya natijasi",
+      "selectedSource": "Tanlangan manba",
+      "simulateVerified": "Tasdiqlashni simulyatsiya qilish",
+      "simulateFailed": "Rad etishni simulyatsiya qilish",
+      "closePreviewSimulation": "Ko'rinish simulyatsiyasini yopish",
+      "dismissPush": "Simulyatsiya push bildirishnomasini yopish",
+      "uploadDocumentPreview": "Ko'rinish simulyatsiyasi uchun hujjat yuklash",
+      "deleteNote": "Eslatmani o'chirish",
+      "typeAnything": "Biror narsa yozing..",
+      "deleteImage": "Rasmni o'chirish",
+      "selectTool": "Tanlash (bir nechtasini tanlash uchun torting)",
+      "pan": "Siljitish",
+      "stickyNote": "Stiker (joylashtirish uchun kanvasni bosing)",
+      "fitToScreen": "Ekranga moslash",
+      "zoomOut": "Uzoqlashtirish",
+      "zoomIn": "Yaqinlashtirish",
+      "noteColor": "Eslatma rangi",
+      "bold": "Qalin",
+      "bulletList": "Markerli ro'yxat",
+      "generatedFrontend": "Yaratilgan frontend",
+      "microfrontends": "Mikrofrontendlar",
+      "mobilePreviewError": "Mobil ko'rinish xato haqida xabar berdi",
+      "fixInChat": "Chatda tuzatish",
+      "canvasBuildFailed": "Kanvasni yig'ib bo'lmadi",
+      "sharedBundleFailed": "Umumiy ko'rinish bundle'ini yig'ib bo'lmadi",
+      "singlePage": "Bitta sahifa",
+      "allPagesCanvas": "Barcha sahifalar (kanvas)",
+      "visualEdit": "Vizual tahrirlash",
+      "rebuildPreview": "Ko'rinishni qayta yig'ish",
+      "projectPreview": "Loyiha ko'rinishi",
+      "refreshPreview": "Ko'rinishni yangilash",
+      "dismissError": "Xatoni yopish",
+      "mobilePreview": "Mobil ko'rinish",
+      "theme": "Mavzu",
+      "themeSubtitle": "Loyihangiz ranglari va shriftlari.",
+      "noCssVars": "src/index.css da CSS rang o'zgaruvchilari topilmadi.",
+      "logo": "Logotip",
+      "uploadLogo": "Logotip yuklash",
+      "fontFamily": "Shrift oilasi",
+      "noFonts": "Shriftlar topilmadi",
+      "saveApply": "Saqlash va qo'llash",
+      "searchFonts": "Shriftlarni qidirish...",
+      "buildFailed": "Yig'ish muvaffaqiyatsiz",
+      "mobileApp": "Mobil ilova",
+      "preview": "Ko'rinish",
+      "mobileCapabilities": "Mobil imkoniyatlar",
+      "requested": "So'ralgan",
+      "testOnPhone": "Telefoningizda sinab ko'ring",
+      "nativeBuilds": "Nativ buildlar",
+      "androidKitDownloaded": "Android build to'plami yuklandi",
+      "extractThenRun": "Arxivdan chiqaring, so'ng ishga tushiring:",
+      "downloadSourceKit": "Android debug APK'ni lokal yig'ish uchun manba to'plamini yuklab oling",
+      "nativeBuildSoon": "Nativ build tez orada",
+      "phone": "Telefon",
+      "link": "Havola",
+      "changePassword": "Parolni o'zgartirish",
+      "inviteLink": "Taklif havolasi",
+      "copied": "Nusxalandi!",
+      "copyLink": "Havoladan nusxa olish",
+      "action": "Amal",
+      "users": "Foydalanuvchilar",
+      "manageAppUsers": "Ilova foydalanuvchilarini boshqarish",
+      "upgradePlan": "Tarifni oshirish",
+      "addBuilder": "Builder qo'shish",
+      "inviteUser": "Foydalanuvchini taklif qilish",
+      "builders": "Builderlar",
+      "searchUsers": "Foydalanuvchilarni qidirish...",
+      "integrationTarget": "Integratsiya maqsadi",
+      "loading": "Yuklanmoqda...",
+      "tables": "Jadvallar",
+      "customQueries": "Maxsus so'rovlar",
+      "noEndpoints": "Endpointlar yo'q",
+      "language": "Til",
+      "generatedSdkCode": "Yaratilgan SDK kodi",
+      "codeCopied": "Kod buferga nusxalandi",
+      "addEnvironment": "Muhit qo'shish",
+      "noEnvironmentsFiltered": "Joriy filtrlarga mos muhitlar yo'q.",
+      "resetAllFilters": "Barcha filtrlarni tozalash",
+      "noEnvironments": "Hozircha muhitlar yo'q",
+      "displayColor": "Ko'rinish rangi",
+      "apiKeys": "API kalitlar",
+      "apiKeysSubtitle": "Ilovalaringiz uchun API kalitlar va autentifikatsiyani boshqaring.",
+      "addApiKey": "API kalit qo'shish",
+      "newApiKey": "Yangi API kalit",
+      "platform": "Platforma",
+      "noLogsPeriod": "Ushbu davr uchun loglar yo'q",
+      "noActiveTokens": "Faol tokenlar topilmadi",
+      "loadPromptsFailed": "Tizim promptlarini yuklab bo'lmadi. Qayta urinib ko'ring.",
+      "noSystemPrompts": "Ushbu loyiha uchun tizim promptlari mavjud emas.",
+      "systemPromptTitle": "Tizim prompti",
+      "systemPromptSubtitle": "Ushbu loyihada SI foydalanadigan ko'rsatmalarni sozlang.",
+      "promptSaved": "Tizim prompti saqlandi",
+      "promptSaveFailed": "Tizim promptini saqlab bo'lmadi. U boshqa joyda o'zgargan bo'lishi mumkin.",
+      "promptReset": "Tizim prompti standart holatga qaytarildi",
+      "promptResetFailed": "Tizim promptini tiklab bo'lmadi. U boshqa joyda o'zgargan bo'lishi mumkin.",
+      "githubIntegration": "GitHub integratsiyasi",
+      "active": "Faol",
+      "expired": "Muddati tugagan",
+      "tokenExpired": "Token muddati tugadi",
+      "reconnectHint": "Repozitoriylarga kirishni tiklash uchun qayta ulaning.",
+      "notConnected": "Ulanmagan",
+      "connectGithubHint": "Repozitoriylaringizni boshqarish uchun GitHub'ni ulang.",
+      "versionHistory": "Versiyalar tarixi",
+      "selectMicrofrontendHistory": "Tarixini ko'rish uchun mikrofrontendni tanlang",
+      "noVersions": "Hozircha versiyalar yo'q",
+      "publishThisVersion": "Ushbu versiyani chop etish",
+      "revertToVersion": "Ushbu versiyaga qaytish",
+      "viewCode": "Kodni ko'rish",
+      "manageFrontendPages": "Frontend sahifalari va server funksiyalarini boshqarish",
+      "explorer": "Explorer",
+      "noResults": "Hech narsa topilmadi.",
+      "format": "Formatlash",
+      "selectFileToEdit": "Tahrirlashni boshlash uchun faylni tanlang",
+      "searchInFiles": "Fayllar ichida qidirish...",
+      "loadingCodebase": "Kod bazasi yuklanmoqda...",
+      "saveChanges": "O'zgarishlarni saqlash",
+      "commitMessage": "Commit xabari",
+      "previewOnPhone": "Telefoningizda ko'rish",
+      "notPublished": "Hali chop etilmagan",
+      "download": "Yuklab olish",
+      "publish": "Chop etish",
+      "openPublishedApp": "Chop etilgan ilovani ochish",
+      "backToStyleEditor": "Uslub muharririga qaytish",
+      "describeChanges": "O'zgarishlarni tasvirlang...",
+      "send": "Yuborish",
+      "refreshStatus": "Holatni yangilash",
+      "noFilesToDownload": "Yuklab olish uchun fayllar yo'q",
+      "zipFailed": "ZIP arxivini yig'ib bo'lmadi",
+      "openSidebar": "Yon panelni ochish",
+      "waitingDeployment": "Joylashtirish kutilmoqda…",
+      "unsavedChanges": "Saqlanmagan o'zgarishlar",
+      "discard": "Bekor qilish",
+      "save": "Saqlash",
+      "noTablesFoundShort": "Jadvallar topilmadi",
+      "currentLabel": "Joriy"
+    },
+    "tokenPacksAdmin": {
+      "superAdminRequired": "Super admin ruxsati talab qilinadi",
+      "tokenPackOnlySuper": "Token paketlar katalogini boshqarish faqat super adminlar uchun.",
+      "tokenPacks": "Token paketlar",
+      "tokenPacksSubtitle": "Foydalanuvchi billing do'konidagi qo'shimcha SI-token paketlarini boshqaring.",
+      "refresh": "Yangilash",
+      "createPack": "Paket yaratish",
+      "loadFailed": "Token paketlarni yuklab bo'lmadi",
+      "retry": "Qayta urinish",
+      "noPacks": "Token paketlar topilmadi",
+      "name": "Nomi",
+      "tokens": "Tokenlar",
+      "price": "Narxi",
+      "product": "Mahsulot",
+      "status": "Holat",
+      "created": "Yaratilgan",
+      "deletePack": "Token paketni o'chirish",
+      "cancel": "Bekor qilish",
+      "delete": "O'chirish",
+      "fullReplacementHint": "Yangilanishlar to'liq almashtirish sifatida yuboriladi. Barcha maydonlarni to'ldiring.",
+      "totalPacks": "Jami paketlar",
+      "active": "Faol",
+      "hidden": "Yashirin",
+      "searchPacks": "Paketlarni qidirish...",
+      "editPack": "Token paketni tahrirlash",
+      "tokenAmount": "Tokenlar soni",
+      "cur": "VAL",
+      "productType": "Mahsulot turi",
+      "visibility": "Ko'rinish",
+      "packUpdated": "Token paket yangilandi",
+      "packCreated": "Token paket yaratildi",
+      "packDeleted": "Token paket o'chirildi"
+    },
+    "templatePricingAdmin": {
+      "superAdminRequired": "Super admin ruxsati talab qilinadi",
+      "onlySuperAdmins": "Shablon narxlari faqat super adminlar uchun.",
+      "templatePricing": "Shablon narxlari",
+      "refresh": "Yangilash",
+      "loadFailed": "Shablonlarni yuklab bo'lmadi",
+      "retry": "Qayta urinish",
+      "noTemplates": "Shablonlar topilmadi",
+      "template": "Shablon",
+      "importPrice": "Import narxi",
+      "perUser": "Foydalanuvchi uchun",
+      "status": "Holat",
+      "setPrice": "Narx belgilash",
+      "setTemplatePricing": "Shablon narxini belgilash",
+      "importPriceOneTime": "Import narxi (bir martalik)",
+      "pricePerUser": "Foydalanuvchi uchun narx",
+      "cancel": "Bekor qilish",
+      "savePrice": "Narxni saqlash",
+      "totalTemplates": "Jami shablonlar",
+      "paid": "Pullik",
+      "free": "Bepul",
+      "searchTemplates": "Shablonlarni qidirish...",
+      "cur": "VAL"
+    },
+    "templatesBoard": {
+      "notFound": "Shablon topilmadi.",
+      "backToTemplates": "Shablonlarga qaytish",
+      "noDemoUrl": "Demo havola mavjud emas",
+      "back": "Orqaga",
+      "screenshots": "Skrinshotlar",
+      "about": "Ushbu shablon haqida",
+      "reloadPreview": "Ko'rinishni yangilash",
+      "prevImage": "Oldingi rasm",
+      "screenshotPreview": "Skrinshotni ko'rish",
+      "nextImage": "Keyingi rasm",
+      "likeTemplate": "Yoqdi",
+      "like": "Yoqdi",
+      "dislikeTemplate": "Yoqmadi",
+      "dislike": "Yoqmadi",
+      "reactionFailed": "Reaksiyangizni saqlab bo'lmadi. Qayta urinib ko'ring.",
+      "templates": "Shablonlar",
+      "loadFailed": "Shablonlarni yuklab bo'lmadi. Keyinroq urinib ko'ring.",
+      "empty": "Hozircha shablonlar yo'q."
+    },
+    "allProjects": {
+      "rowsPerPage": "Sahifadagi qatorlar",
+      "noProjects": "Loyihalar topilmadi",
+      "title": "Sarlavha",
+      "status": "Holat",
+      "balance": "Balans",
+      "projectsInCompany": "Kompaniyadagi loyihalar",
+      "created": "Yaratilgan",
+      "lastActivity": "Oxirgi faollik",
+      "searchByTitle": "Sarlavha bo'yicha qidirish...",
+      "exportNoFile": "Eksport muvaffaqiyatsiz: fayl qaytmadi",
+      "exportFailed": "Loyihalarni eksport qilib bo'lmadi"
+    },
+    "billingLimit": {
+      "dailyTokens": "Kunlik tokenlar",
+      "monthlyTokens": "Oylik tokenlar",
+      "cancel": "Bekor qilish",
+      "upgradePlan": "Tarifni oshirish"
     }
   }
 }

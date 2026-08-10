@@ -3,8 +3,10 @@
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useAnalyticsStore } from "@/entities/analytics";
 import { Button } from "@/shared/ui";
+import { useTranslations } from 'next-intl'
 
 export const InsightsPanel = () => {
+  const t = useTranslations('widgets.analytics')
   const { activePeriod } = useAnalyticsStore();
   
   // Mocking no problems
@@ -17,20 +19,20 @@ export const InsightsPanel = () => {
           <div className="bg-primary/10 p-3 rounded-full">
             <CheckCircle2 className="w-10 h-10 text-primary" />
           </div>
-          <h4 className="text-xl font-bold text-text-main mt-4">All clear!</h4>
+          <h4 className="text-xl font-bold text-text-main mt-4">{t('allClear')}</h4>
           <p className="text-sm text-text-muted text-center max-w-sm">
             Everything is running smoothly for the selected time range ({activePeriod}).
           </p>
           <Button variant="ghost" className="text-primary hover:text-primary-hover underline underline-offset-4">
-            Learn more about Insights
+            {t('learnInsights')}
           </Button>
         </>
       ) : (
         <div className="w-full space-y-4">
           <InsightsCard
             type="error"
-            title="High Error Rate in Edge Functions"
-            description="We detected a spike in error rates (15%) for Edge Functions in the last hour."
+            title={t('highErrorRate')}
+            description={t('errorSpike')}
             time="2 mins ago"
           />
         </div>

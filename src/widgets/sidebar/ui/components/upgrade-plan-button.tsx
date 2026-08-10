@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react";
 import { useFreePlan } from "@/entities/billing";
 import { cn } from "@/shared/lib/utils/cn";
 import { UpgradePlanDialog } from "./upgrade-plan-dialog";
+import { useTranslations } from 'next-intl'
 
 interface UpgradePlanButtonProps {
   /**
@@ -27,6 +28,7 @@ export const UpgradePlanButton = ({
   className,
   label,
 }: UpgradePlanButtonProps) => {
+  const t = useTranslations('widgets.sidebar')
   const [open, setOpen] = useState(false);
   const { canUpgrade } = useFreePlan();
 
@@ -39,8 +41,8 @@ export const UpgradePlanButton = ({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Upgrade plan"
-        title="You're on the Free plan — upgrade anytime"
+        aria-label={t('upgradePlan')}
+        title={t('freePlanHint')}
         className={cn(
           "group focus-visible:ring-primary/40 relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-full bg-linear-to-r from-primary to-[#8b5cf6] font-semibold text-white shadow-sm transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 active:scale-[0.98]",
           variant === "solid" ? "px-4 py-2 text-sm" : "h-7 px-3 text-xs",

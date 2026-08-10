@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useMemo, useState, useCallback } from "react";
+import { useTranslations } from 'next-intl'
 
 // ─── INTERFACES ──────────────────────────────────────────────────────────────
 export interface FlowEdge {
@@ -109,6 +110,7 @@ export interface FlowDiagramProps {
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export const FlowDiagram = ({ edges = [] }: FlowDiagramProps) => {
+  const t = useTranslations('shared.common')
   const [active, setActive] = useState<string | null>(null);   // hovered node name
 
   const { layout, colCount, byCol } = useMemo(() => computeLayout(edges), [edges]);
@@ -139,7 +141,7 @@ export const FlowDiagram = ({ edges = [] }: FlowDiagramProps) => {
   );
 
   if (!edges.length) return (
-    <div style={emptyStyle}>No edges provided</div>
+    <div style={emptyStyle}>{t('noEdges')}</div>
   );
 
   return (
@@ -288,7 +290,7 @@ export const FlowDiagram = ({ edges = [] }: FlowDiagramProps) => {
           hover active
         </span>
         <span style={{ ...legendItem, color: "var(--text-muted, #999)", marginLeft: "auto" }}>
-          Hover a node to highlight its connections
+          {t('hoverNodeHint')}
         </span>
       </div>
     </div>

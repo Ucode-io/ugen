@@ -25,6 +25,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { DataLoadingState } from '@/shared/ui'
 import { PermissionCheckbox } from './permission-checkbox'
+import { useTranslations } from 'next-intl'
 
 // --- Interfaces ---
 
@@ -277,6 +278,7 @@ export const MenuPermissions = ({
   changedMenus,
   setChangedMenus
 }: MenuPermissionsProps) => {
+  const t = useTranslations('widgets.permissionManage')
   const [isScrolled, setIsScrolled] = useState(false)
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -364,7 +366,7 @@ export const MenuPermissions = ({
     <div className="w-full relative flex flex-col p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex items-center gap-2">
         <ShieldCheck className="w-5 h-5 text-primary" />
-        <span className="text-sm font-bold text-text-main uppercase tracking-tight">Menu Permissions</span>
+        <span className="text-sm font-bold text-text-main uppercase tracking-tight">{t('menuPermissions')}</span>
       </div>
 
       <WorkspaceTableWrapper className="border border-border-subtle/50 shadow-sm overflow-hidden rounded-[16px] max-w-[1100px]">
@@ -376,10 +378,10 @@ export const MenuPermissions = ({
                   "w-[230px] min-w-[230px] max-w-[230px] sticky left-0 z-50 border border-border-subtle border-t-0 border-l-0 bg-bg-card text-text-main font-bold align-middle px-6 transition-shadow duration-200",
                   isScrolled && "border-r-2 shadow-[2px_0_5px_rgba(0,0,0,0.05)]"
                 )}>
-                  <span className="text-[12px] tracking-tight font-medium uppercase text-text-muted">Menu Objects</span>
+                  <span className="text-[12px] tracking-tight font-medium uppercase text-text-muted">{t('menuObjects')}</span>
                 </WorkspaceTableHead>
                 <WorkspaceTableHead colSpan={5} className="text-center border border-border-subtle border-t-0 bg-bg-card">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60">Access Permissions</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted/60">{t('accessPermissions')}</span>
                 </WorkspaceTableHead>
               </WorkspaceTableRow>
               <WorkspaceTableRow className="transition-none hover:bg-transparent">

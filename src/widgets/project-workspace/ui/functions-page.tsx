@@ -40,6 +40,7 @@ import { cn } from "@/shared/lib/utils/cn";
 import { GitlabCodeEditor } from "./gitlab-code-view";
 import { PipelineStatus } from "./pipeline-status";
 import { useTables, type Table } from "@/entities/database";
+import { useTranslations } from 'next-intl'
 
 interface CustomEvent {
   id?: string;
@@ -117,6 +118,7 @@ const timingOptions: { label: string; value: FunctionTiming }[] = [
 ];
 
 export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [view, setView] = useState<View>("list");
   const [selectedFn, setSelectedFn] = useState<FunctionItem | null>(null);
   const [detailTab, setDetailTab] = useState<"details" | "logs">("details");
@@ -581,7 +583,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                 }
               >
                 <SelectTrigger className="bg-bg-sidebar border-border-subtle h-8 w-40 text-xs">
-                  <SelectValue placeholder="Select method" />
+                  <SelectValue placeholder={t('selectMethod')} />
                 </SelectTrigger>
                 <SelectContent
                   className="max-h-[260px]"
@@ -643,7 +645,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                 >
                   {tables.length === 0 ? (
                     <SelectItem value="__no_tables__" disabled>
-                      No tables found
+                      {t('noTablesFoundShort')}
                     </SelectItem>
                   ) : (
                     tables.map((table: Table) => (
@@ -678,7 +680,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
               className="text-primary hover:bg-primary/10 h-7 gap-1 rounded-lg px-2 text-[11px] font-semibold"
             >
               <Code2 size={13} />
-              Edit with AI
+              {t('editWithAi')}
             </Button>
           )}
           <Button
@@ -714,17 +716,17 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-text-main text-2xl font-bold tracking-tight">
-              Functions
+              {t('functions')}
             </h1>
             <p className="text-text-muted mt-1 text-sm">
-              Manage and deploy your serverless functions and workflows.
+              {t('functionsSubtitle')}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="text-text-muted absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <input
-                placeholder="Search functions..."
+                placeholder={t('searchFunctions')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-bg-sidebar border-border-subtle text-text-main placeholder:text-text-muted focus:border-primary/50 focus:ring-primary/20 h-8 w-[280px] rounded-lg border pr-4 pl-9 text-sm transition-all outline-none focus:ring-1"
@@ -735,7 +737,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
               className="bg-primary hover:bg-primary/90 h-8 rounded-lg px-3 text-[13px] font-medium text-white"
             >
               <PlusCircle size={14} className="mr-1.5" />
-              Add Function
+              {t('addFunction')}
             </Button>
           </div>
         </div>
@@ -747,9 +749,9 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
             <div className="bg-primary/5 mb-4 rounded-full p-4">
               <Zap size={32} className="text-primary/40" />
             </div>
-            <p className="text-text-main font-medium">No functions found</p>
+            <p className="text-text-main font-medium">{t('noFunctions')}</p>
             <p className="text-text-muted mt-1 text-sm">
-              Start by creating your first serverless function.
+              {t('createFirstFunction')}
             </p>
           </div>
         ) : (
@@ -777,7 +779,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
         >
           <DialogContent className="max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Delete Function</DialogTitle>
+              <DialogTitle>{t('deleteFunction')}</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete{" "}
                 <span className="text-text-main font-semibold">
@@ -792,7 +794,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                 onClick={() => setFnToDelete(null)}
                 disabled={deleteMutation.isPending}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -825,16 +827,16 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
             <ChevronLeft size={16} />
           </Button>
           <h1 className="text-text-main text-xl leading-tight font-bold">
-            New Function
+            {t('newFunction')}
           </h1>
         </div>
 
         <div className="bg-bg-card border-border-subtle max-w-lg rounded-2xl border p-6 shadow-sm">
           <div className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-text-main text-sm font-medium">Name</label>
+              <label className="text-text-main text-sm font-medium">{t('name')}</label>
               <Input
-                placeholder="Function name"
+                placeholder={t('functionName')}
                 value={createForm.name}
                 onChange={(e) =>
                   setCreateForm((p) => ({ ...p, name: e.target.value }))
@@ -844,10 +846,10 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
             </div>
             <div className="space-y-1.5">
               <label className="text-text-main text-sm font-medium">
-                Description
+                {t('descriptionLabel')}
               </label>
               <Input
-                placeholder="Short description"
+                placeholder={t('shortDescription')}
                 value={createForm.description}
                 onChange={(e) =>
                   setCreateForm((p) => ({ ...p, description: e.target.value }))
@@ -856,7 +858,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-text-main text-sm font-medium">Path</label>
+              <label className="text-text-main text-sm font-medium">{t('path')}</label>
               <Input
                 placeholder="e.g. my-function-path"
                 value={createForm.path}
@@ -873,7 +875,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                 onClick={() => setView("list")}
                 className="rounded-xl px-4"
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 disabled={!createForm.name || createMutation.isPending}
@@ -989,7 +991,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                   onValueChange={(v) => setTimeFrame(Number(v))}
                 >
                   <SelectTrigger className="bg-bg-sidebar border-border-subtle h-10">
-                    <SelectValue placeholder="Select time frame" />
+                    <SelectValue placeholder={t('selectTimeFrame')} />
                   </SelectTrigger>
                   <SelectContent>
                     {timeData.map((t) => (
@@ -1019,7 +1021,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
               <div className="bg-bg-sidebar/50 border-border-subtle flex items-center gap-2 border-b p-4">
                 <ScrollText size={14} className="text-text-muted" />
                 <span className="text-text-muted text-[11px] font-bold tracking-wider uppercase">
-                  Log Stream
+                  {t('logStream')}
                 </span>
               </div>
               <div className="scrollbar-thumb-border-subtle max-h-[600px] scrollbar-thin scrollbar-track-transparent overflow-y-auto p-4">
@@ -1030,7 +1032,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                       className="text-primary/40 animate-spin"
                     />
                     <p className="text-text-muted animate-pulse text-sm font-medium">
-                      Streaming logs...
+                      {t('streamingLogs')}
                     </p>
                   </div>
                 ) : logsList.length > 0 ? (
@@ -1074,7 +1076,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                       strokeWidth={1.5}
                     />
                     <p className="text-text-main text-sm font-medium">
-                      No logs available
+                      {t('noLogs')}
                     </p>
                     <p className="text-text-muted mt-1 text-xs opacity-80">
                       Select a time range and click "Show Logs" to retrieve
@@ -1094,7 +1096,7 @@ export const FunctionsPage = ({ projectId, onEditCode }: FunctionPageProps) => {
                 <div className="flex items-center gap-2">
                   <ScrollText size={14} className="text-text-muted" />
                   <span className="text-text-muted text-[11px] font-bold tracking-wider uppercase">
-                    Code
+                    {t('code')}
                   </span>
                 </div>
                 <PipelineStatus

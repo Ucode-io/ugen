@@ -14,6 +14,7 @@ import {
 import { cn } from "@/shared/lib/utils/cn";
 import { useDiagramStore } from "../model/store";
 import type { DiagramFilter, DiagramMode } from "../model/types";
+import { useTranslations } from 'next-intl'
 
 interface Props {
   tableCount: number;
@@ -80,6 +81,7 @@ export const DiagramToolbar: React.FC<Props> = ({
   onAutoLayout,
   onExport,
 }) => {
+  const t = useTranslations('features.dbDiagram')
   const mode = useDiagramStore((s) => s.mode);
   const filter = useDiagramStore((s) => s.filter);
   const setMode = useDiagramStore((s) => s.setMode);
@@ -95,7 +97,7 @@ export const DiagramToolbar: React.FC<Props> = ({
           <Network size={14} />
         </div>
         <span className="text-text-main text-[13px] font-semibold">
-          DB Diagram
+          {t('dbDiagram')}
         </span>
 
         <span className="bg-border-subtle/70 mx-2 h-5 w-px shrink-0" />
@@ -116,14 +118,14 @@ export const DiagramToolbar: React.FC<Props> = ({
           <ModeBtn
             active={mode === "select"}
             onClick={modeChange("select")}
-            title="Select & drag tables"
+            title={t('selectDragTables')}
           >
             <Hand size={13} />
           </ModeBtn>
           <ModeBtn
             active={mode === "pan"}
             onClick={modeChange("pan")}
-            title="Pan canvas"
+            title={t('panCanvas')}
           >
             <MousePointer2 size={13} />
           </ModeBtn>
@@ -135,27 +137,27 @@ export const DiagramToolbar: React.FC<Props> = ({
             active={filter === "all"}
             onClick={filterChange("all")}
           >
-            Both
+            {t('both')}
           </FilterBtn>
           <FilterBtn
             active={filter === "tables"}
             onClick={filterChange("tables")}
           >
-            Tables only
+            {t('tablesOnly')}
           </FilterBtn>
           <FilterBtn
             active={filter === "relations"}
             onClick={filterChange("relations")}
           >
-            Relations focus
+            {t('relationsFocus')}
           </FilterBtn>
         </div>
 
         <span className="bg-border-subtle/70 hidden h-5 w-px shrink-0 md:block" />
 
-        <ActionBtn onClick={onAutoLayout} title="Auto-arrange (dagre)">
+        <ActionBtn onClick={onAutoLayout} title={t('autoArrange')}>
           <Wand2 size={13} />
-          Auto layout
+          {t('autoLayout')}
         </ActionBtn>
         {/* <ActionBtn onClick={onExport} title="Export PNG">
           <Download size={13} />

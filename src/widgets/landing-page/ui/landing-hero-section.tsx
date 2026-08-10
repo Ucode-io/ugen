@@ -9,16 +9,12 @@ import { useFileUpload } from '@/shared/hooks/useFileUpload'
 import { AttachmentPreviews, FileDropOverlay, useFileDrop } from '@/features/file-upload'
 import { ModelSelector, DEFAULT_MODEL_ID } from '@/entities/ai-model'
 import { useAuthStore } from '@/entities/session'
+import { useTranslations } from 'next-intl'
 
-const CHIPS = [
-  { label: '💼 Sales dashboard', text: 'A SaaS dashboard for tracking sales' },
-  { label: '📅 Booking app', text: 'A booking app with Stripe payments' },
-  { label: '🎉 HR onboarding', text: 'An employee onboarding portal' },
-  { label: '📣 Landing page', text: 'A landing page with email capture' },
-  { label: '📦 Inventory tool', text: 'An inventory management system' },
-]
+const CHIPS = ['sales', 'booking', 'hr', 'landing', 'inventory']
 
 export const LandingHeroSection = () => {
+  const t = useTranslations('widgets.landingPage.hero')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -125,21 +121,21 @@ export const LandingHeroSection = () => {
       {/* Badge */}
       <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-bg-card border border-border-subtle text-text-muted mb-7 text-[11px] font-semibold uppercase tracking-[0.12em]">
         <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
-        AI-powered development platform
+        {t('badge')}
       </div>
 
       {/* H1 */}
       <h1 className="font-black tracking-[-0.05em] leading-[1.02] text-text-main mb-[18px] max-w-[840px]"
         style={{ fontSize: 'clamp(2.8rem, 6vw, 5rem)' }}>
-        Build your own product{' '}
+        {t('titleLead')}{' '}
         <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          in 15 minutes
+          {t('titleAccent')}
         </em>
       </h1>
 
       {/* Subtitle */}
       <p className="text-[1.05rem] text-text-muted mb-11 max-w-[500px] leading-[1.7]">
-        Create apps and websites with AI — no engineering degree required.
+        {t('subtitle')}
       </p>
 
       {/* Prompt Input */}
@@ -163,7 +159,7 @@ export const LandingHeroSection = () => {
             disabled={isProcessing}
             rows={1}
             className="w-full bg-transparent px-4 pb-8 pt-3 text-[15px] font-medium text-text-main placeholder:text-text-muted outline-none disabled:opacity-50 min-h-[44px] max-h-[200px] resize-none"
-            placeholder="Ask u-gen to build your app…"
+            placeholder={t('placeholder')}
           />
 
           {/* Bottom Bar */}
@@ -196,7 +192,7 @@ export const LandingHeroSection = () => {
                 className={`text-sm font-medium text-text-muted hover:text-text-main transition-colors px-3 py-1 rounded-full ${isPlanOn ? 'bg-text-main text-bg-main' : 'hover:bg-hover-bg'}`}
                 onClick={() => setIsPlanOn(!isPlanOn)}
               >
-                Build
+                {t('build')}
               </button>
               <AudioRecorder
                 onTranscription={(text) => setPrompt(prev => prev + (prev ? ' ' : '') + text)}
@@ -222,12 +218,12 @@ export const LandingHeroSection = () => {
       <div className="flex flex-wrap gap-[7px] justify-center max-w-[680px]">
         {CHIPS.map((chip) => (
           <button
-            key={chip.text}
+            key={chip}
             type="button"
-            onClick={() => { setPrompt(chip.text); textareaRef.current?.focus() }}
+            onClick={() => { setPrompt(t(`chips.${chip}.text`)); textareaRef.current?.focus() }}
             className="inline-flex items-center gap-[5px] bg-bg-card border border-border-subtle rounded-full px-[13px] py-[5px] text-[0.78rem] text-text-muted cursor-pointer transition-all whitespace-nowrap hover:border-border-subtle/60 hover:text-text-main hover:bg-hover-bg"
           >
-            {chip.label}
+            {t(`chips.${chip}.label`)}
           </button>
         ))}
       </div>

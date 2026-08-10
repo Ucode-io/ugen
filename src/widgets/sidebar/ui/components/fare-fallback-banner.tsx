@@ -5,6 +5,7 @@ import { AlertTriangle, CalendarX2, Crown, X } from "lucide-react";
 import { useAuthStore } from "@/entities/session";
 import { useCurrentSubscription, useFare } from "@/entities/billing";
 import { UpgradePlanDialog } from "./upgrade-plan-dialog";
+import { useTranslations } from 'next-intl'
 
 const formatDate = (value?: string) => {
   if (!value) return "";
@@ -18,6 +19,7 @@ const formatDate = (value?: string) => {
 };
 
 export const FareFallbackBanner = () => {
+  const t = useTranslations('widgets.sidebar')
   const projectId = useAuthStore((s) => s.project?.project_id ?? null);
   const isUgen = useAuthStore((s) => s.project?.is_ugen ?? false);
   const [dismissed, setDismissed] = useState(false);
@@ -79,7 +81,7 @@ export const FareFallbackBanner = () => {
 
         <button
           type="button"
-          aria-label="Dismiss"
+          aria-label={t('dismiss')}
           onClick={() => setDismissed(true)}
           className="shrink-0 rounded-md p-1 text-yellow-600 transition-colors hover:bg-yellow-400/20"
         >

@@ -15,6 +15,7 @@ import type {
   MobileSimulationAction,
   MobileSimulationState,
 } from "@/entities/project/model/mobile-capabilities";
+import { useTranslations } from 'next-intl'
 
 interface MobileCapabilitySimulationProps {
   state: MobileSimulationState;
@@ -23,9 +24,10 @@ interface MobileCapabilitySimulationProps {
 }
 
 function SimulationBadge() {
+  const t = useTranslations('widgets.projectWorkspace')
   return (
     <span className="rounded-full bg-violet-500/15 px-2 py-1 text-[10px] font-semibold tracking-wide text-violet-300 uppercase">
-      Preview simulation
+      {t('previewSimulation')}
     </span>
   );
 }
@@ -37,13 +39,14 @@ function SimulationDialog({
   children: ReactNode;
   onClose: () => void;
 }) {
+  const t = useTranslations('widgets.projectWorkspace')
   return (
     <div className="absolute inset-0 z-60 flex items-center justify-center bg-black/55 p-5 backdrop-blur-sm">
       <div className="relative w-full max-w-[320px] rounded-[28px] border border-white/15 bg-[#18181b]/95 p-5 text-white shadow-2xl">
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close preview simulation"
+          aria-label={t('closePreviewSimulation')}
           className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
         >
           <X size={14} />
@@ -59,6 +62,7 @@ export function MobileCapabilitySimulation({
   dispatch,
   projectName = "Mobile app",
 }: MobileCapabilitySimulationProps) {
+  const t = useTranslations('widgets.projectWorkspace')
   const close = () => dispatch({ type: "close" });
 
   if (state.active === "push_notifications") {
@@ -75,16 +79,16 @@ export function MobileCapabilitySimulation({
                 <span className="text-[10px] text-black/45">now</span>
               </div>
               <p className="mt-0.5 text-[11px] leading-relaxed text-black/70">
-                This is a simulated incoming push notification.
+                {t('simulatedPush')}
               </p>
               <p className="mt-1 text-[9px] font-semibold tracking-wide text-violet-600 uppercase">
-                Preview simulation
+                {t('previewSimulation')}
               </p>
             </div>
             <button
               type="button"
               onClick={close}
-              aria-label="Dismiss simulated push notification"
+              aria-label={t('dismissPush')}
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-black/45 transition-colors hover:bg-black/5 hover:text-black"
             >
               <X size={12} />
@@ -134,14 +138,14 @@ export function MobileCapabilitySimulation({
               }
               className="flex-1 rounded-xl border border-white/15 px-3 py-2 text-xs font-medium transition-colors hover:bg-white/10"
             >
-              Try again
+              {t('tryAgain')}
             </button>
             <button
               type="button"
               onClick={close}
               className="flex-1 rounded-xl bg-violet-600 px-3 py-2 text-xs font-medium transition-colors hover:bg-violet-500"
             >
-              Done
+              {t('done')}
             </button>
           </div>
         ) : (
@@ -154,7 +158,7 @@ export function MobileCapabilitySimulation({
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-violet-500"
             >
               <Fingerprint size={15} />
-              Simulate success
+              {t('simulateSuccess')}
             </button>
             <button
               type="button"
@@ -163,7 +167,7 @@ export function MobileCapabilitySimulation({
               }
               className="w-full rounded-xl border border-white/15 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-white/10"
             >
-              Simulate failure
+              {t('simulateFailure')}
             </button>
           </div>
         )}
@@ -214,13 +218,13 @@ export function MobileCapabilitySimulation({
           <div className="mt-5 space-y-2">
             <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-blue-500">
               <Upload size={15} />
-              Upload document
+              {t('uploadDocument')}
               <input
                 type="file"
                 accept="image/*,.pdf"
                 onChange={handleFile}
                 className="sr-only"
-                aria-label="Upload document for preview simulation"
+                aria-label={t('uploadDocumentPreview')}
               />
             </label>
             <button
@@ -234,14 +238,14 @@ export function MobileCapabilitySimulation({
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-3 py-2.5 text-xs font-medium transition-colors hover:bg-white/10"
             >
               <Camera size={15} />
-              Use camera simulation
+              {t('useCameraSimulation')}
             </button>
           </div>
         ) : state.identityResult ? (
           <div className="mt-5 space-y-3">
             <div className="rounded-xl border border-white/10 bg-white/5 p-3">
               <p className="text-[10px] font-semibold tracking-wide text-white/45 uppercase">
-                Preview simulation result
+                {t('previewSimulationResult')}
               </p>
               <p className="mt-1 text-xs font-medium">
                 {verified
@@ -260,14 +264,14 @@ export function MobileCapabilitySimulation({
                 }
                 className="flex-1 rounded-xl border border-white/15 px-3 py-2 text-xs font-medium transition-colors hover:bg-white/10"
               >
-                Try again
+                {t('tryAgain')}
               </button>
               <button
                 type="button"
                 onClick={close}
                 className="flex-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-medium transition-colors hover:bg-blue-500"
               >
-                Done
+                {t('done')}
               </button>
             </div>
           </div>
@@ -275,7 +279,7 @@ export function MobileCapabilitySimulation({
           <div className="mt-5 space-y-3">
             <div className="rounded-xl border border-white/10 bg-white/5 p-3">
               <p className="text-[10px] font-semibold tracking-wide text-white/45 uppercase">
-                Selected source
+                {t('selectedSource')}
               </p>
               <p className="mt-1 truncate text-xs font-medium">
                 {state.identitySource}
@@ -292,7 +296,7 @@ export function MobileCapabilitySimulation({
                 }
                 className="flex-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-medium transition-colors hover:bg-blue-500"
               >
-                Simulate verified
+                {t('simulateVerified')}
               </button>
               <button
                 type="button"
@@ -304,7 +308,7 @@ export function MobileCapabilitySimulation({
                 }
                 className="flex-1 rounded-xl border border-white/15 px-3 py-2 text-xs font-medium transition-colors hover:bg-white/10"
               >
-                Simulate failed
+                {t('simulateFailed')}
               </button>
             </div>
           </div>

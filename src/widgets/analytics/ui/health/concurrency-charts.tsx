@@ -4,6 +4,7 @@ import * as React from "react";
 import dynamic from 'next/dynamic';
 import { useHealthMetrics, useAnalyticsStore } from "@/features/analytics";
 import { Skeleton } from "@/shared/ui";
+import { useTranslations } from 'next-intl'
 
 const AnalyticsChart = dynamic(() => import("@/entities/analytics/ui/analytics-chart").then(mod => mod.AnalyticsChart), { 
   ssr: false,
@@ -11,6 +12,7 @@ const AnalyticsChart = dynamic(() => import("@/entities/analytics/ui/analytics-c
 });
 
 export const ConcurrencyCharts = () => {
+  const t = useTranslations('widgets.analytics')
   const { activePeriod } = useAnalyticsStore();
   const { data: metrics, isLoading } = useHealthMetrics(activePeriod);
 
@@ -27,14 +29,14 @@ export const ConcurrencyCharts = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <AnalyticsChart
-        title="Scheduler Status"
+        title={t('schedulerStatus')}
         tooltip="Lag time in minutes"
         data={metrics.concurrency.scheduler}
         lines={[{ key: 'value', color: 'var(--color-primary)', name: 'Lag Time' }]}
         height={200}
       />
       <AnalyticsChart
-        title="Running Functions"
+        title={t('runningFunctions')}
         tooltip="Active running functions"
         data={metrics.concurrency.running}
         lines={[
@@ -44,7 +46,7 @@ export const ConcurrencyCharts = () => {
         height={200}
       />
       <AnalyticsChart
-        title="Queued Functions"
+        title={t('queuedFunctions')}
         tooltip="Functions waiting in queue"
         data={metrics.concurrency.queued}
         lines={[

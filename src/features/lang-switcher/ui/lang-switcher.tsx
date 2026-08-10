@@ -19,11 +19,11 @@ export const LangSwitcher = () => {
 
   return (
     <Select value={locale} onValueChange={toggleLang}>
-      <SelectTrigger className="w-[80px] h-8 bg-transparent border-border-subtle hover:bg-bg-sidebar transition-colors rounded-md text-xs font-medium">
+      <SelectTrigger className="w-[72px] h-8 bg-transparent border-border-subtle hover:bg-hover-bg transition-colors rounded-full text-xs font-medium">
         <SelectValue placeholder={t('placeholder')} />
       </SelectTrigger>
       <SelectContent>
-        {['en', 'ru', 'uz'].map((lang) => (
+        {['en', 'ru'].map((lang) => (
           <SelectItem key={lang} value={lang} className="text-xs font-medium cursor-pointer">
             {lang.toUpperCase()}
           </SelectItem>

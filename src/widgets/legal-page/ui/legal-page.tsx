@@ -1,7 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
+import { COMPANY_INFO } from "@/shared/config/company";
 import { Footer } from "@/widgets/footer";
+
+// ponytail: legal copy lives in messages/*.json; company details stay in
+// COMPANY_INFO and get spliced into {placeholders} so they can't drift.
+export const fillCompany = (text: string) =>
+  text.replace(
+    /\{(\w+)\}/g,
+    (match, key: string) => (COMPANY_INFO as Record<string, string>)[key] ?? match,
+  );
 
 export type LegalSection = {
   id: string;
@@ -21,7 +31,7 @@ export type LegalPageProps = {
 };
 
 export const LegalPage = ({
-  eyebrow = "Legal",
+  eyebrow,
   title,
   accentTitle,
   effectiveDate,
@@ -29,11 +39,12 @@ export const LegalPage = ({
   sections,
   children,
 }: LegalPageProps) => {
+  const t = useTranslations("widgets.legal");
   return (
     <div className="bg-bg-main flex min-h-screen flex-col">
       <div className="bg-bg-card border-border-subtle border-b px-6 py-20 text-center">
         <span className="text-text-muted/60 mb-3 inline-block text-[0.68rem] font-bold tracking-[0.08em] uppercase">
-          {eyebrow}
+          {eyebrow ?? t("eyebrow")}
         </span>
         <h1
           className="text-text-main mb-3 leading-[1.1] font-extrabold"
@@ -51,7 +62,7 @@ export const LegalPage = ({
         </h1>
         {effectiveDate && (
           <p className="text-text-muted text-[0.85rem]">
-            Effective date: {effectiveDate}
+            {t("effectiveDate", { date: effectiveDate })}
           </p>
         )}
       </div>

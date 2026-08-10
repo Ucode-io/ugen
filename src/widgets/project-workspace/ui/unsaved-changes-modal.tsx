@@ -4,8 +4,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/shared/ui'
 import { useSaveFlowStore } from '../model/save-flow-store'
+import { useTranslations } from 'next-intl'
 
 export const UnsavedChangesModal = () => {
+  const t = useTranslations('widgets.projectWorkspace')
   const open = useSaveFlowStore((s) => s.unsavedOpen)
   const params = useSaveFlowStore((s) => s.unsavedParams)
   const close = useSaveFlowStore((s) => s.closeUnsavedModal)
@@ -16,7 +18,7 @@ export const UnsavedChangesModal = () => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-text-main">
             <AlertTriangle size={16} className="text-amber-500" />
-            Unsaved changes
+            {t('unsavedChanges')}
           </DialogTitle>
           <DialogDescription className="text-text-muted text-xs">
             You have unsaved changes in {params?.files.length ?? 0} file
@@ -40,21 +42,21 @@ export const UnsavedChangesModal = () => {
             onClick={close}
             className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"
             onClick={() => params?.onDiscard()}
             className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-red-500 border border-red-500/30 hover:bg-red-500/5 transition-colors"
           >
-            Discard
+            {t('discard')}
           </button>
           <button
             type="button"
             onClick={() => params?.onSave()}
             className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-primary text-white hover:bg-primary/90 transition-colors"
           >
-            Save
+            {t('save')}
           </button>
         </DialogFooter>
       </DialogContent>

@@ -32,6 +32,7 @@ import {
   SelectValue
 } from '@/shared/ui'
 import { WorkspaceDataTable } from './workspace-data-table'
+import { useTranslations } from 'next-intl'
 
 const SecretCell = ({ value }: { value: string }) => {
   const [show, setShow] = useState(false)
@@ -52,6 +53,7 @@ interface SecretsPageProps {
 }
 
 export const SecretsPage = ({ projectId }: SecretsPageProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [isSecretDialogOpen, setSecretDialogOpen] = useState(false)
   const [isSecretUpdateOpen, setSecretUpdateOpen] = useState(false)
   const [isSecretDeleteOpen, setSecretDeleteOpen] = useState(false)
@@ -110,7 +112,7 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
       header: 'Environment',
       cell: () => (
         <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 text-[10px] font-bold uppercase tracking-wider">
-          Production
+          {t('production')}
         </span>
       )
     },
@@ -162,8 +164,8 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-main tracking-tight">Secrets</h1>
-          <p className="text-text-muted text-sm mt-1">Manage your environment variables and sensitive information securely.</p>
+          <h1 className="text-2xl font-bold text-text-main tracking-tight">{t('secrets')}</h1>
+          <p className="text-text-muted text-sm mt-1">{t('secretsSubtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -183,7 +185,7 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
             className="bg-primary hover:bg-primary/90 text-white rounded-lg h-8 px-3 text-[13px] font-medium"
           >
             <PlusCircle size={14} className="mr-1.5" />
-            Add Secret
+            {t('addSecret')}
           </Button>
         </div>
       </div>
@@ -200,8 +202,8 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
           <div className="bg-primary/5 p-4 rounded-full mb-4">
             <LockIcon size={32} className="text-primary/40" />
           </div>
-          <h3 className="text-lg font-medium text-text-main">No secrets yet</h3>
-          <p className="text-text-muted text-sm max-w-xs mt-1">No secrets were found in the vault.</p>
+          <h3 className="text-lg font-medium text-text-main">{t('noSecrets')}</h3>
+          <p className="text-text-muted text-sm max-w-xs mt-1">{t('noSecretsVault')}</p>
         </div>
       )}
 
@@ -209,32 +211,32 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
       <Dialog open={isSecretDialogOpen} onOpenChange={setSecretDialogOpen}>
         <DialogContent className="rounded-2xl max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Vault Secret</DialogTitle>
-            <DialogDescription>Store sensitive information like API keys or credentials.</DialogDescription>
+            <DialogTitle>{t('addVaultSecret')}</DialogTitle>
+            <DialogDescription>{t('storeSensitiveHint')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Key</label>
               <Input
-                placeholder="ENV_VAR_NAME"
+                placeholder={t('envVarName')}
                 value={secretForm.key}
                 className="rounded-xl border-border-subtle"
                 onChange={(e) => setSecretForm(prev => ({ ...prev, key: e.target.value }))}
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Environment</label>
+              <label className="text-sm font-medium">{t('environment')}</label>
               <Select value="production">
                 <SelectTrigger className="rounded-xl border-border-subtle bg-bg-sidebar/50">
                   <SelectValue placeholder="production" />
                 </SelectTrigger>
                 <SelectContent className="bg-bg-card border-border-subtle">
-                  <SelectItem value="production">Production</SelectItem>
+                  <SelectItem value="production">{t('production')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Value</label>
+              <label className="text-sm font-medium">{t('value')}</label>
               <Input
                 type="password"
                 placeholder="••••••••••••••••"
@@ -245,7 +247,7 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSecretDialogOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button variant="ghost" onClick={() => setSecretDialogOpen(false)} className="rounded-xl">{t('cancel')}</Button>
             <Button
               disabled={!secretForm.key || !secretForm.value || createSecretMutation.isPending}
               onClick={() => createSecretMutation.mutate(secretForm)}
@@ -262,11 +264,11 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
         <DialogContent className="rounded-2xl max-w-md">
           <DialogHeader>
             <DialogTitle>Update Secret: {activeSecret?.key}</DialogTitle>
-            <DialogDescription>Change the value for this environment variable.</DialogDescription>
+            <DialogDescription>{t('changeValueHint')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">New Value</label>
+              <label className="text-sm font-medium">{t('newValue')}</label>
               <Input
                 type="password"
                 placeholder="••••••••••••••••"
@@ -277,7 +279,7 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSecretUpdateOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button variant="ghost" onClick={() => setSecretUpdateOpen(false)} className="rounded-xl">{t('cancel')}</Button>
             <Button
               disabled={!secretForm.value || updateSecretMutation.isPending}
               onClick={() => updateSecretMutation.mutate({ key: activeSecret!.key, value: secretForm.value })}
@@ -295,15 +297,15 @@ export const SecretsPage = ({ projectId }: SecretsPageProps) => {
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
               <Trash2 size={20} />
-              Delete Secret
+              {t('deleteSecret')}
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <span className="font-bold text-text-main">{activeSecret?.key}</span>?
+              {t('confirmDelete')} <span className="font-bold text-text-main">{activeSecret?.key}</span>?
               This action is permanent and cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">
-            <Button variant="ghost" onClick={() => setSecretDeleteOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button variant="ghost" onClick={() => setSecretDeleteOpen(false)} className="rounded-xl">{t('cancel')}</Button>
             <Button
               variant="destructive"
               disabled={deleteSecretMutation.isPending}

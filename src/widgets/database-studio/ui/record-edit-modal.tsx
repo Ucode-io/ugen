@@ -5,6 +5,7 @@ import { Save, X } from "lucide-react";
 import { Column, useUpdateRecord } from "@/entities/database";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils/cn";
+import { useTranslations } from 'next-intl'
 
 interface RecordEditModalProps {
   open: boolean;
@@ -60,6 +61,7 @@ export const RecordEditModal = ({
   onClose,
   onSuccess,
 }: RecordEditModalProps) => {
+  const t = useTranslations('widgets.databaseStudio')
   const [formData, setFormData] = useState<Record<string, any>>({});
   const updateRecordMutation = useUpdateRecord();
 
@@ -119,12 +121,12 @@ export const RecordEditModal = ({
         tableName,
         data: dataToSave,
       });
-      toast.success("Record updated");
+      toast.success(t('recordUpdated'));
       onSuccess?.();
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update record");
+      toast.error(t('recordUpdateFailed'));
     }
   };
 
@@ -182,7 +184,7 @@ export const RecordEditModal = ({
           type="text"
           value={displayVal}
           onChange={(e) => handleChange(col.slug, e.target.value)}
-          placeholder="Comma-separated values"
+          placeholder={t('commaSeparated')}
           className="bg-bg-main border-border-subtle text-text-main focus:border-primary/50 w-full rounded-md border px-3 py-2 text-[13px] outline-none"
         />
       );
@@ -217,10 +219,10 @@ export const RecordEditModal = ({
         <div className="border-border-subtle flex items-center justify-between border-b px-6 py-4">
           <div>
             <h3 className="text-text-main text-[15px] leading-tight font-semibold">
-              Edit record
+              {t('editRecord')}
             </h3>
             <p className="text-text-muted mt-0.5 text-[12px]">
-              Update fields and save changes
+              {t('updateFieldsHint')}
             </p>
           </div>
           <button
@@ -259,7 +261,7 @@ export const RecordEditModal = ({
             onClick={onClose}
             className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
           >
-            Cancel
+            {t('cancelBtn')}
           </button>
           <button
             onClick={handleSubmit}

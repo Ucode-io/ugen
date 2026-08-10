@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { CheckCircle2, XCircle, Loader2, Github } from 'lucide-react'
 import { Button } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing_params: 'Authorization code or state parameter is missing.',
@@ -15,6 +16,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 }
 
 export default function GithubCallbackPage() {
+  const t = useTranslations('features.oauthCallback')
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -59,13 +61,13 @@ export default function GithubCallbackPage() {
             <XCircle className="w-14 h-14 text-destructive" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-text-main mb-2">GitHub connection failed</h1>
+            <h1 className="text-xl font-bold text-text-main mb-2">{t('githubFailed')}</h1>
             <p className="text-sm text-text-muted">
               {ERROR_MESSAGES[reason] ?? 'An unexpected error occurred. Please try again.'}
             </p>
           </div>
           <Button onClick={handleReturn} className="w-full rounded-xl">
-            Go back and retry
+            {t('goBackRetry')}
           </Button>
         </div>
       </div>
@@ -82,15 +84,15 @@ export default function GithubCallbackPage() {
           </div>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-text-main mb-1">GitHub connected!</h1>
+          <h1 className="text-xl font-bold text-text-main mb-1">{t('githubConnected')}</h1>
           {username && (
             <p className="text-sm text-text-muted">
-              Successfully connected as <span className="font-semibold text-text-main">@{username}</span>
+              {t('connectedAs')} <span className="font-semibold text-text-main">@{username}</span>
             </p>
           )}
         </div>
         <Button onClick={handleReturn} className="w-full rounded-xl bg-primary hover:bg-primary/90 text-white">
-          Continue
+          {t('continueBtn')}
         </Button>
       </div>
     </div>

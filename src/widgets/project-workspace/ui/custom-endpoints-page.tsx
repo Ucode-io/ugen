@@ -31,6 +31,7 @@ import { useTables } from '@/entities/database'
 import Editor from '@monaco-editor/react'
 import { useUIStore } from '@/shared/model/theme/use-ui-store'
 import { useAuthStore } from '@/entities/session'
+import { useTranslations } from 'next-intl'
 
 interface CustomEndpointParameter {
   name: string
@@ -50,6 +51,7 @@ interface CustomEndpoint {
 }
 
 const EndpointsView = () => {
+  const t = useTranslations('widgets.projectWorkspace')
   const { theme } = useUIStore()
   const queryClient = useQueryClient()
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail'>('list')
@@ -247,19 +249,19 @@ const EndpointsView = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5">
-                <Edit2 size={10} className="text-primary/60" /> Name
+                <Edit2 size={10} className="text-primary/60" /> {t('name')}
               </label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
-                placeholder="Endpoint Name"
+                placeholder={t('endpointName')}
                 className="bg-bg-sidebar h-10 border-border-subtle/50 text-sm font-medium"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5">
-                <Terminal size={10} className="text-primary/60" /> Method
+                <Terminal size={10} className="text-primary/60" /> {t('method')}
               </label>
               <Select
                 value={formData.method}
@@ -280,20 +282,20 @@ const EndpointsView = () => {
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5">
-                Description
+                {t('descriptionLabel')}
               </label>
               <Input
                 value={formData.description}
                 onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
-                placeholder="What does this do?"
+                placeholder={t('whatDoesThisDo')}
                 className="bg-bg-sidebar h-10 border-border-subtle/50 text-sm"
               />
             </div>
 
             <div className="flex items-center gap-4 bg-bg-main/30 rounded-xl border border-border-subtle/50 px-4 h-10 mt-5">
               <div className="flex-1">
-                <label className="text-[10px] font-bold text-text-main uppercase tracking-widest block leading-none">Atomic</label>
-                <span className="text-[9px] text-text-muted">Transaction safe</span>
+                <label className="text-[10px] font-bold text-text-main uppercase tracking-widest block leading-none">{t('atomic')}</label>
+                <span className="text-[9px] text-text-muted">{t('transactionSafe')}</span>
               </div>
               <Switch
                 checked={formData.in_transaction}
@@ -312,7 +314,7 @@ const EndpointsView = () => {
                 <div className="ai-card p-0 flex flex-col h-full overflow-hidden border-primary/5">
                   <div className="flex items-center justify-between px-5 py-3 border-b border-border-subtle/50 bg-bg-main/20">
                     <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
-                      <Terminal size={12} className="text-primary" /> Source SQL
+                      <Terminal size={12} className="text-primary" /> {t('sourceSql')}
                     </label>
                     <span className="text-[9px] text-text-muted font-mono bg-bg-sidebar px-2 py-0.5 rounded border border-border-subtle/50">SQL EDITOR v1</span>
                   </div>
@@ -341,10 +343,10 @@ const EndpointsView = () => {
                 <div className="ai-card p-0 flex flex-col overflow-hidden border-primary/5 max-h-[400px]">
                   <div className="flex items-center justify-between px-5 py-2.5 border-b border-border-subtle/50 bg-bg-main/20">
                     <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
-                      <Settings size={12} className="text-primary" /> Parameters
+                      <Settings size={12} className="text-primary" /> {t('parameters')}
                     </label>
                     <Button variant="ghost" size="sm" onClick={handleAddParam} className="h-7 px-2 text-[10px] rounded-md hover:bg-primary/10 hover:text-primary">
-                      <Plus size={12} className="mr-1" /> New Parameter
+                      <Plus size={12} className="mr-1" /> {t('newParameter')}
                     </Button>
                   </div>
 
@@ -375,10 +377,10 @@ const EndpointsView = () => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="string">String</SelectItem>
-                                <SelectItem value="number">Number</SelectItem>
-                                <SelectItem value="boolean">Boolean</SelectItem>
-                                <SelectItem value="date">Date</SelectItem>
+                                <SelectItem value="string">{t('stringType')}</SelectItem>
+                                <SelectItem value="number">{t('numberType')}</SelectItem>
+                                <SelectItem value="boolean">{t('booleanType')}</SelectItem>
+                                <SelectItem value="date">{t('dateType')}</SelectItem>
                               </SelectContent>
                             </Select>
 
@@ -397,7 +399,7 @@ const EndpointsView = () => {
                     {(!formData.parameters || formData.parameters.length === 0) && (
                       <div className="text-center py-8 border border-dashed border-border-subtle rounded-2xl flex flex-col items-center justify-center gap-2 opacity-50">
                         <Settings size={20} className="text-text-muted" />
-                        <p className="text-[10px] font-medium leading-tight text-center">No dynamic parameters defined. Use <span className="text-primary">:name</span> in your SQL query.</p>
+                        <p className="text-[10px] font-medium leading-tight text-center">{t('noDynamicParams')} <span className="text-primary">:name</span> in your SQL query.</p>
                       </div>
                     )}
                   </div>
@@ -411,7 +413,7 @@ const EndpointsView = () => {
               <div className="flex items-center justify-between px-1">
                 <span className="text-[11px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2">
                   <LayoutGrid size={12} className="text-primary" />
-                  Schema
+                  {t('schema')}
                 </span>
                 {isTablesLoading && <Loader2 size={12} className="animate-spin text-primary/40" />}
               </div>
@@ -420,7 +422,7 @@ const EndpointsView = () => {
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted opacity-50" />
                 <input
                   type="text"
-                  placeholder="Search tables..."
+                  placeholder={t('searchTables')}
                   value={tableSearch}
                   onChange={(e) => setTableSearch(e.target.value)}
                   className="w-full bg-bg-sidebar border border-border-subtle/50 rounded-lg py-1.5 pl-9 pr-3 text-[11px] outline-none focus:border-primary/30 transition-all"
@@ -515,7 +517,7 @@ const EndpointsView = () => {
             }}
             className="h-10 rounded-xl flex items-center gap-2"
           >
-            <Edit2 size={16} /> Edit Endpoint
+            <Edit2 size={16} /> {t('editEndpoint')}
           </Button>
         </div>
 
@@ -524,7 +526,7 @@ const EndpointsView = () => {
             <div className="ai-card p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
-                  <Play size={14} className="text-primary" /> Execution Parameters
+                  <Play size={14} className="text-primary" /> {t('executionParameters')}
                 </span>
                 <Button
                   onClick={() => runMutation.mutate({ id: selectedEndpoint.id, params: executionParams })}
@@ -568,7 +570,7 @@ const EndpointsView = () => {
                 ))}
                 {(!selectedEndpoint.parameters || selectedEndpoint.parameters.length === 0) && (
                   <div className="col-span-full py-2 text-text-muted text-xs italic">
-                    No dynamic parameters required for this query.
+                    {t('noDynamicParamsQuery')}
                   </div>
                 )}
               </div>
@@ -602,7 +604,7 @@ const EndpointsView = () => {
           <div className="ai-card p-0 flex flex-col border border-border-subtle bg-bg-card rounded-xl overflow-hidden min-h-[400px]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle bg-bg-main/30 shrink-0">
               <span className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
-                <Database size={14} className="text-primary" /> Results
+                <Database size={14} className="text-primary" /> {t('results')}
               </span>
               {executionResults?.length > 0 && (
                 <span className="text-[10px] font-bold text-primary px-2 py-0.5 bg-primary/10 rounded-full">
@@ -614,14 +616,14 @@ const EndpointsView = () => {
               {runMutation.isPending ? (
                 <div className="h-full flex flex-col items-center justify-center space-y-3 opacity-60">
                   <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-                  <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Executing Query...</span>
+                  <span className="text-xs font-bold text-text-muted uppercase tracking-widest">{t('executingQuery')}</span>
                 </div>
               ) : runMutation.error ? (
                 <div className="p-6 h-full flex items-center justify-center">
                   <div className="flex items-start gap-4 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-destructive max-w-md w-full">
                     <AlertCircle size={20} className="shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <p className="font-bold text-sm">Execution Error</p>
+                      <p className="font-bold text-sm">{t('executionError')}</p>
                       <p className="text-xs opacity-90">{(runMutation.error as any).response?.data?.message || (runMutation.error as any).message}</p>
                     </div>
                   </div>
@@ -637,7 +639,7 @@ const EndpointsView = () => {
                 <div className="h-full flex flex-col items-center justify-center space-y-4 text-text-muted/40 py-20">
                   <Database size={48} />
                   {
-                    !executionResults ? <p className="text-xs font-medium italic">Data is empty</p> : <p className="text-xs font-medium italic">Run the endpoint to see results</p>
+                    !executionResults ? <p className="text-xs font-medium italic">{t('dataEmpty')}</p> : <p className="text-xs font-medium italic">{t('runEndpointHint')}</p>
                   }
                 </div>
               )}
@@ -647,7 +649,7 @@ const EndpointsView = () => {
 
         <div className="ai-card p-6 space-y-4">
           <label className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
-            <Database size={14} className="text-primary" /> Source SQL
+            <Database size={14} className="text-primary" /> {t('sourceSql')}
           </label>
           <div className="h-[200px] border border-border-subtle rounded-xl overflow-hidden relative group">
             <Editor
@@ -676,7 +678,7 @@ const EndpointsView = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4" />
             <input
-              placeholder="Search endpoints..."
+              placeholder={t('searchEndpoints')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-[280px] h-8 pl-9 pr-4 rounded-lg bg-bg-sidebar border border-border-subtle text-sm text-text-main placeholder:text-text-muted outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
@@ -697,7 +699,7 @@ const EndpointsView = () => {
             className="bg-primary hover:bg-primary/90 text-white rounded-lg px-5 h-8 shadow-sm font-bold text-[13px] font-medium"
           >
             <PlusCircle size={18} className="mr-2" />
-            New Endpoint
+            {t('newEndpoint')}
           </Button>
         </div>
       </div>
@@ -705,7 +707,7 @@ const EndpointsView = () => {
       {isLoading ? (
         <div className="h-64 flex flex-col items-center justify-center space-y-4 opacity-50">
           <RefreshCw size={32} className="text-primary animate-spin" />
-          <span className="text-xs font-bold uppercase tracking-widest text-text-muted">Loading Endpoints...</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-text-muted">{t('loadingEndpoints')}</span>
         </div>
       ) : (
         <WorkspaceDataTable
@@ -724,9 +726,9 @@ const EndpointsView = () => {
       <Dialog open={!!endpointToDelete} onOpenChange={(open) => !open && setEndpointToDelete(null)}>
         <DialogContent className="max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogTitle>{t('confirmDeletion')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete endpoint <span className="font-semibold text-text-main">{endpointToDelete?.name}</span>? This action cannot be undone.
+              {t('confirmDeleteEndpoint')} <span className="font-semibold text-text-main">{endpointToDelete?.name}</span>? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 gap-2">
@@ -735,7 +737,7 @@ const EndpointsView = () => {
               onClick={() => setEndpointToDelete(null)}
               disabled={deleteMutation.isPending}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -749,7 +751,7 @@ const EndpointsView = () => {
               {deleteMutation.isPending ? (
                 <>
                   <Loader2 size={16} className="mr-2 animate-spin" />
-                  Deleting...
+                  {t('deleting')}
                 </>
               ) : "Delete Endpoint"}
             </Button>
@@ -761,6 +763,7 @@ const EndpointsView = () => {
 }
 
 export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [activeTab, setActiveTab] = useState('sdk')
   const ucodeProjectId = useAuthStore((state) => state.ucodeProjectId)
 
@@ -784,12 +787,12 @@ export const CustomEndpointsPage = ({ projectId }: { projectId: string }) => {
         <div className='flex items-center justify-between'>
           <div>
             <h1 className="text-[22px] font-bold text-text-main mb-1">API</h1>
-            <p className="text-text-muted text-[13px]">Manage endpoints, SDK, and API keys</p>
+            <p className="text-text-muted text-[13px]">{t('manageEndpoints')}</p>
           </div>
           {/* ── API calls usage indicator ── */}
           <div className='max-w-[320px] grow'>
             <UsageIndicator
-              label="API calls / month"
+              label={t('apiCallsMonth')}
               value={apiCurrent.toLocaleString()}
               total={apiLimit.toLocaleString()}
               percentage={apiPercentage}

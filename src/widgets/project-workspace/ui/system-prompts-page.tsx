@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { api } from '@/shared/api'
 import { useAuthStore } from '@/entities/session'
 import { Button, DataLoadingState, ReusableTabs } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 
 type PromptKind = 'code_editor' | 'visual_editor'
 
@@ -31,6 +32,7 @@ const promptLabels: Record<PromptKind, { title: string; description: string }> =
 }
 
 export const SystemPromptsPage = ({ projectId, promptKind }: { projectId: string; promptKind?: PromptKind }) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const environmentId = useAuthStore((state) => state.projectEnvId)
   const queryClient = useQueryClient()
   const [drafts, setDrafts] = useState<Record<PromptKind, string>>({ code_editor: '', visual_editor: '' })
@@ -72,10 +74,10 @@ export const SystemPromptsPage = ({ projectId, promptKind }: { projectId: string
       return data?.data as SystemPrompt
     },
     onSuccess: () => {
-      toast.success('System prompt saved')
+      toast.success(t('promptSaved'))
       queryClient.invalidateQueries({ queryKey: ['ai-edit-prompts', projectId] })
     },
-    onError: () => toast.error('Could not save system prompt. It may have changed elsewhere.'),
+    onError: () => toast.error(t('promptSaveFailed')),
   })
 
   const resetMutation = useMutation({
@@ -87,15 +89,15 @@ export const SystemPromptsPage = ({ projectId, promptKind }: { projectId: string
       return data?.data as SystemPrompt
     },
     onSuccess: () => {
-      toast.success('System prompt reset to default')
+      toast.success(t('promptReset'))
       queryClient.invalidateQueries({ queryKey: ['ai-edit-prompts', projectId] })
     },
-    onError: () => toast.error('Could not reset system prompt. It may have changed elsewhere.'),
+    onError: () => toast.error(t('promptResetFailed')),
   })
 
   if (!environmentId || promptsQuery.isLoading) return <DataLoadingState message="Loading system prompts..." />
   if (promptsQuery.isError) {
-    return <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-sm text-destructive">Failed to load system prompts. Please try again.</div>
+    return <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-sm text-destructive">{t('loadPromptsFailed')}</div>
   }
 
   const prompts = (['code_editor', 'visual_editor'] as PromptKind[])
@@ -105,7 +107,7 @@ export const SystemPromptsPage = ({ projectId, promptKind }: { projectId: string
   const activePrompt = prompts.find((prompt) => prompt.prompt_kind === activePromptKind) ?? prompts[0]
 
   if (!activePrompt) {
-    return <div className="rounded-xl border border-border-subtle bg-bg-card p-6 text-sm text-text-muted">No system prompts are available for this project.</div>
+    return <div className="rounded-xl border border-border-subtle bg-bg-card p-6 text-sm text-text-muted">{t('noSystemPrompts')}</div>
   }
 
   const meta = promptLabels[activePrompt.prompt_kind]
@@ -118,9 +120,9 @@ export const SystemPromptsPage = ({ projectId, promptKind }: { projectId: string
       <div>
         <div className="flex items-center gap-2">
           <Sparkles size={20} className="text-primary" />
-          <h1 className="text-2xl font-bold tracking-tight text-text-main">System prompt</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-text-main">{t('systemPromptTitle')}</h1>
         </div>
-        <p className="mt-1 text-sm text-text-muted">Customize the instructions used by AI in this project.</p>
+        <p className="mt-1 text-sm text-text-muted">{t('systemPromptSubtitle')}</p>
       </div>
 
       {prompts.length > 1 && (

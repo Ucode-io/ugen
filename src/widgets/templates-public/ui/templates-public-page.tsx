@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Layers } from 'lucide-react'
 import { Link } from '@/shared/lib/i18n/navigation'
 import { Footer } from '@/widgets/footer'
+import { useTranslations } from 'next-intl'
 import {
   fetchPublicTemplates,
   getTemplateDescription,
@@ -22,6 +23,7 @@ const buildImageUrl = (raw: string) => {
 }
 
 export const TemplatesPublicPage = () => {
+  const t = useTranslations('widgets.templatesPublic')
   const { data: templates = [], isLoading, isError } = useQuery({
     queryKey: ['ugen-templates-public'],
     queryFn: fetchPublicTemplates,
@@ -33,21 +35,21 @@ export const TemplatesPublicPage = () => {
       {/* Hero */}
       <div className="bg-bg-card border-b border-border-subtle px-6 text-center py-20">
         <span className="inline-block bg-bg-main border border-border-subtle rounded-full text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-text-muted px-3 py-1 mb-[18px]">
-          Templates
+          {t('badge')}
         </span>
         <h1 className="font-extrabold tracking-[-0.04em] leading-[1.1] text-text-main mb-4 max-w-[700px] mx-auto"
           style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)' }}>
-          Launch faster with{' '}
-          <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">ready-made templates</em>
+          {t('titleLead')}{' '}
+          <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{t('titleAccent')}</em>
         </h1>
         <p className="text-[1rem] text-text-muted max-w-[500px] mx-auto leading-[1.7] mb-8">
-          Production-ready app templates across every category. Clone, customise, and ship in minutes.
+          {t('subtitle')}
         </p>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))}
           className="inline-block bg-primary text-white text-[0.95rem] font-semibold px-7 py-3 rounded-lg hover:opacity-85 transition-all cursor-pointer border-none"
         >
-          Use a template free →
+          {t('useFree')}
         </button>
       </div>
 
@@ -70,11 +72,11 @@ export const TemplatesPublicPage = () => {
               ))
             ) : isError ? (
               <div className="col-span-full text-center text-text-muted border border-dashed border-border-subtle rounded-xl py-12">
-                Failed to load templates. Please try again later.
+                {t('loadError')}
               </div>
             ) : templates.length === 0 ? (
               <div className="col-span-full text-center text-text-muted border border-dashed border-border-subtle rounded-xl py-12">
-                No templates available yet.
+                {t('empty')}
               </div>
             ) : (
               templates.map((template) => {
@@ -127,14 +129,14 @@ export const TemplatesPublicPage = () => {
       <div className="bg-bg-card border-t border-border-subtle py-20 px-6 text-center">
         <h2 className="font-extrabold tracking-[-0.04em] text-text-main mb-3"
           style={{ fontSize: 'clamp(1.6rem, 3vw, 2.6rem)' }}>
-          Find your template and ship today
+          {t('ctaTitle')}
         </h2>
-        <p className="text-[0.95rem] text-text-muted mb-7">All templates are free to clone on any plan.</p>
+        <p className="text-[0.95rem] text-text-muted mb-7">{t('ctaSubtitle')}</p>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('open-auth', { detail: 'register' }))}
           className="inline-block bg-primary text-white text-[0.95rem] font-semibold px-7 py-3 rounded-lg hover:opacity-85 transition-all cursor-pointer border-none"
         >
-          Get started →
+          {t('ctaButton')}
         </button>
       </div>
 

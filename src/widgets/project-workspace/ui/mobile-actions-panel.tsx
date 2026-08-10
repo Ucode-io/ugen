@@ -31,6 +31,7 @@ import {
   createAndroidBuildKit,
   normalizeGeneratedMobileSource,
 } from "../lib/mobile-android-build-kit";
+import { useTranslations } from 'next-intl'
 
 const QR_SIZE = 168;
 
@@ -79,6 +80,7 @@ export function MobileBuildStatusStepper({
 }: {
   status: MobileBuildStatus;
 }) {
+  const t = useTranslations('widgets.projectWorkspace')
   if (status === "idle") return null;
   const currentIdx = STEP_ORDER.indexOf(status);
   const failed = status === "failed";
@@ -128,7 +130,7 @@ export function MobileBuildStatusStepper({
           <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-red-500/50 bg-red-500/10">
             <X size={9} />
           </span>
-          Build failed
+          {t('buildFailed')}
         </div>
       )}
     </div>
@@ -167,6 +169,7 @@ export const MobileActionsPanel = ({
   buildStatus = "idle",
   className,
 }: MobileActionsPanelProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [downloading, setDownloading] = useState(false);
   const [androidKitReady, setAndroidKitReady] = useState(false);
 
@@ -266,7 +269,7 @@ export const MobileActionsPanel = ({
         </div>
         <div className="min-w-0">
           <h2 className="text-text-main text-lg leading-tight font-semibold">
-            Mobile app
+            {t('mobileApp')}
           </h2>
           <p className="text-text-muted truncate text-xs">{runtimeLabel}</p>
         </div>
@@ -284,7 +287,7 @@ export const MobileActionsPanel = ({
           className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors"
         >
           <Eye size={15} />
-          Preview
+          {t('preview')}
         </button>
         <button
           type="button"
@@ -305,10 +308,10 @@ export const MobileActionsPanel = ({
         <div className="mt-6">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-text-muted text-xs font-medium tracking-wide uppercase">
-              Mobile capabilities
+              {t('mobileCapabilities')}
             </p>
             <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-wide uppercase">
-              Requested
+              {t('requested')}
             </span>
           </div>
           <div className="space-y-2">
@@ -330,7 +333,7 @@ export const MobileActionsPanel = ({
                     </p>
                     {definition.simulated && (
                       <span className="mt-1.5 inline-flex rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wide text-violet-500 uppercase">
-                        Preview simulation
+                        {t('previewSimulation')}
                       </span>
                     )}
                   </div>
@@ -361,7 +364,7 @@ export const MobileActionsPanel = ({
       {webPreviewUrl && (
         <div className="mt-6">
           <p className="text-text-muted mb-2 text-xs font-medium tracking-wide uppercase">
-            Test on your phone
+            {t('testOnPhone')}
           </p>
           <div className="border-border-subtle flex flex-col items-center gap-2 rounded-xl border p-4">
             <div className="rounded-lg bg-white p-1.5">
@@ -385,14 +388,14 @@ export const MobileActionsPanel = ({
           a native build service exists. */}
       <div className="mt-6">
         <p className="text-text-muted mb-2 text-xs font-medium tracking-wide uppercase">
-          Native builds
+          {t('nativeBuilds')}
         </p>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={handleDownloadAndroidKit}
             disabled={!canDownload || downloading}
-            title="Download a source kit for building an Android debug APK locally"
+            title={t('downloadSourceKit')}
             className="border-border-subtle text-text-main hover:bg-hover-bg flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {downloading ? (
@@ -405,7 +408,7 @@ export const MobileActionsPanel = ({
           <button
             type="button"
             disabled
-            title="Native build coming soon"
+            title={t('nativeBuildSoon')}
             className="border-border-subtle text-text-muted flex flex-1 cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium opacity-60"
           >
             <Apple size={13} />
@@ -420,10 +423,10 @@ export const MobileActionsPanel = ({
           <div className="mt-3 rounded-xl border border-green-500/25 bg-green-500/5 p-3">
             <div className="flex items-center gap-2 text-xs font-medium text-green-600">
               <Check size={13} />
-              Android build kit downloaded
+              {t('androidKitDownloaded')}
             </div>
             <p className="text-text-muted mt-1.5 text-[11px] leading-relaxed">
-              Extract it, then run:
+              {t('extractThenRun')}
             </p>
             <code className="text-text-main mt-2 flex items-center gap-1.5 rounded-lg bg-black/5 px-2 py-1.5 text-[10px] dark:bg-white/5">
               <Terminal size={11} />

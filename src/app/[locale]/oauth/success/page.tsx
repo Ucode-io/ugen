@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle2, XCircle, Github, Gitlab, GitBranch, Instagram } from 'lucide-react'
 import { Button } from '@/shared/ui'
+import { useTranslations } from 'next-intl'
 
 // Backend redirects the OAuth popup here after handling the provider callback:
 //   success: /oauth/success?provider=gitlab&username=<login>
@@ -18,6 +19,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 }
 
 export default function OAuthSuccessPage() {
+  const t = useTranslations('features.oauthCallback')
   const params = useSearchParams()
   const provider = (params.get('provider') ?? '').toLowerCase()
   const username = params.get('username')
@@ -72,10 +74,10 @@ export default function OAuthSuccessPage() {
             </p>
           </div>
           <Button onClick={handleClose} className="w-full rounded-xl">
-            Close window
+            {t('closeWindow')}
           </Button>
           {closeFailed && (
-            <p className="text-xs text-text-muted">You can close this tab and try again.</p>
+            <p className="text-xs text-text-muted">{t('closeAndRetry')}</p>
           )}
         </div>
       </div>
@@ -95,17 +97,17 @@ export default function OAuthSuccessPage() {
           <h1 className="text-xl font-bold text-text-main mb-1">{label} connected!</h1>
           {username ? (
             <p className="text-sm text-text-muted">
-              Successfully connected as <span className="font-semibold text-text-main">@{username}</span>
+              {t('connectedAs')} <span className="font-semibold text-text-main">@{username}</span>
             </p>
           ) : (
-            <p className="text-sm text-text-muted">Your account is now connected.</p>
+            <p className="text-sm text-text-muted">{t('accountConnected')}</p>
           )}
         </div>
         <Button onClick={handleClose} className="w-full rounded-xl bg-primary hover:bg-primary/90 text-white">
-          Close window
+          {t('closeWindow')}
         </Button>
         {closeFailed && (
-          <p className="text-xs text-text-muted">You can safely close this tab and return to the app.</p>
+          <p className="text-xs text-text-muted">{t('safelyClose')}</p>
         )}
       </div>
     </div>

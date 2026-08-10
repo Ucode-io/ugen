@@ -10,6 +10,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui"
 import { cn } from "@/shared/lib/utils/cn"
 import { fileService } from "@/shared/api/file-service"
+import { useTranslations } from 'next-intl'
 
 function rgbToHex(rgb: string): string | null {
   const ma = rgb.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/)
@@ -110,6 +111,7 @@ interface StepperRowProps {
 }
 
 const StepperRow = ({ icon: Icon, value, min, max, onChange, onExpand, expanded }: StepperRowProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const numeric = value === '' ? '' : Number(value)
   const step = (delta: number) => {
     const base = value === '' ? 0 : Number(value)
@@ -143,7 +145,7 @@ const StepperRow = ({ icon: Icon, value, min, max, onChange, onExpand, expanded 
         <button
           type="button"
           onClick={onExpand}
-          title="Edit each side"
+          title={t('editEachSide')}
           className={cn(
             "h-8 w-8 flex items-center justify-center rounded-md transition-colors shrink-0",
             expanded ? "bg-hover-bg text-text-main" : "text-text-muted hover:bg-hover-bg hover:text-text-main",
@@ -245,6 +247,7 @@ export const ElementStyleToolbar = ({
   isVisible, position: initialPosition, containerRef, iframeRef, domPath, onClose, onOpenAiPrompt,
   onCommitStyles, tagName, sourceOuterHTML,
 }: ElementStyleToolbarProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   // Position / drag
   const [position, setPosition] = useState(initialPosition)
   const [isDragging, setIsDragging] = useState(false)
@@ -527,7 +530,7 @@ export const ElementStyleToolbar = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onOpenAiPrompt() }}
-            title="Regenerate with AI"
+            title={t('regenerateWithAi')}
             className="h-8 w-8 flex items-center justify-center rounded-md text-text-main hover:bg-primary/10 hover:text-primary transition-colors"
           >
             <span className="relative inline-flex">
@@ -547,10 +550,10 @@ export const ElementStyleToolbar = ({
               type="button"
               onClick={(e) => { e.stopPropagation(); onOpenAiPrompt() }}
               className="h-8 px-2.5 flex items-center gap-1.5 rounded-md text-[13px] font-medium text-text-main hover:bg-hover-bg transition-colors shrink-0"
-              title="Edit with AI"
+              title={t('editWithAi')}
             >
               <MessageSquare size={15} className="text-text-muted" />
-              <span>Edit Element</span>
+              <span>{t('editElement')}</span>
             </button>
             <Divider />
           </>
@@ -562,7 +565,7 @@ export const ElementStyleToolbar = ({
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
             <button
               type="button"
-              title="Upload a new image"
+              title={t('uploadNewImage')}
               disabled={isUploadingImage}
               onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
               className="h-8 px-2.5 flex items-center gap-1.5 rounded-md text-[13px] font-medium text-text-main hover:bg-hover-bg transition-colors shrink-0 disabled:opacity-50"
@@ -579,20 +582,20 @@ export const ElementStyleToolbar = ({
         {/* Color */}
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" title="Color" className={iconBtn}>
+            <button type="button" title={t('color')} className={iconBtn}>
               <span className="h-4 w-4 rounded-full border border-border-subtle shadow-sm" style={{ background: get('color', '#000000') }} />
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" sideOffset={10} className={cn("w-60 p-4 space-y-3", popoverShadow)} data-popover-content>
-            <PopoverTitle>Color</PopoverTitle>
-            <ColorRow label="Text" value={get('color', '#000000')} onChange={(hex) => update({ color: hex })} />
-            <ColorRow label="Background" value={get('backgroundColor', '#ffffff')} onChange={(hex) => update({ backgroundColor: hex })} />
+            <PopoverTitle>{t('color')}</PopoverTitle>
+            <ColorRow label={t('text')} value={get('color', '#000000')} onChange={(hex) => update({ color: hex })} />
+            <ColorRow label={t('background')} value={get('backgroundColor', '#ffffff')} onChange={(hex) => update({ backgroundColor: hex })} />
             <button
               type="button"
               onClick={() => update({ backgroundColor: null })}
               className="text-[12px] text-text-muted hover:text-red-500 transition-colors"
             >
-              Clear background
+              {t('clearBackground')}
             </button>
           </PopoverContent>
         </Popover>
@@ -600,12 +603,12 @@ export const ElementStyleToolbar = ({
         {/* Text content */}
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" title="Text content" className={iconBtn}>
+            <button type="button" title={t('textContent')} className={iconBtn}>
               <Type size={16} />
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" sideOffset={10} className={cn("w-72 p-4 space-y-3", popoverShadow)} data-popover-content>
-            <PopoverTitle>Text Content</PopoverTitle>
+            <PopoverTitle>{t('textContentTitle')}</PopoverTitle>
             <div className="rounded-lg bg-bg-sidebar p-3 text-[13px] leading-relaxed text-text-muted">
               This content is dynamically generated and cannot be edited directly. You can modify the content via the chat.
             </div>
@@ -616,7 +619,7 @@ export const ElementStyleToolbar = ({
                 className="w-full h-9 flex items-center justify-center gap-1.5 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors"
               >
                 <MessageSquare size={14} />
-                Edit via chat
+                {t('editViaChat')}
               </button>
             )}
           </PopoverContent>
@@ -625,7 +628,7 @@ export const ElementStyleToolbar = ({
         {/* Font family */}
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" title="Font" className={labelBtn}>
+            <button type="button" title={t('font')} className={labelBtn}>
               <span className="max-w-[120px] truncate">{currentFont}</span>
               <ChevronDown size={13} className="text-text-muted" />
             </button>
@@ -637,13 +640,13 @@ export const ElementStyleToolbar = ({
                 autoFocus
                 value={fontSearch}
                 onChange={(e) => setFontSearch(e.target.value)}
-                placeholder="Search"
+                placeholder={t('search')}
                 className="flex-1 bg-transparent text-[13px] text-text-main placeholder:text-text-muted outline-none"
               />
             </div>
             {!fontSearch && (
               <div className="mb-1">
-                <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Brand Fonts</p>
+                <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">{t('brandFonts')}</p>
                 {brandFonts.map((f) => (
                   <button
                     key={f}
@@ -680,7 +683,7 @@ export const ElementStyleToolbar = ({
               ))}
             </div>
             <div className="mt-2 pt-2 border-t border-border-subtle flex items-center justify-between gap-2">
-              <span className="text-[13px] text-text-muted">Weight</span>
+              <span className="text-[13px] text-text-muted">{t('weight')}</span>
               <select
                 value={get('fontWeight', '400')}
                 onChange={(e) => update({ fontWeight: e.target.value })}
@@ -697,7 +700,7 @@ export const ElementStyleToolbar = ({
         {/* Size */}
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" title="Font size" className={labelBtn}>
+            <button type="button" title={t('fontSize')} className={labelBtn}>
               <span>{currentSize ? `${currentSize}` : 'Size'}</span>
               <ChevronDown size={13} className="text-text-muted" />
             </button>
@@ -709,7 +712,7 @@ export const ElementStyleToolbar = ({
               max={400}
               value={currentSize ?? ''}
               onChange={(e) => update({ fontSize: e.target.value === '' ? null : `${e.target.value}px` })}
-              placeholder="Size"
+              placeholder={t('sizeLabel')}
               className="w-full h-9 px-2.5 mb-1 rounded-lg border border-border-subtle bg-bg-sidebar text-[13px] text-text-main outline-none focus:border-primary/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
             <div className="max-h-56 overflow-y-auto">
@@ -733,14 +736,14 @@ export const ElementStyleToolbar = ({
         {/* Text style */}
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" title="Text style" className={iconBtn}>
+            <button type="button" title={t('textStyle')} className={iconBtn}>
               <Baseline size={16} />
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" sideOffset={10} className={cn("w-72 p-4 space-y-4", popoverShadow)} data-popover-content>
-            <PopoverTitle>Text style</PopoverTitle>
+            <PopoverTitle>{t('textStyle')}</PopoverTitle>
             <div className="space-y-2">
-              <FieldLabel>Alignment</FieldLabel>
+              <FieldLabel>{t('alignment')}</FieldLabel>
               <Segmented items={[
                 { key: 'left', icon: AlignLeft, active: align === 'left', onClick: () => update({ textAlign: 'left' }) },
                 { key: 'center', icon: AlignCenter, active: align === 'center', onClick: () => update({ textAlign: 'center' }) },
@@ -749,7 +752,7 @@ export const ElementStyleToolbar = ({
               ]} />
             </div>
             <div className="space-y-2">
-              <FieldLabel>Case</FieldLabel>
+              <FieldLabel>{t('case')}</FieldLabel>
               <Segmented items={[
                 { key: 'none', icon: Minus, title: 'None', active: tt === '' || tt === 'none', onClick: () => update({ textTransform: null }) },
                 { key: 'upper', label: 'AA', title: 'Uppercase', active: tt === 'uppercase', onClick: () => update({ textTransform: 'uppercase' }) },
@@ -758,7 +761,7 @@ export const ElementStyleToolbar = ({
               ]} />
             </div>
             <div className="space-y-2">
-              <FieldLabel>Decoration</FieldLabel>
+              <FieldLabel>{t('decoration')}</FieldLabel>
               <Segmented items={[
                 { key: 'none', icon: Minus, title: 'None', active: !hasUnderline && !hasStrike && !isItalic, onClick: () => update({ textDecorationLine: null, fontStyle: null }) },
                 { key: 'underline', icon: Underline, title: 'Underline', active: hasUnderline, onClick: () => update({ textDecorationLine: hasUnderline ? (hasStrike ? 'line-through' : null) : (hasStrike ? 'underline line-through' : 'underline') }) },
@@ -772,12 +775,12 @@ export const ElementStyleToolbar = ({
         {/* Opacity */}
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" title="Opacity" className={iconBtn}>
+            <button type="button" title={t('opacity')} className={iconBtn}>
               <Blend size={16} />
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" sideOffset={10} className={cn("w-72 p-4 space-y-3", popoverShadow)} data-popover-content>
-            <PopoverTitle>Opacity</PopoverTitle>
+            <PopoverTitle>{t('opacity')}</PopoverTitle>
             <div className="flex items-center gap-3">
               <input
                 type="range"
@@ -796,14 +799,14 @@ export const ElementStyleToolbar = ({
         {/* Spacing */}
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" title="Spacing" className={iconBtn}>
+            <button type="button" title={t('spacing')} className={iconBtn}>
               <AlignHorizontalSpaceAround size={16} />
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" sideOffset={10} className={cn("w-80 p-4 space-y-4", popoverShadow)} data-popover-content>
             {/* Margin */}
             <div className="grid grid-cols-[64px_1fr] gap-x-3 gap-y-2 items-center">
-              <FieldLabel>Margin</FieldLabel>
+              <FieldLabel>{t('margin')}</FieldLabel>
               {marginExpanded ? (
                 <div className="space-y-2">
                   <StepperRow icon={ArrowUp} value={pxVal('marginTop')} onChange={(v) => setSpacing(['marginTop'], v)} onExpand={() => setMarginExpanded(false)} expanded />
@@ -821,7 +824,7 @@ export const ElementStyleToolbar = ({
             <div className="border-t border-border-subtle" />
             {/* Padding */}
             <div className="grid grid-cols-[64px_1fr] gap-x-3 gap-y-2 items-center">
-              <FieldLabel>Padding</FieldLabel>
+              <FieldLabel>{t('padding')}</FieldLabel>
               {paddingExpanded ? (
                 <div className="space-y-2">
                   <StepperRow icon={ArrowUp} value={pxVal('paddingTop')} min={0} onChange={(v) => setSpacing(['paddingTop'], v)} onExpand={() => setPaddingExpanded(false)} expanded />
@@ -842,12 +845,12 @@ export const ElementStyleToolbar = ({
         {/* Layout (flex / grid) */}
         <Popover>
           <PopoverTrigger asChild>
-            <button type="button" title="Layout" className={iconBtn}>
+            <button type="button" title={t('layout')} className={iconBtn}>
               <LayoutGrid size={16} />
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" sideOffset={10} className={cn("w-80 max-h-[70vh] overflow-y-auto p-4 space-y-4", popoverShadow)} data-popover-content>
-            <PopoverTitle>Layout</PopoverTitle>
+            <PopoverTitle>{t('layout')}</PopoverTitle>
             <Segmented items={[
               { key: 'block', label: 'Block', active: layoutTab === 'block', onClick: () => setLayoutTab('block') },
               { key: 'schema', label: 'Schema', active: layoutTab === 'schema', onClick: () => setLayoutTab('schema') },
@@ -856,7 +859,7 @@ export const ElementStyleToolbar = ({
             {layoutTab === 'block' ? (
               <>
                 <div className="space-y-2">
-                  <FieldLabel>Display</FieldLabel>
+                  <FieldLabel>{t('display')}</FieldLabel>
                   <Segmented items={[
                     { key: 'block', label: 'Block', active: !isFlex && !isGrid, onClick: () => update({ display: 'block' }) },
                     { key: 'flex', label: 'Flex', active: isFlex, onClick: () => update({ display: 'flex' }) },
@@ -867,7 +870,7 @@ export const ElementStyleToolbar = ({
                 {isFlex && (
                   <>
                     <div className="space-y-2">
-                      <FieldLabel>Direction</FieldLabel>
+                      <FieldLabel>{t('direction')}</FieldLabel>
                       <Segmented items={[
                         { key: 'row', icon: ArrowRight, title: 'Row', active: flexDir === 'row', onClick: () => update({ flexDirection: 'row' }) },
                         { key: 'column', icon: ArrowDown, title: 'Column', active: flexDir === 'column', onClick: () => update({ flexDirection: 'column' }) },
@@ -881,7 +884,7 @@ export const ElementStyleToolbar = ({
                         <StepperRow value={pxVal('columnGap')} min={0} onChange={(v) => setSpacing(['columnGap', 'rowGap'], v)} />
                       </div>
                       <div className="space-y-2">
-                        <FieldLabel>Wrap</FieldLabel>
+                        <FieldLabel>{t('wrap')}</FieldLabel>
                         <Segmented items={[
                           { key: 'nowrap', label: 'Off', active: wrap === 'nowrap', onClick: () => update({ flexWrap: 'nowrap' }) },
                           { key: 'wrap', label: 'On', active: wrap === 'wrap' || wrap === 'wrap-reverse', onClick: () => update({ flexWrap: 'wrap' }) },
@@ -894,7 +897,7 @@ export const ElementStyleToolbar = ({
                 {isGrid && (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <FieldLabel>Columns</FieldLabel>
+                      <FieldLabel>{t('columns')}</FieldLabel>
                       <StepperRow icon={Columns3} value={gridCols} min={1} onChange={setGridCols} />
                     </div>
                     <div className="space-y-2">
@@ -906,7 +909,7 @@ export const ElementStyleToolbar = ({
               </>
             ) : (
               <div className="space-y-3">
-                <FieldLabel>Pick a layout</FieldLabel>
+                <FieldLabel>{t('pickLayout')}</FieldLabel>
                 <div className="grid grid-cols-2 gap-2">
                   {LAYOUT_PRESETS.map((preset) => {
                     const active = presetActive(preset.key)
@@ -942,7 +945,7 @@ export const ElementStyleToolbar = ({
         {/* Reset */}
         <button
           type="button"
-          title="Reset changes"
+          title={t('resetChanges')}
           onClick={(e) => { e.stopPropagation(); resetAll() }}
           className={iconBtn}
         >
@@ -952,7 +955,7 @@ export const ElementStyleToolbar = ({
         {/* Remove (hide) */}
         <button
           type="button"
-          title="Hide element (reset to restore)"
+          title={t('hideElement')}
           onClick={(e) => { e.stopPropagation(); update({ display: 'none' }) }}
           className="h-8 w-8 flex items-center justify-center rounded-md text-text-muted hover:bg-red-500/10 hover:text-red-500 transition-colors shrink-0"
         >
@@ -970,7 +973,7 @@ export const ElementStyleToolbar = ({
             onClose()
           }}
           className={iconBtn}
-          title="Done"
+          title={t('done')}
         >
           <X size={15} />
         </button>

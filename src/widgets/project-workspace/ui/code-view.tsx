@@ -9,6 +9,7 @@ import { CodeEditorTarget } from '@/entities/session'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api'
 import { UpgradePlanDialog } from '@/widgets/sidebar/ui/components/upgrade-plan-dialog'
+import { useTranslations } from 'next-intl'
 
 interface CodeViewProps {
   projectId: string
@@ -17,6 +18,7 @@ interface CodeViewProps {
 }
 
 export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }: CodeViewProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [internalActiveTab, setInternalActiveTab] = useState('microfrontend')
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const activeTab = externalActiveTab || internalActiveTab
@@ -44,8 +46,8 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
         <>
           <div className="flex items-center gap-4 mb-6">
             <div className="flex-1">
-              <h1 className="text-[22px] font-bold text-text-main mb-1">Code</h1>
-              <p className="text-text-muted text-[13px]">Manage frontend pages and server functions</p>
+              <h1 className="text-[22px] font-bold text-text-main mb-1">{t('code')}</h1>
+              <p className="text-text-muted text-[13px]">{t('manageFrontendPages')}</p>
             </div>
             
             <div className="flex items-center gap-3">
@@ -58,7 +60,7 @@ export const CodeView = ({ projectId, activeTab: externalActiveTab, onEditCode }
               
               <Button variant="primary" size="sm" className="gap-2" onClick={() => setUpgradeOpen(true)}>
                 <ArrowUp size={14} />
-                Upgrade Plan
+                {t('upgradePlan')}
               </Button>
             </div>
           </div>

@@ -206,7 +206,7 @@ export const ClientTypeModal = ({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               type="submit"

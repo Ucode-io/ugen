@@ -358,11 +358,11 @@ export const ProjectDropdown = ({
 
             {/* Token usage (compact) */}
             <div className="flex flex-col gap-2 px-3 py-2.5">
-              <TokenBar label="Daily" item={dailyTokens} />
-              <TokenBar label="Monthly" item={monthlyTokens} />
-              <TokenBar label="Projects" item={projectCount} />
-              <TokenBar label="Users" item={userCount} />
-              <TokenBar label="Builders" item={builderCount} />
+              <TokenBar label={t('daily')} item={dailyTokens} />
+              <TokenBar label={t('monthly')} item={monthlyTokens} />
+              <TokenBar label={t('projectsLabel')} item={projectCount} />
+              <TokenBar label={t('usersLabel')} item={userCount} />
+              <TokenBar label={t('buildersLabel')} item={builderCount} />
               <button
                 onClick={() => {
                   setIsProjectPopupOpen(false)
@@ -371,7 +371,7 @@ export const ProjectDropdown = ({
                 className="from-primary/15 to-primary/5 text-primary hover:from-primary/25 hover:to-primary/10 border-primary/20 mt-1 flex items-center justify-center gap-1.5 rounded-md border bg-gradient-to-r py-1.5 text-xs font-semibold transition-colors"
               >
                 <Sparkles size={12} />
-                Upgrade your plan
+                {t('upgradeYourPlan')}
               </button>
             </div>
 

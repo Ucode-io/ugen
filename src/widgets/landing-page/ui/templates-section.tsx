@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Layers } from 'lucide-react'
 import { Link } from '@/shared/lib/i18n/navigation'
+import { useTranslations } from 'next-intl'
 import {
   fetchPublicTemplates,
   getTemplateDescription,
@@ -22,6 +23,7 @@ const buildImageUrl = (raw: string) => {
 }
 
 export const TemplatesSection = () => {
+  const t = useTranslations('widgets.landingPage.templates')
   const { data: templates = [], isLoading, isError } = useQuery({
     queryKey: ['ugen-templates-public'],
     queryFn: fetchPublicTemplates,
@@ -38,24 +40,24 @@ export const TemplatesSection = () => {
         <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
           <div>
             <span className="inline-flex items-center bg-bg-main border border-border-subtle rounded-full px-[11px] py-[3px] text-[0.67rem] font-semibold uppercase tracking-[0.08em] text-text-muted mb-3">
-              Templates
+              {t('badge')}
             </span>
             <h2 className="font-extrabold tracking-[-0.04em] leading-[1.12] text-text-main mb-2.5"
               style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}>
-              Discover{' '}
+              {t('titleLead')}{' '}
               <em className="not-italic bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                templates
+                {t('titleAccent')}
               </em>
             </h2>
             <p className="text-[0.95rem] text-text-muted max-w-[560px] leading-[1.75]">
-              Start from a production-ready template and customize in minutes.
+              {t('subtitle')}
             </p>
           </div>
           <Link
             href="/templates"
             className="text-[0.82rem] font-semibold text-text-muted border border-border-subtle px-4 py-2 rounded-lg hover:border-border-subtle/60 hover:text-text-main transition-all no-underline"
           >
-            Browse all →
+            {t('browseAll')}
           </Link>
         </div>
 

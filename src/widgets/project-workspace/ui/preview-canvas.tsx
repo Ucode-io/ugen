@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils/cn";
 import { fileService } from "@/shared/api/file-service";
+import { useTranslations } from 'next-intl'
 
 const FRAME_WIDTH = 1280;
 const FRAME_HEIGHT = 800;
@@ -403,6 +404,7 @@ const NoteNode = memo(function NoteNode({
   data,
   selected,
 }: NodeProps<NoteNodeType>) {
+  const t = useTranslations('widgets.projectWorkspace')
   const {
     text,
     status,
@@ -478,7 +480,7 @@ const NoteNode = memo(function NoteNode({
     >
       <button
         type="button"
-        title="Delete note"
+        title={t('deleteNote')}
         onClick={() => onDelete(id)}
         className={cn(
           "nodrag absolute -top-3 -right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-[#344054] text-white shadow-md transition-opacity hover:bg-[#101828]",
@@ -514,7 +516,7 @@ const NoteNode = memo(function NoteNode({
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div className="border-b border-[#eaecf0] px-5 py-4 text-[18px] font-semibold text-[#475467]">
-              Status
+              {t('status')}
             </div>
             <div className="p-2">
               {NOTE_STATUSES.map((option) => {
@@ -551,7 +553,7 @@ const NoteNode = memo(function NoteNode({
         ref={taRef}
         value={draft}
         autoFocus={autoFocus}
-        placeholder="Type anything.."
+        placeholder={t('typeAnything')}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={handleKeyDown}
         style={{
@@ -585,6 +587,7 @@ const ImageNode = memo(function ImageNode({
   data,
   selected,
 }: NodeProps<ImageNodeType>) {
+  const t = useTranslations('widgets.projectWorkspace')
   const { src, width, height, onDelete } = data;
   return (
     <div
@@ -598,7 +601,7 @@ const ImageNode = memo(function ImageNode({
     >
       <button
         type="button"
-        title="Delete image"
+        title={t('deleteImage')}
         onClick={() => onDelete(id)}
         className={cn(
           "nodrag absolute -top-3 -right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-[#344054] text-white shadow-md transition-opacity hover:bg-[#101828]",
@@ -989,19 +992,20 @@ function CanvasToolbar({
   onAddImage: () => void;
   imageUploading: boolean;
 }) {
+  const t = useTranslations('widgets.projectWorkspace')
   return (
     <div className="absolute top-1/2 right-3 z-10 -translate-y-1/2">
       <div className="border-border-subtle bg-bg-card flex flex-col items-center gap-1 rounded-xl border p-1 shadow-lg">
         <ToolButton
           active={tool === "pointer"}
-          title="Select (drag to select multiple)"
+          title={t('selectTool')}
           onClick={() => setTool("pointer")}
         >
           <MousePointer2 size={16} />
         </ToolButton>
         <ToolButton
           active={tool === "hand"}
-          title="Pan"
+          title={t('pan')}
           onClick={() => setTool("hand")}
         >
           <Hand size={16} />
@@ -1009,7 +1013,7 @@ function CanvasToolbar({
         <div className="bg-border-subtle my-0.5 h-px w-5" />
         <ToolButton
           active={tool === "note"}
-          title="Sticky note (click the canvas to place)"
+          title={t('stickyNote')}
           onClick={() => setTool("note")}
         >
           <StickyNote size={16} />
@@ -1180,20 +1184,21 @@ function ZoomControl({
   fitCanvas: () => void;
   zoomBy: (direction: 1 | -1, duration?: number) => void;
 }) {
+  const t = useTranslations('widgets.projectWorkspace')
   const zoom = useStore((s) => s.transform[2]);
   return (
     <div className="border-border-subtle bg-bg-card absolute right-5 bottom-5 z-10 flex items-center gap-1 rounded-xl border px-2 py-2 shadow-xl">
-      <ToolButton title="Fit to screen" onClick={fitCanvas}>
+      <ToolButton title={t('fitToScreen')} onClick={fitCanvas}>
         <Scan size={15} />
       </ToolButton>
       <div className="bg-border-subtle mx-0.5 h-4 w-px" />
-      <ToolButton title="Zoom out" onClick={() => zoomBy(-1)}>
+      <ToolButton title={t('zoomOut')} onClick={() => zoomBy(-1)}>
         <Minus size={15} />
       </ToolButton>
       <span className="text-text-main min-w-[48px] text-center text-sm font-semibold tabular-nums transition-colors">
         {Math.round(zoom * 100)}%
       </span>
-      <ToolButton title="Zoom in" onClick={() => zoomBy(1)}>
+      <ToolButton title={t('zoomIn')} onClick={() => zoomBy(1)}>
         <Plus size={15} />
       </ToolButton>
     </div>
@@ -1239,6 +1244,7 @@ function NoteActionsBar({
   viewportRef: RefObject<HTMLDivElement | null>;
   onStyleChange: (id: string, patch: NoteStylePatch) => void;
 }) {
+  const t = useTranslations('widgets.projectWorkspace')
   const transform = useStore((s) => s.transform);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const [menu, setMenu] = useState<null | "color" | "font" | "size">(null);
@@ -1305,7 +1311,7 @@ function NoteActionsBar({
         {/* Background color */}
         <button
           type="button"
-          title="Note color"
+          title={t('noteColor')}
           onClick={() => setMenu((m) => (m === "color" ? null : "color"))}
           className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-hover-bg"
         >
@@ -1320,7 +1326,7 @@ function NoteActionsBar({
         <div className="bg-border-subtle mx-0.5 h-5 w-px" />
         {/* Font family */}
         <BarMenuButton
-          title="Font"
+          title={t('font')}
           active={menu === "font"}
           onClick={() => setMenu((m) => (m === "font" ? null : "font"))}
         >
@@ -1331,7 +1337,7 @@ function NoteActionsBar({
         </BarMenuButton>
         {/* Font size */}
         <BarMenuButton
-          title="Font size"
+          title={t('fontSize')}
           active={menu === "size"}
           onClick={() => setMenu((m) => (m === "size" ? null : "size"))}
         >
@@ -1341,7 +1347,7 @@ function NoteActionsBar({
         <div className="bg-border-subtle mx-0.5 h-5 w-px" />
         {/* Bold */}
         <BarMenuButton
-          title="Bold"
+          title={t('bold')}
           active={data.bold}
           onClick={() => onStyleChange(id, { bold: !data.bold })}
         >
@@ -1349,7 +1355,7 @@ function NoteActionsBar({
         </BarMenuButton>
         {/* Bullet list */}
         <BarMenuButton
-          title="Bullet list"
+          title={t('bulletList')}
           active={data.bulletList}
           onClick={() => onStyleChange(id, { bulletList: !data.bulletList })}
         >

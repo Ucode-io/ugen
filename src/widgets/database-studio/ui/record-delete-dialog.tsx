@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
+import { useTranslations } from 'next-intl'
 
 interface RecordDeleteDialogProps {
   recordLabel: string;
@@ -16,6 +17,7 @@ export const RecordDeleteDialog = ({
   onConfirm,
   onCancel,
 }: RecordDeleteDialogProps) => {
+  const t = useTranslations('widgets.databaseStudio')
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
@@ -40,7 +42,7 @@ export const RecordDeleteDialog = ({
           </div>
           <div className="pt-0.5">
             <h3 className="text-text-main text-[15px] leading-tight font-semibold">
-              Delete record
+              {t('deleteRecord')}
             </h3>
             <p className="text-text-muted mt-1.5 text-[13px] leading-relaxed">
               Are you sure you want to delete{" "}
@@ -56,7 +58,7 @@ export const RecordDeleteDialog = ({
             onClick={onCancel}
             className="border-border-subtle text-text-muted hover:text-text-main hover:bg-hover-bg rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
           >
-            Cancel
+            {t('cancelBtn')}
           </button>
           <button
             onClick={onConfirm}

@@ -330,7 +330,7 @@ export const ChatsBoard = () => {
                         ) : (
                           <span className="text-text-muted flex items-center gap-1.5 text-xs">
                             <CircleDashed size={13} className="shrink-0" />
-                            Draft
+                            {t('draft')}
                           </span>
                         )}
                       </td>

@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowUp, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { cn } from "@/shared/lib/utils/cn"
+import { useTranslations } from 'next-intl'
 
 interface MoveablePromptProps {
   isVisible: boolean
@@ -15,6 +16,7 @@ interface MoveablePromptProps {
 export const MoveablePrompt = ({
   isVisible, initialPosition, containerRef, onBack, onClose, onSubmit, isSending = false,
 }: MoveablePromptProps) => {
+  const t = useTranslations('widgets.projectWorkspace')
   const [position, setPosition] = useState(initialPosition)
   const [value, setValue] = useState("")
   const [isDragging, setIsDragging] = useState(false)
@@ -79,7 +81,7 @@ export const MoveablePrompt = ({
       {/* Back */}
       <button
         type="button"
-        title="Back to style editor"
+        title={t('backToStyleEditor')}
         onClick={(e) => { e.stopPropagation(); onBack() }}
         className="h-7 w-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-main transition-colors shrink-0"
       >
@@ -99,7 +101,7 @@ export const MoveablePrompt = ({
           if (e.key === 'Escape') { e.stopPropagation(); onBack(); return }
           if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); handleSubmit() }
         }}
-        placeholder="Describe changes..."
+        placeholder={t('describeChanges')}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
         className="flex-1 bg-transparent border-none outline-none text-text-main text-[13px] px-1 placeholder:text-text-muted min-w-0 disabled:opacity-50"
@@ -108,7 +110,7 @@ export const MoveablePrompt = ({
       {/* Send */}
       <button
         type="button"
-        title="Send"
+        title={t('send')}
         onClick={(e) => { e.stopPropagation(); handleSubmit() }}
         disabled={!value.trim() || isSending}
         className="h-7 w-7 flex items-center justify-center rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
@@ -121,7 +123,7 @@ export const MoveablePrompt = ({
       {/* Close all */}
       <button
         type="button"
-        title="Close"
+        title={t('close')}
         onClick={(e) => { e.stopPropagation(); onClose() }}
         className="h-7 w-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-red-500/10 hover:text-red-500 transition-colors shrink-0"
       >

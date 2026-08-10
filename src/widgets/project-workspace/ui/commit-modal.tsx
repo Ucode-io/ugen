@@ -5,8 +5,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/shared/ui'
 import { useSaveFlowStore } from '../model/save-flow-store'
+import { useTranslations } from 'next-intl'
 
 export const CommitModal = () => {
+  const t = useTranslations('widgets.projectWorkspace')
   const open = useSaveFlowStore((s) => s.commitOpen)
   const params = useSaveFlowStore((s) => s.commitParams)
   const close = useSaveFlowStore((s) => s.closeCommitModal)
@@ -42,7 +44,7 @@ export const CommitModal = () => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-text-main">
             <GitCommit size={16} className="text-primary" />
-            Save changes
+            {t('saveChanges')}
           </DialogTitle>
           <DialogDescription className="text-text-muted text-xs">
             {params?.files.length ?? 0} file{(params?.files.length ?? 0) === 1 ? '' : 's'} will be committed.
@@ -61,7 +63,7 @@ export const CommitModal = () => {
 
         <div className="space-y-1.5">
           <label className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-            Commit message
+            {t('commitMessage')}
           </label>
           <input
             autoFocus
@@ -89,7 +91,7 @@ export const CommitModal = () => {
             disabled={submitting}
             className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-text-muted hover:text-text-main hover:bg-hover-bg transition-colors disabled:opacity-60"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="button"

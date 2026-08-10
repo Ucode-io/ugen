@@ -38,6 +38,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils/cn'
+import { useTranslations } from 'next-intl'
 
 const formatTimeAgo = (raw: string): string => {
   if (!raw) return '—'
@@ -72,6 +73,7 @@ const PaginationFooter = ({
   setLimit: (l: number) => void
   totalCount: number
 }) => {
+  const t = useTranslations('widgets.allProjects')
   const totalPages = Math.ceil(totalCount / limit)
   if (totalCount === 0) return null
 
@@ -119,7 +121,7 @@ const PaginationFooter = ({
       <div className="flex w-full flex-col items-center gap-y-3 sm:w-auto sm:flex-row sm:gap-x-6">
         <div className="flex w-full items-center justify-center gap-x-2 sm:w-auto sm:justify-start">
           <p className="text-text-muted whitespace-nowrap text-[13px] font-medium">
-            Rows per page
+            {t('rowsPerPage')}
           </p>
           <Select
             value={limit.toString()}
@@ -171,6 +173,7 @@ const PaginationFooter = ({
 }
 
 export const AllProjectsBoard = () => {
+  const t = useTranslations('widgets.allProjects')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
@@ -205,13 +208,13 @@ export const AllProjectsBoard = () => {
     try {
       const fileUrl = await exportProjects()
       if (!fileUrl) {
-        toast.error('Export failed: no file returned')
+        toast.error(t('exportNoFile'))
         return
       }
       window.open(fileUrl, '_blank', 'noopener,noreferrer')
     } catch (err) {
       console.error('Export projects failed', err)
-      toast.error('Failed to export projects')
+      toast.error(t('exportFailed'))
     }
   }
 
@@ -285,7 +288,7 @@ export const AllProjectsBoard = () => {
           <input
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search by title..."
+            placeholder={t('searchByTitle')}
             className="text-text-main w-full bg-transparent outline-none placeholder:text-text-muted/60"
           />
         </div>
@@ -299,7 +302,7 @@ export const AllProjectsBoard = () => {
         ) : projects.length === 0 ? (
           <div className="flex h-64 w-full flex-col items-center justify-center gap-2">
             <FolderOpen size={32} className="text-text-muted/40" />
-            <p className="text-text-muted text-sm">No projects found</p>
+            <p className="text-text-muted text-sm">{t('noProjects')}</p>
           </div>
         ) : (
           <div className="border-border-subtle flex flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
@@ -308,22 +311,22 @@ export const AllProjectsBoard = () => {
                 <thead className="sticky top-0 z-10">
                   <tr className="border-border-subtle bg-bg-sidebar border-b">
                     <th className="text-text-muted px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider">
-                      Title
+                      {t('title')}
                     </th>
                     <th className="text-text-muted hidden px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider sm:table-cell">
-                      Status
+                      {t('status')}
                     </th>
                     <th className="text-text-muted hidden px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider md:table-cell">
-                      Balance
+                      {t('balance')}
                     </th>
                     <th className="text-text-muted hidden px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider lg:table-cell">
-                      Projects in company
+                      {t('projectsInCompany')}
                     </th>
                     <th className="text-text-muted hidden px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider xl:table-cell">
-                      Created
+                      {t('created')}
                     </th>
                     <th className="text-text-muted hidden px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider xl:table-cell">
-                      Last activity
+                      {t('lastActivity')}
                     </th>
                     <th className="w-px px-4 py-2.5" />
                   </tr>

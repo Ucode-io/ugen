@@ -295,13 +295,13 @@ export const MediaGallery = ({
       {/* Header */}
       <div className="mt-4 mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div className="flex-1">
-          <h1 className="text-text-main mb-1 text-[22px] font-bold">Files</h1>
+          <h1 className="text-text-main mb-1 text-[22px] font-bold">{t('files')}</h1>
           <p className="text-text-muted text-[13px]">
-            Manage uploaded files and media assets
+            {t('filesSubtitle')}
           </p>
         </div>
         <UsageIndicator
-          label="File size"
+          label={t('fileSize')}
           value={storageUsed}
           total={storageTotal}
           percentage={storagePercentage}
@@ -312,7 +312,7 @@ export const MediaGallery = ({
           className="bg-primary hover:bg-primary/90 h-8 rounded-lg px-3 text-[13px] text-white"
           onClick={() => setUpgradeOpen(true)}
         >
-          Upgrade Plan
+          {t('upgradePlan')}
         </Button>
       </div>
 
@@ -340,7 +340,7 @@ export const MediaGallery = ({
                 ? "bg-primary text-white"
                 : "bg-bg-card text-text-muted hover:bg-bg-sidebar",
             )}
-            title="Grid View"
+            title={t('gridView')}
           >
             <LayoutGrid size={16} />
           </button>
@@ -352,7 +352,7 @@ export const MediaGallery = ({
                 ? "bg-primary text-white"
                 : "bg-bg-card text-text-muted hover:bg-bg-sidebar",
             )}
-            title="List View"
+            title={t('listView')}
           >
             <List size={16} />
           </button>
@@ -412,7 +412,7 @@ export const MediaGallery = ({
           className="border-border-subtle h-8 rounded-lg px-3 text-[13px]"
         >
           <FolderPlus className="mr-1.5 h-4 w-4" />
-          New Folder
+          {t('newFolder')}
         </Button>
 
         <Button
@@ -422,7 +422,7 @@ export const MediaGallery = ({
           className="bg-primary hover:bg-primary/90 h-8 rounded-lg px-3 text-[13px] text-white"
         >
           <Upload className="mr-1.5 h-4 w-4" />
-          Upload Files
+          {t('uploadFiles')}
         </Button>
       </div>
 
@@ -526,13 +526,13 @@ export const MediaGallery = ({
                     <tr className="border-border-subtle bg-bg-sidebar border-b">
                       {isSelectionMode && <th className="w-10 px-4 py-2" />}
                       <th className="text-text-muted px-4 py-2 text-left text-[11px] font-semibold tracking-wider uppercase">
-                        Name
+                        {t('name')}
                       </th>
                       <th className="text-text-muted px-4 py-2 text-left text-[11px] font-semibold tracking-wider uppercase">
-                        Type
+                        {t('type')}
                       </th>
                       <th className="text-text-muted px-4 py-2 text-left text-[11px] font-semibold tracking-wider uppercase">
-                        Size
+                        {t('size')}
                       </th>
                     </tr>
                   </thead>
@@ -559,7 +559,7 @@ export const MediaGallery = ({
                             </span>
                           </td>
                           <td className="text-text-muted px-4 py-2.5 text-[12px]">
-                            Folder
+                            {t('folder')}
                           </td>
                           <td className="text-text-muted px-4 py-2.5 text-[12px]">
                             —
@@ -657,7 +657,7 @@ export const MediaGallery = ({
                             <div className="text-text-muted mt-0.5 flex items-center justify-between text-[11px]">
                               <span>&nbsp;</span>
                               <span className="text-[9px] font-semibold uppercase opacity-70">
-                                FOLDER
+                                {t('folderUpper')}
                               </span>
                             </div>
                           </div>
