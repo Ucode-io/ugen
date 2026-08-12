@@ -1,24 +1,60 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { COMPANY_INFO } from "@/shared/config/company";
-import { Footer } from "@/widgets/footer";
+import { Download } from "lucide-react";
+// ponytail: old rich-text render, kept for reference (not deleted per
+// request) — superseded by the signed/stamped PDF below.
+// import { COMPANY_INFO } from "@/shared/config/company";
+// import { Footer } from "@/widgets/footer";
 
-type Section = {
-  id: string;
-  title: string;
-  blocks: string[];
-  list?: string[];
-  after?: string[];
-};
+// type Section = {
+//   id: string;
+//   title: string;
+//   blocks: string[];
+//   list?: string[];
+//   after?: string[];
+// };
+
+const PDF_URL = "/UCODE_Privacy_Policy_RU_UZ_Signed_Stamped.pdf";
+// ponytail: same toolbar-stripping trick as user-agreement-page; Firefox
+// ignores these params and falls back to its own viewer chrome.
+const PDF_SRC = `${PDF_URL}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&view=FitH&zoom=page-width`;
 
 export const PrivacyPolicyPage = () => {
   const t = useTranslations("widgets.privacyPolicy");
-  const tLegal = useTranslations("widgets.legal");
-  const sections = t.raw("sections") as Section[];
+  // downloadPdf lives under userAgreement only; reused here instead of
+  // duplicating the string into 3 locale files.
+  const tDownload = useTranslations("widgets.userAgreement");
+  // const tLegal = useTranslations("widgets.legal");
+  // const sections = t.raw("sections") as Section[];
+  const title = `${t("title")} ${t("accentTitle")}`;
 
   return (
+    // ponytail: 4rem = the sticky Header height in the guest layout.
+    <div className="bg-bg-main flex h-[calc(100dvh-4rem)] min-h-[480px] flex-col">
+      <div className="border-border-subtle flex items-center justify-between gap-4 border-b px-6 py-3">
+        <h1 className="text-text-main truncate text-[1rem] font-bold">{title}</h1>
+        <a
+          href={PDF_URL}
+          download
+          className="bg-primary hover:bg-primary/90 inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-white transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          {tDownload("downloadPdf")}
+        </a>
+      </div>
+
+      <iframe
+        src={PDF_SRC}
+        title={title}
+        className="mx-auto min-h-0 w-full max-w-[860px] flex-1 border-0 bg-white"
+      />
+    </div>
+  );
+
+  /* ponytail: old rich-text sections render, replaced by the PDF viewer above
+  return (
     <div className="bg-bg-main flex min-h-screen flex-col">
-      {/* Hero */}
+      {/* Hero *\/}
       <div className="bg-bg-card border-border-subtle border-b px-6 py-20 text-center">
         <span className="text-text-muted/60 mb-3 inline-block text-[0.68rem] font-bold tracking-[0.08em] uppercase">
           {tLegal("eyebrow")}
@@ -37,7 +73,7 @@ export const PrivacyPolicyPage = () => {
         </p>
       </div>
 
-      {/* Body */}
+      {/* Body *\/}
       <section className="px-6 py-16">
         <div className="mx-auto max-w-[820px]">
           <p className="text-text-muted mb-12 text-[0.92rem] leading-[1.75]">
@@ -84,7 +120,7 @@ export const PrivacyPolicyPage = () => {
             </div>
           ))}
 
-          {/* Contact */}
+          {/* Contact *\/}
           <div id="contact-us" className="mb-4 scroll-mt-24">
             <h2 className="text-text-main mb-4 text-[1.15rem] font-bold">
               {t("contact.title")}
@@ -127,4 +163,5 @@ export const PrivacyPolicyPage = () => {
       <Footer />
     </div>
   );
+  */
 };
