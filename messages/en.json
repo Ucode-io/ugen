@@ -1620,6 +1620,7 @@
       "effectiveDate": "Effective date: {date}"
     },
     "userAgreement": {
+      "downloadPdf": "Download PDF",
       "title": "User",
       "accentTitle": "Agreement",
       "effectiveDate": "July 28, 2026",

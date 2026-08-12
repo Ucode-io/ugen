@@ -121,7 +121,7 @@ export const ProjectHeader = ({
             className="h-8 flex items-center justify-center rounded-lg hover:bg-hover-bg transition-all px-1.5"
             title={t('openSidebar')}
           >
-            <img src="/logo.svg" className="h-5 w-auto block shrink-0" alt="ugen" />
+            <img src="/logo.svg" className="h-5 w-auto block shrink-0" alt="Ucode" />
           </button>
           <div className={cn(
             "pointer-events-none fixed left-0 top-12 bottom-0 z-180 -translate-x-4 opacity-0 transition-all duration-200 ease-out",

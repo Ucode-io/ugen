@@ -1620,6 +1620,7 @@
       "effectiveDate": "Kuchga kirish sanasi: {date}"
     },
     "userAgreement": {
+      "downloadPdf": "PDF’ni yuklab olish",
       "title": "Foydalanuvchi",
       "accentTitle": "shartnomasi",
       "effectiveDate": "2026-yil 28-iyul",

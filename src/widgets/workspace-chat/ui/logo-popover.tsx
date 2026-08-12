@@ -76,7 +76,7 @@ export const LogoPopover = ({
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button className="h-8 flex items-center justify-center rounded-lg hover:bg-hover-bg transition-all px-1.5">
-          <img src="/logo.svg" className="h-5 w-auto block shrink-0" alt="ugen" />
+          <img src="/logo.svg" className="h-5 w-auto block shrink-0" alt="Ucode" />
         </button>
       </PopoverTrigger>
 

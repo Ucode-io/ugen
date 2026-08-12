@@ -1620,6 +1620,7 @@
       "effectiveDate": "Дата вступления в силу: {date}"
     },
     "userAgreement": {
+      "downloadPdf": "Скачать PDF",
       "title": "Пользовательское",
       "accentTitle": "соглашение",
       "effectiveDate": "28 июля 2026 г.",

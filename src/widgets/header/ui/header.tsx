@@ -115,8 +115,8 @@ export const Header = () => {
       <div className="flex items-center gap-7">
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <Image
-            src="/ugen-logo.svg"
-            alt="Ugen Logo"
+            src="/ucode-logo.svg"
+            alt="Ucode Logo"
             width={120}
             height={32}
             className="h-7 w-auto"
