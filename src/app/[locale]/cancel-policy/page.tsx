@@ -3,9 +3,9 @@ import { LandingPageClientWrapper } from "@/widgets/landing-page/ui/landing-page
 import { CancelPolicyPage } from "@/widgets/cancel-policy-page";
 
 export const metadata: Metadata = {
-  title: "Cancellation Policy | Ugen",
+  title: "Cancellation Policy | Ucode",
   description:
-    "How to cancel a paid Ugen subscription and what happens after cancellation.",
+    "How to cancel a paid Ucode subscription and what happens after cancellation.",
 };
 
 export default function CancelPolicyRoute() {
