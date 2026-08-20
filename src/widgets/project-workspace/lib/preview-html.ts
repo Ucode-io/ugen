@@ -642,7 +642,17 @@ export function generatePreviewHtml(
   // packages to a single /react@${REACT_VERSION}/…/react.mjs instance — dropping
   // it (or switching to ?bundle/?standalone) reintroduces a second React graph
   // and "Invalid hook call". Exact versions also avoid 302 redirects from esm.sh.
-  const depsParam = `?deps=react@${REACT_VERSION},react-dom@${REACT_VERSION}`;
+  // MobX is a singleton like React: its consumers (mobx-react-lite,
+  // mobx-persist-store) import mobx themselves, and esm.sh resolves those
+  // imports to "/mobx@^6.9.0" and bare "/mobx" (= latest, currently 7.x) — both
+  // different modules from the app's own mobx, so MobX throws
+  // "[MobX] minified error nr: 35" (multiple mobx instances active).
+  const MOBX_VERSION = dependenciesMap["mobx"]?.replace(/[\^~]/, "");
+
+  const depsParam =
+    `?deps=react@${REACT_VERSION},react-dom@${REACT_VERSION}` +
+    // Pin mobx too, so consumers import "/mobx@X/es2022/mobx.mjs".
+    (MOBX_VERSION ? `,mobx@${MOBX_VERSION}` : "");
 
   // Static imports: only React core (version must be pinned and consistent)
   const imports: Record<string, string> = {
@@ -653,6 +663,13 @@ export function generatePreviewHtml(
     "react-dom/client": `https://esm.sh/react-dom@${REACT_VERSION}/client`,
     "react-dom/server": `https://esm.sh/react-dom@${REACT_VERSION}/server`,
   };
+
+  // Second half of the mobx fix, and it is required: mobx's OWN url must NOT
+  // carry ?deps=react,react-dom. mobx doesn't import React, but esm.sh keys
+  // builds by the deps hash, so that url serves
+  // "/mobx@X/X-<hash>/es2022/mobx.mjs" — a different module from the
+  // "/mobx@X/es2022/mobx.mjs" the pinned consumers above import.
+  if (MOBX_VERSION) imports["mobx"] = `https://esm.sh/mobx@${MOBX_VERSION}`;
 
   // Dynamic imports: everything from package.json dependencies
   // This covers react-router-dom, lucide-react, all Radix packages, etc.
