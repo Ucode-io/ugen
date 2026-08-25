@@ -381,3 +381,59 @@ export const useReceiptPay = (projectId?: string | null) => {
     },
   })
 }
+
+interface CreateIpakPaymentResponse {
+  payment_url: string
+  transfer_id: string
+  transaction_id: string
+}
+
+// useCreateIpakPayment opens a Visa/Mastercard hosted-page top-up. Unlike the
+// UZCARD/HUMO (Payme) flow there is no saved card and no inline card entry: the
+// caller redirects the customer to the returned payment_url (the bank's 3DS page).
+// amount is in UZS.
+export const useCreateIpakPayment = (projectId?: string | null) => {
+  return useMutation({
+    mutationFn: async (payload: { amount: number }) => {
+      const token = useAuthStore.getState().accessToken
+      if (!token) throw new Error("Not authenticated")
+      const { data } = await api.post(
+        "/v1/payment/ipakyuli/create",
+        payload,
+        buildBearerConfig(token, projectId),
+      )
+      return (data?.data ?? data) as CreateIpakPaymentResponse
+    },
+  })
+}
+
+export interface IpakPaymentStatus {
+  status: string // pending | accepted | cancelled
+  amount: number
+  transfer_id: string
+}
+
+// useIpakPaymentStatus polls a Visa/Mastercard top-up's status on the return page.
+// Polling stops once the payment reaches a terminal state (accepted/cancelled).
+export const useIpakPaymentStatus = (
+  transferId?: string | null,
+  enabled = true,
+) => {
+  return useQuery({
+    queryKey: ["billing", "ipak-status", transferId],
+    queryFn: async () => {
+      const token = useAuthStore.getState().accessToken
+      if (!token) throw new Error("Not authenticated")
+      const { data } = await api.get(
+        `/v1/payment/ipakyuli/${transferId}/status`,
+        buildBearerConfig(token, null),
+      )
+      return (data?.data ?? data) as IpakPaymentStatus
+    },
+    enabled: enabled && Boolean(transferId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status === "accepted" || status === "cancelled" ? false : 3000
+    },
+  })
+}
