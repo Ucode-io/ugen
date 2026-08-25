@@ -3,7 +3,7 @@ import { TemplateDetailPage } from '@/widgets/templates-public'
 import { LandingPageClientWrapper } from '@/widgets/landing-page/ui/landing-page-client-wrapper'
 
 export const metadata: Metadata = {
-  title: 'Template | Ugen',
+  title: 'Template | Ucode',
   description: 'Explore this ready-made app template. Clone, customize, and ship in minutes.',
 }
 

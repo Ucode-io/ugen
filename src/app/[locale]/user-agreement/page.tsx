@@ -3,9 +3,9 @@ import { LandingPageClientWrapper } from "@/widgets/landing-page/ui/landing-page
 import { UserAgreementPage } from "@/widgets/user-agreement-page";
 
 export const metadata: Metadata = {
-  title: "User Agreement | Ugen",
+  title: "User Agreement | Ucode",
   description:
-    "Terms for accessing and using Ugen products, services, workspaces, and integrations.",
+    "Terms for accessing and using Ucode products, services, workspaces, and integrations.",
 };
 
 export default function UserAgreementRoute() {

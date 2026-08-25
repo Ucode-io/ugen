@@ -56,8 +56,8 @@ export const Footer = () => {
           <div>
             <Link href="/" className="mb-2.5 inline-block no-underline">
               <Image
-                src="/ugen-logo.svg"
-                alt="Ugen Logo"
+                src="/ucode-logo.svg"
+                alt="Ucode Logo"
                 width={120}
                 height={32}
                 className="h-7 w-auto"

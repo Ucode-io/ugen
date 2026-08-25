@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: "Ugen",
-  description: "Ugen - Your AI Project Builder",
+  name: "Ucode",
+  description: "Ucode - Your AI Project Builder",
   mainNav: [
     {
       title: "Home",

@@ -39,7 +39,7 @@
     "deleting": "O'chirilmoqda...",
     "community": "Hamjamiyat",
     "hire_expert": "Ekspert yollash",
-    "open_ugen": "u‑gen'ni ochish",
+    "open_ugen": "Ucode'ni ochish",
     "connectors": "Konnektorlar",
     "connectors_desc": "300+ integratsiya",
     "docs": "Hujjatlar",
@@ -124,7 +124,7 @@
       },
       "register": {
         "title": "Hisob yaratish",
-        "subtitle": "Boshlash uchun Ugen-ga qo'shiling",
+        "subtitle": "Boshlash uchun Ucode'ga qo'shiling",
         "companyName": "Kompaniya nomi",
         "companyPlaceholder": "Kompaniya nomini kiriting",
         "loginLabel": "Foydalanuvchi logini",
@@ -188,7 +188,7 @@
     },
     "platformBadge": {
       "title": "Platforma nishoni",
-      "description": "«Edit with Ugen» nishoni hozirda ilovangizda {status} holatida",
+      "description": "«Edit with Ucode» nishoni hozirda ilovangizda {status} holatida",
       "visible": "ko'rinadigan",
       "hidden": "yashiringan",
       "hideBadge": "Nishonni yashirish",
@@ -483,7 +483,7 @@
       "features": "Imkoniyatlar",
       "pricing": "Narxlar",
       "integrations": "Integratsiyalar",
-      "openUgen": "ugen'ni ochish"
+      "openUgen": "Ucode'ni ochish"
     },
     "footer": {
       "tagline": "G'oyalarni 15 daqiqada tayyor mahsulotga aylantiruvchi SI platformasi.",
@@ -618,7 +618,7 @@
         "titleLead": "O'z mahsulotingizni yarating",
         "titleAccent": "15 daqiqada",
         "subtitle": "Sun'iy intellekt yordamida ilova va saytlar yarating — muhandislik diplomi shart emas.",
-        "placeholder": "u-gen'ga qanday ilova kerakligini yozing…",
+        "placeholder": "Ucode'ga qanday ilova kerakligini yozing…",
         "build": "Yig'ish",
         "chips": {
           "sales": {
@@ -901,7 +901,7 @@
       "unknownAuthor": "Noma'lum muallif",
       "nothingToShow": "Bu yerda hali hech narsa yo'q.",
       "newProject": "Yangi loyiha",
-      "promptPlaceholder": "Ugenga dashbord yaratishni buyuring...",
+      "promptPlaceholder": "Ucode'ga dashbord yaratishni buyuring...",
       "addAttachment": "Fayl biriktirish",
       "plan": "Reja",
       "whatWillYou": "Siz nima",
@@ -1485,7 +1485,7 @@
       "stepsAccent": "ishga tushiring",
       "step": "Qadam",
       "guidesEyebrow": "Qo'llanmalar",
-      "guidesLead": "u‑gen'ning har bir",
+      "guidesLead": "Ucode'ning har bir",
       "guidesAccent": "burchagini o'rganing",
       "steps": {
         "workspace": {
@@ -1494,7 +1494,7 @@
         },
         "data": {
           "title": "Ma'lumotlaringizni ulang",
-          "desc": "Ma'lumotlar bazasi, API yoki jadvalni ulang. u‑gen sxema va interfeys karkasini avtomatik yaratadi."
+          "desc": "Ma'lumotlar bazasi, API yoki jadvalni ulang. Ucode sxema va interfeys karkasini avtomatik yaratadi."
         },
         "publish": {
           "title": "Yig'ing va chop eting",
@@ -1520,7 +1520,7 @@
         },
         "publishing": {
           "title": "Chop etish va domenlar",
-          "desc": "u‑gen subdomeni yoki o'z domeningizga joylashtiring. Bir bosishda SSL."
+          "desc": "Ucode subdomeni yoki o'z domeningizga joylashtiring. Bir bosishda SSL."
         },
         "templates": {
           "title": "Shablonlar",
@@ -1560,10 +1560,10 @@
       "mobile": "Mobil"
     },
     "hireExpert": {
-      "titleLead": "u‑gen eksperti",
+      "titleLead": "Ucode eksperti",
       "titleAccent": "yollang",
-      "subtitle": "u‑gen ekspertlari mahsulotingizni tezroq yaratish va ishga tushirishga yordam beradi — qisqa maslahatdan to'liq loyiha yetkazib berishgacha.",
-      "becomePrefix": "u‑gen eksperti bo'lishni xohlaysizmi?",
+      "subtitle": "Ucode ekspertlari mahsulotingizni tezroq yaratish va ishga tushirishga yordam beradi — qisqa maslahatdan to'liq loyiha yetkazib berishgacha.",
+      "becomePrefix": "Ucode eksperti bo'lishni xohlaysizmi?",
       "applyHere": "Ariza qoldirish →",
       "allServices": "Barcha xizmatlar",
       "anyBudget": "Har qanday byudjet",
@@ -1593,7 +1593,7 @@
         "large": "$20K dan yuqori"
       },
       "modal": {
-        "title": "u-gen eksperti bo'ling",
+        "title": "Ucode eksperti bo'ling",
         "description": "O'zingiz haqingizda gapiring — keyingi qadamlar bo'yicha bog'lanamiz.",
         "fullName": "To'liq ism",
         "fullNamePlaceholder": "Ism Familiya",
@@ -1620,17 +1620,18 @@
       "effectiveDate": "Kuchga kirish sanasi: {date}"
     },
     "userAgreement": {
+      "downloadPdf": "PDF’ni yuklab olish",
       "title": "Foydalanuvchi",
       "accentTitle": "shartnomasi",
       "effectiveDate": "2026-yil 28-iyul",
-      "intro": "Ushbu Foydalanuvchi shartnomasi Ugen mahsulotlari, xizmatlari, ish maydonlari, integratsiyalari va yaratilgan ilovalaridan foydalanishning asosiy shartlarini belgilaydi.",
+      "intro": "Ushbu Foydalanuvchi shartnomasi Ucode mahsulotlari, xizmatlari, ish maydonlari, integratsiyalari va yaratilgan ilovalaridan foydalanishning asosiy shartlarini belgilaydi.",
       "sections": [
         {
           "id": "acceptance",
           "title": "1. Shartnomani qabul qilish",
           "blocks": [
-            "Akkaunt yaratish, Ugen'ga kirish yoki istalgan Ugen xizmatidan foydalanish orqali siz ushbu Foydalanuvchi shartnomasiga va unda havola qilingan siyosatlarga rozilik bildirasiz.",
-            "Agar siz Ugen'dan kompaniya yoki tashkilot nomidan foydalansangiz, ushbu Shartnomani o'sha tashkilot nomidan qabul qilish vakolatiga ega ekanligingizni tasdiqlaysiz."
+            "Akkaunt yaratish, Ucode'ga kirish yoki istalgan Ucode xizmatidan foydalanish orqali siz ushbu Foydalanuvchi shartnomasiga va unda havola qilingan siyosatlarga rozilik bildirasiz.",
+            "Agar siz Ucode'dan kompaniya yoki tashkilot nomidan foydalansangiz, ushbu Shartnomani o'sha tashkilot nomidan qabul qilish vakolatiga ega ekanligingizni tasdiqlaysiz."
           ]
         },
         {
@@ -1645,7 +1646,7 @@
           "id": "acceptable-use",
           "title": "3. Maqbul foydalanish",
           "blocks": [
-            "Ugen'dan amaldagi qonunchilikni buzish, uchinchi shaxslar huquqlarini buzish, zararli dastur tarqatish, ruxsatsiz kirishga urinish, platforma resurslarini suiiste'mol qilish yoki xizmatga xalaqit berish uchun foydalanish taqiqlanadi.",
+            "Ucode'dan amaldagi qonunchilikni buzish, uchinchi shaxslar huquqlarini buzish, zararli dastur tarqatish, ruxsatsiz kirishga urinish, platforma resurslarini suiiste'mol qilish yoki xizmatga xalaqit berish uchun foydalanish taqiqlanadi.",
             "Ish maydoningizda yaratilgan yoki boshqariladigan loyihalar, kontent, ma'lumotlar, avtomatlashtirishlar, integratsiyalar va ilovalar uchun siz javobgarsiz."
           ]
         },
@@ -1653,8 +1654,8 @@
           "id": "customer-data",
           "title": "4. Mijoz ma'lumotlari va integratsiyalar",
           "blocks": [
-            "Ugen'ga yuklangan yoki u orqali qayta ishlangan ma'lumotlar, jumladan uchinchi tomon integratsiyalaridan olingan ma'lumotlar uchun javobgarlik sizda qoladi.",
-            "Uchinchi tomon xizmatlarini ulaganingizda, siz Ugen'ga ulangan ma'lumotlarga faqat so'ralgan funksionallikni ta'minlash uchun zarur bo'lgan darajada kirish va ularni qayta ishlashga ruxsat berasiz."
+            "Ucode'ga yuklangan yoki u orqali qayta ishlangan ma'lumotlar, jumladan uchinchi tomon integratsiyalaridan olingan ma'lumotlar uchun javobgarlik sizda qoladi.",
+            "Uchinchi tomon xizmatlarini ulaganingizda, siz Ucode'ga ulangan ma'lumotlarga faqat so'ralgan funksionallikni ta'minlash uchun zarur bo'lgan darajada kirish va ularni qayta ishlashga ruxsat berasiz."
           ]
         },
         {
@@ -1669,7 +1670,7 @@
           "id": "availability",
           "title": "6. Xizmat mavjudligi va o'zgarishlar",
           "blocks": [
-            "Biz xavfsizlikni ta'minlash, qonunchilikka rioya qilish, mahsulotni rivojlantirish yoki foydalanuvchilar va platformani himoya qilish maqsadida Ugen'ning ayrim qismlarini yangilashimiz, takomillashtirishimiz, to'xtatib turishimiz yoki to'xtatishimiz mumkin.",
+            "Biz xavfsizlikni ta'minlash, qonunchilikka rioya qilish, mahsulotni rivojlantirish yoki foydalanuvchilar va platformani himoya qilish maqsadida Ucode'ning ayrim qismlarini yangilashimiz, takomillashtirishimiz, to'xtatib turishimiz yoki to'xtatishimiz mumkin.",
             "Biz xizmat mavjudligini ta'minlashga harakat qilamiz, biroq uzluksiz va xatosiz ishlashini kafolatlamaymiz."
           ]
         },
@@ -1677,7 +1678,7 @@
           "id": "liability",
           "title": "7. Kafolatlardan voz kechish va javobgarlikni cheklash",
           "blocks": [
-            "Ugen amaldagi qonunchilik ruxsat bergan maksimal darajada \"qanday bo'lsa shundayligicha\" va \"mavjud bo'lganicha\" taqdim etiladi.",
+            "Ucode amaldagi qonunchilik ruxsat bergan maksimal darajada \"qanday bo'lsa shundayligicha\" va \"mavjud bo'lganicha\" taqdim etiladi.",
             "Qonun ruxsat bergan maksimal darajada UCODE xizmatdan foydalanish natijasida yuzaga kelgan bilvosita, tasodifiy, oqibatli, maxsus, jarima zararlari yoki boy berilgan foyda uchun javobgar emas."
           ]
         },
@@ -1695,13 +1696,13 @@
       "title": "Bekor qilish",
       "accentTitle": "siyosati",
       "effectiveDate": "2026-yil 28-iyul",
-      "intro": "Ushbu Bekor qilish siyosati mijozlar Ugen pullik obunalarini qanday bekor qilishi va bekor qilingandan keyin nima bo'lishini tushuntiradi.",
+      "intro": "Ushbu Bekor qilish siyosati mijozlar Ucode pullik obunalarini qanday bekor qilishi va bekor qilingandan keyin nima bo'lishini tushuntiradi.",
       "sections": [
         {
           "id": "subscriptions-and-renewals",
           "title": "1. Obunalar va yangilanish",
           "blocks": [
-            "Ugen obunalari, keyingi yangilanish sanasidan oldin bekor qilinmasa, tanlangan to'lov davri oxirida avtomatik yangilanishi mumkin.",
+            "Ucode obunalari, keyingi yangilanish sanasidan oldin bekor qilinmasa, tanlangan to'lov davri oxirida avtomatik yangilanishi mumkin.",
             "Amaldagi tarif, to'lov davri, yangilanish sanasi va mavjud limitlar, agar ish maydoni uchun billing yoqilgan bo'lsa, akkauntning billing bo'limida ko'rsatiladi."
           ]
         },
@@ -1709,7 +1710,7 @@
           "id": "how-to-cancel",
           "title": "2. Qanday bekor qilinadi",
           "blocks": [
-            "Ish maydoni egasi yoki vakolatli administrator, mavjud bo'lgan hollarda, Ugen boshqaruv panelidagi billing sozlamalari orqali pullik tarifni bekor qilishi mumkin.",
+            "Ish maydoni egasi yoki vakolatli administrator, mavjud bo'lgan hollarda, Ucode boshqaruv panelidagi billing sozlamalari orqali pullik tarifni bekor qilishi mumkin.",
             "Agar bekor qilish tugmalari panelda mavjud bo'lmasa, ish maydoniga bog'langan email manzilidan {businessEmail} ga yozing va ish maydoni yoki kompaniya nomini ko'rsating."
           ]
         },
@@ -1750,7 +1751,7 @@
     "companyInfo": {
       "title": "Kompaniya",
       "accentTitle": "haqida",
-      "intro": "UCODE kompaniyasi va Ugen xizmati haqida rasmiy ma'lumotlar.",
+      "intro": "UCODE kompaniyasi va Ucode xizmati haqida rasmiy ma'lumotlar.",
       "sections": [
         {
           "id": "legal-entity",

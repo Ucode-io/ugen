@@ -40,7 +40,7 @@ export const LandingCtaSection = () => {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask u-gen to build your app…"
+          placeholder="Ask Ucode to build your app…"
           className="w-full bg-transparent border-none outline-none text-[0.95rem] text-white pb-3.5"
           style={{ caretColor: '#3b82f6' }}
         />

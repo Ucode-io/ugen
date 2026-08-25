@@ -39,7 +39,7 @@
     "deleting": "Deleting...",
     "community": "Community",
     "hire_expert": "Hire an Expert",
-    "open_ugen": "Open u‑gen",
+    "open_ugen": "Open Ucode",
     "connectors": "Connectors",
     "connectors_desc": "300+ integrations",
     "docs": "Docs",
@@ -124,7 +124,7 @@
       },
       "register": {
         "title": "Create an Account",
-        "subtitle": "Join Ugen to get started",
+        "subtitle": "Join Ucode to get started",
         "companyName": "Company Name",
         "companyPlaceholder": "Enter company name",
         "loginLabel": "User Login",
@@ -188,7 +188,7 @@
     },
     "platformBadge": {
       "title": "Platform Badge",
-      "description": "The \"Edit with Ugen\" badge is currently {status} on your application",
+      "description": "The \"Edit with Ucode\" badge is currently {status} on your application",
       "visible": "visible",
       "hidden": "hidden",
       "hideBadge": "Hide Badge",
@@ -483,7 +483,7 @@
       "features": "Features",
       "pricing": "Pricing",
       "integrations": "Integrations",
-      "openUgen": "Open ugen"
+      "openUgen": "Open Ucode"
     },
     "footer": {
       "tagline": "The AI-powered platform that turns ideas into ready products in 15 minutes.",
@@ -618,7 +618,7 @@
         "titleLead": "Build your own product",
         "titleAccent": "in 15 minutes",
         "subtitle": "Create apps and websites with AI — no engineering degree required.",
-        "placeholder": "Ask u-gen to build your app…",
+        "placeholder": "Ask Ucode to build your app…",
         "build": "Build",
         "chips": {
           "sales": {
@@ -901,7 +901,7 @@
       "unknownAuthor": "Unknown Author",
       "nothingToShow": "Nothing to show here yet.",
       "newProject": "New project",
-      "promptPlaceholder": "Ask Ugen to create a dashboard to...",
+      "promptPlaceholder": "Ask Ucode to create a dashboard to...",
       "addAttachment": "Add attachment",
       "plan": "Plan",
       "whatWillYou": "What will you",
@@ -1486,7 +1486,7 @@
       "step": "Step",
       "guidesEyebrow": "Guides",
       "guidesLead": "Learn every",
-      "guidesAccent": "corner of u‑gen",
+      "guidesAccent": "corner of Ucode",
       "steps": {
         "workspace": {
           "title": "Create your workspace",
@@ -1494,7 +1494,7 @@
         },
         "data": {
           "title": "Connect your data",
-          "desc": "Link a database, API, or spreadsheet. u‑gen auto-generates a schema and UI scaffold."
+          "desc": "Link a database, API, or spreadsheet. Ucode auto-generates a schema and UI scaffold."
         },
         "publish": {
           "title": "Build & publish",
@@ -1520,7 +1520,7 @@
         },
         "publishing": {
           "title": "Publishing & domains",
-          "desc": "Deploy to a u‑gen subdomain or your own custom domain. One-click SSL included."
+          "desc": "Deploy to a Ucode subdomain or your own custom domain. One-click SSL included."
         },
         "templates": {
           "title": "Templates",
@@ -1561,9 +1561,9 @@
     },
     "hireExpert": {
       "titleLead": "Hire a",
-      "titleAccent": "u‑gen expert",
-      "subtitle": "u‑gen Experts provide the expertise and insight to help you build and launch your products faster — from quick consultations to full project delivery.",
-      "becomePrefix": "Want to become a u‑gen Expert?",
+      "titleAccent": "Ucode expert",
+      "subtitle": "Ucode Experts provide the expertise and insight to help you build and launch your products faster — from quick consultations to full project delivery.",
+      "becomePrefix": "Want to become a Ucode Expert?",
       "applyHere": "Apply here →",
       "allServices": "All Services",
       "anyBudget": "Any Budget",
@@ -1593,7 +1593,7 @@
         "large": "$20K+"
       },
       "modal": {
-        "title": "Become a u-gen Expert",
+        "title": "Become a Ucode Expert",
         "description": "Tell us about yourself — we'll reach out with next steps.",
         "fullName": "Full name",
         "fullNamePlaceholder": "Jane Doe",
@@ -1620,17 +1620,18 @@
       "effectiveDate": "Effective date: {date}"
     },
     "userAgreement": {
+      "downloadPdf": "Download PDF",
       "title": "User",
       "accentTitle": "Agreement",
       "effectiveDate": "July 28, 2026",
-      "intro": "This User Agreement sets the main terms for accessing and using Ugen products, services, workspaces, integrations, and generated applications.",
+      "intro": "This User Agreement sets the main terms for accessing and using Ucode products, services, workspaces, integrations, and generated applications.",
       "sections": [
         {
           "id": "acceptance",
           "title": "1. Acceptance of the Agreement",
           "blocks": [
-            "By creating an account, accessing Ugen, or using any Ugen service, you agree to this User Agreement and any policies referenced by it.",
-            "If you use Ugen on behalf of a company or organization, you confirm that you have authority to bind that organization to this Agreement."
+            "By creating an account, accessing Ucode, or using any Ucode service, you agree to this User Agreement and any policies referenced by it.",
+            "If you use Ucode on behalf of a company or organization, you confirm that you have authority to bind that organization to this Agreement."
           ]
         },
         {
@@ -1645,7 +1646,7 @@
           "id": "acceptable-use",
           "title": "3. Acceptable Use",
           "blocks": [
-            "You may not use Ugen to violate applicable law, infringe third-party rights, distribute malware, attempt unauthorized access, abuse platform resources, or interfere with the service.",
+            "You may not use Ucode to violate applicable law, infringe third-party rights, distribute malware, attempt unauthorized access, abuse platform resources, or interfere with the service.",
             "You are responsible for the projects, content, data, automations, integrations, and applications created or operated through your workspace."
           ]
         },
@@ -1653,8 +1654,8 @@
           "id": "customer-data",
           "title": "4. Customer Data and Integrations",
           "blocks": [
-            "You retain responsibility for data uploaded to or processed through Ugen, including data received from third-party integrations.",
-            "When you connect third-party services, you authorize Ugen to access and process the connected data only as needed to provide the requested product functionality."
+            "You retain responsibility for data uploaded to or processed through Ucode, including data received from third-party integrations.",
+            "When you connect third-party services, you authorize Ucode to access and process the connected data only as needed to provide the requested product functionality."
           ]
         },
         {
@@ -1669,7 +1670,7 @@
           "id": "availability",
           "title": "6. Service Availability and Changes",
           "blocks": [
-            "We may update, improve, suspend, or discontinue parts of Ugen to maintain security, comply with law, support product development, or protect users and the platform.",
+            "We may update, improve, suspend, or discontinue parts of Ucode to maintain security, comply with law, support product development, or protect users and the platform.",
             "We work to keep the service available, but we do not guarantee uninterrupted or error-free operation."
           ]
         },
@@ -1677,7 +1678,7 @@
           "id": "liability",
           "title": "7. Disclaimers and Limitation of Liability",
           "blocks": [
-            "Ugen is provided on an as-is and as-available basis to the maximum extent permitted by applicable law.",
+            "Ucode is provided on an as-is and as-available basis to the maximum extent permitted by applicable law.",
             "To the maximum extent permitted by law, UCODE is not liable for indirect, incidental, consequential, special, punitive, or lost-profit damages arising from use of the service."
           ]
         },
@@ -1695,13 +1696,13 @@
       "title": "Cancellation",
       "accentTitle": "Policy",
       "effectiveDate": "July 28, 2026",
-      "intro": "This Cancellation Policy explains how customers may cancel paid Ugen subscriptions and what happens after cancellation.",
+      "intro": "This Cancellation Policy explains how customers may cancel paid Ucode subscriptions and what happens after cancellation.",
       "sections": [
         {
           "id": "subscriptions-and-renewals",
           "title": "1. Subscriptions and Renewals",
           "blocks": [
-            "Ugen subscriptions may renew automatically at the end of the selected billing period unless cancelled before the next renewal date.",
+            "Ucode subscriptions may renew automatically at the end of the selected billing period unless cancelled before the next renewal date.",
             "The active plan, billing period, renewal date, and available limits are shown inside the account billing area when billing is enabled for the workspace."
           ]
         },
@@ -1709,7 +1710,7 @@
           "id": "how-to-cancel",
           "title": "2. How to Cancel",
           "blocks": [
-            "A workspace owner or authorized administrator may cancel a paid plan from the billing settings in the Ugen dashboard, where available.",
+            "A workspace owner or authorized administrator may cancel a paid plan from the billing settings in the Ucode dashboard, where available.",
             "If cancellation controls are not available in the dashboard, contact {businessEmail} from the email address associated with the workspace and include the workspace or company name."
           ]
         },
@@ -1750,7 +1751,7 @@
     "companyInfo": {
       "title": "Company",
       "accentTitle": "Info",
-      "intro": "Official business information for UCODE and the Ugen service.",
+      "intro": "Official business information for UCODE and the Ucode service.",
       "sections": [
         {
           "id": "legal-entity",

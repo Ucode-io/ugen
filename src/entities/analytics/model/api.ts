@@ -64,7 +64,7 @@ export const analyticsApi = {
     await sleep(Math.random() * 300 + 200);
     return {
       environment: 'production',
-      projectName: 'Ugen App',
+      projectName: 'Ucode App',
       region: 'eu-central-1',
       runtimeVersion: 'Node.js 20.10.0',
       hasUpdate: true,
