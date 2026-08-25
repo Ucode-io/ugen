@@ -33,6 +33,7 @@ import {
   useCardList,
   useCardOtpVerify,
   useCardVerify,
+  useCreateIpakPayment,
   useReceiptPay,
   useUsdRate,
   type CardBrand,
@@ -97,6 +98,8 @@ export const TopUpModal = ({
   const { data: usdRate } = useUsdRate(open);
   const { mutateAsync: receiptPay, isPending: submitting } =
     useReceiptPay(projectId);
+  const { mutateAsync: createIpakPayment, isPending: startingIpak } =
+    useCreateIpakPayment(projectId);
   const { mutateAsync: deleteCard, isPending: deletingCard } =
     useCardDelete(projectId);
 
@@ -146,11 +149,29 @@ export const TopUpModal = ({
     }
   };
 
+  // Visa/Mastercard: open a hosted-page payment at Ipak Yo'li and redirect. There
+  // is no saved card and no inline card entry (PCI stays with the bank). We stash
+  // the transfer id so the return page can poll status; the balance is also
+  // credited server-side via the bank callback regardless.
+  const handlePayWithInternationalCard = async () => {
+    if (amountUzs <= 0) return;
+    try {
+      const { payment_url, transfer_id } = await createIpakPayment({
+        amount: amountUzs,
+      });
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("ipak_transfer_id", transfer_id);
+        window.location.href = payment_url;
+      }
+    } catch (err: any) {
+      toast.error(pickErrorMessage(err, "Failed to start card payment"));
+    }
+  };
+
+  const amountValid = Number(amountUsd) > 0 && amountUzs > 0;
+
   const canSubmit =
-    Number(amountUsd) > 0 &&
-    amountUzs > 0 &&
-    Boolean(selectedCard) &&
-    selectedCard?.verify !== false;
+    amountValid && Boolean(selectedCard) && selectedCard?.verify !== false;
 
   return (
     <>
@@ -170,72 +191,90 @@ export const TopUpModal = ({
             </div>
           </div>
 
-          {cardsLoading ? (
-            <div className="space-y-5 p-6">
-              <Skeleton className="h-10 w-full" />
+          <div className="space-y-5 p-6">
+            {/* Amount: entered in USD, charged in UZS (som). */}
+            <div className="space-y-1.5">
+              <label className="text-text-muted text-[12px] font-medium">
+                {t('amount')}
+              </label>
+              <div className="relative">
+                <span className="text-text-muted absolute top-1/2 left-3 -translate-y-1/2 text-[14px] font-semibold">
+                  $
+                </span>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="0.00"
+                  value={amountUsd}
+                  onChange={(e) => setAmountUsd(sanitizeUsd(e.target.value))}
+                  className="bg-bg-sidebar border-border-subtle h-10 pr-14 pl-7 text-[13px]"
+                />
+                <span className="text-text-muted absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-semibold tracking-wider uppercase">
+                  usd
+                </span>
+              </div>
+              {/* UZS equivalent that will actually be charged */}
+              <p className="text-text-muted text-[11px]">
+                {usdRate ? (
+                  <>
+                    ≈{" "}
+                    <span className="text-text-main font-semibold">
+                      {formatAmount(amountUzs)} UZS
+                    </span>{" "}
+                    will be charged
+                  </>
+                ) : (
+                  "Loading exchange rate…"
+                )}
+              </p>
+            </div>
+
+            {/* Visa / Mastercard: hosted-page payment at Ipak Yo'li. No saved card
+                and no inline card entry -- the customer enters the card on the
+                bank's 3DS page, so we just need the amount here. */}
+            <Button
+              disabled={!amountValid || startingIpak}
+              onClick={handlePayWithInternationalCard}
+              className="bg-primary hover:bg-primary/90 flex h-10 w-full items-center justify-center gap-2 rounded-lg text-[13px] font-semibold text-white shadow-sm"
+            >
+              {startingIpak ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <CreditCard size={15} />
+              )}
+              Pay with Visa / Mastercard
+            </Button>
+
+            <div className="flex items-center gap-3">
+              <div className="border-border-subtle h-px flex-1 border-t" />
+              <span className="text-text-muted text-[11px] font-medium tracking-wider uppercase">
+                or use a saved UZCARD / HUMO
+              </span>
+              <div className="border-border-subtle h-px flex-1 border-t" />
+            </div>
+
+            {/* Saved cards (UZCARD / HUMO via Payme). */}
+            {cardsLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-9 w-full" />
                 <Skeleton className="h-9 w-full" />
               </div>
-            </div>
-          ) : cards.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-              <div className="bg-primary/10 text-primary mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
-                <CreditCard size={24} />
-              </div>
-              <h4 className="text-text-main text-[15px] font-semibold">
-                {t('noPaymentCards')}
-              </h4>
-              <p className="text-text-muted mt-1.5 max-w-xs text-[12px] leading-relaxed">
-                {t('addCardFirst')}
-              </p>
-              <Button
-                onClick={() => setAddCardOpen(true)}
-                className="bg-primary hover:bg-primary/90 mt-5 h-9 rounded-lg px-5 text-[13px] font-semibold text-white shadow-sm"
-              >
-                <Plus size={15} />
-                {t('addCard')}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-5 p-6">
-              <div className="space-y-1.5">
-                <label className="text-text-muted text-[12px] font-medium">
-                  {t('amount')}
-                </label>
-                <div className="relative">
-                  <span className="text-text-muted absolute top-1/2 left-3 -translate-y-1/2 text-[14px] font-semibold">
-                    $
-                  </span>
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="0.00"
-                    value={amountUsd}
-                    onChange={(e) => setAmountUsd(sanitizeUsd(e.target.value))}
-                    className="bg-bg-sidebar border-border-subtle h-10 pr-14 pl-7 text-[13px]"
-                  />
-                  <span className="text-text-muted absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-semibold tracking-wider uppercase">
-                    usd
-                  </span>
-                </div>
-                {/* UZS equivalent that will actually be charged */}
-                <p className="text-text-muted text-[11px]">
-                  {usdRate ? (
-                    <>
-                      ≈{" "}
-                      <span className="text-text-main font-semibold">
-                        {formatAmount(amountUzs)} UZS
-                      </span>{" "}
-                      will be charged
-                    </>
-                  ) : (
-                    "Loading exchange rate…"
-                  )}
+            ) : cards.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-4 text-center">
+                <p className="text-text-muted max-w-xs text-[12px] leading-relaxed">
+                  {t('addCardFirst')}
                 </p>
+                <Button
+                  onClick={() => setAddCardOpen(true)}
+                  variant="ghost"
+                  className="mt-3 h-9 rounded-lg px-4 text-[13px] font-semibold"
+                >
+                  <Plus size={15} />
+                  {t('addCard')}
+                </Button>
               </div>
-
+            ) : (
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <label className="text-text-muted text-[12px] font-medium">
@@ -318,8 +357,8 @@ export const TopUpModal = ({
                   })}
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="border-border-subtle flex items-center justify-end gap-2 border-t px-6 py-4">
             <Button
