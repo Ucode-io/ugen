@@ -2,7 +2,7 @@ import { previewOptimizationsEnabled } from "./preview-flags";
 
 // Include this in preview build cache keys. Bump it whenever the generated
 // iframe runtime changes so long-lived tabs cannot reuse stale srcDoc HTML.
-export const PREVIEW_RUNTIME_VERSION = "14";
+export const PREVIEW_RUNTIME_VERSION = "15";
 
 const TAILWIND_PLAY_RUNTIME_URL = "/tailwind-play-3.4.17.js";
 // Tailwind v4 projects are CSS-first: their theme lives in the stylesheet via
@@ -624,6 +624,12 @@ export function generatePreviewHtml(
     } catch (e) {
       console.warn("Failed to parse tailwind.config.js:", e);
     }
+  } else {
+    // Without a config the v3 Play runtime has no theme, so every themed
+    // utility dies with "The `border-border` class does not exist".
+    console.warn(
+      "[preview] no tailwind.config.js among project files — themed utilities (@apply border-border) will not compile",
+    );
   }
 
   // Pick the Tailwind runtime by project: v4 (CSS-first @theme/@utility) loads the
