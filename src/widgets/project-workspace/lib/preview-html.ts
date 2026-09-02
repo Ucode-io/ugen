@@ -594,13 +594,27 @@ export function generatePreviewHtml(
       // Убираем export default и require() — выполняем как выражение
       const configStr = tailwindConfigFile.content
         .replace(/\/\*[\s\S]*?\*\//g, "") // убираем JSDoc комментарии
+        // ESM-импорты плагинов (`import tailwindAnimate from 'tailwindcss-animate'`)
+        // — синтаксическая ошибка внутри new Function, из-за неё весь конфиг падал
+        // в {} и любой @apply по теме (border-border) не компилировался.
+        .replace(/^\s*import\s+[^;]*?["'][^"']+["'];?\s*$/gm, "")
         .replace(/export\s+default\s+/, "") // убираем export default
         .replace(/require\([^)]+\)/g, "{}") // убираем require()
         .trim()
         .replace(/;$/, ""); // убираем точку с запятой в конце
 
-      // Выполняем как выражение и получаем объект
-      const configObj = new Function(`return ${configStr}`)();
+      // Выполняем как выражение и получаем объект. `with` над Proxy отдаёт
+      // undefined вместо ReferenceError на ссылки из вырезанных импортов
+      // (`plugins: [tailwindAnimate]`) — plugins всё равно удаляются ниже.
+      const configObj = new Function(
+        "__missing",
+        `with (__missing) { return ${configStr} }`,
+      )(
+        new Proxy(
+          {},
+          { has: (_t, k) => !(k in globalThis), get: () => undefined },
+        ),
+      );
 
       // Убираем plugins — они не работают в браузере
       delete configObj.plugins;
